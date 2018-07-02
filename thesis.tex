@@ -1,0 +1,143 @@
+%% 12pt font size, PhD thesis, LFCS, print twosided, new chapters on right page
+\documentclass[12pt,phd,lfcs,twoside,openright,logo,rightchapter,normalheadings]{infthesis}
+\shieldtype{0}
+
+%% Packages
+\usepackage[utf8]{inputenc}   % Enable UTF-8 typing
+\usepackage[british]{babel}   % British English
+\usepackage[breaklinks]{hyperref} % Interactive PDF
+\usepackage{url}
+\usepackage{breakurl}
+\usepackage{amsmath}          % Mathematics library
+\usepackage{amssymb}          % Provides math fonts
+\usepackage{amsthm}           % Provides \newtheorem, \theoremstyle, etc.
+\usepackage{mathtools}
+\usepackage{pkgs/mathpartir}  % Inference rules
+\usepackage{stmaryrd}         % semantic brackets
+\usepackage{array}
+\usepackage{float}            % Float control
+\usepackage{caption,subcaption}  % Sub figures support
+\usepackage[T1]{fontenc}      % Fixes font issues
+\usepackage{lmodern}
+\usepackage{enumerate}        % Customise enumerate-environments
+\usepackage{xcolor}           % Colours
+\usepackage{tikz}
+\usetikzlibrary{fit,calc,trees,positioning,arrows,chains,shapes.geometric,%
+    decorations.pathreplacing,decorations.pathmorphing,shapes,%
+    matrix,shapes.symbols,intersections}
+
+%% Information about the title, etc.
+\title{Daniel's PhD Thesis}
+\author{Daniel Hillerström}
+
+%% If the year of submission is not the current year, uncomment this line and 
+%% specify it here:
+\submityear{2020}
+
+%% Specify the abstract here.
+\abstract{%
+  An abstract\dots
+}
+
+%% Now we start with the actual document.
+\begin{document}
+\raggedbottom
+%% First, the preliminary pages
+\begin{preliminary}
+
+%% This creates the title page
+\maketitle
+
+%% Acknowledgements
+\begin{acknowledgements}
+  List of people to thank
+  \begin{itemize}
+    \item Sam Lindley
+    \item John Longley
+    \item Christophe Dubach
+    \item KC Sivaramakrishnan
+    \item Stephen Dolan
+    \item Anil Madhavapeddy
+    \item Gemma Gordon
+    \item Leo White
+    \item Andreas Rossberg
+    \item Robert Atkey
+    \item Jeremy Yallop
+    \item Simon Fowler
+    \item Craig McLaughlin
+    \item Garrett Morris
+    \item James McKinna
+    \item Brian Campbell
+    \item Paul Piho
+    \item Amna Shahab
+    \item Gordon Plotkin
+    \item Ohad Kammar
+    \item School of Informatics (funding)
+    \item Google
+  \end{itemize}
+\end{acknowledgements}
+
+%% Next we need to have the declaration.
+%\standarddeclaration
+   \begin{declaration}
+     I declare that this thesis was composed by myself, that the work
+     contained herein is my own except where explicitly stated
+     otherwise in the text, and that this work has not been submitted
+     for any other degree or professional qualification except as
+     specified.
+   \end{declaration}
+
+%% Finally, a dedication (this is optional -- uncomment the following line if
+%% you want one).
+% \dedication{To my mummy.}
+\dedication{To everyone}
+
+% \begin{preface}
+% A preface will possibly appear here\dots
+% \end{preface}
+
+%% Create the table of contents
+\setcounter{secnumdepth}{2} % Numbering on sections and subsections
+\setcounter{tocdepth}{1} % Show chapters, sections and subsections in TOC
+%\singlespace
+\tableofcontents
+%\doublespace
+
+%% If you want a list of figures or tables, uncomment the appropriate line(s)
+% \listoffigures
+% \listoftables
+\end{preliminary}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%          Main content         %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%
+%% Introduction
+%%
+\chapter{Introduction}
+\label{ch:introduction}
+An enthralling introduction\dots
+
+\chapter{Conclusions}
+\label{ch:conclusions}
+Some profound conclusions\dots
+
+%%
+%% Appendices
+%%
+% \appendix
+% \chapter{Installing the Links compiler}
+% \label{ch:install}
+
+%% If you want the bibliography single-spaced (which is allowed), uncomment
+%% the next line.
+%\nocite{*}
+\singlespace
+\nocite{*}
+%\printbibliography[heading=bibintoc]
+\bibliographystyle{unsrt}
+\bibliography{\jobname}
+
+%% ... that's all, folks!
+\end{document}

@@ -1,0 +1,28 @@
+\def\fileversion{2e}
+\def\filedate{98/11/04}
+\NeedsTeXFormat{LaTeX2e}
+
+\ProvidesPackage{mathwidth}[{%
+  \filedate\space\fileversion\space mathwidth package}]
+
+\@ifpackageloaded{lucbr}{}{%
+  \DeclareMathVersion{hask}
+  \SetMathAlphabet{\mathrm}{hask}{\encodingdefault}{\rmdefault}{m}{n}%
+  \SetMathAlphabet{\mathbf}{hask}{\encodingdefault}{\rmdefault}{bx}{n}%
+  \SetMathAlphabet{\mathsf}{hask}{\encodingdefault}{\sfdefault}{m}{n}%
+  \DeclareSymbolFont{italics}{\encodingdefault}{\rmdefault}{m}{it}%
+  \DeclareSymbolFontAlphabet{\mathrm}{operators}
+  \DeclareSymbolFontAlphabet{\mathit}{letters}
+  \DeclareSymbolFontAlphabet{\mathcal}{symbols}
+  \DeclareSymbolFontAlphabet{\haskit}{italics}
+  \mathversion{hask}
+  }
+
+% This next bit looks remarkably similar to part of zed.sty.  It's used
+% to change the spacing so that identifiers look nicer...
+\def\@setmcodes#1#2#3{{\count0=#1 \count1=#3
+    \loop \global\mathcode\count0=\count1 \ifnum \count0<#2
+    \advance\count0 by1 \advance\count1 by1 \repeat}}
+\@setmcodes{`A}{`Z}{"7\hexnumber@\symitalics41}
+\@setmcodes{`a}{`z}{"7\hexnumber@\symitalics61}
+

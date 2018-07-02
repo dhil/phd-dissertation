@@ -1,0 +1,728 @@
+
+
+# Daniel's master's thesis (initial implementation of handlers in Links)
+@MastersThesis{Hillerstrom15,
+    author     =     {Daniel Hillerström},
+    title      =     {Handlers for Algebraic Effects in {Links}},
+    school     =     {School of Informatics, the University of Edinburgh},
+    address    =     {Scotland},
+    month      =     aug,
+    year       =     2015
+}
+
+# Daniel's master's thesis (abstract message-passing concurrency model, compilation of handlers)
+@MastersThesis{Hillerstrom16,
+    author     =     {Daniel Hillerström},
+    title      =     {Compilation of Effect Handlers and their Applications in Concurrency},
+    school     =     {School of Informatics, the University of Edinburgh},
+    address    =     {Scotland},
+    optmonth      =     aug,
+    year       =     2016,
+}
+
+# OCaml handlers
+@misc{DolanWSYM15,
+  title = {Effective Concurrency through Algebraic Effects},
+  author = {Stephen Dolan and Leo White and {KC} Sivaramakrishnan and Jeremy Yallop and Anil Madhavapeddy},
+  year = 2015,
+  howpublished = {OCaml Workshop}
+}
+
+@misc{DolanWM14,
+  title = {Multicore {OCaml}},
+  author = {Stephen Dolan and Leo White and Anil Madhavapeddy},
+  year  = {2014},
+  howpublished = {OCaml Workshop}
+}
+
+@inproceedings{DolanEHMSW17,
+  author    = {Stephen Dolan and
+               Spiros Eliopoulos and
+               Daniel Hillerstr{\"{o}}m and
+               Anil Madhavapeddy and
+               K. C. Sivaramakrishnan and
+               Leo White},
+  title     = {Concurrent System Programming with Effect Handlers},
+  booktitle = {{TFP}},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {10788},
+  pages     = {98--117},
+  publisher = {Springer},
+  year      = {2017}
+}
+
+# Efficient one-shot continuations
+@inproceedings{BruggemanWD96,
+  author    = {Carl Bruggeman and
+               Oscar Waddell and
+               R. Kent Dybvig},
+  editor    = {Charles N. Fischer},
+  title     = {Representing Control in the Presence of One-Shot Continuations},
+  booktitle = {Proceedings of the {ACM} SIGPLAN'96 Conference on Programming Language
+               Design and Implementation (PLDI), Philadephia, Pennsylvania, May 21-24,
+               1996},
+  pages     = {99--107},
+  publisher = {{ACM}},
+  year      = {1996},
+  OPTurl       = {http://doi.acm.org/10.1145/231379.231395},
+  OPTdoi       = {10.1145/231379.231395},
+  timestamp = {Mon, 21 May 2012 16:19:53 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/pldi/BruggemanWD96},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+# Links compiler + Multicore OCaml
+@Misc{HillerstromLS16,
+  author = {Daniel Hillerström and Sam Lindley and KC Sivaramakrishnan},
+  title  = {Compiling {Links} Effect Handlers to the {OCaml} Backend},
+  year   = {2016},
+  optmonth  = sep,
+  howpublished = {{ML Workshop}}
+}
+
+# Core references on handlers
+@article{PlotkinP13,
+  author    = {Gordon D. Plotkin and
+               Matija Pretnar},
+  title     = {Handling Algebraic Effects},
+  journal   = {Logical Methods in Computer Science},
+  volume    = {9},
+  number    = {4},
+  year      = {2013},
+  OPTurl       = {http://dx.doi.org/10.2168/LMCS-9(4:23)2013},
+  OPTdoi       = {10.2168/LMCS-9(4:23)2013},
+  timestamp = {Thu, 31 Aug 4448958 16:06:56 +},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/journals/corr/PlotkinP13},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@article{PlotkinP03,
+  author    = {Gordon D. Plotkin and
+               John Power},
+  title     = {Algebraic Operations and Generic Effects},
+  journal   = {Applied Categorical Structures},
+  volume    = {11},
+  number    = {1},
+  pages     = {69--94},
+  year      = {2003},
+  OPTurl       = {http://dx.doi.org/10.1023/A:1023064908962},
+  OPTdoi       = {10.1023/A:1023064908962},
+  timestamp = {Mon, 29 May 2006 12:06:44 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/journals/acs/PlotkinP03},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@inproceedings{PlotkinP01,
+  author    = {Gordon D. Plotkin and
+               John Power},
+  title     = {Adequacy for Algebraic Effects},
+  booktitle = {FoSSaCS},
+  OPTseries    = {Lecture Notes in Computer Science},
+  series    = {LNCS},
+  volume    = {2030},
+  pages     = {1--24},
+  publisher = {Springer},
+  year      = {2001}
+}
+
+# Other algebraic effects and handlers
+@InProceedings{Lindley14,
+  author    = {Sam Lindley},
+  editor    = {Jos{\'{e}} Pedro Magalh{\~{a}}es and
+               Tiark Rompf},
+  title     = {Algebraic effects and effect handlers for idioms and arrows},
+  booktitle = {Proceedings of the 10th {ACM} {SIGPLAN} workshop on Generic programming,
+               {WGP} 2014, Gothenburg, Sweden, August 31, 2014},
+  pages     = {47--58},
+  publisher = {{ACM}},
+  year      = {2014},
+  OPTurl       = {http://doi.acm.org/10.1145/2633628.2633636},
+  OPTdoi       = {10.1145/2633628.2633636},
+  timestamp = {Thu, 25 Jun 2015 13:50:37 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/icfp/Lindley14},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@article{Pretnar15,
+  author    = {Matija Pretnar},
+  title     = {An Introduction to Algebraic Effects and Handlers},
+  journal   = {Electr. Notes Theor. Comput. Sci.},
+  volume    = {319},
+  pages     = {19--35},
+  year      = {2015},
+  note      = {Invited tutorial paper}
+}
+
+@article{KammarP17,
+  author = {Ohad Kammar and Matija Pretnar},
+  title  = {No value restriction is needed for algebraic effects and handlers},
+  journal = {Journal of Functional Programming},
+  year    = 2017,
+  OPTdoi = {https://doi.org/10.1017/S0956796816000320},
+  volume = 27
+}
+
+@article{ForsterKLP17,
+  author    = {Yannick Forster and
+               Ohad Kammar and
+               Sam Lindley and
+               Matija Pretnar},
+  title     = {On the Expressive Power of User-Defined Effects: Effect Handlers,
+               Monadic Reflection, Delimited Control},
+  journal   = {Proc. ACM Program. Lang.},
+  volume    = {1},
+  number    = {ICFP},
+  articleno = {13},
+  numpages  = {29},
+  month     = sep,
+  year      = {2017}
+}
+
+# Eff
+@article{BauerP15,
+  author    = {Andrej Bauer and
+               Matija Pretnar},
+  title     = {Programming with algebraic effects and handlers},
+  journal   = {J. Log. Algebr. Meth. Program.},
+  volume    = {84},
+  number    = {1},
+  pages     = {108--123},
+  year      = {2015}
+}
+
+# Idris
+@inproceedings{Brady13,
+  author    = {Edwin Brady},
+  title     = {Programming and reasoning with algebraic effects and dependent types},
+  booktitle = {{ICFP}},
+  pages     = {133--144},
+  publisher = {{ACM}},
+  year      = {2013}
+}
+
+@inproceedings{Brady14,
+  author    = {Edwin Brady},
+  title     = {Resource-Dependent Algebraic Effects},
+  booktitle = {Trends in Functional Programming},
+  OPTseries    = {Lecture Notes in Computer Science},
+  series    = {LNCS},
+  volume    = {8843},
+  pages     = {18--33},
+  publisher = {Springer},
+  year      = {2014}
+}
+
+# Leo's HOPE talk
+@misc{White16,
+  author = {Leo White},
+  title  = {Effective programming: bringing algebraic effects and handlers to {OCaml}},
+  year   = 2016,
+  optmonth  = sep,
+  howpublished = {Keynote at {HOPE}, Nara, Japan}
+}
+
+# Implementation of effect handlers in Links
+@inproceedings{HillerstromL16,
+  author    = {Daniel Hillerstr{\"{o}}m and
+               Sam Lindley},
+  title     = {Liberating effects with rows and handlers},
+  booktitle = {TyDe@ICFP},
+  pages     = {15--27},
+  publisher = {{ACM}},
+  year      = {2016}
+}
+
+# Frank
+@inproceedings{LindleyMM17,
+  author    = {Sam Lindley and
+               Conor McBride and
+               Craig McLaughlin},
+  title     = {Do be do be do},
+  booktitle = {{POPL}},
+  pages     = {500--514},
+  publisher = {{ACM}},
+  year      = {2017}
+}
+
+# Shonky
+@misc{McBride16,
+  title={Shonky},
+  author={Conor McBride},
+  year=2016,
+  note={\url{https://github.com/pigworker/shonky}}
+}
+
+# Koka
+@inproceedings{Leijen14,
+  author    = {Daan Leijen},
+  title     = {{Koka}: Programming with Row Polymorphic Effect Types},
+  booktitle = {{MSFP}},
+  series    = {{EPTCS}},
+  volume    = {153},
+  pages     = {100--126},
+  year      = {2014}
+}
+
+@inproceedings{Leijen17,
+  author    = {Daan Leijen},
+  title     = {Type directed compilation of row-typed algebraic effects},
+  booktitle = {{POPL}},
+  pages     = {486--499},
+  publisher = {{ACM}},
+  year      = {2017}
+}
+
+# Haskell implementations
+@inproceedings{KiselyovSS13,
+  author    = {Oleg Kiselyov and
+               Amr Sabry and
+               Cameron Swords},
+  title     = {Extensible effects: an alternative to monad transformers},
+  booktitle = {Haskell},
+  pages     = {59--70},
+  publisher = {{ACM}},
+  year      = {2013}
+}
+
+@inproceedings{KiselyovI15,
+  author    = {Oleg Kiselyov and
+               Hiromi Ishii},
+  title     = {Freer monads, more extensible effects},
+  booktitle = {Haskell},
+  pages     = {94--105},
+  publisher = {{ACM}},
+  year      = {2015}
+}
+
+
+@inproceedings{KammarLO13,
+  author    = {Ohad Kammar and
+               Sam Lindley and
+               Nicolas Oury},
+  title     = {Handlers in action},
+  booktitle = {{ICFP}},
+  pages     = {145--158},
+  publisher = {{ACM}},
+  year      = {2013}
+}
+
+@inproceedings{WuSH14,
+  author    = {Nicolas Wu and
+               Tom Schrijvers and
+               Ralf Hinze},
+  editor    = {Wouter Swierstra},
+  title     = {Effect handlers in scope},
+  booktitle = {Proceedings of the 2014 {ACM} {SIGPLAN} symposium on Haskell, Gothenburg,
+               Sweden, September 4-5, 2014},
+  pages     = {1--12},
+  publisher = {{ACM}},
+  year      = {2014},
+  url       = {http://doi.acm.org/10.1145/2633357.2633358},
+  doi       = {10.1145/2633357.2633358},
+  timestamp = {Mon, 08 Sep 2014 16:12:17 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/haskell/WuSH14},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+@inproceedings{WuS15,
+  author    = {Nicolas Wu and
+               Tom Schrijvers},
+  title     = {Fusion for Free - Efficient Algebraic Effect Handlers},
+  booktitle = {{MPC}},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {9129},
+  pages     = {302--322},
+  publisher = {Springer},
+  year      = {2015}
+}
+
+
+# Prolog
+@article{SchrijversDDW13,
+  author    = {Tom Schrijvers and
+               Bart Demoen and
+               Benoit Desouter and
+               Jan Wielemaker},
+  title     = {Delimited continuations for {Prolog}},
+  journal   = {{TPLP}},
+  volume    = {13},
+  number    = {4-5},
+  pages     = {533--546},
+  year      = {2013}
+}
+
+@article{SalehS16,
+  author    = {Amr Hany Saleh and
+               Tom Schrijvers},
+  title     = {Efficient Algebraic Effect Handlers for {Prolog}},
+  journal   = {{TPLP}},
+  year      = {2016},
+  note = {Proceedings of {ICLP}}
+}
+
+# References on Links
+@inproceedings{CooperLWY06,
+  author    = {Ezra Cooper and
+               Sam Lindley and
+               Philip Wadler and
+               Jeremy Yallop},
+  title     = {Links: Web Programming Without Tiers},
+  booktitle = {{FMCO}},
+  OPTseries    = {Lecture Notes in Computer Science},
+  series    = {LNCS},
+  volume    = {4709},
+  pages     = {266--296},
+  publisher = {Springer},
+  year      = {2006}
+}
+
+@inproceedings{LindleyC12,
+  author    = {Sam Lindley and
+               James Cheney},
+  title     = {Row-based effect types for database integration},
+  booktitle = {{TLDI}},
+  pages     = {91--102},
+  publisher = {{ACM}},
+  year      = {2012}
+}
+
+# Monads
+@article{Atkey09,
+  author    = {Robert Atkey},
+  title     = {Parameterised notions of computation},
+  journal   = {Journal of Functional Programming},
+  volume    = {19},
+  number    = {3-4},
+  pages     = {335--376},
+  year      = {2009}
+}
+
+@inproceedings{Moggi89,
+  author    = {Eugenio Moggi},
+  title     = {Computational Lambda-Calculus and Monads},
+  booktitle = {{LICS}},
+  pages     = {14--23},
+  publisher = {{IEEE} Computer Society},
+  year      = {1989}
+}
+
+@article{Moggi91,
+  author    = {Eugenio Moggi},
+  title     = {Notions of Computation and Monads},
+  journal   = {Inf. Comput.},
+  volume    = {93},
+  number    = {1},
+  pages     = {55--92},
+  year      = {1991}
+}
+
+@inproceedings{Wadler92,
+  author    = {Philip Wadler},
+  title     = {The Essence of Functional Programming},
+  booktitle = {{POPL}},
+  pages     = {1--14},
+  publisher = {{ACM}},
+  year      = {1992}
+}
+
+@inproceedings{Wadler95,
+  author    = {Philip Wadler},
+  title     = {Monads for Functional Programming},
+  booktitle = {Advanced Functional Programming},
+  OPTseries    = {Lecture Notes in Computer Science},
+  series    = {LNCS},
+  volume    = {925},
+  pages     = {24--52},
+  publisher = {Springer},
+  year      = {1995}
+}
+
+@article{Swierstra08,
+  author    = {Wouter Swierstra},
+  title     = {Data types {\`{a}} la carte},
+  journal   = {Journal of Functional Programming},
+  volume    = {18},
+  number    = {4},
+  pages     = {423--436},
+  year      = {2008}
+}
+
+# WebAssembly
+@misc{HaasRSTGWBH17,
+  author = {Andreas Haas and Andreas Rossberg and Ben L. Titzer and Dan Gohman and Luke Wagner and JF Bastien and Michael Holman},
+  title  = {Bringing the {Web} up to Speed with {WebAssembly}},
+  year   = 2017,
+  note   = {Draft},
+  howpublished = {\url{https://people.mpi-sws.org/~rossberg/papers/Haas, Rossberg, Schuff, Titzer, Gohman, Wagner, Bastien, Holman - Bringing the Web up to Speed with WebAssembly [Draft].pdf}}
+}
+
+# ECMAScript
+@misc{EMCA15,
+  author = {{Ecma International}},
+  title  = {{ECMAScript} 2015 Language Specification},
+  year = 2015,
+  url = {http://www.ecma-international.org/ecma-262/6.0/index.html}
+}
+
+@misc{EMCA17,
+  author = {{Emca International}},
+  title  = {{ECMAScript} 2017 Language Specification},
+  year = 2017,
+  url = {https://tc39.github.io/ecma262/}
+}
+
+# Hop.js
+@inproceedings{SerranoP16,
+  author    = {Manuel Serrano and
+               Vincent Prunet},
+  title     = {A glimpse of Hopjs},
+  booktitle = {{ICFP}},
+  pages     = {180--192},
+  publisher = {{ACM}},
+  year      = {2016}
+}
+
+# A-normal form
+@inproceedings{FlanaganSDF93,
+  author    = {Cormac Flanagan and
+               Amr Sabry and
+               Bruce F. Duba and
+               Matthias Felleisen},
+  title     = {The Essence of Compiling with Continuations},
+  booktitle = {{PLDI}},
+  pages     = {237--247},
+  publisher = {{ACM}},
+  year      = {1993}
+}
+
+@inproceedings{SabryW96,
+  author    = {Amr Sabry and
+               Philip Wadler},
+  editor    = {Robert Harper and
+               Richard L. Wexelblat},
+  title     = {A Reflection on Call-by-Value},
+  booktitle = {Proceedings of the 1996 {ACM} {SIGPLAN} International Conference on
+               Functional Programming {(ICFP} '96), Philadelphia, Pennsylvania, May
+               24-26, 1996.},
+  pages     = {13--24},
+  publisher = {{ACM}},
+  year      = {1996},
+  OPTurl       = {http://doi.acm.org/10.1145/232627.232631},
+  OPTdoi       = {10.1145/232627.232631},
+  timestamp = {Tue, 11 Jun 2013 13:54:16 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/icfp/SabryW96},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+# fine-grained call-by-value
+@article{LevyPT03,
+  author    = {Paul Blain Levy and
+               John Power and
+               Hayo Thielecke},
+  title     = {Modelling environments in call-by-value programming languages},
+  journal   = {Inf. Comput.},
+  volume    = {185},
+  number    = {2},
+  pages     = {182--210},
+  year      = {2003}
+}
+
+# CPS
+@article{Plotkin75,
+  author    = {Gordon D. Plotkin},
+  title     = {Call-by-Name, Call-by-Value and the lambda-Calculus},
+  journal   = {Theor. Comput. Sci.},
+  volume    = {1},
+  number    = {2},
+  pages     = {125--159},
+  year      = {1975}
+}
+
+@inproceedings{DanvyF90,
+  author    = {Olivier Danvy and
+               Andrzej Filinski},
+  title     = {Abstracting Control},
+  booktitle = {{LISP} and Functional Programming},
+  pages     = {151--160},
+  year      = {1990}
+}
+
+@book{Appel92,
+  author    = {Andrew W. Appel},
+  title     = {Compiling with Continuations},
+  publisher = {Cambridge University Press},
+  year      = {1992}
+}
+
+@article{DanvyN03,
+  author    = {Olivier Danvy and
+               Lasse R. Nielsen},
+  title     = {A first-order one-pass {CPS} transformation},
+  journal   = {Theor. Comput. Sci.},
+  volume    = {308},
+  number    = {1-3},
+  pages     = {239--257},
+  year      = {2003}
+}
+
+@inproceedings{Kennedy07,
+  author    = {Andrew Kennedy},
+  title     = {Compiling with continuations, continued},
+  booktitle = {{ICFP}},
+  pages     = {177--190},
+  publisher = {{ACM}},
+  year      = {2007}
+}
+
+@inproceedings{MaterzokB11,
+  author    = {Marek Materzok and
+               Dariusz Biernacki},
+  title     = {Subtyping delimited continuations},
+  booktitle = {{ICFP}},
+  pages     = {81--93},
+  publisher = {{ACM}},
+  year      = {2011}
+}
+
+@inproceedings{MaterzokB12,
+  author    = {Marek Materzok and
+               Dariusz Biernacki},
+  title     = {A Dynamic Interpretation of the {CPS} Hierarchy},
+  booktitle = {{APLAS}},
+  OPTseries    = {Lecture Notes in Computer Science},
+  series    = {LNCS},
+  volume    = {7705},
+  pages     = {296--311},
+  publisher = {Springer},
+  year      = {2012}
+}
+
+@Misc{KiselyovS16,
+  author = {Oleg Kiselyov and KC Sivaramakrishnan},
+  title  = {Eff directly in {OCaml}},
+  year   = {2016},
+  optmonth  = sep,
+  howpublished = {{ML Workshop}}
+}
+
+% fancy row typing systems that support shapes
+@inproceedings{BerthomieuS95,
+  author = {Bernard Berthomieu and Camille le Moniès de Sagazan},
+  title = {A Calculus of Tagged Types, with applications to process languages},
+  booktitle = {Workshop on Types for Program Analysis},
+  year = 1995,
+}
+
+@techreport{Remy93,
+  title = {{Syntactic theories and the algebra of record terms}},
+  author = {Didier Remy},
+  number = {RR-1869},
+  institution = {{INRIA}},
+  year = {1993},
+}
+
+
+
+@article{Huet97,
+  author    = {G{\'{e}}rard P. Huet},
+  title     = {The Zipper},
+  journal   = {J. Funct. Program.},
+  volume    = {7},
+  number    = {5},
+  pages     = {549--554},
+  year      = {1997},
+  OPTurl       = {http://journals.cambridge.org/action/displayAbstract?aid=44121},
+  timestamp = {Fri, 10 Jun 2011 14:42:10 +0200},
+  biburl    = {http://dblp.uni-trier.de/rec/bib/journals/jfp/Huet97},
+  bibsource = {dblp computer science bibliography, http://dblp.org}
+}
+
+
+
+
+@article{Hughes00,
+  author    = {John Hughes},
+  title     = {Generalising monads to arrows},
+  journal   = {Sci. Comput. Program.},
+  volume    = {37},
+  number    = {1-3},
+  pages     = {67--111},
+  year      = {2000}
+}
+
+
+
+% CPS for effect handlers
+@inproceedings{HillerstromLAS17,
+  author    = {Daniel Hillerstr{\"{o}}m and
+               Sam Lindley and
+               Robert Atkey and
+               K. C. Sivaramakrishnan},
+  title     = {Continuation Passing Style for Effect Handlers},
+  booktitle = {{FSCD}},
+  series    = {LIPIcs},
+  volume    = {84},
+  pages     = {18:1--18:19},
+  OPTpublisher = {Schloss Dagstuhl - Leibniz-Zentrum fuer Informatik},
+  year      = {2017}
+}
+
+% CEK
+@InProceedings{FelleisenF86,
+  title={Control Operators, the {SECD}-machine, and the $\lambda$-Calculus},
+  author={Felleisen, Matthias and Friedman, Daniel P.},
+  year=1987,
+  booktitle = {Formal Description of Programming Concepts III},
+  OPTbooktitle = {The Proceedings of the Conference on Formal Description of Programming Concepts III, Ebberup, Denmark},
+  pages     = {193--217},
+  OPTpublisher={North Holland}
+}
+
+@article{BiernackiPPS18,
+  author    = {Dariusz Biernacki and
+               Maciej Pir{\'{o}}g and
+               Piotr Polesiuk and
+               Filip Sieczkowski},
+  title     = {Handle with care: relational interpretation of algebraic effects and
+               handlers},
+  journal   = {{PACMPL}},
+  volume    = {2},
+  number    = {{POPL}},
+  pages     = {8:1--8:30},
+  year      = {2018}
+}
+
+% explicit effect subtyping
+@inproceedings{SalehKPS18,
+  author    = {Amr Hany Saleh and
+               Georgios Karachalias and
+               Matija Pretnar and
+               Tom Schrijvers},
+  title     = {Explicit Effect Subtyping},
+  booktitle = {{ESOP}},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {10801},
+  pages     = {327--354},
+  publisher = {Springer},
+  year      = {2018}
+}
+
+# Pyro
+@Misc{Goodman17,
+  author = {Noah Goodman},
+  title  = {Uber {AI} {Labs} Open Sources {Pyro}, a Deep Probabilistic Programming Language},
+  month  = nov,
+  year   = 2017,
+  url    = {https://eng.uber.com/pyro/}
+}
+
+# Meta programming
+@article{Yallop17,
+  author    = {Jeremy Yallop},
+  title     = {Staged generic programming},
+  journal   = {{PACMPL}},
+  volume    = {1},
+  number    = {{ICFP}},
+  pages     = {29:1--29:29},
+  year      = {2017}
+}
