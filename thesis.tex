@@ -18,13 +18,25 @@
 \usepackage{float}            % Float control
 \usepackage{caption,subcaption}  % Sub figures support
 \usepackage[T1]{fontenc}      % Fixes font issues
-\usepackage{lmodern}
+\usepackage[activate={true,nocompatibility},final,tracking=true,kerning=true,spacing=true,factor=1100,stretch=10,shrink=10]{microtype}
 \usepackage{enumerate}        % Customise enumerate-environments
 \usepackage{xcolor}           % Colours
 \usepackage{tikz}
 \usetikzlibrary{fit,calc,trees,positioning,arrows,chains,shapes.geometric,%
     decorations.pathreplacing,decorations.pathmorphing,shapes,%
     matrix,shapes.symbols,intersections}
+
+\SetProtrusion{encoding={*},family={bch},series={*},size={6,7}}
+              {1={ ,750},2={ ,500},3={ ,500},4={ ,500},5={ ,500},
+               6={ ,500},7={ ,600},8={ ,500},9={ ,500},0={ ,500}}
+
+\SetExtraKerning[unit=space]
+    {encoding={*}, family={bch}, series={*}, size={footnotesize,small,normalsize}}
+    {\textendash={400,400}, % en-dash, add more space around it
+     "28={ ,150}, % left bracket, add space from right
+     "29={150, }, % right bracket, add space from left
+     \textquotedblleft={ ,150}, % left quotation mark, space from right
+     \textquotedblright={150, }} % right quotation mark, space from left
 
 %% Information about the title, etc.
 % \title{Higher-Order Theories of Handlers for Algebraic Effects}
