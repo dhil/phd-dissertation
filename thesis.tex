@@ -18,7 +18,15 @@
 \usepackage{float}            % Float control
 \usepackage{caption,subcaption}  % Sub figures support
 \usepackage[T1]{fontenc}      % Fixes font issues
-\usepackage[activate={true,nocompatibility},final,tracking=true,kerning=true,spacing=true,factor=1100,stretch=10,shrink=10]{microtype}
+% \usepackage{lmodern}
+\usepackage[activate=true,
+    final,
+    tracking=true,
+    kerning=true,
+    spacing=true,
+    factor=1100,
+    stretch=10,
+    shrink=10]{microtype}
 \usepackage{enumerate}        % Customise enumerate-environments
 \usepackage{xcolor}           % Colours
 \usepackage{tikz}
@@ -40,7 +48,11 @@
 
 %% Information about the title, etc.
 % \title{Higher-Order Theories of Handlers for Algebraic Effects}
-\title{Handlers for Algebraic Effects: Applications, Compilation, and Expressiveness}
+% \title{Handlers for Algebraic Effects: Applications, Compilation, and Expressiveness}
+% \title{Applications, Compilation, and Expressiveness for Effect Handlers}
+% \title{Handling Computational Effects}
+% \title{Programming Computable Effectful Functions}
+\title{Handling Effectful Computations}
 \author{Daniel Hillerström}
 
 %% If the year of submission is not the current year, uncomment this line and
@@ -87,6 +99,7 @@
     \item Ohad Kammar
     \item School of Informatics (funding)
     \item Google (Kevin Millikin, Dmitry Stefantsov)
+    \item Microsoft Research (Daan Leijen)
   \end{itemize}
 \end{acknowledgements}
 
@@ -103,7 +116,7 @@
 %% Finally, a dedication (this is optional -- uncomment the following line if
 %% you want one).
 % \dedication{To my mummy.}
-\dedication{\emph{To everyone}}
+\dedication{\emph{To be or to do}}
 
 % \begin{preface}
 % A preface will possibly appear here\dots
