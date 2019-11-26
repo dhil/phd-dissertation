@@ -244,3 +244,6 @@ TSWLatexianTemp*
 # ignore temporaries
 *~
 \#*
+
+# Do not add build target.
+thesis.pdf
