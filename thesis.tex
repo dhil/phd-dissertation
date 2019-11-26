@@ -1,5 +1,5 @@
 %% 12pt font size, PhD thesis, LFCS, print twosided, new chapters on right page
-\documentclass[12pt,phd,lfcs,twoside,openright,logo,leftchapter,normalheadings]{infthesis}
+\documentclass[11pt,phd,lfcs,twoside,openright,logo,leftchapter,normalheadings]{infthesis}
 \shieldtype{0}
 
 %% Packages
@@ -18,7 +18,7 @@
 \usepackage{float}            % Float control
 \usepackage{caption,subcaption}  % Sub figures support
 \usepackage[T1]{fontenc}      % Fixes font issues
-% \usepackage{lmodern}
+%\usepackage{lmodern}
 \usepackage[activate=true,
     final,
     tracking=true,
@@ -52,7 +52,8 @@
 % \title{Applications, Compilation, and Expressiveness for Effect Handlers}
 % \title{Handling Computational Effects}
 % \title{Programming Computable Effectful Functions}
-\title{Handling Effectful Computations}
+% \title{Handling Effectful Computations}
+\title{Foundations for Programming and Implementing Effect Handlers}
 \author{Daniel Hillerström}
 
 %% If the year of submission is not the current year, uncomment this line and
@@ -104,14 +105,13 @@
 \end{acknowledgements}
 
 %% Next we need to have the declaration.
-%\standarddeclaration
-   \begin{declaration}
-     I declare that this thesis was composed by myself, that the work
-     contained herein is my own except where explicitly stated
-     otherwise in the text, and that this work has not been submitted
-     for any other degree or professional qualification except as
-     specified.
-   \end{declaration}
+% \standarddeclaration
+\begin{declaration}
+  I declare that this thesis was composed by myself, that the work
+  contained herein is my own except where explicitly stated otherwise
+  in the text, and that this work has not been submitted for any other
+  degree or professional qualification except as specified.
+\end{declaration}
 
 %% Finally, a dedication (this is optional -- uncomment the following line if
 %% you want one).
@@ -156,43 +156,100 @@ Thesis outline\dots
 \section{Typographical conventions}
 Explain conventions\dots
 
-\chapter{Background}
-\label{ch:background}
+\part{Background}
+\label{p:background}
 
-\chapter{A Core Calculus of Handlers and Rows}
-\label{ch:language}
-\section{Syntax}
-\section{Static semantics}
-\section{Type and effect inference}
-\section{Dynamic semantics}
+\chapter{The State of Effectful Programming}
+\label{ch:related-work}
 
-\chapter{Operational Foundations for Effect Handlers}
-\label{ch:foundations}
-\section{First-order continuation-passing style for deep handlers}
-\section{Higher-order continuation-passing style for deep handlers}
-\section{Continuation-passing style for effect handlers via generalised continuations}
-\section{Abstract machine semantics for effect handlers via generalised continuations}
+\section{Type and Effect Systems}
+\section{Monadic Programming}
 
-
-\chapter{On the Expressive Power of Effect Handlers}
-\label{ch:expressiveness}
-\section{Notions of expressiveness}
-Felleisen's macro-expressiveness, Longley's type-respecting
-expressiveness, Kammar's typability-preserving expressiveness.
+\chapter{Continuations}
+\label{ch:continuations}
 
 \section{Zoo of Control Operators}
 Describe how effect handlers fit amongst shift/reset, prompt/control,
 callcc, J, catchcont, etc.
 
-\section{Interdefinability of deep and shallow handlers}
-\section{The false allure of parameterised handlers}
+\section{Implementation Strategies}
 
-\section{The fundamental efficiency of effect handlers}
 
-\chapter{The State of Effectful Programming}
-\label{ch:related-work}
+\part{Foundations for Implementing Effect Handlers}
 
-\chapter{Conclusions}
+\chapter{A ML-like Base Language}
+\section{Syntax and Static Semantics}
+\section{Type Inference}
+\section{Dynamic Semantics}
+\section{Continuation Passing Style}
+\section{Abstract Machine}
+
+\chapter{Unary Handlers}
+\label{ch:deep-handlers}
+
+\section{Deep Handlers}
+\subsection{Syntax and Static Semantics}
+\subsection{Effect inference}
+\subsection{Dynamic Semantics}
+\subsection{Continuation Passing Style}
+\subsection{Abstract Machine Semantics}
+
+\section{Parameterised Handlers}
+
+\section{Shallow Handlers}
+\label{ch:shallow-handlers}
+
+\subsection{Syntax and Static Semantics}
+\subsection{Dynamic Semantics}
+\subsection{Continuation Passing Style}
+\subsection{Abstract Machine Semantics}
+
+\chapter{Multi Handlers}
+\label{ch:multi-handlers}
+
+% \section{Syntax and Static Semantics}
+% \section{Dynamic Semantics}
+\section{Unifying Deep and Shallow Handlers}
+\section{Continuation Passing Style}
+\section{Abstract Machine Semantics}
+
+
+\part{Foundations for Programming Effect Handlers}
+\chapter{Computability, Complexity, and Expressivness}
+\label{ch:expressiveness}
+\section{Notions of Expressiveness}
+Felleisen's macro-expressiveness, Longley's type-respecting
+expressiveness, Kammar's typability-preserving expressiveness.
+
+\section{Interdefinability of Deep and Shallow Handlers}
+\section{Encoding Parameterised Handlers}
+
+\chapter{The Asymptotic Power of Control}
+\label{ch:handlers-efficiency}
+Describe the methodology\dots
+\section{Generic Search}
+\section{Calculi}
+\subsection{Base calculus}
+\subsection{Handler calculus}
+\section{A Practical Model of Computation}
+\subsection{Syntax}
+\subsection{Semantics}
+\subsection{Realisability}
+\section{Points, Predicates, and their Models}
+\section{Efficient Generic Search with Effect Handlers}
+\subsection{Space complexity}
+\section{Best-case Complexity of Generic Search without Control}
+\subsection{No shortcuts}
+\subsection{No sharing}
+
+\chapter{Robustness of the Asymptotic Power of Control}
+\section{Mutable State}
+\section{Exception Handling}
+\section{Effect System}
+
+\part{Conclusions}
+
+\chapter{Conclusions and Future Work}
 \label{ch:conclusions}
 Some profound conclusions\dots
 
