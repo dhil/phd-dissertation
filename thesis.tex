@@ -175,14 +175,12 @@ callcc, J, catchcont, etc.
 \section{Implementation Strategies}
 
 
-\part{Foundations for Implementing Effect Handlers}
+\part{Design}
 
 \chapter{A ML-like Base Language}
 \section{Syntax and Static Semantics}
 \section{Type Inference}
 \section{Dynamic Semantics}
-\section{Continuation Passing Style}
-\section{Abstract Machine}
 
 \chapter{Unary Handlers}
 \label{ch:deep-handlers}
@@ -191,8 +189,6 @@ callcc, J, catchcont, etc.
 \subsection{Syntax and Static Semantics}
 \subsection{Effect inference}
 \subsection{Dynamic Semantics}
-\subsection{Continuation Passing Style}
-\subsection{Abstract Machine Semantics}
 
 \section{Parameterised Handlers}
 
@@ -201,20 +197,20 @@ callcc, J, catchcont, etc.
 
 \subsection{Syntax and Static Semantics}
 \subsection{Dynamic Semantics}
-\subsection{Continuation Passing Style}
-\subsection{Abstract Machine Semantics}
 
-\chapter{Multi Handlers}
+\chapter{N-ary Handlers}
 \label{ch:multi-handlers}
 
 % \section{Syntax and Static Semantics}
 % \section{Dynamic Semantics}
 \section{Unifying Deep and Shallow Handlers}
-\section{Continuation Passing Style}
-\section{Abstract Machine Semantics}
 
+\part{Implementation}
 
-\part{Foundations for Programming Effect Handlers}
+\chapter{Continuation Passing Styles}
+\chapter{Abstract Machine Semantics}
+
+\part{Expressiveness}
 \chapter{Computability, Complexity, and Expressivness}
 \label{ch:expressiveness}
 \section{Notions of Expressiveness}
@@ -249,9 +245,12 @@ Describe the methodology\dots
 
 \part{Conclusions}
 
-\chapter{Conclusions and Future Work}
+\chapter{Conclusions}
 \label{ch:conclusions}
 Some profound conclusions\dots
+
+\chapter{Future Work}
+\label{ch:future-work}
 
 %%
 %% Appendices
