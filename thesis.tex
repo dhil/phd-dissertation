@@ -1,5 +1,5 @@
 %% 12pt font size, PhD thesis, LFCS, print twosided, new chapters on right page
-\documentclass[11pt,phd,lfcs,twoside,openright,logo,leftchapter,normalheadings]{infthesis}
+\documentclass[12pt,phd,lfcs,twoside,openright,logo,leftchapter,normalheadings]{infthesis}
 \shieldtype{0}
 
 %% Packages
@@ -29,6 +29,7 @@
     shrink=10]{microtype}
 \usepackage{enumerate}        % Customise enumerate-environments
 \usepackage{xcolor}           % Colours
+\usepackage{xspace}           % Smart spacing in commands.
 \usepackage{tikz}
 \usetikzlibrary{fit,calc,trees,positioning,arrows,chains,shapes.geometric,%
     decorations.pathreplacing,decorations.pathmorphing,shapes,%
@@ -45,6 +46,11 @@
      "29={150, }, % right bracket, add space from left
      \textquotedblleft={ ,150}, % left quotation mark, space from right
      \textquotedblright={150, }} % right quotation mark, space from left
+
+%%
+%% Load macros.
+%%
+\include{macros}
 
 %% Information about the title, etc.
 % \title{Higher-Order Theories of Handlers for Algebraic Effects}
@@ -159,89 +165,97 @@ Explain conventions\dots
 \part{Background}
 \label{p:background}
 
-\chapter{The State of Effectful Programming}
+\chapter{The state of effectful programming}
 \label{ch:related-work}
 
-\section{Type and Effect Systems}
-\section{Monadic Programming}
+\section{Type and effect systems}
+\section{Monadic programming}
 
 \chapter{Continuations}
 \label{ch:continuations}
 
-\section{Zoo of Control Operators}
+\section{Zoo of control operators}
 Describe how effect handlers fit amongst shift/reset, prompt/control,
 callcc, J, catchcont, etc.
 
-\section{Implementation Strategies}
+\section{Implementation strategies}
 
 
 \part{Design}
 
-\chapter{A ML-like Base Language}
-\section{Syntax and Static Semantics}
-\section{Type Inference}
-\section{Dynamic Semantics}
+\chapter{A ML-flavoured programming language}
+\label{ch:base-language}
 
-\chapter{Unary Handlers}
+In this chapter we introduce a core calculus, \BCalc, which we shall
+later use as the basis for exploration of design considerations for
+effect handlers. This calculus distils the functional core of the
+\Links programming language~\cite{CooperLWY06}, which is a
+ML-flavoured language for multi-tier web-programming.
+
+\section{Syntax and static semantics}
+\section{Type inference}
+\section{Dynamic semantics}
+
+\chapter{Unary handlers}
 \label{ch:deep-handlers}
 
-\section{Deep Handlers}
-\subsection{Syntax and Static Semantics}
+\section{Deep handlers}
+\subsection{Syntax and static semantics}
 \subsection{Effect inference}
-\subsection{Dynamic Semantics}
+\subsection{Dynamic semantics}
 
-\section{Parameterised Handlers}
+\section{Parameterised handlers}
 
-\section{Shallow Handlers}
+\section{Shallow handlers}
 \label{ch:shallow-handlers}
 
-\subsection{Syntax and Static Semantics}
-\subsection{Dynamic Semantics}
+\subsection{Syntax and static semantics}
+\subsection{Dynamic semantics}
 
-\chapter{N-ary Handlers}
+\chapter{N-ary handlers}
 \label{ch:multi-handlers}
 
 % \section{Syntax and Static Semantics}
 % \section{Dynamic Semantics}
-\section{Unifying Deep and Shallow Handlers}
+\section{Unifying deep and shallow handlers}
 
 \part{Implementation}
 
-\chapter{Continuation Passing Styles}
-\chapter{Abstract Machine Semantics}
+\chapter{Continuation passing styles}
+\chapter{Abstract machine semantics}
 
 \part{Expressiveness}
-\chapter{Computability, Complexity, and Expressivness}
+\chapter{Computability, complexity, and expressivness}
 \label{ch:expressiveness}
-\section{Notions of Expressiveness}
+\section{Notions of expressiveness}
 Felleisen's macro-expressiveness, Longley's type-respecting
 expressiveness, Kammar's typability-preserving expressiveness.
 
-\section{Interdefinability of Deep and Shallow Handlers}
-\section{Encoding Parameterised Handlers}
+\section{Interdefinability of deep and shallow Handlers}
+\section{Encoding parameterised handlers}
 
-\chapter{The Asymptotic Power of Control}
+\chapter{The asymptotic power of control}
 \label{ch:handlers-efficiency}
 Describe the methodology\dots
-\section{Generic Search}
+\section{Generic search}
 \section{Calculi}
 \subsection{Base calculus}
 \subsection{Handler calculus}
-\section{A Practical Model of Computation}
+\section{A practical model of computation}
 \subsection{Syntax}
 \subsection{Semantics}
 \subsection{Realisability}
-\section{Points, Predicates, and their Models}
-\section{Efficient Generic Search with Effect Handlers}
+\section{Points, predicates, and their models}
+\section{Efficient generic search with effect handlers}
 \subsection{Space complexity}
-\section{Best-case Complexity of Generic Search without Control}
+\section{Best-case complexity of generic search without control}
 \subsection{No shortcuts}
 \subsection{No sharing}
 
-\chapter{Robustness of the Asymptotic Power of Control}
-\section{Mutable State}
-\section{Exception Handling}
-\section{Effect System}
+\chapter{Robustness of the asymptotic power of control}
+\section{Mutable state}
+\section{Exception handling}
+\section{Effect system}
 
 \part{Conclusions}
 
