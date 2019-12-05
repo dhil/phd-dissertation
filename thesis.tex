@@ -7,6 +7,7 @@
 \usepackage[british]{babel}   % British English
 \usepackage[breaklinks]{hyperref} % Interactive PDF
 \usepackage{url}
+\usepackage[sort&compress,square,numbers]{natbib}    % Bibliography
 \usepackage{breakurl}
 \usepackage{amsmath}          % Mathematics library
 \usepackage{amssymb}          % Provides math fonts
@@ -50,7 +51,7 @@
 %%
 %% Load macros.
 %%
-\include{macros}
+\input{macros}
 
 %% Information about the title, etc.
 % \title{Higher-Order Theories of Handlers for Algebraic Effects}
@@ -186,11 +187,13 @@ callcc, J, catchcont, etc.
 \chapter{A ML-flavoured programming language}
 \label{ch:base-language}
 
-In this chapter we introduce a core calculus, \BCalc, which we shall
+In this chapter we introduce a core calculus, $\BCalc$, which we shall
 later use as the basis for exploration of design considerations for
-effect handlers. This calculus distils the functional core of the
-\Links programming language~\cite{CooperLWY06}, which is a
-ML-flavoured language for multi-tier web-programming.
+effect handlers. This calculus distils the `functional' essence of the
+ML-flavoured multi-tier web-programming language
+\Links~\cite{CooperLWY06}. As such $\BCalc$ may be regarded as a
+faithful model of a prototypical and practical functional programming
+language.
 
 \section{Syntax and static semantics}
 \section{Type inference}
@@ -275,9 +278,9 @@ Some profound conclusions\dots
 %% the next line.
 %\nocite{*}
 \singlespace
-\nocite{*}
+%\nocite{*}
 %\printbibliography[heading=bibintoc]
-\bibliographystyle{unsrt}
+\bibliographystyle{plainnat}
 \bibliography{\jobname}
 
 %% ... that's all, folks!
