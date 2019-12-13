@@ -187,20 +187,52 @@ callcc, J, catchcont, etc.
 \chapter{A ML-flavoured programming language}
 \label{ch:base-language}
 
-In this chapter we introduce a core calculus, $\BCalc$, which we shall
+In this chapter we introduce a core calculus, \BCalc{}, which we shall
 later use as the basis for exploration of design considerations for
-effect handlers. This calculus distils the `functional' essence of the
-ML-flavoured multi-tier web-programming language
-\Links~\cite{CooperLWY06}. As such $\BCalc$ may be regarded as a
-faithful model of a prototypical and practical functional programming
-language.
+effect handlers. This calculus is based on \CoreLinks{} by
+\citet{LindleyC12}, which distils the essence of the functional
+multi-tier web-programming language
+\Links{}~\cite{CooperLWY06}. \Links{} belongs to the
+ML-family~\cite{MilnerTHM97} of programming languages as it features
+typical characteristics of ML languages such as a static type system
+supporting parametric polymorphism and type inference, and its
+evaluation semantics is strict. However, \Links{} differentiates
+itself from the rest of the ML-family by making crucial use of
+\emph{row polymorphism} to support extensible records, variants, and
+tracking of computational effects. Thus \Links{} has a rather strong
+emphasis on structural types rather than nominal types.
+
+\CoreLinks{} captures all of these properties of \Links{}. Our
+calculus \BCalc{} differs in several aspects from \CoreLinks{}. For
+example, the underlying formalism of \CoreLinks{} is call-by-value,
+whilst the formalism of \BCalc{} is \emph{fine-grain
+  call-by-value}~\cite{LevyPT03}, which shares similarities with
+A-normal form (ANF)~\cite{FlanaganSDF93} as it syntactically
+distinguishes between value and computation terms by mandating every
+intermediate computation being named. However unlike ANF, fine-grain
+call-by-value remains closed under $\beta$-reduction. The reason for
+choosing fine-grain call-by-value as our formalism is entirely due to
+convenience. As we shall see in Chapter~\ref{ch:unary-handlers}
+fine-grain call-by-value is a convenient formalism for working with
+continuations. Another point of difference between \CoreLinks{} and
+\BCalc{} is that the former models the integrated database query
+sublanguage of \Links{}. We discard the query sublanguage altogether,
+and instead focus entirely on the interaction with computational
+effects.
 
 \section{Syntax and static semantics}
-\section{Type inference}
+\label{sec:syntax-base-language}
+
+\section{Type and effect inference}
+\dhil{While I would like to detail the type and effect inference, it
+  may not be worth the effort. The reason I would like to do this goes
+  back to 2016 when Richard Eisenberg asked me about how we do effect
+  inference in Links.}
+
 \section{Dynamic semantics}
 
 \chapter{Unary handlers}
-\label{ch:deep-handlers}
+\label{ch:unary-handlers}
 
 \section{Deep handlers}
 \subsection{Syntax and static semantics}

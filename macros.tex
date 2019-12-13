@@ -2,6 +2,7 @@
 %% Calculi names.
 %%
 \newcommand{\Links}{Links\xspace}
+\newcommand{\CoreLinks}{\ensuremath{\mathsf{CoreLinks}}\xspace}
 \newcommand{\BCalc}{\ensuremath{\lambda_{\mathsf{b}}}\xspace}
 \newcommand{\BCalcRec}{\ensuremath{\lambda_{\mathsf{b}+\mathsf{rec}}}\xspace}
 
@@ -74,3 +75,7 @@
 \newcommand{\hops}{H^{\mathrm{ops}}}
 %\newcommand{\hex}{H^{\mathrm{ex}}}
 \newcommand{\hell}{H^{\ell}}
+
+\newcommand{\alertbox}[2]{{\par\noindent\small\color{red} \framebox{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{\textbf{#1:} #2}}}}
+\newcommand{\todo}[1]{\alertbox{TODO}{#1}}
+\newcommand{\dhil}[1]{\alertbox{Daniel}{#1}}
