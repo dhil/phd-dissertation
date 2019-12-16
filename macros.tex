@@ -9,12 +9,6 @@
 %%
 %% Calculi terms and types type-setting.
 %%
-\newcommand{\slab}[1]{\textrm{#1}}
-\newcommand{\semlab}[1]{\text{\scshape{S-#1}}}
-\newcommand{\tylab}[1]{\text{\scshape{T-#1}}}
-\newcommand{\mlab}[1]{\text{\scshape{M-#1}}}
-\newcommand{\siglab}[1]{\text{\scshape{Sig-#1}}}
-\newcommand{\klab}[1]{#1}
 \newcommand{\revto}{\ensuremath{\leftarrow}}
 
 \newcommand{\dec}[1]{\mathsf{#1}}
@@ -69,6 +63,8 @@
 \newcommand{\True}{\mathsf{true}}
 \newcommand{\False}{\mathsf{false}}
 
+\newcommand{\eff}{!}
+
 %% Handler projections.
 \newcommand{\hret}{H^{\mathrm{val}}}
 \newcommand{\hval}{\hret}
@@ -79,3 +75,36 @@
 \newcommand{\alertbox}[2]{{\par\noindent\small\color{red} \framebox{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{\textbf{#1:} #2}}}}
 \newcommand{\todo}[1]{\alertbox{TODO}{#1}}
 \newcommand{\dhil}[1]{\alertbox{Daniel}{#1}}
+
+%%
+%% Labels
+%%
+\newcommand{\slab}[1]{\textrm{#1}}
+\newcommand{\semlab}[1]{\text{\scshape{S-#1}}}
+\newcommand{\tylab}[1]{\text{\scshape{T-#1}}}
+\newcommand{\mlab}[1]{\text{\scshape{M-#1}}}
+\newcommand{\siglab}[1]{\text{\scshape{Sig-#1}}}
+
+%%
+%% Lindley's array stuff.
+%%
+\newcommand{\ba}{\begin{array}}
+\newcommand{\ea}{\end{array}}
+
+\newcommand{\bl}{\ba[t]{@{}l@{}}}
+\newcommand{\el}{\ea}
+
+
+%%
+%% Lindley's syntax, reductions, equations, and derivation environments.
+%%
+\newenvironment{syntax}{\[\ba{@{}l@{\quad}r@{~}c@{~}l@{}}}{\ea\]\ignorespacesafterend}
+\newenvironment{reductions}{\[\ba{@{}l@{\qquad}@{}r@{~~}c@{~~}l@{}}}{\ea\]\ignorespacesafterend}
+
+\newenvironment{eqs}{\ba{@{}r@{~}c@{~}l@{}}}{\ea}
+\newenvironment{equations}{\[\ba{@{}r@{~}c@{~}l@{}}}{\ea\]\ignorespacesafterend}
+\newenvironment{derivation}{\begin{displaymath}\ba{@{}r@{~}l@{}}}{\ea\end{displaymath}\ignorespacesafterend}
+\newcommand{\reason}[1]{\quad (\text{#1})}
+
+
+\newenvironment{smathpar}{\vspace{-3ex}\small\begin{mathpar}}{\end{mathpar}\normalsize\ignorespacesafterend}

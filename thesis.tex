@@ -18,6 +18,8 @@
 \usepackage{array}
 \usepackage{float}            % Float control
 \usepackage{caption,subcaption}  % Sub figures support
+\DeclareCaptionFormat{underlinedfigure}{#1#2#3\hrulefill}
+\captionsetup[figure]{format=underlinedfigure}
 \usepackage[T1]{fontenc}      % Fixes font issues
 %\usepackage{lmodern}
 \usepackage[activate=true,
@@ -195,12 +197,13 @@ multi-tier web-programming language
 \Links{}~\cite{CooperLWY06}. \Links{} belongs to the
 ML-family~\cite{MilnerTHM97} of programming languages as it features
 typical characteristics of ML languages such as a static type system
-supporting parametric polymorphism and type inference, and its
-evaluation semantics is strict. However, \Links{} differentiates
-itself from the rest of the ML-family by making crucial use of
-\emph{row polymorphism} to support extensible records, variants, and
-tracking of computational effects. Thus \Links{} has a rather strong
-emphasis on structural types rather than nominal types.
+supporting parametric polymorphism with type inference support (in
+fact Links supports first-class polymorphism), and its evaluation
+semantics is strict. However, \Links{} differentiates itself from the
+rest of the ML-family by making crucial use of \emph{row polymorphism}
+to support extensible records, variants, and tracking of computational
+effects. Thus \Links{} has a rather strong emphasis on structural
+types rather than nominal types.
 
 \CoreLinks{} captures all of these properties of \Links{}. Our
 calculus \BCalc{} differs in several aspects from \CoreLinks{}. For
@@ -223,13 +226,61 @@ and programming with computational effects.
 \section{Syntax and static semantics}
 \label{sec:syntax-base-language}
 
+Typically the presentation of a programming language begins with its
+syntax. If the language is typed there are two possible starting
+points: Either one presents the term syntax first, or alternatively,
+the type syntax first. Although the choice may seem rather benign
+there is, however, a philosophical distinction to be drawn between
+them. Terms are, on their own, entirely meaningless, whilst types
+provide, on their own, an initial approximation of the semantics of
+terms. This is particularly true in an intrinsic typed system perhaps
+less so in an extrinsic typed system. In an intrinsic system types
+must necessarily be precursory to terms, as terms ultimately depend on
+the types. Following this argument leaves us with no choice but to
+first present the type syntax of \BCalc{} and subsequently its term
+syntax.
+
+\subsection{Types, kinds, and their environments}
+\label{sec:base-language-types}
+
+Figure~\ref{fig:base-language-types} depicts the syntax for types of
+\BCalc{}.
+
+\begin{figure}
+  \begin{syntax}
+    \slab{Value types}    &A,B  &::= & A \to C
+                                 \mid \alpha
+                                 \mid \forall \alpha^K.C
+                                 \mid \Record{R}
+                                 \mid [R]\\
+\slab{Computation types}
+                      &C,D  &::= & A \eff E \\
+\slab{Effect types}   &E    &::= & \{R\}\\
+\slab{Row types}      &R    &::= & \ell : P;R \mid \rho \mid \cdot \\
+\slab{Presence types} &P    &::= & \Pre{A} \mid \Abs \mid \theta\\
+%\slab{Labels}         &\ell &    &                \\
+\slab{Handler types}  &F    &::= & C \Rightarrow D \\
+\slab{Types}          &T    &::= & A \mid C \mid E \mid R \mid P \mid F \\
+\slab{Kinds}          &K    &::= & \Type \mid \Row_\mathcal{L} \mid \Presence
+                             \mid \Comp \mid \Effect \mid \Handler \\
+\slab{Label sets}     &\mathcal{L} &::=& \emptyset \mid \{\ell\} \uplus \mathcal{L}\\
+%\slab{Type variables} &\alpha, \rho, \theta& \\
+\slab{Type environments} &\Gamma &::=& \cdot \mid \Gamma, x:A \\
+\slab{Kind environments} &\Delta &::=& \cdot \mid \Delta, \alpha:K
+  \end{syntax}
+  \caption{Syntax of types in \BCalc{}}\label{fig:base-language-types}
+\end{figure}
+
+\subsection{Terms}
+\label{sec:base-language-terms}
+
+\section{Dynamic semantics}
+
 \section{Type and effect inference}
 \dhil{While I would like to detail the type and effect inference, it
   may not be worth the effort. The reason I would like to do this goes
   back to 2016 when Richard Eisenberg asked me about how we do effect
   inference in Links.}
-
-\section{Dynamic semantics}
 
 \chapter{Unary handlers}
 \label{ch:unary-handlers}
