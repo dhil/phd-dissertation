@@ -226,26 +226,31 @@ and programming with computational effects.
 \section{Syntax and static semantics}
 \label{sec:syntax-base-language}
 
-Typically the presentation of a programming language begins with its
-syntax. If the language is typed there are two possible starting
-points: Either one presents the term syntax first, or alternatively,
-the type syntax first. Although the choice may seem rather benign
-there is, however, a philosophical distinction to be drawn between
-them. Terms are, on their own, entirely meaningless, whilst types
-provide, on their own, an initial approximation of the semantics of
-terms. This is particularly true in an intrinsic typed system perhaps
-less so in an extrinsic typed system. In an intrinsic system types
-must necessarily be precursory to terms, as terms ultimately depend on
-the types. Following this argument leaves us with no choice but to
-first present the type syntax of \BCalc{} and subsequently its term
-syntax.
+In \BCalc{}, types are precursory to terms, as it is intrinsically
+typed. Thus we begin by presenting the syntax of its kind and type
+structure in Section~\ref{sec:base-language-types}. Subsequently in
+Section~\ref{sec:base-language-terms} we present the term syntax,
+before presenting the formation rules for kinds and types in
+Section~\ref{sec:base-language-kind-rules} and
+Section~\ref{sec:base-language-type-rules}, respectively.
 
-\subsection{Types, kinds, and their environments}
+% Typically the presentation of a programming language begins with its
+% syntax. If the language is typed there are two possible starting
+% points: Either one presents the term syntax first, or alternatively,
+% the type syntax first. Although the choice may seem rather benign
+% there is, however, a philosophical distinction to be drawn between
+% them. Terms are, on their own, entirely meaningless, whilst types
+% provide, on their own, an initial approximation of the semantics of
+% terms. This is particularly true in an intrinsic typed system perhaps
+% less so in an extrinsic typed system. In an intrinsic system types
+% must necessarily be precursory to terms, as terms ultimately depend on
+% the types. Following this argument leaves us with no choice but to
+% first present the type syntax of \BCalc{} and subsequently its term
+% syntax.
+
+\subsection{Types and their kinds}
 \label{sec:base-language-types}
-
-Figure~\ref{fig:base-language-types} depicts the syntax for types of
-\BCalc{}.
-
+%
 \begin{figure}
   \begin{syntax}
     \slab{Value types}    &A,B  &::= & A \to C
@@ -259,22 +264,120 @@ Figure~\ref{fig:base-language-types} depicts the syntax for types of
 \slab{Row types}      &R    &::= & \ell : P;R \mid \rho \mid \cdot \\
 \slab{Presence types} &P    &::= & \Pre{A} \mid \Abs \mid \theta\\
 %\slab{Labels}         &\ell &    &                \\
-\slab{Handler types}  &F    &::= & C \Rightarrow D \\
-\slab{Types}          &T    &::= & A \mid C \mid E \mid R \mid P \mid F \\
+% \slab{Types}          &T    &::= & A \mid C \mid E \mid R \mid P \\
 \slab{Kinds}          &K    &::= & \Type \mid \Row_\mathcal{L} \mid \Presence
-                             \mid \Comp \mid \Effect \mid \Handler \\
+                             \mid \Comp \mid \Effect \\
 \slab{Label sets}     &\mathcal{L} &::=& \emptyset \mid \{\ell\} \uplus \mathcal{L}\\
 %\slab{Type variables} &\alpha, \rho, \theta& \\
-\slab{Type environments} &\Gamma &::=& \cdot \mid \Gamma, x:A \\
-\slab{Kind environments} &\Delta &::=& \cdot \mid \Delta, \alpha:K
+% \slab{Type environments} &\Gamma &::=& \cdot \mid \Gamma, x:A \\
+% \slab{Kind environments} &\Delta &::=& \cdot \mid \Delta, \alpha:K
   \end{syntax}
-  \caption{Syntax of types in \BCalc{}}\label{fig:base-language-types}
+  \caption{Syntax of types in \BCalc{}.}\label{fig:base-language-types}
 \end{figure}
+%
+Figure~\ref{fig:base-language-types} depicts the syntax for kinds and
+types.
+%
+We distinguish between values and computations at the level of
+types. Value types comprise the function type $A \to C$, whose domain
+is a value type and its codomain is a computation type $B \eff E$,
+where $E$ is an effect type detailing which effects the implementing
+function may perform. Value types further comprise type variables
+$\alpha$ and quantification $\forall \alpha^K.C$, where the quantified
+type variable $\alpha$ is annotated with its kind $K$. Finally, the
+value types also contains record types $\Record{R}$ and variant types
+$[R]$, which are built up using row types $R$. An effect type $E$ is
+also built up using a row type. A row type is a sequence of fields of
+labels $\ell$ annotated with their presence information $P$. The
+presence information denotes whether a label is present $\Pre{A}$ with
+some type $A$, absent $\Abs$, or polymorphic in its presence
+$\theta$. A row type may be either \emph{open} or \emph{closed}. An
+open row ends in a row variable $\rho$ which can be instantiated with
+additional fields, effectively growing the row, whilst a closed row
+ends in $\cdot$, meaning the row cannot grow further.
+
+The kinds comprise $\Type$ for regular type variables, $\Presence$ for
+presence variables, $\Comp$ for computation type variables, $\Effect$
+for effect variables, and lastly $\Row_{\mathcal{L}}$ for row
+variables. The row kind is annotated by a set of labels
+$\mathcal{L}$. We use this set to track the labels of a given row type
+to ensure uniqueness amongst labels in each row type. We shall
+elaborate on this in Section~\ref{sec:row-polymorphism}.
 
 \subsection{Terms}
 \label{sec:base-language-terms}
+%
+\begin{figure}
+\begin{syntax}
+\slab{Variables}     &x \in \mathcal{N}&&\\
+\slab{Values}        &V,W  &::= & x
+                            \mid \lambda x^A .\, M \mid \Lambda \alpha^K .\, M
+                            \mid \Record{} \mid \Record{\ell = V;W} \mid (\ell~V)^R \\
+                     &     &    &\\
+\slab{Computations}  &M,N  &::= & V\,W \mid V\,A\\
+                     &     &\mid& \Let\; \Record{\ell=x;y} = V \; \In \; N\\
+                     &     &\mid& \Case\; V \{\ell~x \mapsto M; y \mapsto N\} \mid \Absurd^C~V\\
+                     &     &\mid& \Return~V \mid \Let \; x \revto M \; \In \; N
+\end{syntax}
+
+\caption{Term syntax of \BCalc{}.}
+\label{fig:base-language-term-syntax}
+\end{figure}
+%
+The syntax for terms is given in
+Figure~\ref{fig:base-language-term-syntax}. We assume countably
+infinite set of names $\mathcal{N}$ from which we draw fresh variable
+names at will. We shall typically denote term variables by $x$, $y$,
+or $z$.
+%
+The syntax partitions terms into values and computations.
+%
+Value terms comprise variables ($x$), lambda abstraction
+($\lambda x^A . \, M$), type abstraction ($\Lambda \alpha^K . \, M$),
+and the introduction forms for records and variants. Records are
+introduced using the empty record $\Record{}$ and record extension
+$\Record{\ell = V; W}$, whilst variants are introduced using injection
+$(\ell~V)^R$, which injects a field with label $\ell$ and value $V$
+into a row whose type is $R$. We include the row type annotation in
+order to support bottom-up type reconstruction.
+
+All elimination forms are computation terms. Abstraction and type
+abstraction are eliminated using application ($V\,W$) and type
+application ($V\,A$) respectively.
+%
+The record eliminator $(\Let \; \Record{\ell=x;y} = V \; \In \; N)$
+splits a record $V$ into $x$, the value associated with $\ell$, and
+$y$, the rest of the record. Non-empty variants are eliminated using
+the case construct ($\Case\; V\; \{\ell~x \mapsto M; y \mapsto N\}$),
+which evaluates the computation $M$ if the tag of $V$ matches
+$\ell$. Otherwise it falls through to $y$ and evaluates $N$.  The
+elimination form for empty variants is ($\Absurd^C~V$).
+%
+There is one computation introduction form, namely, the trivial
+computation $(\Return~V)$ which returns value $V$. Its elimination
+form is the expression $(\Let \; x \revto M \; \In \; N)$ which evaluates
+$M$ and binds the result value to $x$ in $N$.
+%
+
+%
+As our calculus is intrinsically typed, we annotate terms with type or
+kind information (term abstraction, type abstraction, injection,
+operations, and empty cases). However, we shall omit these annotations
+whenever they are clear from context.
+
+Having introduced the syntax, we now move onto introducing the static
+semantics.
+
+\subsection{Kinding rules}
+\label{sec:base-language-kind-rules}
+
+\subsection{Typing rules}
+\label{sec:base-language-type-rules}
 
 \section{Dynamic semantics}
+
+\section{Row polymorphism}
+\label{sec:row-polymorphism}
 
 \section{Type and effect inference}
 \dhil{While I would like to detail the type and effect inference, it
