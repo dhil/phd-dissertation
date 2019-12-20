@@ -44,6 +44,8 @@
 \newcommand{\Effect}{\mathsf{Effect}}
 \newcommand{\Handler}{\mathsf{Handler}}
 
+\newcommand{\ZeroType}{0}
+\newcommand{\UnitType}{1}
 \newcommand{\One}{1}
 \newcommand{\Int}{\mathsf{Int}}
 \newcommand{\Bool}{\mathsf{Bool}}
@@ -84,6 +86,7 @@
 \newcommand{\tylab}[1]{\text{\scshape{T-#1}}}
 \newcommand{\mlab}[1]{\text{\scshape{M-#1}}}
 \newcommand{\siglab}[1]{\text{\scshape{Sig-#1}}}
+\newcommand{\rowlab}[1]{\textrm{\scshape{R-#1}}}
 
 %%
 %% Lindley's array stuff.
@@ -108,3 +111,8 @@
 
 
 \newenvironment{smathpar}{\vspace{-3ex}\small\begin{mathpar}}{\end{mathpar}\normalsize\ignorespacesafterend}
+
+%%
+%% Defined-as equality
+%%
+\newcommand{\defas}[0]{\mathrel{\overset{\makebox[0pt]{\mbox{\normalfont\tiny\text{def}}}}{=}}}
