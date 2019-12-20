@@ -66,6 +66,11 @@
 \newcommand{\False}{\mathsf{false}}
 
 \newcommand{\eff}{!}
+\newcommand{\typ}[2]{#1 \vdash #2}
+\newcommand{\typv}[2]{#1 \vdash #2}
+\newcommand{\typc}[3]{#1 \vdash #2 \eff #3}
+
+\newcommand{\FTV}{\ensuremath{\mathrm{FTV}}}
 
 %% Handler projections.
 \newcommand{\hret}{H^{\mathrm{val}}}
@@ -82,11 +87,12 @@
 %% Labels
 %%
 \newcommand{\slab}[1]{\textrm{#1}}
+\newcommand{\klab}[1]{\text{\scshape{K-#1}}}
 \newcommand{\semlab}[1]{\text{\scshape{S-#1}}}
 \newcommand{\tylab}[1]{\text{\scshape{T-#1}}}
 \newcommand{\mlab}[1]{\text{\scshape{M-#1}}}
 \newcommand{\siglab}[1]{\text{\scshape{Sig-#1}}}
-\newcommand{\rowlab}[1]{\textrm{\scshape{R-#1}}}
+\newcommand{\rowlab}[1]{\text{\scshape{R-#1}}}
 
 %%
 %% Lindley's array stuff.

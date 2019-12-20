@@ -230,9 +230,8 @@ In \BCalc{}, types are precursory to terms, as it is intrinsically
 typed. Thus we begin by presenting the syntax of its kind and type
 structure in Section~\ref{sec:base-language-types}. Subsequently in
 Section~\ref{sec:base-language-terms} we present the term syntax,
-before presenting the formation rules for kinds and types in
-Section~\ref{sec:base-language-kind-rules} and
-Section~\ref{sec:base-language-type-rules}, respectively.
+before presenting the formation rules for types in
+Section~\ref{sec:base-language-type-rules}.
 
 % Typically the presentation of a programming language begins with its
 % syntax. If the language is typed there are two possible starting
@@ -269,14 +268,15 @@ Section~\ref{sec:base-language-type-rules}, respectively.
                              \mid \Comp \mid \Effect \\
 \slab{Label sets}     &\mathcal{L} &::=& \emptyset \mid \{\ell\} \uplus \mathcal{L}\\
 %\slab{Type variables} &\alpha, \rho, \theta& \\
-% \slab{Type environments} &\Gamma &::=& \cdot \mid \Gamma, x:A \\
-% \slab{Kind environments} &\Delta &::=& \cdot \mid \Delta, \alpha:K
+\slab{Type environments} &\Gamma &::=& \cdot \mid \Gamma, x:A \\
+\slab{Kind environments} &\Delta &::=& \cdot \mid \Delta, \alpha:K
   \end{syntax}
-  \caption{Syntax of types in \BCalc{}.}\label{fig:base-language-types}
+  \caption{Syntax of types, kinds, and their environments.}
+  \label{fig:base-language-types}
 \end{figure}
 %
-Figure~\ref{fig:base-language-types} depicts the syntax for kinds and
-types.
+Figure~\ref{fig:base-language-types} depicts the syntax for types,
+kinds, and their environments.
 %
 \paragraph{Value types}
 We distinguish between values and computations at the level of
@@ -308,32 +308,31 @@ rather than $\rho$ and refer to it as an \emph{effect variable}).
 %
 The row variable in an open row type can be instantiated with
 additional labels. Each label may occur at most once in each row (we
-enforce this restriction at the level of kinds). Two rows are
-equivalent if they contain the same labels and both end in either
-$\cdot$ or a row variable $\rho$.
+enforce this restriction at the level of kinds). We identify rows up
+to the reordering of labels.
 %
-\begin{mathpar}
-  \inferrule*[Lab=\rowlab{Closed}]
-    {~}
-    {\cdot \equiv_{\mathrm{row}} \cdot}
+% \begin{mathpar}
+%   \inferrule*[Lab=\rowlab{Closed}]
+%     {~}
+%     {\cdot \equiv_{\mathrm{row}} \cdot}
 
-  \inferrule*[Lab=\rowlab{Open}]
-    {~}
-    {\rho \equiv_{\mathrm{row}} \rho}
+%   \inferrule*[Lab=\rowlab{Open}]
+%     {~}
+%     {\rho \equiv_{\mathrm{row}} \rho}
 
-  \inferrule*[Lab=\rowlab{Head}]
-    {R \equiv_{\mathrm{row}} R'}
-    {\ell:P;R \equiv_{\mathrm{row}} \ell:P;R'}
+%   \inferrule*[Lab=\rowlab{Head}]
+%     {R \equiv_{\mathrm{row}} R'}
+%     {\ell:P;R \equiv_{\mathrm{row}} \ell:P;R'}
 
-  \inferrule*[Lab=\rowlab{Swap}]
-    {R \equiv_{\mathrm{row}} R'}
-    {\ell:P;\ell':P';R \equiv_{\mathrm{row}} \ell':P';\ell:P;R'}
-\end{mathpar}
-%
-The last rule $\rowlab{Swap}$ let us identify rows up to the
-reordering of labels.  For instance, the two rows
-$\ell_1 : P_1; \cdots; \ell_n : P_n; \cdot$ and
-$\ell_n : P_n; \cdots ; \ell_1 : P_1; \cdot$ are equivalent.
+%   \inferrule*[Lab=\rowlab{Swap}]
+%     {R \equiv_{\mathrm{row}} R'}
+%     {\ell:P;\ell':P';R \equiv_{\mathrm{row}} \ell':P';\ell:P;R'}
+% \end{mathpar}
+% %
+% The last rule $\rowlab{Swap}$ let us identify rows up to the
+% reordering of labels.  For instance, the two rows
+% $\ell_1 : P_1; \cdots; \ell_n : P_n; \cdot$ and
+% $\ell_n : P_n; \cdots ; \ell_1 : P_1; \cdot$ are equivalent.
 %
 Absent labels in closed rows are redundant.
 %
@@ -343,6 +342,97 @@ the zero type as the empty, closed variant $\ZeroType \defas
 type, i.e. $\UnitType \defas \Record{\cdot}$. We shall often omit
 $\cdot$ for closed rows.
 
+%
+\begin{figure}
+\begin{mathpar}
+% alpha : K
+  \inferrule*[Lab=\klab{TyVar}]
+    { }
+    {\Delta, \alpha : K \vdash \alpha : K}
+
+% Computation
+    \inferrule*[Lab=\klab{Comp}]
+    { \Delta \vdash A : \Type \\
+      \Delta \vdash E : \Effect \\
+    }
+    {\Delta \vdash A \eff E : \Comp}
+
+% A -E-> B, A : Type, E : Row, B : Type
+  \inferrule*[Lab=\klab{Fun}]
+    { \Delta \vdash A : \Type \\
+      \Delta \vdash C : \Comp  \\
+    }
+    {\Delta \vdash A \to C : \Type}
+
+% forall alpha : K . A : Type
+  \inferrule*[Lab=\klab{Forall}]
+    { \Delta, \alpha : K \vdash C : \Comp}
+    {\Delta \vdash \forall \alpha^K . \, C : \Type}
+
+% Record
+  \inferrule*[Lab=\klab{Record}]
+    { \Delta \vdash R : \Row_\emptyset}
+    {\Delta \vdash \Record{R} : \Type}
+
+% Variant
+  \inferrule*[Lab=\klab{Variant}]
+    { \Delta \vdash R : \Row_\emptyset}
+    {\Delta \vdash [R] : \Type}
+
+% Effect
+  \inferrule*[Lab=\klab{Effect}]
+    { \Delta \vdash R : \Row_\emptyset}
+    {\Delta \vdash \{R\} : \Effect}
+
+% Present
+  \inferrule*[Lab=\klab{Present}]
+    {\Delta \vdash A : \Type}
+    {\Delta \vdash \Pre{A} : \Presence}
+
+% Absent
+  \inferrule*[Lab=\klab{Absent}]
+    { }
+    {\Delta \vdash \Abs : \Presence}
+
+% Empty row
+  \inferrule*[Lab=\klab{EmptyRow}]
+    { }
+    {\Delta \vdash \cdot : \Row_\mathcal{L}}
+
+% Extend row
+  \inferrule*[Lab=\klab{ExtendRow}]
+    { \Delta \vdash P : \Presence \\
+      \Delta \vdash R : \Row_{\mathcal{L} \uplus \{\ell\}}
+    }
+    {\Delta \vdash \ell : P;R : \Row_\mathcal{L}}
+\end{mathpar}
+\caption{Kinding Rules}
+\label{fig:base-language-kinding}
+\end{figure}
+%
+
+\paragraph{Kinds}
+The kinds comprise $\Type$ for regular type variables, $\Presence$ for
+presence variables, $\Comp$ for computation type variables, $\Effect$
+for effect variables, and lastly $\Row_{\mathcal{L}}$ for row
+variables.
+%
+The formation rules for kinds are given in
+Figure~\ref{fig:base-language-kinding}. The kinding judgement
+$\Delta \vdash T : K$ states that type $T$ has kind $K$ in kind
+environment $\Delta$.
+%
+The row kind is annotated by a set of labels $\mathcal{L}$. We use
+this set to track the labels of a given row type to ensure uniqueness
+amongst labels in each row type. For example, the kinding rule
+$\klab{ExtendRow}$ uses this set to constrain which labels may be
+mentioned in the tail of $R$. We shall elaborate on this in
+Section~\ref{sec:row-polymorphism}.
+
+\paragraph{Environments}
+Kind and type environments are right-extended sequences of bindings. A
+kind environment binds type variables to their kinds, whilst a type
+environment binds term variables to their types.
 
 % Value types comprise the function type $A \to C$, whose domain
 % is a value type and its codomain is a computation type $B \eff E$,
@@ -430,25 +520,156 @@ kind information (term abstraction, type abstraction, injection,
 operations, and empty cases). However, we shall omit these annotations
 whenever they are clear from context.
 
-\subsection{Kind and type environments}
-\label{sec:kind-and-type-environments}
-We define kind and type environments as right-extended sequences
-mapping type variables to and their kinds and terms to their types,
-respectively.
-%
-\begin{syntax}
-  \slab{Kind environments} &\Delta &::=& \cdot \mid \Delta, \alpha:K\\
-  \slab{Type environments} &\Gamma &::=& \cdot \mid \Gamma, x:A
-\end{syntax}
-%
-Having introduced all the syntax, we now move onto introducing the
-static semantics.
-
-\subsection{Kinding rules}
-\label{sec:base-language-kind-rules}
-
 \subsection{Typing rules}
 \label{sec:base-language-type-rules}
+%
+\begin{figure}
+Values
+\begin{mathpar}
+% Variable
+  \inferrule*[Lab=\tylab{Var}]
+    {x : A \in \Gamma}
+    {\typv{\Delta;\Gamma}{x : A}}
+
+% Abstraction
+  \inferrule*[Lab=\tylab{Lam}]
+    {\typ{\Delta;\Gamma, x : A}{M : C}}
+    {\typv{\Delta;\Gamma}{\lambda x^A .\, M : A \to C}}
+
+% Polymorphic abstraction
+  \inferrule*[Lab=\tylab{PolyLam}]
+    {\typv{\Delta,\alpha : K;\Gamma}{M : C} \\
+     \alpha \notin FTV(\Gamma)
+    }
+    {\typv{\Delta;\Gamma}{\Lambda \alpha^K .\, M : \forall \alpha^K . \,C}}
+\\
+% unit : ()
+  \inferrule*[Lab=\tylab{Unit}]
+    { }
+    {\typv{\Delta;\Gamma}{\Record{} : \Record{}}}
+
+% Extension
+  \inferrule*[Lab=\tylab{Extend}]
+    { \typv{\Delta;\Gamma}{V : A} \\
+      \typv{\Delta;\Gamma}{W : \Record{\ell:\Abs;R}}
+    }
+    {\typv{\Delta;\Gamma}{\Record{\ell=V;W} : \Record{\ell:\Pre{A};R}}}
+
+% Inject
+  \inferrule*[Lab=\tylab{Inject}]
+    {\typv{\Delta;\Gamma}{V : A}}
+    {\typv{\Delta;\Gamma}{(\ell~V)^R : [\ell : \Pre{A}; R]}}
+\end{mathpar}
+Computations
+\begin{mathpar}
+% Application
+  \inferrule*[Lab=\tylab{App}]
+    {\typv{\Delta;\Gamma}{V : A \to C} \\
+     \typv{\Delta;\Gamma}{W : B}
+    }
+    {\typ{\Delta;\Gamma}{V\,W : C}}
+
+% Polymorphic application
+  \inferrule*[Lab=\tylab{PolyApp}]
+    {\typv{\Delta;\Gamma}{V : \forall \alpha^K . \, C} \\
+     \Delta \vdash A : K
+    }
+    {\typ{\Delta;\Gamma}{V\,A : C[A/\alpha]}}
+
+% Split
+  \inferrule*[Lab=\tylab{Split}]
+    {\typv{\Delta;\Gamma}{V : \Record{\ell : \Pre{A};R}} \\\\
+     \typ{\Delta;\Gamma, x : A, y : \Record{\ell : \Abs; R}}{N : C}
+    }
+    {\typ{\Delta;\Gamma}{\Let \; \Record{\ell =x;y} = V\; \In \; N : C}}
+
+% Case
+  \inferrule*[Lab=\tylab{Case}]
+    { \typv{\Delta;\Gamma}{V : [\ell : \Pre{A};R]}  \\\\
+      \typ{\Delta;\Gamma,x:A}{M : C} \\\\
+      \typ{\Delta;\Gamma,y:[\ell : \Abs;R]}{N : C}
+    }
+    {\typ{\Delta;\Gamma}{\Case \; V \{\ell\; x \mapsto M;y \mapsto N \} : C}}
+
+% Absurd
+  \inferrule*[Lab=\tylab{Absurd}]
+    {\typv{\Delta;\Gamma}{V : []}}
+    {\typ{\Delta;\Gamma}{\Absurd^C \; V : C}}
+
+% Return
+  \inferrule*[Lab=\tylab{Return}]
+    {\typv{\Delta;\Gamma}{V : A}}
+    {\typc{\Delta;\Gamma}{\Return \; V : A}{E}}
+\\
+% Let
+  \inferrule*[Lab=\tylab{Let}]
+    {\typc{\Delta;\Gamma}{M : A}{E} \\
+     \typ{\Delta;\Gamma, x : A}{N : C}
+    }
+    {\typ{\Delta;\Gamma}{\Let \; x \revto M\; \In \; N : C}}
+\end{mathpar}
+\caption{Typing Rules}
+\label{fig:base-language-type-rules}
+\end{figure}
+%
+
+The typing rules are given by
+Figure~\ref{fig:base-language-type-rules}. The \tylab{Var} rule states
+that a variable $x$ has type $A$ if $x$ is bound to $A$ in the type
+environment $\Gamma$. The \tylab{Lam} rules states that a lambda value
+$(\lambda x.M)$ has type $A \to C$ if the computation $M$ has type $C$
+assuming $x : A$. In the \tylab{PolyLam} rule we make use of the set
+of \emph{free type variables} (FTV).
+%
+We define FTV by mutual induction over type environments, $\Gamma$,
+and the type structure:
+%
+\[
+ \ba[t]{@{~}l@{~~~~~~}c@{~}l}
+\begin{eqs}
+  \FTV(\alpha)   &\defas& \{\alpha\}\\
+  \FTV(\forall \alpha^K.C) &\defas& \FTV(C) \setminus \{\alpha\}\\
+  \FTV(A \to C)  &\defas& \FTV(A) \cup \FTV(C)\\
+  \FTV(A \eff E) &\defas& \FTV(A) \cup \FTV(E)\\
+  % \FTV(\{R\})    &\defas& \FTV(R)\\
+  % \FTV(\Record{R}) &\defas& \FTV(R)\\
+  % \FTV([R])      &\defas& \FTV(R)\\
+  % \FTV(l:P;R)    &\defas& \FTV(P) \cup \FTV(R)\\
+  % \FTV(\Pre{A})  &\defas& \FTV(A)\\
+  % \FTV(\Abs)     &\defas& \emptyset\\
+  % \FTV(\theta)   &\defas& \{\theta\}
+\end{eqs} & &
+\begin{eqs}
+  \FTV([R])      &\defas& \FTV(R)\\
+  \FTV(\Record{R}) &\defas& \FTV(R)\\
+  \FTV(\{R\})    &\defas& \FTV(R)\\
+  \FTV(l:P;R)    &\defas& \FTV(P) \cup \FTV(R)\\
+\end{eqs}\\\\
+\begin{eqs}
+  \FTV(\theta)   &\defas& \{\theta\}\\
+  \FTV(\Abs)     &\defas& \emptyset\\
+  \FTV(\Pre{A})  &\defas& \FTV(A)
+\end{eqs} & &
+\begin{eqs}
+  \FTV(\cdot)        &\defas& \emptyset\\
+  \FTV(\Gamma,x : A) &\defas& \FTV(\Gamma) \cup \FTV(A)
+\end{eqs}
+\ea
+\]
+%
+Thus the rule states that a type abstraction $(\Lambda \alpha. M)$ has
+type $\forall \alpha.C$ if the computation $M$ has type $C$ assuming
+$\alpha : K$ and $\alpha$ does not appear in the free type variables
+of current type environment $\Gamma$. The \tylab{Unit} rule provides
+the basis for all records as it simply states that the empty record
+has type unit. The \tylab{Extend} rule handles record
+extension. Supposing we wish to extend some record $\Record{W}$ with
+$\ell = V$, that is $\Record{\ell = V; W}$. This extension has type
+$\Record{\ell : \Pre{A};R}$ if and only if $V$ is well-typed and we
+can ascribe $W : \Record{\ell : \Abs; R}$. In other words, the label
+$\ell$ must not be mentioned in $W$. The \tylab{Inject} rule states
+that $(\ell~V)^R$ has type $[\ell : \Pre{A}; R]$ if the payload $V$ is
+well-typed.
 
 \section{Dynamic semantics}
 
@@ -468,6 +689,8 @@ static semantics.
 \subsection{Syntax and static semantics}
 \subsection{Effect inference}
 \subsection{Dynamic semantics}
+
+\section{Default handlers}
 
 \section{Parameterised handlers}
 
