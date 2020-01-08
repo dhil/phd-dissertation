@@ -406,7 +406,7 @@ $\cdot$ for closed rows.
     }
     {\Delta \vdash \ell : P;R : \Row_\mathcal{L}}
 \end{mathpar}
-\caption{Kinding Rules}
+\caption{Kinding rules}
 \label{fig:base-language-kinding}
 \end{figure}
 %
@@ -565,7 +565,7 @@ Computations
 % Application
   \inferrule*[Lab=\tylab{App}]
     {\typv{\Delta;\Gamma}{V : A \to C} \\
-     \typv{\Delta;\Gamma}{W : B}
+     \typv{\Delta;\Gamma}{W : A}
     }
     {\typ{\Delta;\Gamma}{V\,W : C}}
 
@@ -608,18 +608,22 @@ Computations
     }
     {\typ{\Delta;\Gamma}{\Let \; x \revto M\; \In \; N : C}}
 \end{mathpar}
-\caption{Typing Rules}
+\caption{Typing rules}
 \label{fig:base-language-type-rules}
 \end{figure}
 %
 
 The typing rules are given by
-Figure~\ref{fig:base-language-type-rules}. The \tylab{Var} rule states
-that a variable $x$ has type $A$ if $x$ is bound to $A$ in the type
-environment $\Gamma$. The \tylab{Lam} rules states that a lambda value
-$(\lambda x.M)$ has type $A \to C$ if the computation $M$ has type $C$
-assuming $x : A$. In the \tylab{PolyLam} rule we make use of the set
-of \emph{free type variables} (FTV).
+Figure~\ref{fig:base-language-type-rules}. In each typing rule, we
+implicitly assume that each type is well-kinded with respect to the
+kinding environment $\Delta$.
+
+\paragraph{Typing values} The \tylab{Var} rule states that a variable $x$ has
+type $A$ if $x$ is bound to $A$ in the type environment $\Gamma$. The
+\tylab{Lam} rules states that a lambda value $(\lambda x.M)$ has type
+$A \to C$ if the computation $M$ has type $C$ assuming $x : A$. In the
+\tylab{PolyLam} rule we make use of the set of \emph{free type
+  variables} (FTV).
 %
 We define FTV by mutual induction over type environments, $\Gamma$,
 and the type structure:
@@ -666,10 +670,59 @@ has type unit. The \tylab{Extend} rule handles record
 extension. Supposing we wish to extend some record $\Record{W}$ with
 $\ell = V$, that is $\Record{\ell = V; W}$. This extension has type
 $\Record{\ell : \Pre{A};R}$ if and only if $V$ is well-typed and we
-can ascribe $W : \Record{\ell : \Abs; R}$. In other words, the label
-$\ell$ must not be mentioned in $W$. The \tylab{Inject} rule states
-that $(\ell~V)^R$ has type $[\ell : \Pre{A}; R]$ if the payload $V$ is
-well-typed.
+can ascribe $W : \Record{\ell : \Abs; R}$. Since
+$\Record{\ell : \Abs; R}$ must be well-kinded with respect to
+$\Delta$, the label $\ell$ cannot be mentioned in $W$, thus $\ell$
+cannot occur more than once in the record. Similarly, the dual rule
+\tylab{Inject} states that the injection $(\ell~V)^R$ has type
+$[\ell : \Pre{A}; R]$ if the payload $V$ is well-typed. Again since
+$[\ell : \Pre{A}; R]$ is well-kinded, it must be that $\ell$ is not
+mentioned by $R$. In other words, the tag cannot be injected twice.
+
+\paragraph{Typing computations}
+The \tylab{App} rule states that an application $V\,W$ has computation
+type $C$ if the abstractor term $V$ has type $A \to C$ and the
+argument term $W$ has type $A$, that is both the argument type and the
+domain type of the abstractor agree.
+%
+The type application rule \tylab{PolyApp} tells us that a type
+application $V\,A$ is well-typed whenever the abstractor term $V$ has
+the polymorphic type $\forall \alpha^K.C$ and the type $A$ has kind
+$K$.
+%
+The \tylab{Split} rule handles typing of record destructing. When
+splitting a record term $V$ on some label $\ell$ binding it to $x$ and
+the remainder to $y$. The label we wish to split on must be present
+with some type $A$, hence we require that
+$V : \Record{\ell : \Pre{A}; R}$. This restriction prohibits us for
+splitting on an absent or presence polymorphic label.  The
+continuation of the splitting, $N$, must then have some computation
+type $C$ subject to the following restriction: $N : C$ must be
+well-typed under the additional assumptions $x : A$ and
+$y : \Record{\ell : \Abs; R}$, statically ensuring that it is not
+possible to split on $\ell$ again in the continuation $N$.
+%
+The \tylab{Case} rule is similar, but has two possible continuations:
+the success continuation, $M$, and the fall-through continuation, $N$.
+The label being matched must be present with some type $A$ in the type
+of the scrutinee, thus we require $V : [\ell : \Pre{A};R]$. The
+success continuation has some computation $C$ under the assumption
+that the binder $x : A$, whilst the fall-through continuation also has
+type $C$ it is subject to the restriction that the binder
+$y : [\ell : \Abs;R]$ which statically enforces that no subsequent
+case split in $N$ can match on $\ell$.
+%
+The \tylab{Absurd} states that we can ascribe any computation type to
+the term $\Absurd~V$ if $V$ has the empty type $[]$.
+%
+The trivial computation term is typed by the \tylab{Return} rule,
+which says that $\Return\;V$ has computation type $A \eff E$ if the
+value $V$ has type $A$.
+%
+The \tylab{Let} rule types let bindings. The computation being bound,
+$M$, must have computation type $A \eff E$, whilst the continuation,
+$N$, must have computation $C$ subject to the additional assumption
+that the binder $x : A$.
 
 \section{Dynamic semantics}
 
