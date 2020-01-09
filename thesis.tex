@@ -309,7 +309,7 @@ rather than $\rho$ and refer to it as an \emph{effect variable}).
 The row variable in an open row type can be instantiated with
 additional labels. Each label may occur at most once in each row (we
 enforce this restriction at the level of kinds). We identify rows up
-to the reordering of labels.
+to the reordering of labels. We assume structural equality on labels.
 %
 % \begin{mathpar}
 %   \inferrule*[Lab=\rowlab{Closed}]
@@ -612,7 +612,8 @@ Computations
 \label{fig:base-language-type-rules}
 \end{figure}
 %
-
+\dhil{There is some rendering issue with T-labels in the typing rules.}
+%
 The typing rules are given by
 Figure~\ref{fig:base-language-type-rules}. In each typing rule, we
 implicitly assume that each type is well-kinded with respect to the
@@ -725,6 +726,84 @@ $N$, must have computation $C$ subject to the additional assumption
 that the binder $x : A$.
 
 \section{Dynamic semantics}
+\label{sec:base-language-dynamic-semantics}
+%
+\begin{figure}
+\begin{reductions}
+\semlab{App}   & (\lambda x^A . \, M) V &\reducesto& M[V/x] \\
+\semlab{TyApp} & (\Lambda \alpha^K . \, M) A &\reducesto& M[A/\alpha] \\
+\semlab{Split} & \Let \; \Record{\ell = x;y} = \Record{\ell = V;W} \; \In \; N &\reducesto& N[V/x,W/y] \\
+\semlab{Case$_1$} &
+  \Case \; (\ell~V)^R \{ \ell \; x \mapsto M; y \mapsto N\} &\reducesto& M[V/x] \\
+\semlab{Case$_2$} &
+  \Case \; (\ell~V)^R \{ \ell' \; x \mapsto M; y \mapsto N\} &\reducesto& N[(\ell~V)^R/y], \hfill\quad \text{if } \ell \neq \ell' \\
+\semlab{Let} &
+  \Let \; x \revto \Return \; V \; \In \; N &\reducesto& N[V/x] \\
+\semlab{Lift} &
+  \EC[M] &\reducesto& \EC[N], \hfill\quad \text{if } M \reducesto N \\
+\end{reductions}
+\begin{syntax}
+\slab{Evaluation contexts} &  \mathcal{E} &::=& [\,] \mid \Let \; x \revto \mathcal{E} \; \In \; N
+\end{syntax}
+%%\[
+% Evaluation context lift
+%% \inferrule*[Lab=\semlab{Lift}]
+%%   { M \reducesto N }
+%%   { \mathcal{E}[M] \reducesto \mathcal{E}[N]}
+%% \]
+
+\caption{Contextual small-step semantics}
+\label{fig:base-language-small-step}
+\end{figure}
+%
+In this section we present the dynamic semantics of \BCalc{}. We
+choose to use a contextual small-step semantics, since in conjunction
+with fine-grain call-by-value, it yields a considerably simpler
+semantics than the traditional structural operational semantics
+(SOS)~\cite{Plotkin04a}, because only the rule for let bindings admits
+a continuation whereas in ordinary call-by-value SOS each congruence
+rule admits a continuation.
+%
+
+Figure~\ref{fig:base-language-small-step} depicts the reduction
+rules. The application rules \semlab{App} and \semlab{TyApp}
+eliminates a lambda and type abstraction, respectively, by
+substituting the argument for the parameter in their body computation
+$M$.
+%
+Record splitting is handled by the \semlab{Split} rule: splitting on
+some label $\ell$ binds the payload $V$ to $x$ and the remainder $W$
+to $y$ in the continuation $N$.
+%
+Disjunctive case splitting is handled by the two rules
+\semlab{Case$_1$} and \semlab{Case$_2$}. The former rule handles the
+success case, when the scrutinee's tag $\ell$ matches the tag of the
+success clause, thus binds the payload $V$ to $x$ and proceeds to
+evaluate the continuation $M$. The latter rule handles the
+fall-through case, here the scrutinee gets bounds to $y$ and
+evaluation proceeds with the continuation $N$.
+%
+The \semlab{Let} rule eliminates a trivial computation term
+$\Return\;V$ by substituting $V$ for $x$ in the continuation $N$.
+%
+
+Recall from Section~\ref{sec:base-language-terms},
+Figure~\ref{fig:base-language-term-syntax} that the syntax of let
+bindings allows a general computation term $M$ to occur on the right
+hand side of the binding, i.e. $\Let\;x \revto M \;\In\;N$. Thus we
+are seemingly stuck in the general case, as the \semlab{Let} rule only
+applies if the right hand side is a trivial computation.
+%
+However, it is at this stage we make use of the notion of
+\emph{evaluation contexts} due to \citet{Felleisen87}. An evaluation
+context is syntactic construction which decompose the dynamic
+semantics into a set of base rules (e.g. the rules presented thus far)
+and an inductive rule, which enables us to focus on a particular
+computation term, $M$, in some larger context, $\EC$, and reduce it in
+the said context to another computation $N$ if $M$ reduces outside out
+the context to that particular $N$. In our formalism, we call this
+rule \semlab{Lift}. Evaluation contexts are generated from the empty
+context $[~]$ and let expressions $\Let\;x \revto \EC \;\In\;N$.
 
 \section{Row polymorphism}
 \label{sec:row-polymorphism}
