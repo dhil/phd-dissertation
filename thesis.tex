@@ -464,15 +464,15 @@ environment binds term variables to their types.
 %
 \begin{figure}
 \begin{syntax}
-\slab{Variables}     &x \in \mathcal{N}&&\\
-\slab{Values}        &V,W  &::= & x
-                            \mid \lambda x^A .\, M \mid \Lambda \alpha^K .\, M
-                            \mid \Record{} \mid \Record{\ell = V;W} \mid (\ell~V)^R \\
+\slab{Variables}     &x \in \VarCat&&\\
+\slab{Values}        &V,W \in \ValCat  &::= & x
+                                        \mid \lambda x^A .\, M \mid \Lambda \alpha^K .\, M
+                                        \mid \Record{} \mid \Record{\ell = V;W} \mid (\ell~V)^R \\
                      &     &    &\\
-\slab{Computations}  &M,N  &::= & V\,W \mid V\,A\\
-                     &     &\mid& \Let\; \Record{\ell=x;y} = V \; \In \; N\\
-                     &     &\mid& \Case\; V \{\ell~x \mapsto M; y \mapsto N\} \mid \Absurd^C~V\\
-                     &     &\mid& \Return~V \mid \Let \; x \revto M \; \In \; N
+\slab{Computations}  &M,N \in \CompCat  &::= & V\,W \mid V\,A\\
+                     &                  &\mid& \Let\; \Record{\ell=x;y} = V \; \In \; N\\
+                     &                  &\mid& \Case\; V \{\ell~x \mapsto M; y \mapsto N\} \mid \Absurd^C~V\\
+                     &                  &\mid& \Return~V \mid \Let \; x \revto M \; \In \; N
 \end{syntax}
 
 \caption{Term syntax of \BCalc{}.}
@@ -481,7 +481,7 @@ environment binds term variables to their types.
 %
 The syntax for terms is given in
 Figure~\ref{fig:base-language-term-syntax}. We assume countably
-infinite set of names $\mathcal{N}$ from which we draw fresh variable
+infinite set of names $\VarCat$ from which we draw fresh variable
 names at will. We shall typically denote term variables by $x$, $y$,
 or $z$.
 %
@@ -689,7 +689,20 @@ domain type of the abstractor agree.
 The type application rule \tylab{PolyApp} tells us that a type
 application $V\,A$ is well-typed whenever the abstractor term $V$ has
 the polymorphic type $\forall \alpha^K.C$ and the type $A$ has kind
-$K$.
+$K$. This rule makes use of type substitution. We write $C[A/\alpha]$
+to mean substitute some type $A$ for some type variable $\alpha$ in
+some type $C$. We define type substitution as a ternary function defined as follows
+%
+\[
+  \begin{eqs}
+    (A \to C)[B/\alpha] &\defas& A[B/\alpha] \to C[B/\alpha]\\
+    \alpha[B/\beta]     &\defas& \begin{cases}
+                                    B & \text{if } \alpha = \beta\\
+                                    \alpha & \text{otherwise}
+                                  \end{cases}
+  \end{eqs}
+\]
+\dhil{Complete the implementation\dots}
 %
 The \tylab{Split} rule handles typing of record destructing. When
 splitting a record term $V$ on some label $\ell$ binding it to $x$ and
@@ -765,6 +778,60 @@ a continuation whereas in ordinary call-by-value SOS each congruence
 rule admits a continuation.
 %
 
+The semantics are based on a substitution model of computation. Thus,
+before presenting the reduction rules, we define an adequacy
+substitution function.
+%
+\paragraph{Term substitution}
+We write $M[V/x]$ for the substitution of some value $V$ for some
+variable $x$ in some computation term $M$. We use the same notation
+for substitution on values, i.e. $W[V/x]$ denotes the substitution of
+$V$ for $x$ in some value $W$. We define substitution as a ternary
+function, whose signature is given by
+%
+\[
+\cdot[\cdot/\cdot] : (\CompCat + \ValCat) \times \ValCat \times \VarCat \to \CompCat,
+\]
+%
+and we realise it by pattern matching on the first argument.
+%
+\[
+  \begin{eqs}
+    x[V/y]               &\defas& \begin{cases}
+                                     V & \text{if } x = y\\
+                                     x & \text{otherwise }
+                                   \end{cases}\\
+    (\lambda x^A.M)[V/y] &\defas& \begin{cases}
+                                    \lambda x^A.M & \text{if } x = y\\
+                                    \lambda x^A.M[V/y] & \text{otherwise}
+                                  \end{cases}\\
+    (\Lambda \alpha^K. M)[V/y] &\defas& \Lambda \alpha^K. M[V/y]\\
+    \Unit[V/y]           &\defas& \Unit\\
+    \Record{\ell = W; W'}[V/y] &\defas& \Record{\ell = W[V/y]; W'[V/y]}\\
+    (\ell~W)^R[V/y]      &\defas& (\ell~W[V/y])^R\\
+    (W\,W')[V/y]         &\defas& W[V/y]\,W'[V/y]\\
+    (W\,A)[V/y]          &\defas& W[V/y]~A\\
+    (\Let\;\Record{\ell = x; y} = W\;\In\;N)[V/y] &\defas& \Let\;\Record{\ell = x; y} = W[V/y] \;\In\;N[V/y]\\
+    (\Case\;(\ell~V)^R\{\ba[t]{@{}l} \ell~x \mapsto M\\
+                                    ; y \mapsto N \})[V/z]\ea
+                                &\defas& \begin{cases}
+      \Case\;(\ell~V)^R\{\ell~x \mapsto M; y \mapsto N \} & \text{if } x = y = z\\
+      \Case\;(\ell~V)^R\{\ba[t]{@{}l} \ell~x \mapsto M\\
+                                      ; y \mapsto N[V/z] \}\ea & \text{if } x = z \text{ and } y \neq z\\
+      \Case\;(\ell~V)^R\{ \ba[t]{@{}l}\ell~x \mapsto M[V/z]\\
+                                      ; y \mapsto N \}\ea & \text{if } x \neq z \text{ and } y = z\\
+      \Case\;(\ell~V)^R\{ \ba[t]{@{}l} \ell~x \mapsto M[V/z]\\
+                                       ; y \mapsto N[V/z] \}\ea & \text{otherwise}
+                                         \end{cases}\\
+    (\Let\;x \revto M \;\In\;N)[V/y] &\defas& \begin{cases}
+                                                 \Let\;x \revto M[V/y]\;\In\;N & \text{if } x = y\\
+                                                 \Let\;x \revto M[V/y]\;\In\;N[V/y] & \text{otherwise}
+                                              \end{cases}
+  \end{eqs}
+\]
+%
+
+\paragraph{Reduction semantics}
 Figure~\ref{fig:base-language-small-step} depicts the reduction
 rules. The application rules \semlab{App} and \semlab{TyApp}
 eliminates a lambda and type abstraction, respectively, by
@@ -787,6 +854,7 @@ The \semlab{Let} rule eliminates a trivial computation term
 $\Return\;V$ by substituting $V$ for $x$ in the continuation $N$.
 %
 
+\paragraph{Evaluation contexts}
 Recall from Section~\ref{sec:base-language-terms},
 Figure~\ref{fig:base-language-term-syntax} that the syntax of let
 bindings allows a general computation term $M$ to occur on the right
@@ -797,7 +865,7 @@ applies if the right hand side is a trivial computation.
 However, it is at this stage we make use of the notion of
 \emph{evaluation contexts} due to \citet{Felleisen87}. An evaluation
 context is syntactic construction which decompose the dynamic
-semantics into a set of base rules (e.g. the rules presented thus far)
+semantics into a set of base rules (i.e. the rules presented thus far)
 and an inductive rule, which enables us to focus on a particular
 computation term, $M$, in some larger context, $\EC$, and reduce it in
 the said context to another computation $N$ if $M$ reduces outside out
