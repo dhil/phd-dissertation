@@ -684,8 +684,9 @@ and the type structure, $T$, as follows.
   % \FTV(\Record{R}) &\defas& \FTV(R)\\
   % \FTV(\{R\})    &\defas& \FTV(R)\\
   \FTV &:& \RowCat \to \TyVarCat\\
-  \FTV(l:P;R)    &\defas& \FTV(P) \cup \FTV(R)\\
-  \FTV(\cdot)    &\defas& \emptyset\\\\
+  \FTV(\cdot)    &\defas& \emptyset\\
+  \FTV(\rho)     &\defas& \{\rho\}\\
+  \FTV(l:P;R)    &\defas& \FTV(P) \cup \FTV(R)\\[1.0ex]
 
   \FTV &:& \PresenceCat \to \TyVarCat\\
   \FTV(\theta)   &\defas& \{\theta\}\\
@@ -839,7 +840,7 @@ $V$ for $x$ in some value $W$. We define substitution as a ternary
 function, whose signature is given by
 %
 \[
-\cdot[\cdot/\cdot] : (\CompCat + \ValCat) \times \ValCat \times \VarCat \to \CompCat,
+-[-/-] : \TermCat \times \ValCat \times \VarCat \to \CompCat,
 \]
 %
 and we realise it by pattern matching on the first argument.
