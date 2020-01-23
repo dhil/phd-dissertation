@@ -745,14 +745,33 @@ defined as follows.
 \[
   \begin{eqs}
     -[-/-] &:& \TypeCat \times \TypeCat \times \TyVarCat \to \TypeCat\\
-    (A \to C)[B/\alpha] &\defas& A[B/\alpha] \to C[B/\alpha]\\
+    (A \eff E)[B/\beta] &\defas& A[B/\beta] \eff E[B/\beta]\\
+    (A \to C)[B/\beta] &\defas& A[B/\beta] \to C[B/\beta]\\
+    (\forall \alpha^K.C)[B/\beta] &\defas& \begin{cases}
+                                             \forall \alpha^K.C & \text{if } \alpha = \beta\\
+                                             \forall \alpha^K.C[B/\beta] & \text{otherwise}
+                                           \end{cases}\\
     \alpha[B/\beta]     &\defas& \begin{cases}
                                     B & \text{if } \alpha = \beta\\
                                     \alpha & \text{otherwise}
-                                  \end{cases}
+                                  \end{cases}\\
+   \Record{R}[B/\beta] &\defas& \Record{R[B/\beta]}\\
+   {[R]}[B/\beta]        &\defas& [R[B/\beta]]\\
+   \{R\}[B/\beta]      &\defas& \{R[B/\beta]\}\\
+   \cdot[B/\beta]      &\defas& \cdot\\
+   \rho[B/\beta]       &\defas& \begin{cases}
+                                  B    & \text{if } \rho = \beta\\
+                                  \rho & \text{otherwise}
+                                \end{cases}\\
+   (\ell : P;R)[B/\beta] &\defas& (\ell : P[B/\beta]; R[B/\beta])\\
+   \theta[B/\beta]     &\defas& \begin{cases}
+                                  B    & \text{if } \rho = \beta\\
+                                  \theta & \text{otherwise}
+                                \end{cases}\\
+   \Abs[B/\beta]       &\defas& \Abs\\
+   \Pre{A}[B/beta]     &\defas& \Pre{A[B/\beta]}
   \end{eqs}
 \]
-\dhil{Complete the implementation\dots}
 %
 The \tylab{Split} rule handles typing of record destructing. When
 splitting a record term $V$ on some label $\ell$ binding it to $x$ and
