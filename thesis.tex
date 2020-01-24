@@ -186,7 +186,7 @@ callcc, J, catchcont, etc.
 
 \part{Design}
 
-\chapter{A ML-flavoured programming language}
+\chapter{A ML-flavoured programming language based on rows}
 \label{ch:base-language}
 
 In this chapter we introduce a core calculus, \BCalc{}, which we shall
@@ -769,7 +769,7 @@ defined as follows.
                                   \theta & \text{otherwise}
                                 \end{cases}\\
    \Abs[B/\beta]       &\defas& \Abs\\
-   \Pre{A}[B/beta]     &\defas& \Pre{A[B/\beta]}
+   \Pre{A}[B/\beta]     &\defas& \Pre{A[B/\beta]}
   \end{eqs}
 \]
 %
@@ -942,8 +942,29 @@ the context to that particular $N$. In our formalism, we call this
 rule \semlab{Lift}. Evaluation contexts are generated from the empty
 context $[~]$ and let expressions $\Let\;x \revto \EC \;\In\;N$.
 
+For now the choices of using fine-grain call-by-value and evaluation
+contexts may seem odd, if not arbitrary at this stage; the reader may
+wonder with good reason why we elect to use fine-grain call-by-value
+over ordinary call-by-value.  In Chapter~\ref{ch:unary-handlers} we
+will reap the benefits from our design choices, as we shall see that
+the combination of fine-grain call-by-value and evaluation contexts
+provide the basis for a convenient, simple semantic framework for
+working with continuations.
+
+\section{Metatheoretic properties of \BCalc{}}
+\label{sec:base-language-metatheory}
+
+Thus far we have defined the syntax, static semantics, and dynamic
+semantics of \BCalc{}. In this section, we finish the definition of
+\BCalc{} by stating and proving some standard metatheoretic properties
+about the language.
+
+\section{Primitive effect: general recursion}
+\label{sec:base-language-recursion}
+
 \section{Row polymorphism}
 \label{sec:row-polymorphism}
+\dhil{A discussion of alternative row systems}
 
 \section{Type and effect inference}
 \dhil{While I would like to detail the type and effect inference, it
