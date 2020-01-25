@@ -71,6 +71,7 @@
 \newcommand{\typc}[3]{#1 \vdash #2 \eff #3}
 
 \newcommand{\FTV}{\ensuremath{\mathrm{FTV}}}
+\newcommand{\FV}{\ensuremath{\mathrm{FV}}}
 
 \newcommand{\reducesto}[0]{\ensuremath{\leadsto}}
 \newcommand{\stepsto}[0]{\ensuremath{\longrightarrow}}
@@ -105,8 +106,8 @@
 \newcommand{\CompCat}{\CatName{Comp}}
 \newcommand{\ValCat}{\CatName{Val}}
 \newcommand{\VarCat}{\CatName{Var}}
-\newcommand{\ValTypeCat}{\CatName{TVal}}
-\newcommand{\CompTypeCat}{\CatName{TComp}}
+\newcommand{\ValTypeCat}{\CatName{VType}}
+\newcommand{\CompTypeCat}{\CatName{CType}}
 \newcommand{\PresenceCat}{\CatName{Presence}}
 \newcommand{\TypeCat}{\CatName{Type}}
 \newcommand{\TyVarCat}{\CatName{TVar}}
@@ -146,3 +147,8 @@
 %% Defined-as equality
 %%
 \newcommand{\defas}[0]{\mathrel{\overset{\makebox[0pt]{\mbox{\normalfont\tiny\text{def}}}}{=}}}
+
+%%
+%% Partiality
+%%
+\newcommand{\pto}[0]{\ensuremath{\rightharpoonup}}
