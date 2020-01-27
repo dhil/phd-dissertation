@@ -1022,9 +1022,9 @@ semantics of \BCalc{}. In this section, we finish the definition of
 about the language.
 %
 
-We begin by showing that type substitutions preserve typability.
+We begin by showing that substitutions preserve typability.
 %
-\begin{lemma}[Preservation of typing under type substitution]
+\begin{lemma}[Preservation of typing under substitution]
   Let $\sigma$ be any type substitution and $V$ be a value and $M$ a
   computation such that $\typ{\Delta;\Gamma}{V : A}$ and
   $\typ{\Delta;\Gamma}{M : C}$, then
@@ -1036,6 +1036,43 @@ We begin by showing that type substitutions preserve typability.
   By induction on the typing derivations.
 \end{proof}
 %
+\dhil{It is clear to me at this point, that I want to coalesce the
+  substitution functions. Possibly define them as maps rather than ordinary functions.}
+
+\begin{lemma}[Unique decomposition]
+  For any computation $M \in \CompCat$ it holds that $M$ is either
+  stuck or there exists a unique evaluation context $\EC$ and a redex
+  $N \in \CompCat$ such that $M = \EC[N]$.
+\end{lemma}
+%
+\begin{proof}
+  By structural induction on $M$.
+  \begin{description}
+  \item[Base step] $M = N$ where $N$ is either $\Return\;V$,
+    $\Absurd^C\;V$, $V\,W$, or $V\,T$. In either case take
+    $\EC = [\,]$ such that $M = \EC[N]$.
+  \item[Inductive step]
+    %
+    There are several cases to consider. In each case we must find an
+    evaluation context $\EC$ and a computation term $M'$ such that
+    $M = \EC[M']$.
+    \begin{itemize}
+      \item[Case] $M = \Let\;\Record{\ell = x; y} = V\;\In\;N$: Take $\EC = [\,]$ such that $M = \EC[\Let\;\Record{\ell = x; y} = V\;\In\;N]$.
+      \item[Case] $M = \Case\;V\,\{\ell\,x \mapsto M'; y \mapsto N\}$:
+        Take $\EC = [\,]$ such that
+        $M = \EC[\Case\;V\,\{\ell\,x \mapsto M'; y \mapsto N\}]$.
+      \item[Case] $M = \Let\;x \revto M' \;\In\;N$: By the induction
+        hypothesis it follows that $M'$ is either stuck or it
+        decomposes (uniquely) into an evaluation context $\EC'$ and a
+        redex $N'$. If $M$ is stuck, then take
+        $\EC = \Let\;x \revto [\,] \;\In\;N$ such that $M =
+        \EC[M']$. Otherwise take $\EC = \Let\;x \revto \EC'\;\In\;N$
+        such that $M = \EC[N']$.
+    \end{itemize}
+  \end{description}
+\end{proof}
+
+
 
 \section{Primitive effect: general recursion}
 \label{sec:base-language-recursion}
