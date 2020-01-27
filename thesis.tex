@@ -866,7 +866,7 @@ that the binder $x : A$.
   \EC[M] &\reducesto& \EC[N], \hfill\quad \text{if } M \reducesto N \\
 \end{reductions}
 \begin{syntax}
-\slab{Evaluation contexts} &  \mathcal{E} &::=& [\,] \mid \Let \; x \revto \mathcal{E} \; \In \; N
+\slab{Evaluation contexts} &  \mathcal{E} \in \EvalCat &::=& [\,] \mid \Let \; x \revto \mathcal{E} \; \In \; N
 \end{syntax}
 %%\[
 % Evaluation context lift
@@ -1024,10 +1024,10 @@ about the language.
 
 We begin by showing that substitutions preserve typability.
 %
-\begin{lemma}[Preservation of typing under substitution]
-  Let $\sigma$ be any type substitution and $V$ be a value and $M$ a
-  computation such that $\typ{\Delta;\Gamma}{V : A}$ and
-  $\typ{\Delta;\Gamma}{M : C}$, then
+\begin{lemma}[Preservation of typing under substitution]\label{lem:base-language-subst}
+  Let $\sigma$ be any type substitution and $V \in \ValCat$ be any
+  value and $M \in \CompCat$ a computation such that
+  $\typ{\Delta;\Gamma}{V : A}$ and $\typ{\Delta;\Gamma}{M : C}$, then
   $\typ{\Delta;\sigma~\Gamma}{\sigma~V : \sigma~A}$ and
   $\typ{\Delta;\sigma~\Gamma}{\sigma~M : \sigma~C}$.
 \end{lemma}
@@ -1039,10 +1039,15 @@ We begin by showing that substitutions preserve typability.
 \dhil{It is clear to me at this point, that I want to coalesce the
   substitution functions. Possibly define them as maps rather than ordinary functions.}
 
-\begin{lemma}[Unique decomposition]
+The reduction semantics satisfy a \emph{unique decomposition}
+property, which guarantees the existence and uniqueness of complete
+decomposition for arbitrary computation terms into evaluation
+contexts.
+%
+\begin{lemma}[Unique decomposition]\label{lem:base-language-uniq-decomp}
   For any computation $M \in \CompCat$ it holds that $M$ is either
-  stuck or there exists a unique evaluation context $\EC$ and a redex
-  $N \in \CompCat$ such that $M = \EC[N]$.
+  stuck or there exists a unique evaluation context $\EC \in \EvalCat$
+  and a redex $N \in \CompCat$ such that $M = \EC[N]$.
 \end{lemma}
 %
 \begin{proof}
@@ -1072,7 +1077,42 @@ We begin by showing that substitutions preserve typability.
   \end{description}
 \end{proof}
 
-
+%
+The calculus enjoys a rather strong \emph{progress} property, which
+states that \emph{every} closed computation term reduces to a trivial
+computation term $\Return\;V$ for some value $V$. In other words, any
+realisable function in \BCalc{} is effect-free and total.
+%
+\begin{definition}[Computation normal form]\label{def:base-language-comp-normal}
+  A computation $M \in \CompCat$ is said to be \emph{normal} if it is
+  of the form $\Return\; V$ for some value $V \in \ValCat$.
+\end{definition}
+%
+\begin{theorem}[Progress]\label{thm:base-language-progress}
+  Suppose $\typ{}{M : A}$, then there exists $\typ{}{N : A}$, such
+  that $M \reducesto^\ast N$ and $N$ is normal.
+\end{theorem}
+%
+\begin{proof}
+  Proof by induction on typing derivations.
+\end{proof}
+%
+\begin{corollary}
+  \BCalc{} is total.
+\end{corollary}
+%
+The calculus also satisfies the \emph{preservation} property,
+which states that if some computation $M$ is well-typed and reduces to
+some other computation $M'$, then $M'$ is also well-typed.
+%
+\begin{theorem}[Preservation]\label{thm:base-language-preservation}
+  Suppose $\typ{\Gamma}{M : A}$ and $M \reducesto M'$, then
+  $\typ{\Gamma}{M' : A}$.
+\end{theorem}
+%
+\begin{proof}
+  Proof by induction on typing derivations.
+\end{proof}
 
 \section{Primitive effect: general recursion}
 \label{sec:base-language-recursion}
