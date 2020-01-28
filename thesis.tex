@@ -50,6 +50,10 @@
      \textquotedblleft={ ,150}, % left quotation mark, space from right
      \textquotedblright={150, }} % right quotation mark, space from left
 
+\usepackage[customcolors,shade]{hf-tikz}  % Shaded backgrounds.
+\hfsetfillcolor{gray!40}
+\hfsetbordercolor{gray!40}
+
 %%
 %% Theorem environments
 %%
@@ -1089,7 +1093,7 @@ realisable function in \BCalc{} is effect-free and total.
 \end{definition}
 %
 \begin{theorem}[Progress]\label{thm:base-language-progress}
-  Suppose $\typ{}{M : A}$, then there exists $\typ{}{N : A}$, such
+  Suppose $\typ{}{M : C}$, then there exists $\typ{}{N : C}$, such
   that $M \reducesto^\ast N$ and $N$ is normal.
 \end{theorem}
 %
@@ -1098,7 +1102,7 @@ realisable function in \BCalc{} is effect-free and total.
 \end{proof}
 %
 \begin{corollary}
-  \BCalc{} is total.
+  Every closed computation term in \BCalc{} is terminating.
 \end{corollary}
 %
 The calculus also satisfies the \emph{preservation} property,
@@ -1106,16 +1110,74 @@ which states that if some computation $M$ is well-typed and reduces to
 some other computation $M'$, then $M'$ is also well-typed.
 %
 \begin{theorem}[Preservation]\label{thm:base-language-preservation}
-  Suppose $\typ{\Gamma}{M : A}$ and $M \reducesto M'$, then
-  $\typ{\Gamma}{M' : A}$.
+  Suppose $\typ{\Gamma}{M : C}$ and $M \reducesto M'$, then
+  $\typ{\Gamma}{M' : C}$.
 \end{theorem}
 %
 \begin{proof}
   Proof by induction on typing derivations.
 \end{proof}
 
-\section{Primitive effect: general recursion}
+\section{A primitive effect: recursion}
 \label{sec:base-language-recursion}
+%
+As evident from Theorem~\ref{thm:base-language-progress} \BCalc{}
+admit no computational effects. As a consequence every realisable
+program is terminating. Thus the calculus provide a solid and minimal
+basis for studying the expressiveness of any extension, and in
+particular, which primitive effects any such extension may sneak into
+the calculus.
+
+However, we cannot write many (if any) interesting programs in
+\BCalc{}. The calculus is simply not expressive enough. In order to
+bring it closer to the ML-family of languages we endow the calculus
+with a fixpoint operator which introduces recursion as a primitive
+effect. We dub the resulting calculus \BCalcRec{}.
+%
+
+First we augment the syntactic category of values with a new
+abstraction form for recursive functions.
+%
+\begin{syntax}
+  & V,W \in \ValCat &::=& \cdots \mid~ \tikzmarkin{rec1} \Rec \; f \, x.M \tikzmarkend{rec1}
+\end{syntax}
+%
+The $\Rec$ construct binds the function name $f$ and its argument $x$
+in the body $M$. Typing of recursive functions is standard and
+entirely straightforward.
+%
+\begin{mathpar}
+  \inferrule*[Lab=\tylab{Rec}]
+    {\typ{\Gamma}{x : A} \\ \typ{\Gamma,f : A \to C, x : A}{M : C}}
+    {\typ{\Gamma}{(\Rec \; f \, x . M) : A \to C}}
+\end{mathpar}
+%
+The reduction semantics are similarly simple.
+%
+\begin{reductions}
+  \semlab{Rec} &
+      (\Rec \; f \, x.M)\,V &\reducesto& M[(\Rec \; f\,x.M)/f, V/x]
+\end{reductions}
+%
+Every occurrence of $f$ in $M$ is replaced by the recursive abstractor
+term, while every $x$ in $M$ is replaced by the value argument $V$.
+
+The introduction of recursion means we obtain a slightly weaker
+progress theorem as some programs may now diverge.
+%
+\begin{theorem}[Progress]
+  \label{thm:base-rec-language-progress}
+  Suppose $\typ{}{M : C}$, then there exists $\typ{}{N : C}$, such
+  that $M \reducesto^\ast N$ either diverges or $N\not\reducesto$ and
+  $N$ is normal.
+\end{theorem}
+%
+\begin{proof}
+  Similar to the proof of Theorem~\ref{thm:base-language-progress}.
+\end{proof}
+
+\subsection{Tracking divergence via the effect system}
+\label{sec:tracking-div}
 
 \section{Row polymorphism}
 \label{sec:row-polymorphism}
