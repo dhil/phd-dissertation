@@ -1178,6 +1178,27 @@ progress theorem as some programs may now diverge.
 
 \subsection{Tracking divergence via the effect system}
 \label{sec:tracking-div}
+%
+With the $\Rec$-operator in \BCalcRec{} we can now implement the
+customary factorial function.
+%
+\[
+  \bl
+    \dec{fac} : \Int \to \Int \eff \{\varepsilon\}\\
+    \dec{fac} \defas \Rec\;f~n.
+       \ba[t]{@{}l}
+         \Let\;is\_zero \revto n = 0\;\In\\
+         \If\;is\_zero\;\Then\; \Return\;1\\
+         \Else\;\Let\; n' \revto n - 1 \;\In\;f~n'
+       \ea
+  \el
+\]
+%
+The $\dec{fac}$ function computes $n!$ for any non-negative integer
+$n$. If $n$ is negative then $\dec{fac}$ diverges as the function will
+repeatedly select the $\Else$-branch in the conditional
+expression. Thus this function is not total on its domain. Yet the
+effect signature tells us nothing about the potential divergence.
 
 \section{Row polymorphism}
 \label{sec:row-polymorphism}
