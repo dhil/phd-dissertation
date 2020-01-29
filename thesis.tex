@@ -57,11 +57,14 @@
 %%
 %% Theorem environments
 %%
+\theoremstyle{plain}
 \newtheorem{theorem}{Theorem}[chapter]
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{corollary}[theorem]{Corollary}
 \newtheorem{definition}[theorem]{Definition}
+\theoremstyle{definition}
+\newtheorem{example}{Example}[chapter]
 
 %%
 %% Load macros.
@@ -1139,7 +1142,7 @@ First we augment the syntactic category of values with a new
 abstraction form for recursive functions.
 %
 \begin{syntax}
-  & V,W \in \ValCat &::=& \cdots \mid~ \tikzmarkin{rec1} \Rec \; f \, x.M \tikzmarkend{rec1}
+  & V,W \in \ValCat &::=& \cdots \mid~ \tikzmarkin{rec1} \Rec \; f^{A \to C} \, x.M \tikzmarkend{rec1}
 \end{syntax}
 %
 The $\Rec$ construct binds the function name $f$ and its argument $x$
@@ -1148,15 +1151,15 @@ entirely straightforward.
 %
 \begin{mathpar}
   \inferrule*[Lab=\tylab{Rec}]
-    {\typ{\Gamma}{x : A} \\ \typ{\Gamma,f : A \to C, x : A}{M : C}}
-    {\typ{\Gamma}{(\Rec \; f \, x . M) : A \to C}}
+    {\typ{\Delta;\Gamma,f : A \to C, x : A}{M : C}}
+    {\typ{\Delta;\Gamma}{(\Rec \; f^{A \to C} \, x . M) : A \to C}}
 \end{mathpar}
 %
 The reduction semantics are similarly simple.
 %
 \begin{reductions}
   \semlab{Rec} &
-      (\Rec \; f \, x.M)\,V &\reducesto& M[(\Rec \; f\,x.M)/f, V/x]
+      (\Rec \; f^{A \to C} \, x.M)\,V &\reducesto& M[(\Rec \; f^{A \to C}\,x.M)/f, V/x]
 \end{reductions}
 %
 Every occurrence of $f$ in $M$ is replaced by the recursive abstractor
@@ -1184,7 +1187,7 @@ customary factorial function.
 %
 \[
   \bl
-    \dec{fac} : \Int \to \Int \eff \{\varepsilon\}\\
+    \dec{fac} : \Int \to \Int \eff \emptyset\\
     \dec{fac} \defas \Rec\;f~n.
        \ba[t]{@{}l}
          \Let\;is\_zero \revto n = 0\;\In\\
@@ -1198,7 +1201,70 @@ The $\dec{fac}$ function computes $n!$ for any non-negative integer
 $n$. If $n$ is negative then $\dec{fac}$ diverges as the function will
 repeatedly select the $\Else$-branch in the conditional
 expression. Thus this function is not total on its domain. Yet the
-effect signature tells us nothing about the potential divergence.
+effect signature does not alert us about the potential divergence. In
+fact, in this particular instance the effect row on the computation
+type is empty, which might deceive the doctrinaire to think that this
+function is `pure'. Whether this function is pure or impure depend on
+the precise notion of purity -- which we have yet to choose. We shall
+soon make clear the notion of purity that we have mind, however,
+before doing so let us briefly illustrate how we might utilise the
+effect system to track divergence.
+
+The key to track divergence is to modify the \tylab{Rec} to inject
+some primitive operation into the effect row.
+%
+\begin{mathpar}
+  \inferrule*[Lab=\tylab{Rec}]
+    {\typ{\Delta;\Gamma,f : A \to B\eff\{\dec{Div}:\Zero\}, x : A}{M : B\eff\{\dec{Div}:\Zero\}}}
+    {\typ{\Delta;\Gamma}{(\Rec \; f^{A \to B\eff\{\dec{Div}:\Zero\}} \, x .M) : A \to B\eff\{\dec{Div}:\Zero\}}}
+\end{mathpar}
+%
+In this typing rule we have chosen to inject an operation named
+$\dec{Div}$ into the effect row of the computation type on the
+recursive binder $f$. The operation is primitive, because it can never
+be directly invoked, rather, it occurs as a side-effect of applying a
+$\Rec$-definition.
+%
+Using this typing rule we get that
+$\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\Zero\}$. Consequently,
+every application-site of $\dec{fac}$ must now permit the $\dec{Div}$
+operation in order to type check.
+%
+\begin{example}
+  Consider the following ill-typed suspended computation which is
+  intended to compute the $3!$ when forced.
+  %
+  \[
+    \bl
+      \dec{fac_3} : \Unit \to \Int \eff \emptyset\\
+      \dec{fac_3} \defas \lambda\Unit. \dec{fac}~3
+    \el
+  \]
+  %
+  We will now show that this suspended computation fails to type check
+  with the above type signature. Let
+  $\Gamma_0 = \{\dec{fac} : \Int \to \Int \eff
+  \{\dec{Div}:\Zero\}\}$. The following typing derivation shows that
+  the application of $\dec{fac}$ causes its effect row to be
+  propagated outwards.
+  %
+  \begin{mathpar}
+    \inferrule*[Right={\tylab{Lam}}]
+      {\inferrule*[Right={\tylab{App}}]
+        {\typ{\emptyset;\Gamma_0,\Unit:\Record{}}{\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\Zero\}}\\
+         \typ{\emptyset;\Gamma_0,\Unit:\Record{}}{3 : \Int}
+        }
+        {\typ{\emptyset;\Gamma_0,\Unit:\Record{}}{\dec{fac}~3 : \Int \eff \{\dec{Div}:\Zero\}}}
+      }
+      {\typ{\emptyset;\Gamma_0}{\lambda\Unit.\dec{fac}~3} : \Unit \to \Int \eff \{\dec{Div}:\Zero\}}
+  \end{mathpar}
+  %
+  It follows from the typing derivation that the effect row on
+  $\dec{fac_3}$ cannot be empty. In other words, the information that
+  $\dec{fac_3}$ applies a possibly divergent function internally must
+  be reflected externally in its effect signature.
+\end{example}
+
 
 \section{Row polymorphism}
 \label{sec:row-polymorphism}
