@@ -1243,7 +1243,7 @@ operation in order to type check.
   %
   We will now show that this suspended computation fails to type check
   with the above type signature. Let
-  $\Gamma_0 = \{\dec{fac} : \Int \to \Int \eff
+  $\Gamma = \{\dec{fac} : \Int \to \Int \eff
   \{\dec{Div}:\Zero\}\}$. The following typing derivation shows that
   the application of $\dec{fac}$ causes its effect row to be
   propagated outwards.
@@ -1251,12 +1251,12 @@ operation in order to type check.
   \begin{mathpar}
     \inferrule*[Right={\tylab{Lam}}]
       {\inferrule*[Right={\tylab{App}}]
-        {\typ{\emptyset;\Gamma_0,\Unit:\Record{}}{\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\Zero\}}\\
-         \typ{\emptyset;\Gamma_0,\Unit:\Record{}}{3 : \Int}
+        {\typ{\emptyset;\Gamma,\Unit:\Record{}}{\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\Zero\}}\\
+         \typ{\emptyset;\Gamma,\Unit:\Record{}}{3 : \Int}
         }
-        {\typ{\emptyset;\Gamma_0,\Unit:\Record{}}{\dec{fac}~3 : \Int \eff \{\dec{Div}:\Zero\}}}
+        {\typ{\emptyset;\Gamma,\Unit:\Record{}}{\dec{fac}~3 : \Int \eff \{\dec{Div}:\Zero\}}}
       }
-      {\typ{\emptyset;\Gamma_0}{\lambda\Unit.\dec{fac}~3} : \Unit \to \Int \eff \{\dec{Div}:\Zero\}}
+      {\typ{\emptyset;\Gamma}{\lambda\Unit.\dec{fac}~3} : \Unit \to \Int \eff \{\dec{Div}:\Zero\}}
   \end{mathpar}
   %
   It follows from the typing derivation that the effect row on
