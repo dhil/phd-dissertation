@@ -1274,16 +1274,16 @@ operation in order to type check.
 A possible inconvenience of the current formulation of
 $\tylab{Rec}^\ast$ is that it recursion cannot be mixed with other
 computational effects. The reason being that the effect row on
-$A \to B\eff \{\dec{Div}:\Zero\}$ is closed. Thus in practical
-programming language implementation it would be more convenient to
-leave the tail of the effect row open as to allow recursion to be used
-in larger effect contexts. The rule formulation is also rather coarse
-as it renders every $\Rec$-definition as possibly divergent -- even
-definitions that are obviously non-divergent such as the
-$\Rec$-variation of the identity function: $\Rec\;f\,x.x$. A practical
-implementation could utilise a static termination
-checker~\cite{Walther94} to obtain more fine-grained tracking of
-divergence.
+$A \to B\eff \{\dec{Div}:\Zero\}$ is closed. Thus in a practical
+general-purpose programming language implementation it is likely be
+more convenient to leave the tail of the effect row open as to allow
+recursion to be used in larger effect contexts. The rule formulation
+is also rather coarse as it renders every $\Rec$-definition as
+possibly divergent -- even definitions that are obviously
+non-divergent such as the $\Rec$-variation of the identity function:
+$\Rec\;f\,x.x$. A practical implementation could utilise a static
+termination checker~\cite{Walther94} to obtain more fine-grained
+tracking of divergence.
 % By fairly lightweight means we can obtain a finer analysis of
 % $\Rec$-definitions by simply having an additional typing rule for
 % the application of $\Rec$.
