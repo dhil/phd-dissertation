@@ -1213,10 +1213,10 @@ effect signature does not alert us about the potential divergence. In
 fact, in this particular instance the effect row on the computation
 type is empty, which might deceive the doctrinaire to think that this
 function is `pure'. Whether this function is pure or impure depend on
-the precise notion of purity -- which we have yet to choose. We shall
-soon make clear the notion of purity that we have mind, however,
-before doing so let us briefly illustrate how we might utilise the
-effect system to track divergence.
+the precise notion of purity -- which we have yet to choose. In
+Section~\ref{sec:notions-of-purity} we shall make clear the notion of
+purity that we have mind, however, first let us briefly illustrate how
+we might utilise the effect system to track divergence.
 
 The key to track divergence is to modify the \tylab{Rec} to inject
 some primitive operation into the effect row.
@@ -1261,7 +1261,7 @@ operation in order to type check.
         {\typ{\emptyset;\Gamma,\Unit:\Record{}}{\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\Zero\}}\\
          \typ{\emptyset;\Gamma,\Unit:\Record{}}{3 : \Int}
         }
-        {\typ{\emptyset;\Gamma,\Unit:\Record{}}{\dec{fac}~3 : \Int \eff \{\dec{Div}:\Zero\}}}
+        {\typc{\emptyset;\Gamma,\Unit:\Record{}}{\dec{fac}~3 : \Int}{\{\dec{Div}:\Zero\}}}
       }
       {\typ{\emptyset;\Gamma}{\lambda\Unit.\dec{fac}~3} : \Unit \to \Int \eff \{\dec{Div}:\Zero\}}
   \end{mathpar}
@@ -1299,6 +1299,12 @@ tracking of divergence.
 % \end{mathpar}
 % %
 
+\subsection{Notions of purity}
+\label{sec:notions-of-purity}
+The term `pure' is heavily overloaded in the programming literature.
+%
+\dhil{In this thesis we use the Haskell notion of purity.}
+
 \section{Row polymorphism}
 \label{sec:row-polymorphism}
 \dhil{A discussion of alternative row systems}
@@ -1311,11 +1317,340 @@ tracking of divergence.
 
 \chapter{Unary handlers}
 \label{ch:unary-handlers}
+%
+In this chapter we study various flavours of unary effect
+handlers. First we endow \BCalc{} with a syntax for performing
+effectful operations, yielding the calculus \EffCalc{}. On its own the
+calculus is not very interesting, however, as the sole addition of the
+ability to perform effectful operations does not provide any practical
+note-worthy expressiveness. However, as we augment the calculus with
+different forms of effect handlers, we begin be able to implement
+interesting that are either difficult or impossible to realise in
+\BCalc{} in direct-style. Concretely, we shall study four variations
+of effect handlers, each as a separate extension to \EffCalc{}: deep,
+default, parameterised, and shallow handlers.
+
+\section{Performing effectful operations}
+\label{sec:eff-calculus-perform}
+
+An effectful operation is a purely syntactic construction, which has
+no predefined dynamic semantics. The introduction form for effectful
+operations is a computation term.
+%
+\begin{syntax}
+  &M,N \in \CompCat &::=& \cdots \mid~ \tikzmarkin{do1} (\Do \; \ell~V)^E \tikzmarkend{do1}
+\end{syntax}
+%
+Informally, the intended behaviour of the new computation term
+$(\Do\; \ell~V)^E$ is that it performs some operation $\ell$ with
+value argument $V$. Thus the $\Do$-construct is similar to the typical
+exception-signalling $\keyw{throw}$ or $\keyw{raise}$ constructs found
+in programming languages with support for exceptions. The term is
+annotated with an effect row $E$, providing a handle to obtain the
+current effect context. We make use of this effect row during typing:
+%
+\begin{mathpar}
+  \inferrule*[Lab=\tylab{Do}]
+    { E = \{\ell : A \to B; R\} \\
+      \typ{\Delta}{E} \\
+      \typ{\Delta;\Gamma}{V : A}
+    }
+    {\typc{\Delta;\Gamma}{(\Do \; \ell \; V)^E : B}{E}}
+\end{mathpar}
+%
+An operation invocation is only well-typed if the effect row $E$ is
+well-kinded and contains the said operation with a present type; in
+other words, the current effect context permits the operation. The
+argument type $A$ must be the same as the domain of the operation.
+%
+We slightly abuse notation by using the function space arrow, $\to$,
+to also denote the operation space. Although, the function and
+operation spaces are separate entities, we may think of the operation
+space as a subspace of the function space in which every effect row is
+empty, i.e. every operation has a type on the form
+$A \to B \eff \emptyset$. As we shall see in
+Section~\ref{sec:unary-deep-handlers}, the reason that the effect row
+is always empty is that any effects an operation might have are
+ultimately conferred by a handler.
+
+% to be effect row the
+% operation $\ell$ appears in the effect signature $\Sigma$, and the
+% argument type $A$ matches the type of the provided argument $V$. The
+% result type $B$ determines the type of the invocation. In richer type
+% systems with effect tracking such as that of \citet{HillerstromL16} or
+% \citet{Leijen17} signatures are an integral part of the type
+% structure.
+
 
 \section{Deep handlers}
-\subsection{Syntax and static semantics}
-\subsection{Effect inference}
-\subsection{Dynamic semantics}
+\label{sec:unary-deep-handlers}
+We now endow $\BCalc$ with effects and yielding the calculus $\HCalc$.
+Specifically, we add two new computation term forms that introduce and
+eliminate effects.
+%
+The syntax of value terms will be unchanged.
+%
+First we define notation for handler types.
+%
+\begin{syntax}
+\slab{Handler types}     &F     &::=& C \Rightarrow D\\
+\end{syntax}
+%
+We assume the existence of a countably infinite set of operation
+symbols $\mathcal{L}$.
+%
+An effect signature $\Sigma$ is a map from operation symbols to their
+types, thus we assume that each operation symbol in a signature is
+distinct. An operation type $A \to B$ denotes an operation that takes
+an argument of type $A$ and returns a result of type $B$.
+%
+We write $dom(\Sigma) \subseteq \mathcal{L}$ for the set of operation
+symbols in a signature $\Sigma$.
+%
+%
+%% SL: probably overly fussy
+%%
+%%  satisfies the criterion that its
+%% domain consists of distinct operation symbols; we define this
+%% criterion inductively on the structure of a signature as follows.
+%% %
+%% \begin{mathpar}
+%%   \inferrule*[Lab=\siglab{empty}]
+%%     { }
+%%     {\vdash {\cdot~\mathsf{sig}}}
+%%
+%%   \inferrule*[Lab=\siglab{member}]
+%%     {\vdash \Sigma~\mathsf{sig}\\
+%%      \ell \not\in dom(\Sigma)}
+%%     {\vdash \{\ell : A \to B \} \cup \Sigma~\mathsf{sig}}
+%% \end{mathpar}
+%% %
+%
+An effect handler type $C \Rightarrow D$ classifies effect handlers
+that transform computations of type $C$ into computations of type $D$.
+%
+Following \citet{Pretnar15}, we shall assume a global signature for
+every program.
+%
+%% \jrl{The following is a bit unclear at this point.}
+%% In our setup, the sole purpose of signatures is to be informative, as
+%% we shall see shortly, signatures provide the necessary information to
+%% type operation invocations and effect handlers.
+%% %
+%% Following \citet{Pretnar15}, we will make one simplifying assumption
+%% regarding signatures, namely, we shall assume a global signature for
+%% every program that encompasses all the used operations. Note that such
+%% a signature can easily be built by recursively inspecting the syntax
+%% of the program in question.
+%% %
+%
+We now have the basic machinery to present the two new computation
+forms.
+
+\subsection{Handling of effectful operations}
+%% \jrl{Worth mentioning that values are the same as in $\BCalc$}
+%% \sam{We now mention that above}
+We now present the elimination form for effectful operations.
+%
+\begin{syntax}
+\slab{Computations} &M,N \in \CompCat &::=& \cdots \mid~ \tikzmarkin{deephandlers1} \Handle \; M \; \With \; H\tikzmarkend{deephandlers1}\\[1ex]
+\slab{Handlers}     &H                &::=& \{ \Val \; x \mapsto M \}\\
+                    &                 &\mid&  \{ \ell \; p \; r \mapsto N \} \uplus H\\
+\end{syntax}
+%
+%% \jrl{Maybe easier to understand once typing have been given?}
+%
+%% SL: Possibly, but let's stick with this structure for now.
+%
+The handle construct $(\Handle \; M \; \With \; H)$ is the counterpart
+to $\Do$. It runs computation $M$ using handler $H$. A handler $H$
+consists of a value clause $\{\Val \; x \mapsto M\}$ and a possibly
+empty set of operation clauses $\{\ell \; p \; r \mapsto
+N_\ell\}_{\ell \in \mathcal{L}}$.
+%
+The value clause $\{\Val \; x \mapsto M\}$ defines how to interpret a
+final return value of the handled computation. The variable $x$ is
+bound to the final return value in the body $M$.
+%
+Each operation clause $\{\ell \; p \; r \mapsto N_\ell\}_{\ell \in
+  \mathcal{L}}$ defines how to interpret an invocation of a particular
+operation $\ell$. The variables $p$ and $r$ are bound in the body
+$N_\ell$: $p$ binds the argument carried by the operation and
+resumption $r$ binds the resumption of the invocation site of $\ell$.
+
+An appealing feature of effect handlers is \emph{operation
+  forwarding}, which intuitively means that if some handler $H$ has no
+matching operation clause for some operation $\ell$, then $H$ silently
+forwards $\ell$ to its nearest enclosing handler.
+%
+In programming practice, forwarding is crucial for modularity as it
+provides a basis for composing a collection of fine-grained,
+specialised effect handlers to interpret a larger effect
+signature~\citep{KammarLO13,HillerstromL16}.
+%
+The handlers in our calculus do not support forwarding directly;
+rather, we follow \citet{PlotkinP13} and adopt the convention that a
+handler with omitted operation clauses (with respect to global
+signature $\Sigma$) is syntactic sugar for one in which all missing
+clauses perform forwarding explicitly:
+%
+\[
+   \{\ell \; p \; r \mapsto \Let\; x \revto \Do \; \ell \, p \;\In\; r \, x\}
+\]
+%
+By omitting forwarding, we obtain a slightly simpler metatheory
+without altering the expressive power of the
+system.
+% SL: I don't think this is a relevant citation
+%
+%~\citep{ForsterKLP17}.
+%
+(Of course, if we were to add a type-and-effect system then this
+approach would lose important information.)
+
+%% It is worth noting that this approach only works because our type
+%% system is oblivious to effects. With a type-and-effect system this
+%% convention would change the effect types of every handler.
+
+Given a handler $H$, we often wish to refer to the clause for a
+particular operation or the value clause; for these purposes we define
+two convenient projections on handlers in the metalanguage.
+\[
+  \ba{@{~}r@{~}c@{~}l@{~}l}
+    \hell &\defas& \{\ell\; p\,r \mapsto M \}, &\quad \text{where } \{\ell\; p\,r \mapsto M \} \in H\\
+    \hret &\defas& \{\Val\, x \mapsto M \}, &\quad \text{where } \{\Val\, x \mapsto M \} \in H\\
+  \ea
+\]
+%
+The $\hell$ projection yields the singleton set consisting of the
+operation clause in $H$ that handles the operation $\ell$, whilst
+$\hret$ yields the singleton set containing the value clause of $H$.
+
+\subsubsection{Static semantics}
+
+The typing of effect handlers is slightly more involved than the
+typing of the $\Do$-construct.
+%
+\begin{mathpar}
+  \inferrule*[Lab=\tylab{Handle}]
+    {\typ{\Gamma}{M : C} \\
+     \Gamma \vdash H : C \Rightarrow D}
+    {\typ{\Gamma}{\Handle \; M \; \With \; H : D}}
+
+%\mprset{flushleft}
+\inferrule*[Lab=\tylab{Handler}]
+    {  \hret = \{\Val \; x \mapsto M\} \\
+      [\hell = \{\ell \; p_\ell \; r_\ell \mapsto N_\ell\}]_{\ell \in dom(\Sigma)} \\
+      [\typ{\Gamma, p_\ell : A_\ell, r_\ell : B_\ell \to D}{N_\ell : D}]_{(\ell : A_\ell \to B_\ell) \in \Sigma} \\
+       \typ{\Gamma, x : C}{M : D} \\
+    }
+    {{\Gamma} \vdash {H : C \Rightarrow D}}
+\end{mathpar}
+%
+The $\tylab{Handle}$ rule is straightforward.
+%
+Most of the work happens in the \tylab{Handler} rule.
+%
+It ensures that the bodies of the value clause and the operation
+clauses all have the output type $D$. The type of $x$ in the value
+clause must match the input type $C$. The type of the parameter
+$p_\ell$ ($A_\ell$) and resumption $r_\ell$ ($B_\ell \to D$) in the
+operation clause $\hell$ is determined by the signature for
+$\ell$. The return type of $r_\ell$ is $D$, as the body of the
+resumption will itself be handled by $H$.
+%
+
+% \paragraph{Deep Versus Shallow}
+
+% An alternative would be to set the return type of $r_\ell$ to be
+% $C$. Then the programmer would have to explicitly reinvoke the effect
+% handler as desired. Our current rule gives rise to \emph{deep
+%   handlers} whereas the alternative rule gives rise to \emph{shallow
+%   handlers}~\citep{KammarLO13, HillerstromL18}.
+
+%% The body of the value clause must be of type $D$ provided that the
+%% binder $x$ has type $C$ -- the return type of the computation $M$. The
+%% operation clause bodies, $N_\ell$, must also have the same type
+%% $D$. Furthermore, the bodies are typed with respect to operation
+%% argument and the resumption, whose types are constructed using the
+%% signature $\Sigma$. Each invocation of $r_\ell$ in $N_\ell$ must
+%% provide an argument of the expected return type $B_\ell$ of $\ell$,
+%% whilst $r_\ell$ itself must return a value of the same type $D$ as the
+%% handler.
+
+%% Readers familiar with the effect handlers' literature will recognise
+%% these rules as the typing rules for so-called \emph{deep
+%%   handlers}~\citep{BauerP15} as opposed to \emph{shallow
+%%   handlers}~\citep{HillerstromL18}. We shall not delve into their technical
+%% distinction in this paper.
+
+
+
+\subsubsection{Dynamic semantics}
+
+We add two new reduction rules to the operational semantics: one for
+handling return values and the other for handling operations.
+%{\small{
+\begin{reductions}
+\semlab{Ret} &
+  \Handle \; (\Return \; V) \; \With \; H &\reducesto& N[V/x],  \hfill\text{where } \hret = \{ \Val \; x \mapsto N \} \\
+\semlab{Op} &
+  \Handle \; \EC[\Do \; \ell \, V] \; \With \; H
+    &\reducesto& N[V/p, \lambda y . \, \Handle \; \EC[\Return \; y] \; \With \; H/r], \\
+\multicolumn{4}{@{}r@{}}{
+      \hfill\text{where } \hell = \{ \ell \; p \; r \mapsto N \}
+}
+\end{reductions}%}}%
+%
+The rule \semlab{Ret} invokes the return clause of a handler.
+%
+The rule \semlab{Op} handles an operation via the corresponding
+operation clause.
+%
+Rather than augmenting the notion of evaluation contexts from the base
+language, we introduce a new context for handlers.
+% \begin{syntax}
+% \slab{Handler contexts} &  \HC &::=& [\,] \mid \Handle \; \HC \; \With \; H \mid \Let\;x \revto \HC\; \In\; N
+% \end{syntax}
+% \begin{reductions}
+%   \semlab{Lift-H} & \HC[M] &\reducesto& \HC[N], \qquad\hfill\text{if } M \reducesto N
+% \end{reductions}
+%
+The separation between pure evaluation contexts $\EC$ and handler
+contexts $??$ guarantees the reduction rules remain deterministic, as
+otherwise $(\semlab{Op})$ can pick an arbitrary handler in scope. But
+with this separation, the rule must pick the innermost handler.
+% SL: deleted unique decomposition lemma as it wasn't formulated
+% correctly and not mentioned directly
+%
+%% The unique decomposition lemma remains true for the extended
+%% evaluation contexts, although, there are more cases to consider in the
+%% proof.
+
+The metatheoretic properties of $\BCalc$ transfer to $\HCalc$ with
+little extra effort, alas we have to amend the definition of
+computation normal forms as there are now two ways in which a
+computation term can terminate: successfully returning a value or
+getting stuck on an unhandled operation.
+%
+\begin{definition}[Computation normal forms]
+  We say that a computation term $N$ is normal with respect to
+  $\ell \in \Sigma$, if $N$ is either of the form $\Return\;V$, or
+  $\EC[\Do\;\ell\,W]$.
+\end{definition}
+%
+
+%
+\begin{theorem}[Subject Reduction]
+If $\typ{\Gamma}{M : C}$ and $M \reducesto M'$, then
+$\typ{\Gamma}{M' : C}$.
+\end{theorem}
+%
+
+\begin{theorem}[Type Soundness]
+  If $\typ{}{M : C}$, then either there exists $\typ{}{N : C}$ such
+  that $M \reducesto^+ N$ and $N$ is normal, or $M$ diverges.
+\end{theorem}
 
 \section{Default handlers}
 
