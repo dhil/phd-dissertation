@@ -63,6 +63,10 @@
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{corollary}[theorem]{Corollary}
 \newtheorem{definition}[theorem]{Definition}
+% Example environment.
+\makeatletter
+\def\@endtheorem{\hfill$\blacksquare$\endtrivlist\@endpefalse} % inserts a black square at the end.
+\makeatother
 \theoremstyle{definition}
 \newtheorem{example}{Example}[chapter]
 
@@ -1192,7 +1196,11 @@ customary factorial function.
        \ba[t]{@{}l}
          \Let\;is\_zero \revto n = 0\;\In\\
          \If\;is\_zero\;\Then\; \Return\;1\\
-         \Else\;\Let\; n' \revto n - 1 \;\In\;f~n'
+         \Else\;\ba[t]{@{~}l}
+                   \Let\; n' \revto n - 1 \;\In\\
+                   \Let\; m \revto f~n' \;\In\\
+                   n * m
+                 \ea
        \ea
   \el
 \]
@@ -1214,7 +1222,7 @@ The key to track divergence is to modify the \tylab{Rec} to inject
 some primitive operation into the effect row.
 %
 \begin{mathpar}
-  \inferrule*[Lab=\tylab{Rec}]
+  \inferrule*[Lab=$\tylab{Rec}^\ast$]
     {\typ{\Delta;\Gamma,f : A \to B\eff\{\dec{Div}:\Zero\}, x : A}{M : B\eff\{\dec{Div}:\Zero\}}}
     {\typ{\Delta;\Gamma}{(\Rec \; f^{A \to B\eff\{\dec{Div}:\Zero\}} \, x .M) : A \to B\eff\{\dec{Div}:\Zero\}}}
 \end{mathpar}
@@ -1231,22 +1239,21 @@ every application-site of $\dec{fac}$ must now permit the $\dec{Div}$
 operation in order to type check.
 %
 \begin{example}
-  Consider the following ill-typed suspended computation which is
-  intended to compute the $3!$ when forced.
+  We will use the following suspended computation to demonstrate
+  effect tracking in action.
   %
   \[
     \bl
-      \dec{fac_3} : \Unit \to \Int \eff \emptyset\\
-      \dec{fac_3} \defas \lambda\Unit. \dec{fac}~3
+      \lambda\Unit. \dec{fac}~3
     \el
   \]
   %
-  We will now show that this suspended computation fails to type check
-  with the above type signature. Let
-  $\Gamma = \{\dec{fac} : \Int \to \Int \eff
-  \{\dec{Div}:\Zero\}\}$. The following typing derivation shows that
-  the application of $\dec{fac}$ causes its effect row to be
-  propagated outwards.
+  The computation calculates $3!$ when forced.
+  %
+  We will now give a typing derivation for this computation to
+  illustrate how the application of $\dec{fac}$ causes its effect row
+  to be propagated outwards. Let
+  $\Gamma = \{\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\Zero\}\}$.
   %
   \begin{mathpar}
     \inferrule*[Right={\tylab{Lam}}]
@@ -1259,12 +1266,38 @@ operation in order to type check.
       {\typ{\emptyset;\Gamma}{\lambda\Unit.\dec{fac}~3} : \Unit \to \Int \eff \{\dec{Div}:\Zero\}}
   \end{mathpar}
   %
-  It follows from the typing derivation that the effect row on
-  $\dec{fac_3}$ cannot be empty. In other words, the information that
-  $\dec{fac_3}$ applies a possibly divergent function internally must
-  be reflected externally in its effect signature.
+  The information that the computation applies a possibly divergent
+  function internally gets reflected externally in its effect
+  signature.
 \end{example}
-
+%
+A possible inconvenience of the current formulation of
+$\tylab{Rec}^\ast$ is that it recursion cannot be mixed with other
+computational effects. The reason being that the effect row on
+$A \to B\eff \{\dec{Div}:\Zero\}$ is closed. Thus in practical
+programming language implementation it would be more convenient to
+leave the tail of the effect row open as to allow recursion to be used
+in larger effect contexts. The rule formulation is also rather coarse
+as it renders every $\Rec$-definition as possibly divergent -- even
+definitions that are obviously non-divergent such as the
+$\Rec$-variation of the identity function: $\Rec\;f\,x.x$. A practical
+implementation could utilise a static termination
+checker~\cite{Walther94} to obtain more fine-grained tracking of
+divergence.
+% By fairly lightweight means we can obtain a finer analysis of
+% $\Rec$-definitions by simply having an additional typing rule for
+% the application of $\Rec$.
+% %
+% \begin{mathpar}
+%   \inferrule*[lab=$\tylab{AppRec}^\ast$]
+%   { E' = \{\dec{Div}:\Zero\} \uplus E\\
+%     \typ{\Delta}{E'}\\\\
+%     \typ{\Delta;\Gamma}{\Rec\;f^{A \to B \eff E}\,x.M : A \to B \eff E}\\
+%     \typ{\Delta;\Gamma}{W : A}
+%   }
+%   {\typ{\Delta;\Gamma}{(\Rec\;f^{A \to B \eff E}\,x.M)\,W : B \eff E'}}
+% \end{mathpar}
+% %
 
 \section{Row polymorphism}
 \label{sec:row-polymorphism}
