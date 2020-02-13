@@ -14,6 +14,7 @@
 \usepackage{amsthm}           % Provides \newtheorem, \theoremstyle, etc.
 \usepackage{mathtools}
 \usepackage{pkgs/mathpartir}  % Inference rules
+\usepackage{pkgs/mathwidth}
 \usepackage{stmaryrd}         % semantic brackets
 \usepackage{array}
 \usepackage{float}            % Float control
@@ -1417,6 +1418,8 @@ $A \to B \eff \emptyset$. The reason that the effect row is always
 empty is that any effects an operation might have are ultimately
 conferred by a handler.
 
+\dhil{Introduce notation for computation trees.}
+
 \subsection{Handling of effectful operations}
 %
 We now present the elimination form for effectful operations, namely,
@@ -1479,14 +1482,23 @@ particular operation or the return clause; for these purposes we
 define two convenient projections on handlers in the metalanguage.
 \[
   \ba{@{~}r@{~}c@{~}l@{~}l}
-    \hell &\defas& \{\ell\; p\; r \mapsto M \}, &\quad \text{where } \{\ell\; p\; r \mapsto M \} \in H\\
-    \hret &\defas& \{\Return\, x \mapsto M \}, &\quad \text{where } \{\Return\; x \mapsto M \} \in H\\
+    \hell &\defas& \{\ell\; p\; r \mapsto N \}, &\quad \text{where } \{\ell\; p\; r \mapsto N \} \in H\\
+    \hret &\defas& \{\Return\; x \mapsto N \}, &\quad \text{where } \{\Return\; x \mapsto N \} \in H\\
   \ea
 \]
 %
 The $\hell$ projection yields the singleton set consisting of the
 operation clause in $H$ that handles the operation $\ell$, whilst
 $\hret$ yields the singleton set containing the return clause of $H$.
+%
+We define the \emph{domain} of an handler as the set of operation
+labels it handles, i.e.
+%
+\begin{equations}
+  \dom &:& \HandlerCat \to \LabelCat\\
+  \dom(\{\Return\;x \mapsto M\})  &\defas& \emptyset\\
+  \dom(\{\ell\; p\;r \mapsto M\} \uplus H) &\defas& \{\ell\} \cup \dom(H)
+\end{equations}
 
 \subsection{Static semantics}
 
@@ -1527,96 +1539,77 @@ are used to type operation clauses.
 In each operation clause the resumption $r_i$ must have the same
 return type, $D$, as its handler. In the return clause the binder $x$
 has the same type, $C$, as the result of the input computation.
-% The $\tylab{Handle}$ rule is straightforward.
-% %
-% Most of the work happens in the \tylab{Handler} rule.
-% %
-% It ensures that the bodies of the value clause and the operation
-% clauses all have the output type $D$. The type of $x$ in the value
-% clause must match the input type $C$. The type of the parameter
-% $p_i$ ($A_i$) and resumption $r_i$ ($B_i \to D$) in the
-% operation clause $\hell$ is determined by the signature for
-% $\ell$. The return type of $r_\ell$ is $D$, as the body of the
-% resumption will itself be handled by $H$.
-%
-
-% \paragraph{Deep Versus Shallow}
-
-% An alternative would be to set the return type of $r_\ell$ to be
-% $C$. Then the programmer would have to explicitly reinvoke the effect
-% handler as desired. Our current rule gives rise to \emph{deep
-%   handlers} whereas the alternative rule gives rise to \emph{shallow
-%   handlers}~\citep{KammarLO13, HillerstromL18}.
-
-%% The body of the value clause must be of type $D$ provided that the
-%% binder $x$ has type $C$ -- the return type of the computation $M$. The
-%% operation clause bodies, $N_\ell$, must also have the same type
-%% $D$. Furthermore, the bodies are typed with respect to operation
-%% argument and the resumption, whose types are constructed using the
-%% signature $\Sigma$. Each invocation of $r_\ell$ in $N_\ell$ must
-%% provide an argument of the expected return type $B_\ell$ of $\ell$,
-%% whilst $r_\ell$ itself must return a value of the same type $D$ as the
-%% handler.
-
-%% Readers familiar with the effect handlers' literature will recognise
-%% these rules as the typing rules for so-called \emph{deep
-%%   handlers}~\citep{BauerP15} as opposed to \emph{shallow
-%%   handlers}~\citep{HillerstromL18}. We shall not delve into their technical
-%% distinction in this paper.
-
 
 
 \subsection{Dynamic semantics}
 
-We add two new reduction rules to the operational semantics: one for
-handling return values and the other for handling operations.
+We augment the operational semantics with two new reduction rules: one
+for handling return values and another for handling operations.
 %{\small{
 \begin{reductions}
 \semlab{Ret} &
-  \Handle \; (\Return \; V) \; \With \; H &\reducesto& N[V/x],  \hfill\text{where } \hret = \{ \Val \; x \mapsto N \} \\
+  \Handle \; (\Return \; V) \; \With \; H &\reducesto& N[V/x],  \hfill\text{where } \hret = \{ \Return \; x \mapsto N \} \\
 \semlab{Op} &
   \Handle \; \EC[\Do \; \ell \, V] \; \With \; H
     &\reducesto& N[V/p, \lambda y . \, \Handle \; \EC[\Return \; y] \; \With \; H/r], \\
 \multicolumn{4}{@{}r@{}}{
-      \hfill\text{where } \hell = \{ \ell \; p \; r \mapsto N \}
+        \hfill\ba[t]{@{~}r@{~}l}
+                      \text{where}& \hell = \{ \ell \; p \; r \mapsto N \}\\
+                      \text{and}  & \ell \notin \BL(\EC)
+              \ea
 }
 \end{reductions}%}}%
 %
-The rule \semlab{Ret} invokes the return clause of a handler.
+The rule \semlab{Ret} invokes the return clause of the current handler
+$H$ and substitutes $V$ for $x$ in the body $N$.
 %
-The rule \semlab{Op} handles an operation via the corresponding
-operation clause.
+The rule \semlab{Op} handles an operation $\ell$, provided that the
+handler definition $H$ contains a corresponding operation clause for
+$\ell$ and that $\ell$ does not appear in the bound labels of the
+inner context $\EC$. The latter condition enforces that an operation
+is always handled by the innermost suitable handler. To illustrate the
+condition at work consider the following example.
 %
-Rather than augmenting the notion of evaluation contexts from the base
-language, we introduce a new context for handlers.
-% \begin{syntax}
-% \slab{Handler contexts} &  \HC &::=& [\,] \mid \Handle \; \HC \; \With \; H \mid \Let\;x \revto \HC\; \In\; N
-% \end{syntax}
-% \begin{reductions}
-%   \semlab{Lift-H} & \HC[M] &\reducesto& \HC[N], \qquad\hfill\text{if } M \reducesto N
-% \end{reductions}
+\[
+  \bl
+    \ba{@{~}r@{~}c@{~}l}
+        H_{\mathsf{inner}}   &\defas& \{\ell\;p\;r \mapsto r~42, \Return\;x \mapsto \Return~x\}\\
+        H_{\mathsf{outer}} &\defas& \{\ell\;p\;r \mapsto r~0,\Return\;x \mapsto \Return~x \}
+    \ea\medskip\\
+      \Handle \;
+        \Handle\; \Do\;\ell~\Record{}\;\With\; H_{\mathsf{inner}}\;
+      \With\; H_{\mathsf{outer}}
+      \reducesto^+ \Return\;42
+  \el
+\]
 %
-The separation between pure evaluation contexts $\EC$ and handler
-contexts $??$ guarantees the reduction rules remain deterministic, as
-otherwise $(\semlab{Op})$ can pick an arbitrary handler in scope. But
-with this separation, the rule must pick the innermost handler.
-% SL: deleted unique decomposition lemma as it wasn't formulated
-% correctly and not mentioned directly
+Both handlers handle the operation $\ell$, however, due to the side
+condition gets handled by $H_{\mathsf{inner}}$ rather than
+$H_{\mathsf{outer}}$. Without the side condition reduction would have
+been ambiguous. Thus the condition is necessary to ensure
+deterministic reduction.
+
+Formally, we define the notion of bound labels,
+$\BL : \EvalCat \to \LabelCat$, inductively over the structure of
+evaluation contexts.
 %
-%% The unique decomposition lemma remains true for the extended
-%% evaluation contexts, although, there are more cases to consider in the
-%% proof.
+\begin{equations}
+\BL([~])                        &=& \emptyset           \\
+\BL(\Let\;x \revto \EC\;\In\;N) &=& \BL(\EC)             \\
+\BL(\Handle\;\EC\;\With\;H)     &=& \BL(\EC) \cup \dom(H) \\
+\end{equations}
+%
 
 The metatheoretic properties of $\BCalc$ transfer to $\HCalc$ with
-little extra effort, alas we have to amend the definition of
+little extra effort, although we must amend the definition of
 computation normal forms as there are now two ways in which a
 computation term can terminate: successfully returning a value or
 getting stuck on an unhandled operation.
 %
 \begin{definition}[Computation normal forms]
-  We say that a computation term $N$ is normal with respect to
-  $\ell \in \Sigma$, if $N$ is either of the form $\Return\;V$, or
-  $\EC[\Do\;\ell\,W]$.
+  We say that a computation term $N$ is normal with respect to an
+  effect signature $E$, if $N$ is either of the form $\Return\;V$, or
+  $\EC[\Do\;\ell\,W]$ where $\ell \in E$ and $\ell \notin \BL(\EC)$.
 \end{definition}
 %
 
