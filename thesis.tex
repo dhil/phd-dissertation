@@ -1553,9 +1553,9 @@ for handling return values and another for handling operations.
   \Handle \; \EC[\Do \; \ell \, V] \; \With \; H
     &\reducesto& N[V/p, \lambda y . \, \Handle \; \EC[\Return \; y] \; \With \; H/r], \\
 \multicolumn{4}{@{}r@{}}{
-        \hfill\ba[t]{@{~}r@{~}l}
-                      \text{where}& \hell = \{ \ell \; p \; r \mapsto N \}\\
-                      \text{and}  & \ell \notin \BL(\EC)
+       \hfill\ba[t]{@{~}r@{~}l}
+                   \text{where}& \hell = \{ \ell \; p \; r \mapsto N \}\\
+                   \text{and}  & \ell \notin \BL(\EC)
               \ea
 }
 \end{reductions}%}}%
@@ -1565,30 +1565,11 @@ $H$ and substitutes $V$ for $x$ in the body $N$.
 %
 The rule \semlab{Op} handles an operation $\ell$, provided that the
 handler definition $H$ contains a corresponding operation clause for
-$\ell$ and that $\ell$ does not appear in the bound labels of the
-inner context $\EC$. The latter condition enforces that an operation
-is always handled by the innermost suitable handler. To illustrate the
-condition at work consider the following example.
+$\ell$ and that $\ell$ does not appear in the \emph{bound labels}
+($\BL$) of the inner context $\EC$. The bound label condition enforces
+that an operation is always handled by the nearest enclosing suitable
+handler.
 %
-\[
-  \bl
-    \ba{@{~}r@{~}c@{~}l}
-        H_{\mathsf{inner}}   &\defas& \{\ell\;p\;r \mapsto r~42, \Return\;x \mapsto \Return~x\}\\
-        H_{\mathsf{outer}} &\defas& \{\ell\;p\;r \mapsto r~0,\Return\;x \mapsto \Return~x \}
-    \ea\medskip\\
-      \Handle \;
-        \Handle\; \Do\;\ell~\Record{}\;\With\; H_{\mathsf{inner}}\;
-      \With\; H_{\mathsf{outer}}
-      \reducesto^+ \Return\;42
-  \el
-\]
-%
-Both handlers handle the operation $\ell$, however, due to the side
-condition gets handled by $H_{\mathsf{inner}}$ rather than
-$H_{\mathsf{outer}}$. Without the side condition reduction would have
-been ambiguous. Thus the condition is necessary to ensure
-deterministic reduction.
-
 Formally, we define the notion of bound labels,
 $\BL : \EvalCat \to \LabelCat$, inductively over the structure of
 evaluation contexts.
@@ -1599,6 +1580,68 @@ evaluation contexts.
 \BL(\Handle\;\EC\;\With\;H)     &=& \BL(\EC) \cup \dom(H) \\
 \end{equations}
 %
+To illustrate the necessity of this condition consider the following
+example with two nested handlers which both handle the same operation
+$\ell$.
+%
+\[
+  \bl
+    \ba{@{~}r@{~}c@{~}l}
+        H_{\mathsf{inner}}   &\defas& \{\ell\;p\;r \mapsto r~42; \Return\;x \mapsto \Return~x\}\\
+        H_{\mathsf{outer}} &\defas& \{\ell\;p\;r \mapsto r~0;\Return\;x \mapsto \Return~x \}
+    \ea\medskip\\
+      \Handle \;
+        \left(\Handle\; \Do\;\ell~\Record{}\;\With\; H_{\mathsf{inner}}\right)\;
+      \With\; H_{\mathsf{outer}}
+      \reducesto^+ \begin{cases}
+                     \Return\;42 & \text{Innermost}\\
+                     \Return\;0  & \text{Outermost}
+                   \end{cases}
+  \el
+\]
+%
+Without the bound label condition there are two possible results as
+the choice of which handler to pick for $\ell$ is ambiguous, meaning
+reduction would be nondeterministic. Conversely, with the bound label
+condition we obtain that the above term reduces to $\Return\;42$,
+because $\ell$ is bound in the computation term of the outermost
+$\Handle$.
+%
+
+We have made a conscious design decision by always selecting nearest
+enclosing suitable handler for any operation. In fact, we have made
+the \emph{only} natural and sensible choice as picking any other
+handler than the nearest enclosing renders programming with effect
+handlers anti-modular. Consider always selecting the outermost
+suitable handler, then the meaning of closed program composition
+cannot be derived from its immediate constituents. For example,
+consider using integer addition as the composition operator to compose
+the inner handle expression from above with a copy of itself.
+%
+\[
+  \bl
+      \dec{fortytwo} \defas \Handle\;\Do\;\ell~\Unit\;\With\;H_{\mathsf{inner}} \medskip\\
+      \EC[\dec{fortytwo} + \dec{fortytwo}] \reducesto^+ \begin{cases}
+                                                          \Return\; 84 & \text{when $\EC$ is empty}\\
+                                                          ?? & \text{otherwise}
+                                                        \end{cases}
+  \el
+\]
+%
+Clearly, if the ambient context $\EC$ is empty, then we can derive the
+result by reasoning locally about each constituent separately and
+subsequently add their results together to obtain the computation term
+$\Return\;84$. However, if the ambient context is nonempty, then we
+need to account for the possibility that some handler for $\ell$ could
+occur in the context. For instance if
+$\EC = \Handle\;[~]\;\With\;H_{\mathsf{outer}}$ then the result would
+be $\Return\;0$, which we cannot derive locally from looking at the
+constituents. Thus we argue that if we want programming to remain
+modular and compositional, then we must necessarily always select the
+nearest enclosing suitable handler to handle an operation invocation.
+%
+\dhil{Effect forwarding (the first condition)}
+
 
 The metatheoretic properties of $\BCalc$ transfer to $\HCalc$ with
 little extra effort, although we must amend the definition of
@@ -1613,20 +1656,29 @@ getting stuck on an unhandled operation.
 \end{definition}
 %
 
-%
-\begin{theorem}[Subject Reduction]
-If $\typ{\Gamma}{M : C}$ and $M \reducesto M'$, then
-$\typ{\Gamma}{M' : C}$.
+\begin{theorem}[Progress]
+  Suppose $\typ{}{M : C}$, then either there exists $\typ{}{N : C}$
+  such that $M \reducesto^+ N$ and $N$ is normal, or $M$ diverges.
 \end{theorem}
-%
 
-\begin{theorem}[Type Soundness]
-  If $\typ{}{M : C}$, then either there exists $\typ{}{N : C}$ such
-  that $M \reducesto^+ N$ and $N$ is normal, or $M$ diverges.
+%
+\begin{theorem}[Preservation]
+  Suppose $\typ{\Gamma}{M : C}$ and $M \reducesto M'$, then
+  $\typ{\Gamma}{M' : C}$.
 \end{theorem}
+
+\subsection{Coding nontermination}
+
+\subsection{Programming with deep handlers}
+\dhil{Exceptions}
+\dhil{Reader}
+\dhil{State}
+\dhil{Nondeterminism}
 
 \section{Parameterised handlers}
 \label{sec:unary-parameterised-handlers}
+
+\dhil{Example: Lightweight threads}
 
 \section{Default handlers}
 \label{sec:unary-default-handlers}
