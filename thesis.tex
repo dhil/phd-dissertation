@@ -868,9 +868,9 @@ that the binder $x : A$.
 \semlab{App}   & (\lambda x^A . \, M) V &\reducesto& M[V/x] \\
 \semlab{TyApp} & (\Lambda \alpha^K . \, M) A &\reducesto& M[A/\alpha] \\
 \semlab{Split} & \Let \; \Record{\ell = x;y} = \Record{\ell = V;W} \; \In \; N &\reducesto& N[V/x,W/y] \\
-\semlab{Case$_1$} &
+\semlab{Case_1} &
   \Case \; (\ell~V)^R \{ \ell \; x \mapsto M; y \mapsto N\} &\reducesto& M[V/x] \\
-\semlab{Case$_2$} &
+\semlab{Case_2} &
   \Case \; (\ell~V)^R \{ \ell' \; x \mapsto M; y \mapsto N\} &\reducesto& N[(\ell~V)^R/y], \hfill\quad \text{if } \ell \neq \ell' \\
 \semlab{Let} &
   \Let \; x \revto \Return \; V \; \In \; N &\reducesto& N[V/x] \\
@@ -986,7 +986,7 @@ some label $\ell$ binds the payload $V$ to $x$ and the remainder $W$
 to $y$ in the continuation $N$.
 %
 Disjunctive case splitting is handled by the two rules
-\semlab{Case$_1$} and \semlab{Case$_2$}. The former rule handles the
+\semlab{Case_1} and \semlab{Case_2}. The former rule handles the
 success case, when the scrutinee's tag $\ell$ matches the tag of the
 success clause, thus binds the payload $V$ to $x$ and proceeds to
 evaluate the continuation $M$. The latter rule handles the
