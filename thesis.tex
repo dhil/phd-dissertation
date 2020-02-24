@@ -207,7 +207,7 @@ callcc, J, catchcont, etc.
 
 \part{Design}
 
-\chapter{A ML-flavoured programming language based on rows}
+\chapter{An ML-flavoured programming language based on rows}
 \label{ch:base-language}
 
 In this chapter we introduce a core calculus, \BCalc{}, which we shall
@@ -218,11 +218,11 @@ multi-tier web-programming language
 \Links{}~\cite{CooperLWY06}. \Links{} belongs to the
 ML-family~\cite{MilnerTHM97} of programming languages as it features
 typical characteristics of ML languages such as a static type system
-supporting parametric polymorphism with type inference support (in
-fact Links supports first-class polymorphism), and its evaluation
-semantics is strict. However, \Links{} differentiates itself from the
-rest of the ML-family by making crucial use of \emph{row polymorphism}
-to support extensible records, variants, and tracking of computational
+supporting parametric polymorphism with type inference (in fact Links
+supports first-class polymorphism), and its evaluation semantics is
+strict. However, \Links{} differentiates itself from the rest of the
+ML-family by making crucial use of \emph{row polymorphism} to support
+extensible records, variants, and tracking of computational
 effects. Thus \Links{} has a rather strong emphasis on structural
 types rather than nominal types.
 
@@ -247,9 +247,9 @@ and programming with computational effects.
 \section{Syntax and static semantics}
 \label{sec:syntax-base-language}
 
-In \BCalc{}, types are precursory to terms, as it is intrinsically
-typed. Thus we begin by presenting the syntax of its kind and type
-structure in Section~\ref{sec:base-language-types}. Subsequently in
+As \BCalc{} is intrinsically typed, we begin by presenting the syntax
+of kinds and types in
+Section~\ref{sec:base-language-types}. Subsequently in
 Section~\ref{sec:base-language-terms} we present the term syntax,
 before presenting the formation rules for types in
 Section~\ref{sec:base-language-type-rules}.
@@ -449,10 +449,11 @@ $\cdot$ for closed rows.
 %
 
 \paragraph{Kinds}
-The kinds comprise $\Type$ for regular type variables, $\Presence$ for
-presence variables, $\Comp$ for computation type variables, $\Effect$
-for effect variables, and lastly $\Row_{\mathcal{L}}$ for row
-variables.
+The kinds classify the different categories of types. The $\Type$ kind
+classifies for value types, $\Presence$ classifies presence
+annotations, $\Comp$ classifies computation types, $\Effect$
+classifies effect types, and lastly $\Row_{\mathcal{L}}$ classifies
+rows.
 %
 The formation rules for kinds are given in
 Figure~\ref{fig:base-language-kinding}. The kinding judgement
