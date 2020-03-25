@@ -312,8 +312,9 @@ Section~\ref{sec:base-language-type-rules}.
   \label{fig:base-language-types}
 \end{figure}
 %
-Figure~\ref{fig:base-language-types} depicts the syntax for types,
-kinds, and their environments.
+The types are divided into several distinct syntactic categories which
+are given in Figure~\ref{fig:base-language-types} along with the
+syntax of kinds and environments.
 %
 \paragraph{Value types}
 We distinguish between values and computations at the level of
@@ -338,46 +339,69 @@ presence type. A presence type indicates whether a label is
 \emph{present} with type $A$ ($\Pre{A}$), \emph{absent} ($\Abs$) or
 \emph{polymorphic} in its presence ($\theta$).
 %
+For example, the effect row $\{\Read:\Pre{\Int},\Write:\Abs,\cdot\}$
+denotes a read-only context in which the operation label $\Read$ may
+occur to access some integer value, whilst the operation label
+$\Write$ cannot appear.
+%
+
 Row types are either \emph{closed} or \emph{open}. A closed row type
 ends in~$\cdot$, whilst an open row type ends with a \emph{row
   variable} $\rho$ (in an effect row we usually use $\varepsilon$
 rather than $\rho$ and refer to it as an \emph{effect variable}).
 %
-The row variable in an open row type can be instantiated with
-additional labels. Each label may occur at most once in each row (we
-enforce this restriction at the level of kinds). We identify rows up
-to the reordering of labels. We assume structural equality on labels.
+The example effect row above is closed, an open variation of it ends
+in an effect variable $\varepsilon$,
+i.e. $\{\Read:\Pre{\Int},\Write:\Abs,\varepsilon\}$.
 %
-% \begin{mathpar}
-%   \inferrule*[Lab=\rowlab{Closed}]
-%     {~}
-%     {\cdot \equiv_{\mathrm{row}} \cdot}
+The row variable in an open row type can be instantiated with
+additional labels subject to the restriction that each label may only
+occur at most once (we enforce this restriction at the level of
+kinds). We identify rows up to the reordering of labels as follows.
+%
+\begin{mathpar}
+  \inferrule*[Lab=\rowlab{Closed}]
+    {~}
+    {\cdot \equiv_{\mathrm{row}} \cdot}
 
-%   \inferrule*[Lab=\rowlab{Open}]
-%     {~}
-%     {\rho \equiv_{\mathrm{row}} \rho}
+  \inferrule*[Lab=\rowlab{Open}]
+    {~}
+    {\rho \equiv_{\mathrm{row}} \rho'}
 
-%   \inferrule*[Lab=\rowlab{Head}]
-%     {R \equiv_{\mathrm{row}} R'}
-%     {\ell:P;R \equiv_{\mathrm{row}} \ell:P;R'}
+  \inferrule*[Lab=\rowlab{Head}]
+    {R \equiv_{\mathrm{row}} R'}
+    {\ell:P;R \equiv_{\mathrm{row}} \ell:P;R'}
 
-%   \inferrule*[Lab=\rowlab{Swap}]
-%     {R \equiv_{\mathrm{row}} R'}
-%     {\ell:P;\ell':P';R \equiv_{\mathrm{row}} \ell':P';\ell:P;R'}
-% \end{mathpar}
-% %
+  \inferrule*[Lab=\rowlab{Swap}]
+    {R \equiv_{\mathrm{row}} R'}
+    {\ell:P;\ell':P';R \equiv_{\mathrm{row}} \ell':P';\ell:P;R'}
+\end{mathpar}
+%
 % The last rule $\rowlab{Swap}$ let us identify rows up to the
 % reordering of labels.  For instance, the two rows
 % $\ell_1 : P_1; \cdots; \ell_n : P_n; \cdot$ and
 % $\ell_n : P_n; \cdots ; \ell_1 : P_1; \cdot$ are equivalent.
 %
-Absent labels in closed rows are redundant.
+The \rowlab{Closed} rule states that the closed marker $\cdot$ is
+equivalent to itself, similarly the \rowlab{Open} rule states that any
+two row variables are equivalent if and only if they have the same
+syntactic name. The \rowlab{Head} rule compares the head of two given
+rows and inductively compares their tails. The \rowlab{Swap} rule
+permits reordering of labels. We assume structural equality on
+labels. The \rowlab{Head} rule
 %
+
 The standard zero and unit types are definable using rows. We define
 the zero type as the empty, closed variant $\ZeroType \defas
 [\cdot]$. Dually, the unit type is defined as the empty, closed record
-type, i.e. $\UnitType \defas \Record{\cdot}$. We shall often omit
-$\cdot$ for closed rows.
+type, i.e. $\UnitType \defas \Record{\cdot}$.
+
+% As absent labels in closed rows are redundant we will, for example,
+% consider the following two rows equivalent
+% $\Read:\Pre{\Int},\Write:\Abs,\cdot \equiv_{\mathrm{row}}
+% \Read:\Pre{\Int},\cdot$.
+For brevity, we shall often write $\ell : A$
+to mean $\ell : \Pre{A}$ and omit $\cdot$ for closed rows.
 
 %
 \begin{figure}
@@ -450,10 +474,9 @@ $\cdot$ for closed rows.
 
 \paragraph{Kinds}
 The kinds classify the different categories of types. The $\Type$ kind
-classifies for value types, $\Presence$ classifies presence
-annotations, $\Comp$ classifies computation types, $\Effect$
-classifies effect types, and lastly $\Row_{\mathcal{L}}$ classifies
-rows.
+classifies value types, $\Presence$ classifies presence annotations,
+$\Comp$ classifies computation types, $\Effect$ classifies effect
+types, and lastly $\Row_{\mathcal{L}}$ classifies rows.
 %
 The formation rules for kinds are given in
 Figure~\ref{fig:base-language-kinding}. The kinding judgement
@@ -472,7 +495,7 @@ Kind and type environments are right-extended sequences of bindings. A
 kind environment binds type variables to their kinds, whilst a type
 environment binds term variables to their types.
 
-\paragraph{Type variable} The type structure has three syntactically
+\paragraph{Type variables} The type structure has three syntactically
 distinct type variables (the kinding system gives us five semantically
 distinct notions of type variables). As we sometimes wish to refer
 collectively to type variables, we define the set of type variables,
@@ -512,6 +535,122 @@ $\TyVarCat$, to be generated by:
 % to ensure uniqueness amongst labels in each row type. We shall
 % elaborate on this in Section~\ref{sec:row-polymorphism}.
 
+\paragraph{Free type variables} Sometimes we need to compute the free
+type variables ($\FTV$) of a given type. To this end we define a
+metafunction $\FTV$ by induction on the type structure, $T$, and
+point-wise on type environments, $\Gamma$. Note that we always work up
+to $\alpha$-conversion~\cite{Church32} of types.
+%
+\[
+  \ba[t]{@{~}l@{~~~~~~}c@{~}l}
+  \multicolumn{3}{c}{\begin{eqs}
+    \FTV &:& \TypeCat \to \TyVarCat
+\end{eqs}}\\
+  \ba[t]{@{}l}
+ \begin{eqs}
+  % \FTV &:& \ValTypeCat \to \TyVarCat\\
+  \FTV(\alpha)   &\defas& \{\alpha\}\\
+  \FTV(\forall \alpha^K.C) &\defas& \FTV(C) \setminus \{\alpha\}\\
+  \FTV(A \to C)  &\defas& \FTV(A) \cup \FTV(C)\\
+  \FTV(A \eff E) &\defas& \FTV(A) \cup \FTV(E)\\
+  \FTV(\{R\})    &\defas& \FTV(R)\\
+  \FTV(\Record{R}) &\defas& \FTV(R)\\
+  \FTV([R])      &\defas& \FTV(R)\\
+  % \FTV(l:P;R)    &\defas& \FTV(P) \cup \FTV(R)\\
+  % \FTV(\Pre{A})  &\defas& \FTV(A)\\
+  % \FTV(\Abs)     &\defas& \emptyset\\
+  % \FTV(\theta)   &\defas& \{\theta\}
+\end{eqs}\ea & &
+\begin{eqs}
+  % \FTV([R])      &\defas& \FTV(R)\\
+  % \FTV(\Record{R}) &\defas& \FTV(R)\\
+  % \FTV(\{R\})    &\defas& \FTV(R)\\
+  % \FTV &:& \RowCat \to \TyVarCat\\
+  \FTV(\cdot)    &\defas& \emptyset\\
+  \FTV(\rho)     &\defas& \{\rho\}\\
+  \FTV(l:P;R)    &\defas& \FTV(P) \cup \FTV(R)\\
+
+  % \FTV &:& \PresenceCat \to \TyVarCat\\
+  \FTV(\theta)   &\defas& \{\theta\}\\
+  \FTV(\Abs)     &\defas& \emptyset\\
+  \FTV(\Pre{A})  &\defas& \FTV(A)\\
+\end{eqs}\\\\
+\multicolumn{3}{c}{\begin{eqs}
+    \FTV &:& \TyEnvCat \to \TyVarCat\\
+  \FTV(\cdot)        &\defas& \emptyset\\
+  \FTV(\Gamma,x : A) &\defas& \FTV(\Gamma) \cup \FTV(A)
+\end{eqs}}
+% \begin{eqs}
+%   \FTV(\theta)   &\defas& \{\theta\}\\
+%   \FTV(\Abs)     &\defas& \emptyset\\
+%   \FTV(\Pre{A})  &\defas& \FTV(A)
+% \end{eqs} & &
+% \begin{eqs}
+%   \FTV(\cdot)        &\defas& \emptyset\\
+%   \FTV(\Gamma,x : A) &\defas& \FTV(\Gamma) \cup \FTV(A)
+% \end{eqs}
+\ea
+\]
+%
+
+We now have the basic vocabulary to construct types in $\BCalc$. For
+example, we can give the signature of the standard polymorphic
+identity function:
+%
+\[
+  \forall \alpha^\Type. \alpha \to \alpha \eff \emptyset.
+\]
+%
+Modulo the empty effect signature, this type is akin to the type one
+would give for the identity function in System
+F~\cite{Girard72,Reynolds74}, and thus we can use standard techniques
+from parametricity~\cite{Wadler89} to reason about inhabitants of this
+signature. However, in our system we can give an even more general
+type to the identity function:
+%
+\[
+  \forall \alpha^\Type,\varepsilon^{\Row_\emptyset}. \alpha \to \alpha \eff \{\varepsilon\}.
+\]
+%
+This type is polymorphic in its effect signature as signified by the
+singleton open effect row $\{\varepsilon\}$, meaning it may be used in
+an effectful context. By contrast, the former type may only be used in
+a strictly pure context, i.e. the effect-free context.
+%
+\dhil{Maybe say something about reasoning effect types}
+%
+
+We can use the effect system to give precise types to effectful
+computations. For instance, we can give the signature of some
+polymorphic computation that may read from and write to some integer
+store:
+%
+\[
+  \forall \alpha^\Type, \varepsilon^{\{\Read,\Write\}}. \alpha \eff \{\Read:\Int,\Write:\Int \to \UnitType \eff \emptyset,\varepsilon\}.
+\]
+%
+The effect row comprise a nullary $\Read$ operation returning some
+integer and a unary $\Write$ carrying an integer and returning
+unit. Since the effect row ends in an effect variable, an inhabitant
+of this type may be used in a larger effect context.
+%
+
+We can also be precise about how a higher-order function may use its
+function arguments. The $\dec{map}$ function for lists is a canonical
+example of a higher-order function which is parametric in its own
+effects and the effects of its function argument. Supposing $\BCalc$
+have some polymorphic list datatype $\List$, then we would be able to
+ascribe the following signature to $\dec{map}$
+%
+\[
+  \forall \alpha^\Type,\beta^\Type,\varepsilon^{\Row_\emptyset}. \Record{\alpha \to \beta \eff \{\varepsilon\},\List~\alpha} \to \List~\beta \eff \{\varepsilon\}.
+\]
+%
+Note that the two effect rows are identical and share the same effect
+variable $\varepsilon$, it is thus evident that an inhabitant of this
+type can only perform whatever effects its first argument is allowed
+to perform.
+
 \subsection{Terms}
 \label{sec:base-language-terms}
 %
@@ -536,8 +675,7 @@ $\TyVarCat$, to be generated by:
 The syntax for terms is given in
 Figure~\ref{fig:base-language-term-syntax}. We assume countably
 infinite set of names $\VarCat$ from which we draw fresh variable
-names at will. We shall typically denote term variables by $x$, $y$,
-or $z$.
+names. We shall typically denote term variables by $x$, $y$, or $z$.
 %
 The syntax partitions terms into values and computations.
 %
@@ -696,76 +834,6 @@ Computations
 \caption{Typing rules}
 \label{fig:base-language-type-rules}
 \end{figure}
-%
-\dhil{There is some rendering issue with T-labels in the typing rules.}
-%
-The typing rules are given by
-Figure~\ref{fig:base-language-type-rules}. In each typing rule, we
-implicitly assume that each type is well-kinded with respect to the
-kinding environment $\Delta$.
-
-\paragraph{Typing values} The \tylab{Var} rule states that a variable
-$x$ has type $A$ if $x$ is bound to $A$ in the type environment
-$\Gamma$. The \tylab{Lam} rules states that a lambda value
-$(\lambda x.M)$ has type $A \to C$ if the computation $M$ has type $C$
-assuming $x : A$. In the \tylab{PolyLam} rule we make use of the set
-of \emph{free type variables} ($\FTV$) to ensure that we do not
-inadvertently capture a free type variable from the context.
-%
-We define $\FTV$ by mutual induction over type environments, $\Gamma$,
-and the type structure, $T$. Note that we always work up to
-$\alpha$-conversion~\cite{Church32} of types.
-%
-\[
-  \ba[t]{@{~}l@{~~~~~~}c@{~}l}
-  \multicolumn{3}{c}{\begin{eqs}
-    \FTV &:& \TypeCat \to \TyVarCat
-\end{eqs}}\\
-  \ba[t]{@{}l}
- \begin{eqs}
-  % \FTV &:& \ValTypeCat \to \TyVarCat\\
-  \FTV(\alpha)   &\defas& \{\alpha\}\\
-  \FTV(\forall \alpha^K.C) &\defas& \FTV(C) \setminus \{\alpha\}\\
-  \FTV(A \to C)  &\defas& \FTV(A) \cup \FTV(C)\\
-  \FTV(A \eff E) &\defas& \FTV(A) \cup \FTV(E)\\
-  \FTV(\{R\})    &\defas& \FTV(R)\\
-  \FTV(\Record{R}) &\defas& \FTV(R)\\
-  \FTV([R])      &\defas& \FTV(R)\\
-  % \FTV(l:P;R)    &\defas& \FTV(P) \cup \FTV(R)\\
-  % \FTV(\Pre{A})  &\defas& \FTV(A)\\
-  % \FTV(\Abs)     &\defas& \emptyset\\
-  % \FTV(\theta)   &\defas& \{\theta\}
-\end{eqs}\ea & &
-\begin{eqs}
-  % \FTV([R])      &\defas& \FTV(R)\\
-  % \FTV(\Record{R}) &\defas& \FTV(R)\\
-  % \FTV(\{R\})    &\defas& \FTV(R)\\
-  % \FTV &:& \RowCat \to \TyVarCat\\
-  \FTV(\cdot)    &\defas& \emptyset\\
-  \FTV(\rho)     &\defas& \{\rho\}\\
-  \FTV(l:P;R)    &\defas& \FTV(P) \cup \FTV(R)\\
-
-  % \FTV &:& \PresenceCat \to \TyVarCat\\
-  \FTV(\theta)   &\defas& \{\theta\}\\
-  \FTV(\Abs)     &\defas& \emptyset\\
-  \FTV(\Pre{A})  &\defas& \FTV(A)\\
-\end{eqs}\\\\
-\multicolumn{3}{c}{\begin{eqs}
-    \FTV &:& \TyEnvCat \to \TyVarCat\\
-  \FTV(\cdot)        &\defas& \emptyset\\
-  \FTV(\Gamma,x : A) &\defas& \FTV(\Gamma) \cup \FTV(A)
-\end{eqs}}
-% \begin{eqs}
-%   \FTV(\theta)   &\defas& \{\theta\}\\
-%   \FTV(\Abs)     &\defas& \emptyset\\
-%   \FTV(\Pre{A})  &\defas& \FTV(A)
-% \end{eqs} & &
-% \begin{eqs}
-%   \FTV(\cdot)        &\defas& \emptyset\\
-%   \FTV(\Gamma,x : A) &\defas& \FTV(\Gamma) \cup \FTV(A)
-% \end{eqs}
-\ea
-\]
 %
 Thus the rule states that a type abstraction $(\Lambda \alpha. M)$ has
 type $\forall \alpha.C$ if the computation $M$ has type $C$ assuming
