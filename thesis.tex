@@ -593,9 +593,10 @@ to $\alpha$-conversion~\cite{Church32} of types.
 \]
 %
 
+\paragraph{Types and their inhabitants}
 We now have the basic vocabulary to construct types in $\BCalc$. For
-example, we can give the signature of the standard polymorphic
-identity function:
+instance, the signature of the standard polymorphic identity function
+is
 %
 \[
   \forall \alpha^\Type. \alpha \to \alpha \eff \emptyset.
@@ -621,35 +622,62 @@ a strictly pure context, i.e. the effect-free context.
 %
 
 We can use the effect system to give precise types to effectful
-computations. For instance, we can give the signature of some
-polymorphic computation that may read from and write to some integer
-store:
+computations. For example, we can give the signature of some
+polymorphic computation that may only be run in a read-only context
 %
 \[
-  \forall \alpha^\Type, \varepsilon^{\{\Read,\Write\}}. \alpha \eff \{\Read:\Int,\Write:\Int \to \UnitType \eff \emptyset,\varepsilon\}.
+  \forall \alpha^\Type, \varepsilon^{\Row_{\{\Read,\Write\}}}. \alpha \eff \{\Read:\Int,\Write:\Abs,\varepsilon\}.
 \]
 %
 The effect row comprise a nullary $\Read$ operation returning some
-integer and a unary $\Write$ carrying an integer and returning
-unit. Since the effect row ends in an effect variable, an inhabitant
-of this type may be used in a larger effect context.
+integer and an absent operation $\Write$. The absence of $\Write$
+means that the computation cannot run in a context that admits a
+present $\Write$.  It can, however, run in a context that admits a
+presence polymorphic $\Write : \theta$ as the presence variable
+$\theta$ may instantiated to $\Abs$. An inhabitant of this type may be
+run in larger effect contexts, i.e. contexts that admit more
+operations, because the row ends in an effect variable.
 %
 
-We can also be precise about how a higher-order function may use its
-function arguments. The $\dec{map}$ function for lists is a canonical
-example of a higher-order function which is parametric in its own
-effects and the effects of its function argument. Supposing $\BCalc$
-have some polymorphic list datatype $\List$, then we would be able to
-ascribe the following signature to $\dec{map}$
+The type and effect system is also precise about how a higher-order
+function may use its function arguments. For example consider the
+signature of a map-operation over some datatype such as
+$\dec{Option}~\alpha^\Type \defas [\dec{None};\dec{Some}:\alpha]$
 %
 \[
-  \forall \alpha^\Type,\beta^\Type,\varepsilon^{\Row_\emptyset}. \Record{\alpha \to \beta \eff \{\varepsilon\},\List~\alpha} \to \List~\beta \eff \{\varepsilon\}.
+  \forall \alpha^\Type,\beta^\Type,\varepsilon^{\Row_\emptyset}. \Record{\alpha \to \beta \eff \{\varepsilon\}, \dec{Option}~\alpha} \to \dec{Option}~\beta \eff \{\varepsilon\}.
 \]
 %
-Note that the two effect rows are identical and share the same effect
-variable $\varepsilon$, it is thus evident that an inhabitant of this
-type can only perform whatever effects its first argument is allowed
-to perform.
+% The $\dec{map}$ function for
+% lists is a canonical example of a higher-order function which is
+% parametric in its own effects and the effects of its function
+% argument. Supposing $\BCalc$ have some polymorphic list datatype
+% $\List$, then we would be able to ascribe the following signature to
+% $\dec{map}$
+% %
+% \[
+%   \forall \alpha^\Type,\beta^\Type,\varepsilon^{\Row_\emptyset}. \Record{\alpha \to \beta \eff \{\varepsilon\},\List~\alpha} \to \List~\beta \eff \{\varepsilon\}.
+% \]
+%
+The first argument is the function that will be applied to the data
+carried by second argument. Note that the two effect rows are
+identical and share the same effect variable $\varepsilon$, it is thus
+evident that an inhabitant of this type can only perform whatever
+effects its first argument is allowed to perform.
+
+Higher-order functions may also transform their function arguments,
+e.g. modify their effect rows. The following is the signature of a
+higher-order function which restricts its argument's effect
+context. Multiple distinct effect variables may appear in a
+signature
+%
+\[
+  \forall \alpha^\Type, \varepsilon^{\Row_{\{\Read\}}},\varepsilon'^{\Row_\emptyset}. (\UnitType \to \alpha \eff \{\Read:\Int,\varepsilon\}) \to (\UnitType \to \alpha \eff \{\Read:\Abs,\varepsilon\}) \eff \{\varepsilon'\}.
+\]
+%
+The function argument is allowed to perform a $\Read$ operation,
+whilst the returned function cannot. Moreover, the two functions share
+the same effect variable $\varepsilon$.
 
 \subsection{Terms}
 \label{sec:base-language-terms}
