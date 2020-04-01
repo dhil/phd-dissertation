@@ -667,9 +667,7 @@ effects its first argument is allowed to perform.
 
 Higher-order functions may also transform their function arguments,
 e.g. modify their effect rows. The following is the signature of a
-higher-order function which restricts its argument's effect
-context. Multiple distinct effect variables may appear in a
-signature
+higher-order function which restricts its argument's effect context
 %
 \[
   \forall \alpha^\Type, \varepsilon^{\Row_{\{\Read\}}},\varepsilon'^{\Row_\emptyset}. (\UnitType \to \alpha \eff \{\Read:\Int,\varepsilon\}) \to (\UnitType \to \alpha \eff \{\Read:\Abs,\varepsilon\}) \eff \{\varepsilon'\}.
@@ -677,7 +675,10 @@ signature
 %
 The function argument is allowed to perform a $\Read$ operation,
 whilst the returned function cannot. Moreover, the two functions share
-the same effect variable $\varepsilon$.
+the same effect variable $\varepsilon$. Like the option-map signature
+above, an inhabitant of this type performs no effects of its own as
+the (right-most) effect row is a singleton row containing a distinct
+effect variable $\varepsilon'$.
 
 \subsection{Terms}
 \label{sec:base-language-terms}
