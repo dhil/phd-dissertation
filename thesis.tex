@@ -949,8 +949,8 @@ cannot occur more than once in the record. Similarly, the dual rule
 \tylab{Inject} states that the injection $(\ell~V)^R$ has type
 $[\ell : \Pre{A}; R]$ if the payload $V$ is well-typed. The implicit
 well-kindedness condition on $R$ ensures that $\ell$ cannot be
-injected twice. As an example consider the following ill-typed
-injection into a singleton variant type
+injected twice. To illustrate how the kinding system prevents
+duplicated labels consider the following ill-typed example
 %
 \[
   (\dec{S}~\Unit)^{\dec{S}:\UnitType} : [\dec{S}:\UnitType;\dec{S}:\UnitType].
@@ -959,27 +959,12 @@ injection into a singleton variant type
 Typing fails because the resulting row type is ill-kinded by the
 \klab{ExtendRow}-rule:
 \begin{mathpar}
-  \inferrule*[]
-  {\inferrule*[]
+  \inferrule*[leftskip=6.5em,Right={\klab{Variant}}]
+  {\inferrule*[Right={\klab{ExtendRow}}]
     {\vdash \Pre{\UnitType} : \Presence \\
-      \inferrule*[]
+      \inferrule*[Right={\klab{ExtendRow}}]
       {\vdash \Pre{\UnitType} : \Presence \\ \vdash \cdot : \Row_{\color{red}{\{\dec{S}\} \uplus \{\dec{S}\}}}}
       {\vdash \dec{S}:\Pre{\UnitType};\cdot : \Row_{\emptyset \uplus \{\dec{S}\}}}}
-    % {\inferrule[]
-    %   {\vdash \UnitType : \Type}
-    %   {\vdash \Pre{\UnitType} : \Presence}
-    %   \\
-    %   \inferrule*[]
-    %     {\inferrule*[]
-    %       {\vdash \UnitType : \Type}
-    %       {\vdash \Pre{\UnitType} : \Presence}
-    %       \\
-    %       \inferrule*[]
-    %       {}
-    %       {\vdash \dec{None} : \Pre{\UnitType} : \Row_{\{\dec{Some}\} \uplus \{\dec{Some}\}}}
-    %     }
-    %     {\vdash \dec{Some}:\Pre{\UnitType};\dec{None}:\Pre{\UnitType} : \Row_{{\emptyset \uplus \{\dec{Some}\}}}}
-    % }
     {\vdash \dec{S}:\Pre{\UnitType};\dec{S}:\Pre{\UnitType};\cdot : \Row_{\emptyset}}
   }
   {\vdash [\dec{S}:\Pre{\UnitType};\dec{S}:\Pre{\UnitType};\cdot] : \Type}
