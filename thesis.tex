@@ -1121,16 +1121,53 @@ follows.
 \]
 %
 The attentive reader will notice that we are using the same notation
-for type and term substitutions. We justify this choice by the fact
-that we can lift type substitution pointwise on the term syntax
-constructors, enabling us to use one uniform notation for
-substitution. Thus we shall generally allow a mix of pairs of
-variables and values and pairs of type variables and types to occur in
-the same substitution map.
+for type and term substitutions. In fact, we shall go further and
+unify the two notions of substitution by combining them. As such we
+may think of a combined substitution map as pair of a term
+substitution map and a type substitution map, i.e.
+$\sigma : (\VarCat \times \ValCat)^\ast \times (\TyVarCat \times
+\TypeCat)^\ast$. The application of a combined substitution mostly the
+same as the application of a term substitution map save for a couple
+equations in which we need to apply the type substitution map
+component to a type annotation and type abstraction which now might
+require a change of name of the bound type variable
+%
+\[
+  \bl
+    (\lambda x^A.M)\sigma \defas \lambda x^{A\sigma.2}.M\sigma, \qquad
+    (V~T)\sigma \defas V\sigma~T\sigma.2, \qquad
+    (\ell~V)^R\sigma \defas (\ell~V\sigma)^{R\sigma.2}\medskip\\
+
+    \begin{eqs}
+      (\Lambda \alpha^K.M)\sigma &\simdefas& \Lambda \alpha^K.M\sigma\\
+      (\Case\;(\ell~V)^R\{
+           \ell~x \mapsto M
+           ; y \mapsto N \})\sigma
+        &\simdefas&
+        \Case\;(\ell~V\sigma)^{R\sigma.2}\{
+          \ell~x \mapsto M\sigma
+          ; y \mapsto N\sigma \}.
+    \end{eqs}
+  \el
+\]
+%
+
+% We shall go further and use the
+% notation to mean simultaneous substitution of types and terms, that is
+% we
+% %
+% We justify this choice by the fact that we can lift type substitution
+% pointwise on the term syntax constructors, enabling us to use one
+% uniform notation for substitution.
+% %
+% Thus we shall generally allow a mix
+% of pairs of variables and values and pairs of type variables and types
+% to occur in the same substitution map.
 
 \paragraph{Reduction semantics}
-The reduction relation $\reducesto : \CompCat \pto \CompCat$ is defined
-on computation terms. Figure~\ref{fig:base-language-small-step}
+The reduction relation $\reducesto \in \CompCat \times \CompCat$
+relates a computation term to another if the former can reduce to the
+latter in a single step. Figure~\ref{fig:base-language-small-step}
 depicts the reduction rules. The application rules \semlab{App} and
 \semlab{TyApp} eliminates a lambda and type abstraction, respectively,
 by substituting the argument for the parameter in their body
