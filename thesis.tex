@@ -1890,7 +1890,385 @@ getting stuck on an unhandled operation.
 
 \part{Implementation}
 
-\chapter{Continuation passing styles}
+\chapter{Continuation-passing styles}
+\label{ch:cps}
+
+Continuation-passing style (CPS) is a \emph{canonical} program
+notation that makes every facet of control flow and data flow
+explicit. In CPS every function takes an additional function-argument
+called the \emph{continuation}, which represents the next computation
+in evaluation position. CPS is canonical in the sense that is
+definable in pure $\lambda$-calculus with any primitives. As an
+informal illustration of CPS consider the rudimentary factorial
+function in \emph{direct-style}:
+%
+\[
+  \bl
+  \dec{fac} : \Int \to \Int\\
+  \dec{fac} \defas \lambda n.
+    \ba[t]{@{~}l}
+      \If\;n = 0\;\Then\;\Return\;1\\
+      \Else\;
+        \ba[t]{@{~}l}
+          \Let\; n' \revto n - 1\;\In\\
+          \Let\; res \revto \dec{fac}~n'\;\In\\
+          n * res
+        \ea
+    \ea
+  \el
+\]
+%
+In CPS notation the function becomes
+%
+\[
+  \bl
+  \dec{fac}_{\dec{cps}} : \Int \to (\Int \to \alpha) \to \alpha\\
+  \dec{fac}_{\dec{cps}} \defas \lambda n.\lambda k.
+    \ba[t]{@{~}l}
+      \If\;n = 0\;\Then\; k~1\\
+      \Else\;
+          -_{\dec{cps}}~n~1~(\lambda n'. \dec{fac}_{cps}~n'~(\lambda res. k~(n * res)))
+    \ea
+  \el
+\]
+
+
+\section{Target calculus}
+\label{sec:target-cps}
+
+The target calculus is given in Fig.~\ref{fig:cps-cbv-target}.
+%
+As in $\BCalc$ there is a syntactic distinction between values ($V$)
+and computations ($M$).
+%
+Values ($V$) comprise: lambda abstractions ($\lambda x.M$); recursive
+functions ($\Rec\,g\,x.M$); empty tuples ($\Record{}$); pairs
+($\Record{V,W}$); and first-class labels ($\ell$). In
+Section~\ref{sec:first-order-explicit-resump}, we will extend the values to
+also include convenience constructors for building resumptions and
+invoking structured continuations.
+%
+Computations ($M$) comprise: values ($V$); applications ($M \; V$);
+pair elimination ($\Let\; \Record{x, y} = V \;\In\; N$); label
+elimination ($\Case\; V \;\{\ell \mapsto M; x \mapsto N\}$); and
+explicit marking of unreachable code ($\Absurd$). We permit the
+function position of an application to be a computation (i.e., the
+application form is $M~W$ rather than $V~W$). This relaxation is used
+in our initial CPS translations, but will be ruled out in our final
+translation when we start to use explicit lists to represent stacks of
+handlers in Section~\ref{sec:first-order-uncurried-cps}.
+
+The reductions for functions, pairs, and first-class labels are
+standard.
+
+We define syntactic sugar for variant values, record values, list
+values, let binding, variant eliminators, and record eliminators. We
+assume standard $n$-ary generalisations and use pattern matching
+syntax for deconstructing variants, records, and lists. For desugaring
+records, we assume a failure constant $\ell_\bot$ (e.g. a divergent
+term) to cope with the case of pattern matching failure.
+
+\begin{figure}
+  \flushleft
+  \textbf{Syntax}
+  \begin{syntax}
+    \slab{Values}  &V, W \in \UValCat &::= &  x \mid \lambda x.M \mid \Rec\,g\,x.M \mid \Record{} \mid \Record{V, W} \mid \ell
+    \smallskip \\
+    \slab{Computations}  &M,N \in \UCompCat  &::= & V \mid M\,W \mid \Let\; \Record{x,y} = V \; \In \; N\\
+                         &     &\mid& \Case\; V\, \{\ell \mapsto M; y \mapsto N\} \mid \Absurd\,V
+    % &    &\mid& \Vmap\;(x.M)\;V \\
+    \smallskip \\
+    \slab{Evaluation contexts} &\EC \in \UEvalCat &::= & [~] \mid \EC\;W \\ %\mid \Let\; x \revto \EC \;\In\; N \\
+  \end{syntax}
+
+  \textbf{Reductions}
+  \begin{reductions}
+    \usemlab{App}   & (\lambda x . \, M) V &\reducesto& M[V/x] \\
+    \usemlab{Rec}   & (\Rec\,g\,x.M) V     &\reducesto& M[\Rec\,g\,x.M/g,V/x]\\
+    \usemlab{Split} & \Let \; \Record{x,y} = \Record{V,W} \; \In \; N &\reducesto& N[V/x,W/y] \\
+    \usemlab{Case_1} &
+    \Case \; \ell \; \{ \ell \mapsto M; y \mapsto N\} &\reducesto& M \\
+    \usemlab{Case_2} &
+    \Case \; \ell \; \{ \ell' \mapsto M; y \mapsto N\} &\reducesto& N[\ell/y], \hfill\quad \text{if } \ell \neq \ell' \\
+    % \usemlab{VMap}      & \Vmap\, (x.M) \,(\ell\, V) &\reducesto& \ell\, M[V/x] \\
+    \usemlab{Lift} &
+    \EC[M] &\reducesto& \EC[N], \hfill \text{if } M \reducesto N \\
+  \end{reductions}
+
+  \textbf{Syntactic sugar}
+\[
+    \begin{eqs}
+      \Let\;x=V\;\In\;N &\equiv & N[V/x]\\
+      \ell \; V & \equiv & \Record{\ell; V}\\
+      \Record{} & \equiv & \ell_{\Record{}} \\
+      \Record{\ell = V; W} & \equiv & \Record{\ell, \Record{V, W}}\\
+      \nil &\equiv & \ell_{\nil} \\
+      V \cons W & \equiv & \Record{\ell_{\cons}, \Record{V, W}}\\
+      \Case\;V\;\{\ell\;x \mapsto M; y \mapsto N \} &\equiv&
+        \ba[t]{@{~}l}
+            \Let\;y = V\;\In\; \Let\;\Record{z,x} = y\;\In \\
+            \Case\; z\;\{ \ell \mapsto M; z' \mapsto N \}
+        \ea\\
+      \Let\; \Record{\ell=x;y} = V\;\In\;N &\equiv&
+        \ba[t]{@{~}l}
+            \Let\; \Record{z,z'} = V\;\In\;\Let\; \Record{x,y} = z'\;\In \\
+            \Case\;z\;\{\ell \mapsto N; z'' \mapsto \ell_\bot \}
+            \ea
+    \end{eqs}
+\]
+
+\caption{Untyped target calculus for the CPS translations.}
+\label{fig:cps-cbv-target}
+\end{figure}
+
+\section{CPS transform for fine-grain call-by-value}
+\label{sec:cps-cbv}
+
+We start by giving a CPS translation of the operation and handler-free
+subset of $\BCalc$ in Figure~\ref{fig:cps-cbv}. Fine-grain
+call-by-value admits a particularly simple CPS translation due to the
+separation of values and computations. All constructs from the source
+language are translated homomorphically into the target language,
+except for $\Return$, $\Let$, and type abstraction (the translation
+performs type erasure). Lifting a value $V$ to a computation
+$\Return~V$ is interpreted by passing the value to the current
+continuation. Sequencing computations with $\Let$ is translated in the
+usual continuation passing way. In addition, we explicitly
+$\eta$-expand the translation of a type abstraction in order to ensure
+that value terms in the source calculus translate to value terms in
+the target.
+
+\begin{figure}
+\flushleft
+\textbf{Values} \\
+\[
+\bl
+
+\begin{eqs}
+  \cps{-}                  &:& \ValCat \to \UValCat\\
+\cps{x}                    &=& x \\
+\cps{\lambda x.M}          &=& \lambda x.\cps{M} \\
+\cps{\Lambda \alpha.M}     &=& \lambda k.\cps{M}~k \\
+\cps{\Rec\,g\,x.M}         &=& \Rec\,g\,x.\cps{M}\\
+\cps{\Record{}}            &=& \Record{} \\
+\cps{\Record{\ell = V; W}} &=& \Record{\ell = \cps{V}; \cps{W}} \\
+\cps{\ell~V}               &=& \ell~\cps{V} \\
+\end{eqs}
+\el
+\]
+\textbf{Computations}
+\[
+\bl
+\begin{eqs}
+\cps{-}                                         &:& \CompCat \to \UCompCat\\
+\cps{V\,W}                                      &=& \cps{V}\,\cps{W} \\
+\cps{V\,T}                                      &=& \cps{V} \\
+\cps{\Let\; \Record{\ell=x;y} = V \; \In \; N}  &=& \Let\; \Record{\ell=x;y} = \cps{V} \; \In \; \cps{N} \\
+\cps{\Case~V~\{\ell~x \mapsto M; y \mapsto N\}} &=&
+  \Case~\cps{V}~\{\ell~x \mapsto \cps{M}; y \mapsto \cps{N}\} \\
+\cps{\Absurd~V}                                 &=& \Absurd~\cps{V} \\
+\cps{\Return~V}                                 &=& \lambda k.k~\cps{V} \\
+\cps{\Let~x \revto M~\In~N}                     &=& \lambda k.\cps{M}(\lambda x.\cps{N}k) \\
+\end{eqs}
+\el
+\]
+\caption{First-order CPS translation of fine-grain call-by-value.}
+\label{fig:cps-cbv}
+\end{figure}
+
+\subsection{First-Order CPS Translations of Handlers}
+\label{sec:fo-cps}
+
+As is usual for CPS, the translation of a computation term by the
+basic CPS translation in Section~\ref{sec:cps-cbv} takes a single
+continuation parameter that represents the context.
+%
+With effects and handlers in the source language, we must now keep
+track of two kinds of context in which each computation executes: a
+\emph{pure context} that tracks the state of pure computation in the
+scope of the current handler, and an \emph{effect context} that
+describes how to handle operations in the scope of the current
+handler.
+%
+Correspondingly, we have both \emph{pure continuations} ($k$) and
+\emph{effect continuations} ($h$).
+%
+As handlers can be nested, each computation executes in the context of
+a \emph{stack} of pairs of pure and effect continuations.
+
+On entry into a handler, the pure continuation is initialised to a
+representation of the return clause and the effect continuation to a
+representation of the operation clauses. As pure computation proceeds,
+the pure continuation may grow, for example when executing a
+$\Let$. If an operation is encountered then the effect continuation is
+invoked.
+%
+The current continuation pair ($k$, $h$) is packaged up as a
+\emph{resumption} and passed to the current handler along with the
+operation and its argument. The effect continuation then either
+handles the operation, invoking the resumption as appropriate, or
+forwards the operation to an outer handler. In the latter case, the
+resumption is modified to ensure that the context of the original
+operation invocation can be reinstated when the resumption is invoked.
+
+The translations introduced in this subsection differ in how they
+represent stacks of pure and effect continuations, and how they
+represent resumptions.
+%
+The first translation represents the stack of continuations using
+currying, and resumptions as functions
+(Section~\ref{sec:first-order-curried-cps}).
+%
+Currying obstructs proper tail-recursion, so we move to an explicit
+representation of the stack
+(Section~\ref{sec:first-order-uncurried-cps}). Then, in order to avoid
+administrative reductions in our final higher-order one-pass
+translation we use an explicit representation of resumptions
+(Section~\ref{sec:first-order-explicit-resump}). Finally, in order to
+support shallow handlers, we will use an explicit stack representation
+for pure continuations (Section~\ref{sec:pure-as-stack}).
+
+\subsubsection{Curried Translation}
+\label{sec:first-order-curried-cps}
+
+Our first translation builds upon the CPS translation of
+Figure~\ref{fig:cps-cbv}. The extension to operations and handlers is
+localised to the additional features because currying conveniently
+lets us get away with a shift in interpretation: rather than accepting
+a single continuation, translated computation terms now accept an
+arbitrary even number of arguments representing the stack of pure and
+effect continuations. Thus, the translation of core constructs remain
+exactly the same as in Figure~\ref{fig:cps-cbv}, where we imagine
+there being some number of extra continuation arguments that have been
+$\eta$-reduced.  The translation of operations and handlers is as
+follows:
+%
+\begin{equations}
+\cps{\Do\;\ell\;V} &=& \lambda k.\lambda h.h~\Record{\ell,\Record{\cps{V}, \lambda x.k~x~h}} \\
+\cps{\Handle \; M \; \With \; H} &=& \cps{M}~\cps{\hret}~\cps{\hops}, ~\text{where} \smallskip\\
+\multicolumn{3}{@{}l@{}}{
+\begin{eqs}
+\qquad
+\cps{\{ \Return \; x \mapsto N \}} &=& \lambda x . \lambda h . \cps{N} \\
+\cps{\{ \ell~p~r \mapsto N_\ell \}_{\ell \in \mathcal{L}}}
+&=&
+\lambda \Record{z,\Record{p,r}}. \Case~z~
+           \{ (\ell \mapsto \cps{N_\ell})_{\ell \in \mathcal{L}}; y \mapsto \hforward(y,p,r) \} \\
+           \hforward(y,p,r) &=& \lambda k. \lambda h. h\,\Record{y,\Record{p, \lambda x.\,r\,x\,k\,h}}
+\end{eqs}
+}
+\end{equations}
+%
+The translation of $\Do\;\ell\;V$ abstracts over the current pure
+($k$) and effect ($h$) continuations passing an encoding of the
+operation into the latter. The operation is encoded as a triple
+consisting of the name $\ell$, parameter $\cps{V}$, and resumption
+$\lambda x.k~x~h$, which ensures that any subsequent operations are
+handled by the same effect continuation $h$.
+
+The translation of $\Handle~M~\With~H$ invokes the translation of $M$
+with new pure and effect continuations for the return and operation
+clauses of $H$.
+%
+The translation of a return clause is a term which garbage collects
+the current effect continuation $h$.
+%
+The translation of a set of operation clauses is a function which
+dispatches on encoded operations, and in the default case forwards to
+an outer handler.
+%
+In the forwarding case, the resumption is extended by the parent
+continuation pair in order to reinstate the handler stack, thereby
+ensuring subsequent invocations of the same operation are handled
+uniformly.
+
+The translation of complete programs feeds the translated term the
+identity pure continuation (which discards its handler argument), and
+an effect continuation that is never intended to be called:
+\begin{equations}
+\pcps{M} &=& \cps{M}~(\lambda x.\lambda h.x)~(\lambda \Record{z,\_}.\Absurd~z) \\
+\end{equations}
+Conceptually, this translation encloses the translated program in a
+top-level handler with an empty collection of operation clauses and an
+identity return clause.
+
+There are three shortcomings of this initial translation that we
+address below.
+
+\begin{itemize}
+\item First, it is not \emph{properly tail-recursive}~\citep{DanvyF92,
+  Steele78} due to the curried representation of the continuation
+  stack, as a result the image of the translation is not stackless,
+  which makes it problematic to implement using a trampoline in, say,
+  JavaScript. (Properly tail-recursion CPS translations ensure that
+  all calls to functions and continuations are in tail position, hence
+  there is no need to maintain a stack.) We rectify this issue with an
+  explicit list representation in the next subsection.
+
+\item Second, it yields administrative redexes (redexes that could be
+  reduced statically). We will rectify this with a higher-order
+  one-pass translation in
+  Section~\ref{sec:higher-order-uncurried-cps}.
+
+\item Third, this translation cannot cope with shallow handlers. The
+  pure continuations $k$ are abstract and include the return clause of
+  the corresponding handler. Shallow handlers require that the return
+  clause of a handler is discarded when one of its operations is
+  invoked. We will fix this in Section~\ref{sec:pure-as-stack}, where we
+  will represent pure continuations as explicit stacks.
+\end{itemize}
+
+To illustrate the first two issues, consider the following example:
+\begin{equations}
+\pcps{\Return\;\Record{}}
+              &=& (\lambda k.k\,\Record{})\,(\lambda x.\lambda h.x)\,(\lambda \Record{z,\_}.\Absurd\,z)  \\
+     &\reducesto& ((\lambda x.\lambda h.x)\,\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z)\\
+     &\reducesto& (\lambda h.\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z)\\
+     &\reducesto& \Record{} \\
+\end{equations}
+The first reduction is administrative: it has nothing to do with the
+dynamic semantics of the original term and there is no reason not to
+eliminate it statically. The second and third reductions simulate
+handling $\Return\;\Record{}$ at the top level. The second reduction
+partially applies $\lambda x.\lambda h.x$ to $\Record{}$, which must
+return a value so that the third reduction can be applied: evaluation
+is not tail-recursive.
+%
+The lack of tail-recursion is also apparent in our relaxation of
+fine-grain call-by-value in Figure~\ref{fig:cps-cbv-target}: the
+function position of an application can be a computation, and the
+calculus makes use of evaluation contexts.
+
+\paragraph*{Remark}
+We originally derived this curried CPS translation for effect handlers
+by composing \citeauthor{ForsterKLP17}'s translation from effect
+handlers to delimited continuations~\citeyearpar{ForsterKLP17} with
+\citeauthor{MaterzokB12}'s CPS translation for delimited
+continuations~\citeyearpar{MaterzokB12}.
+
+\medskip
+
+Because of the administrative reductions, simulation is not on the
+nose, but instead up to congruence.
+%
+For reduction in the untyped target calculus we write
+$\reducesto_{\textrm{cong}}$ for the smallest relation containing
+$\reducesto$ that is closed under the term formation constructs.
+%
+\begin{theorem}[Simulation]
+  \label{thm:fo-simulation}
+  If $M \reducesto N$ then $\pcps{M} \reducesto_{\textrm{cong}}^+
+  \pcps{N}$.
+\end{theorem}
+
+\begin{proof}
+The result follows by composing a call-by-value variant of
+\citeauthor{ForsterKLP17}'s translation from effect handlers to
+delimited continuations~\citeyearpar{ForsterKLP17} with
+\citeauthor{MaterzokB12}'s CPS translation for delimited
+continuations~\citeyearpar{MaterzokB12}.
+\end{proof}
+
 \chapter{Abstract machine semantics}
 
 \part{Expressiveness}

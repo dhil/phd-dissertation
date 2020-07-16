@@ -104,6 +104,7 @@
 \newcommand{\rulelabel}[2]{\ensuremath{\mathsf{#1\textrm{-}#2}}}
 \newcommand{\klab}[1]{\rulelabel{K}{#1}}
 \newcommand{\semlab}[1]{\rulelabel{S}{#1}}
+\newcommand{\usemlab}[1]{\rulelabel{U}{#1}}
 \newcommand{\tylab}[1]{\rulelabel{T}{#1}}
 \newcommand{\mlab}[1]{\rulelabel{M}{#1}}
 \newcommand{\siglab}[1]{\rulelabel{Sig}{#1}}
@@ -114,6 +115,8 @@
 %%
 \newcommand{\CatName}[1]{\textrm{#1}}
 \newcommand{\CompCat}{\CatName{Comp}}
+\newcommand{\UCompCat}{\CatName{UComp}}
+\newcommand{\UValCat}{\CatName{UVal}}
 \newcommand{\ValCat}{\CatName{Val}}
 \newcommand{\VarCat}{\CatName{Var}}
 \newcommand{\ValTypeCat}{\CatName{VType}}
@@ -130,6 +133,7 @@
 \newcommand{\TyEnvCat}{\CatName{TyEnv}}
 \newcommand{\KindEnvCat}{\CatName{KindEnv}}
 \newcommand{\EvalCat}{\CatName{Cont}}
+\newcommand{\UEvalCat}{\CatName{UCont}}
 \newcommand{\HandlerCat}{\CatName{HDef}}
 
 %%
@@ -167,3 +171,75 @@
 %% Partiality
 %%
 \newcommand{\pto}[0]{\ensuremath{\rightharpoonup}}
+
+%%
+%% Lists
+%%
+\newcommand{\nil}{\ensuremath{[]}}
+\newcommand{\cons}{\ensuremath{::}}
+
+\newcommand{\concat}{\mathbin{+\!\!+}}
+\newcommand{\revconcat}{\mathbin{\widehat{\concat}}}
+
+%%
+%% CPS notation
+%%
+% static / dynamic stuff
+\newcommand{\scol}[1]{{\color{blue}#1}}
+\newcommand{\dcol}[1]{{\color{red}#1}}
+
+\newcommand{\static}[1]{\scol{\overline{#1}}}
+\newcommand{\dynamic}[1]{\dcol{\underline{#1}}}
+\newcommand{\nary}[1]{\overline{#1}}
+
+\newcommand{\slam}{\static{\lambda}}
+\newcommand{\dlam}{\dynamic{\lambda}}
+\newcommand{\sapp}{\mathbin{\static{@}}}
+\newcommand{\dapp}{\mathbin{\dynamic{@}}}
+
+\newcommand{\reify}{\mathord{\downarrow}}
+\newcommand{\reflect}{\mathord{\uparrow}}
+
+\newcommand{\scons}{\mathbin{\static{\cons}}}
+\newcommand{\dcons}{\mathbin{\dynamic{\cons}}}
+
+\newcommand{\snil}{\static{\nil}}
+\newcommand{\dnil}{\dynamic{\nil}}
+
+\newcommand{\sRecord}[1]{\static{\langle}#1\static{\rangle}}
+\newcommand{\dRecord}[1]{\dynamic{\langle}#1\dynamic{\rangle}}
+
+%\newcommand{\sP}{\mathcal{P}}
+\newcommand{\sQ}{\mathcal{Q}}
+\newcommand{\sV}{\mathcal{V}}
+\newcommand{\sW}{\mathcal{W}}
+
+\newcommand{\sM}{\mathcal{M}}
+\renewcommand{\snil}{\reflect \dnil}
+
+\newcommand{\cps}[1]{\ensuremath{\llbracket #1 \rrbracket}}
+\newcommand{\pcps}[1]{\top\cps{#1}}
+
+\newcommand{\hforward}{M_{\textrm{forward}}}
+\newcommand{\hid}{V_{\textrm{id}}}
+
+%%% Continuation names
+%%% The following set of macros are a bit more consistent with those
+%%% currently used by the abstract machine, and don't use the plural
+%%% convention of functional programming.
+
+% dynamic
+\newcommand{\dlf}{f}    % let frames
+\newcommand{\dlk}{s}    % let continuations
+\newcommand{\dhf}{q}    % handler frames
+\newcommand{\dhk}{k}    % handler continuations
+\newcommand{\dhkr}{rk}  % reverse handler continuations
+
+% static
+\newcommand{\slf}{\phi}    % let frames
+\newcommand{\slk}{\sigma}  % let continuations
+\newcommand{\shf}{\theta}  % handler frames
+\newcommand{\shk}{\kappa}  % handler continuations
+
+\newcommand{\sP}{\mathcal{P}}
+\newcommand{\VS}{VS}
