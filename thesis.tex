@@ -1165,7 +1165,7 @@ require a change of name of the bound type variable
 % to occur in the same substitution map.
 
 \paragraph{Reduction semantics}
-The reduction relation $\reducesto \in \CompCat \times \CompCat$
+The reduction relation $\reducesto \subseteq \CompCat \times \CompCat$
 relates a computation term to another if the former can reduce to the
 latter in a single step. Figure~\ref{fig:base-language-small-step}
 depicts the reduction rules. The application rules \semlab{App} and
@@ -1189,6 +1189,7 @@ The \semlab{Let} rule eliminates a trivial computation term
 $\Return\;V$ by substituting $V$ for $x$ in the continuation $N$.
 %
 
+
 \paragraph{Evaluation contexts}
 Recall from Section~\ref{sec:base-language-terms},
 Figure~\ref{fig:base-language-term-syntax} that the syntax of let
@@ -1208,12 +1209,12 @@ the context to that particular $N$. In our formalism, we call this
 rule \semlab{Lift}. Evaluation contexts are generated from the empty
 context $[~]$ and let expressions $\Let\;x \revto \EC \;\In\;N$.
 
-For now the choices of using fine-grain call-by-value and evaluation
-contexts may seem odd, if not arbitrary at this stage; the reader may
-wonder with good reason why we elect to use fine-grain call-by-value
-over ordinary call-by-value.  In Chapter~\ref{ch:unary-handlers} we
-will reap the benefits from our design choices, as we shall see that
-the combination of fine-grain call-by-value and evaluation contexts
+The choices of using fine-grain call-by-value and evaluation contexts
+may seem odd, if not arbitrary at this point; the reader may wonder
+with good reason why we elect to use fine-grain call-by-value over
+ordinary call-by-value.  In Chapter~\ref{ch:unary-handlers} we will
+reap the benefits from our design choices, as we shall see that the
+combination of fine-grain call-by-value and evaluation contexts
 provide the basis for a convenient, simple semantic framework for
 working with continuations.
 
@@ -1221,9 +1222,8 @@ working with continuations.
 \label{sec:base-language-metatheory}
 
 Thus far we have defined the syntax, static semantics, and dynamic
-semantics of \BCalc{}. In this section, we finish the definition of
-\BCalc{} by stating and proving some standard metatheoretic properties
-about the language.
+semantics of \BCalc{}. In this section, we state and prove some
+customary metatheoretic properties about \BCalc{}.
 %
 
 We begin by showing that substitutions preserve typability.
@@ -1232,8 +1232,8 @@ We begin by showing that substitutions preserve typability.
   Let $\sigma$ be any type substitution and $V \in \ValCat$ be any
   value and $M \in \CompCat$ a computation such that
   $\typ{\Delta;\Gamma}{V : A}$ and $\typ{\Delta;\Gamma}{M : C}$, then
-  $\typ{\Delta;\sigma~\Gamma}{\sigma~V : \sigma~A}$ and
-  $\typ{\Delta;\sigma~\Gamma}{\sigma~M : \sigma~C}$.
+  $\typ{\Delta;\Gamma\sigma}{V\sigma : A\sigma}$ and
+  $\typ{\Delta;\Gamma\sigma}{M\sigma : C\sigma}$.
 \end{lemma}
 %
 \begin{proof}
