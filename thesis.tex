@@ -2121,7 +2121,7 @@ translate to value terms in the target.
 \label{fig:cps-cbv}
 \end{figure}
 
-\subsection{First-order CPS translations of effect handlers}
+\section{First-order CPS translations of effect handlers}
 \label{sec:fo-cps}
 
 The translation of a computation term by the basic CPS translation in
@@ -2157,7 +2157,7 @@ resumption is modified to ensure that the context of the original
 operation invocation can be reinstated when the resumption is invoked.
 %
 
-\subsubsection{Curried translation}
+\subsection{Curried translation}
 \label{sec:first-order-curried-cps}
 
 We first consider a curried CPS translation that builds the
@@ -2173,19 +2173,14 @@ have been $\eta$-reduced.  The translation of operations and handlers
 is as follows.
 %
 \begin{equations}
-\cps{\Do\;\ell\;V} &=& \lambda k.\lambda h.h~\Record{\ell,\Record{\cps{V}, \lambda x.k~x~h}} \\
-\cps{\Handle \; M \; \With \; H} &=& \cps{M}~\cps{\hret}~\cps{\hops}, ~\text{where} \smallskip\\
-\multicolumn{3}{@{}l@{}}{
-\begin{eqs}
-\qquad
-\cps{\{ \Return \; x \mapsto N \}} &=& \lambda x . \lambda h . \cps{N} \\
+\cps{\Do\;\ell\;V} &\defas& \lambda k.\lambda h.h~\Record{\ell,\Record{\cps{V}, \lambda x.k~x~h}} \\
+\cps{\Handle \; M \; \With \; H} &\defas& \cps{M}~\cps{\hret}~\cps{\hops}, ~\text{where} \smallskip\\
+\cps{\{ \Return \; x \mapsto N \}} &\defas& \lambda x . \lambda h . \cps{N} \\
 \cps{\{ \ell~p~r \mapsto N_\ell \}_{\ell \in \mathcal{L}}}
-&=&
+&\defas&
 \lambda \Record{z,\Record{p,r}}. \Case~z~
            \{ (\ell \mapsto \cps{N_\ell})_{\ell \in \mathcal{L}}; y \mapsto \hforward(y,p,r) \} \\
-           \hforward(y,p,r) &=& \lambda k. \lambda h. h\,\Record{y,\Record{p, \lambda x.\,r\,x\,k\,h}}
-\end{eqs}
-}
+\hforward(y,p,r) &\defas& \lambda k. \lambda h. h\,\Record{y,\Record{p, \lambda x.\,r\,x\,k\,h}}
 \end{equations}
 %
 The translation of $\Do\;\ell\;V$ abstracts over the current pure
@@ -2207,9 +2202,8 @@ dispatches on encoded operations, and in the default case forwards to
 an outer handler.
 %
 In the forwarding case, the resumption is extended by the parent
-continuation pair in order to reinstate the handler stack, thereby
-ensuring subsequent invocations of the same operation are handled
-uniformly.
+continuation pair to ensure that an eventual invocation of the
+resumption reinstates the handler stack.
 
 The translation of complete programs feeds the translated term the
 identity pure continuation (which discards its handler argument), and
@@ -2223,52 +2217,72 @@ Conceptually, this translation encloses the translated program in a
 top-level handler with an empty collection of operation clauses and an
 identity return clause.
 
-% There are three shortcomings of this initial translation that we
-% address below.
+We may regard this particular CPS translation as being simple, because
+it requires virtually no extension to the CPS translation for
+$\BCalc$. However, this translation suffers from two deficiencies
+which makes it unviable in practice.
 
-% \begin{itemize}
-% \item First, it is not \emph{properly tail-recursive}~\citep{DanvyF92,
-%   Steele78} due to the curried representation of the continuation
-%   stack, as a result the image of the translation is not stackless,
-%   which makes it problematic to implement using a trampoline in, say,
-%   JavaScript. (Properly tail-recursion CPS translations ensure that
-%   all calls to functions and continuations are in tail position, hence
-%   there is no need to maintain a stack.) We rectify this issue with an
-%   explicit list representation in the next subsection.
+\begin{enumerate}
+  \item The image of the translation is not \emph{properly
+    tail-recursive}~\citep{DanvyF92,Steele78}, and as a result the
+    image is not stackless, meaning it cannot readily be used as the
+    basis for an implementation. This deficiency is essentially due to
+    the curried representation of the continuation stack.
 
-% \item Second, it yields administrative redexes (redexes that could be
-%   reduced statically). We will rectify this with a higher-order
-%   one-pass translation in
-%   Section~\ref{sec:higher-order-uncurried-cps}.
+  \item The image of the translation yields context independent
+    administrative redexes, i.e. redexes that could be reduced
+    statically. This is a classic problem with CPS translation, which
+    is typically dealt with by introducing a second pass to clean up
+    the image~\cite{DanvyF92}.
+\end{enumerate}
 
-% \item Third, this translation cannot cope with shallow handlers. The
-%   pure continuations $k$ are abstract and include the return clause of
-%   the corresponding handler. Shallow handlers require that the return
-%   clause of a handler is discarded when one of its operations is
-%   invoked. We will fix this in Section~\ref{sec:pure-as-stack}, where we
-%   will represent pure continuations as explicit stacks.
-% \end{itemize}
+The following example readily illustrates both issues.
+%
+\begin{equations}
+\pcps{\Return\;\Record{}}
+              &=& (\lambda k.k\,\Record{})\,(\lambda x.\lambda h.x)\,(\lambda \Record{z,\_}.\Absurd\,z)  \\
+     &\reducesto& ((\lambda x.\lambda h.x)\,\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z)\\
+     &\reducesto& (\lambda h.\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z)\\
+     &\reducesto& \Record{} \\
+\end{equations}
+%
+The first reduction is administrative: it has nothing to do with the
+dynamic semantics of the original term and there is no reason not to
+eliminate it statically. We will address this issue in
+Section~\ref{sec:higher-order-cps}. The second and third reductions
+simulate handling $\Return\;\Record{}$ at the top level. The second
+reduction partially applies $\lambda x.\lambda h.x$ to $\Record{}$,
+which must return a value so that the third reduction can be applied:
+evaluation is not tail-recursive. We will address this issue in
+Section~\ref{sec:first-order-uncurried-cps}.
+%
+The lack of tail-recursion is also apparent in our relaxation of
+fine-grain call-by-value in Figure~\ref{fig:cps-cbv-target}: the
+function position of an application can be a computation, and the
+calculus makes use of evaluation contexts.
 
-% To illustrate the first two issues, consider the following example:
-% \begin{equations}
-% \pcps{\Return\;\Record{}}
-%               &=& (\lambda k.k\,\Record{})\,(\lambda x.\lambda h.x)\,(\lambda \Record{z,\_}.\Absurd\,z)  \\
-%      &\reducesto& ((\lambda x.\lambda h.x)\,\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z)\\
-%      &\reducesto& (\lambda h.\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z)\\
-%      &\reducesto& \Record{} \\
-% \end{equations}
-% The first reduction is administrative: it has nothing to do with the
-% dynamic semantics of the original term and there is no reason not to
-% eliminate it statically. The second and third reductions simulate
-% handling $\Return\;\Record{}$ at the top level. The second reduction
-% partially applies $\lambda x.\lambda h.x$ to $\Record{}$, which must
-% return a value so that the third reduction can be applied: evaluation
-% is not tail-recursive.
-% %
-% The lack of tail-recursion is also apparent in our relaxation of
-% fine-grain call-by-value in Figure~\ref{fig:cps-cbv-target}: the
-% function position of an application can be a computation, and the
-% calculus makes use of evaluation contexts.
+Nevertheless, we can show that the image of this CPS translation
+simulates the preimage. Due to the presence of administrative
+reductions, the simulation is not on the nose, but instead up to
+congruence.
+%
+For reduction in the untyped target calculus we write
+$\reducesto_{\textrm{cong}}$ for the smallest relation containing
+$\reducesto$ that is closed under the term formation constructs.
+%
+\begin{theorem}[Simulation]
+  \label{thm:fo-simulation}
+  If $M \reducesto N$ then $\pcps{M} \reducesto_{\textrm{cong}}^+
+  \pcps{N}$.
+\end{theorem}
+
+\begin{proof}
+The result follows by composing a call-by-value variant of
+\citeauthor{ForsterKLP19}'s translation from effect handlers to
+delimited continuations~\citeyearpar{ForsterKLP19} with
+\citeauthor{MaterzokB12}'s CPS translation for delimited
+continuations~\citeyearpar{MaterzokB12}.
+\end{proof}
 
 % \paragraph*{Remark}
 % We originally derived this curried CPS translation for effect handlers
@@ -2276,31 +2290,6 @@ identity return clause.
 % handlers to delimited continuations~\citeyearpar{ForsterKLP17} with
 % \citeauthor{MaterzokB12}'s CPS translation for delimited
 % continuations~\citeyearpar{MaterzokB12}.
-
-% \medskip
-
-\dhil{Discuss deficiencies of the curried translation}
-\dhil{State simulation result}
-% Because of the administrative reductions, simulation is not on the
-% nose, but instead up to congruence.
-% %
-% For reduction in the untyped target calculus we write
-% $\reducesto_{\textrm{cong}}$ for the smallest relation containing
-% $\reducesto$ that is closed under the term formation constructs.
-% %
-% \begin{theorem}[Simulation]
-%   \label{thm:fo-simulation}
-%   If $M \reducesto N$ then $\pcps{M} \reducesto_{\textrm{cong}}^+
-%   \pcps{N}$.
-% \end{theorem}
-
-% \begin{proof}
-% The result follows by composing a call-by-value variant of
-% \citeauthor{ForsterKLP17}'s translation from effect handlers to
-% delimited continuations~\citeyearpar{ForsterKLP17} with
-% \citeauthor{MaterzokB12}'s CPS translation for delimited
-% continuations~\citeyearpar{MaterzokB12}.
-% \end{proof}
 
 \chapter{Abstract machine semantics}
 
