@@ -2236,30 +2236,34 @@ which makes it unviable in practice.
     the image~\cite{DanvyF92}.
 \end{enumerate}
 
-The following example readily illustrates both issues.
+The following minimal example readily illustrates both issues.
 %
 \begin{equations}
 \pcps{\Return\;\Record{}}
-              &=& (\lambda k.k\,\Record{})\,(\lambda x.\lambda h.x)\,(\lambda \Record{z,\_}.\Absurd\,z)  \\
+     &=         & (\lambda k.k\,\Record{})\,(\lambda x.\lambda h.x)\,(\lambda \Record{z,\_}.\Absurd\,z)  \\
      &\reducesto& ((\lambda x.\lambda h.x)\,\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z)\\
      &\reducesto& (\lambda h.\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z)\\
      &\reducesto& \Record{} \\
 \end{equations}
 %
-The first reduction is administrative: it has nothing to do with the
-dynamic semantics of the original term and there is no reason not to
-eliminate it statically. We will address this issue in
-Section~\ref{sec:higher-order-cps}. The second and third reductions
-simulate handling $\Return\;\Record{}$ at the top level. The second
-reduction partially applies $\lambda x.\lambda h.x$ to $\Record{}$,
-which must return a value so that the third reduction can be applied:
-evaluation is not tail-recursive. We will address this issue in
-Section~\ref{sec:first-order-uncurried-cps}.
+The second and third reductions simulate handling $\Return\;\Record{}$
+at the top level. The second reduction partially applies the curried
+function term $\lambda x.\lambda h.x$ to $\Record{}$, which must
+return a value such that the third reduction can be
+applied. Consequently, evaluation is not tail-recursive.
 %
 The lack of tail-recursion is also apparent in our relaxation of
-fine-grain call-by-value in Figure~\ref{fig:cps-cbv-target}: the
-function position of an application can be a computation, and the
-calculus makes use of evaluation contexts.
+fine-grain call-by-value in Figure~\ref{fig:cps-cbv-target} as the
+function position of an application can be a computation.
+%
+In Section~\ref{sec:first-order-uncurried-cps} we will refine this
+translation to be properly tail-recursive.
+%
+As for administrative redexes, observe that the first reduction is
+administrative. It is an artefact introduced by the translation, and
+thus it has nothing to do with the dynamic semantics of the original
+term. We can eliminate such redexes statically. We will address this
+issue in Section~\ref{sec:higher-order-cps}.
 
 Nevertheless, we can show that the image of this CPS translation
 simulates the preimage. Due to the presence of administrative
@@ -2290,6 +2294,74 @@ continuations~\citeyearpar{MaterzokB12}.
 % handlers to delimited continuations~\citeyearpar{ForsterKLP17} with
 % \citeauthor{MaterzokB12}'s CPS translation for delimited
 % continuations~\citeyearpar{MaterzokB12}.
+
+\subsection{Uncurried translation}
+\label{sec:first-order-uncurried-cps}
+
+In this section we seek to refine the CPS translation for deep
+handlers to be properly tail-recursive. As remarked in the previous
+section, the crux of the problem is the curried representation of the
+continuation pair. To rectify this problem we can adapt the standard
+technique of \citet{MaterzokB12} to uncurry our CPS
+translation. Uncurrying necessitates a change of representation for
+continuations: a continuation is now an alternating list of pure
+continuation functions and effect continuation functions. Thus, we
+move to an explicit representation of the runtime handler stack.
+%
+The change of continuation representation means the CPS translation
+for effect handlers is no longer a conservative extension. The
+translation is adjusted as follows to account for the new
+representation of continuations.
+%
+\begin{equations}
+\cps{\Return~V}             &\defas& \lambda (k \cons ks).k~\cps{V}~ks \\
+\cps{\Let~x \revto M~\In~N} &\defas& \lambda (k \cons ks).\cps{M}((\lambda x.\lambda ks.\cps{N}(k \cons ks)) \cons ks)
+\smallskip \\
+\cps{\Do\;\ell\;V} &\defas& \lambda (k \cons h \cons ks).h~\Record{\ell,\Record{\cps{V}, \lambda x.\lambda ks.k~x~(h \cons ks)}}~ks
+\smallskip \\
+\cps{\Handle \; M \; \With \; H} &\defas& \lambda ks . \cps{M} (\cps{\hret} \cons \cps{\hops} \cons ks)
+ , ~\text{where} \smallskip\\
+\cps{\{\Return \; x \mapsto N\}} &\defas& \lambda x.\lambda ks.\Let\; (h \cons ks') = ks \;\In\; \cps{N}\,ks'
+\\
+\cps{\{\ell \; p \; r \mapsto N_\ell\}_{\ell \in \mathcal{L}}}
+&\defas&
+\bl
+\lambda \Record{z,\Record{p,r}}. \lambda ks. \Case \; z \;
+             \{( \bl\ell \mapsto \cps{N_\ell}\,ks)_{\ell \in \mathcal{L}};\,\\
+                   y \mapsto \hforward((y,p,r),ks) \}\el \\
+\el \\
+\hforward((y,p,r),ks) &\defas& \bl
+              \Let\; (k' \cons h' \cons ks') = ks \;\In\; \\
+              h'\,\Record{y, \Record{p, \lambda x.\lambda ks''.\,r\,x\,(k' \cons h' \cons ks'')}}\,ks'\\
+              \el \smallskip\\
+\pcps{M} &\defas& \cps{M}~((\lambda x\,ks.x) \cons (\lambda \Record{z,\Record{p,r}}. \lambda ks.\,\Absurd~z) \cons \nil)
+\end{equations}
+%
+The other cases are as in the original CPS translation in
+Figure~\ref{fig:cps-cbv}.  The stacks of continuations are now lists,
+where pure continuations and effect continuations occupy alternating
+positions.
+
+Since we now use a list representation for the stacks of
+continuations, we have had to modify the translations of all the
+constructs that manipulate continuations. For $\Return$ and $\Let$, we
+extract the top continuation $k$ and manipulate it analogously to the
+original translation in Figure\ \ref{fig:cps-cbv}. For $\Do$, we
+extract the top pure continuation $k$ and effect continuation $h$ and
+invoke $h$ in the same way as the curried translation, except that we
+explicitly maintain the stack $ks$ of additional continuations. The
+translation of $\Handle$, however, pushes a continuation pair onto the
+stack instead of supplying them as arguments. Handling of operations
+is the same as before, except for explicit passing of the
+$ks$. Forwarding now pattern matches on the stack to extract the next
+continuation pair, rather than accepting them as arguments.
+%
+Proper tail recursion coincides with a refinement of the target
+syntax. Now applications are either of the form $V\,W$ or of the form
+$U\,V\,W$. We could also add a rule for applying a two argument lambda
+abstraction to two arguments at once and eliminate the
+$\usemlab{Lift}$ rule, but we defer this until our higher order
+translation in Section~\ref{sec:higher-order-uncurried-cps}.
 
 \chapter{Abstract machine semantics}
 
