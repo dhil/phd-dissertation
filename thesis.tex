@@ -55,6 +55,28 @@
 \hfsetfillcolor{gray!40}
 \hfsetbordercolor{gray!40}
 
+% Cancelling
+\newif\ifCancelX
+\tikzset{X/.code={\CancelXtrue}}
+\newcommand{\Cancel}[2][]{\relax
+\ifmmode%
+  \tikz[baseline=(X.base),inner sep=0pt] {\node (X) {$#2$};
+  \tikzset{#1}
+  \draw[#1,overlay,shorten >=-2pt,shorten <=-2pt] (X.south west) -- (X.north east);
+  \ifCancelX
+    \draw[#1,overlay,shorten >=-2pt,shorten <=-2pt] (X.north west) -- (X.south east);
+  \fi}
+\else
+  \tikz[baseline=(X.base),inner sep=0pt] {\node (X) {#2};
+  \tikzset{#1}
+  \draw[#1,overlay,shorten >=-2pt,shorten <=-2pt] (X.south west) -- (X.north east);
+  \ifCancelX
+    \draw[#1,overlay,shorten >=-2pt,shorten <=-2pt] (X.north west) -- (X.south east);
+  \fi}%
+\fi}
+
+\newcommand{\XCancel}[1]{\Cancel[red,X,line width=1pt]{#1}}
+
 %%
 %% Theorem environments
 %%
@@ -1890,7 +1912,7 @@ getting stuck on an unhandled operation.
 
 \part{Implementation}
 
-\chapter{Continuation-passing styles}
+\chapter{Continuation-passing style}
 \label{ch:cps}
 
 Continuation-passing style (CPS) is a \emph{canonical} program
@@ -1977,9 +1999,9 @@ consume stack space.
 \dhil{The focus of the introduction should arguably not be to explain CPS.}
 \dhil{Justify CPS as an implementation technique}
 \dhil{Give a side-by-side reduction example of $\dec{fac}$ and $\dec{fac}_{\dec{cps}}$.}
+\dhil{Define desirable properties of a CPS translation: properly tail-recursive, no static administrative redexes}
 
-
-\section{Target calculus}
+\section{Initial target calculus}
 \label{sec:target-cps}
 
 The syntax, semantics, and syntactic sugar for the target calculus
@@ -2016,13 +2038,12 @@ term) to cope with the case of pattern matching failure.
   \flushleft
   \textbf{Syntax}
   \begin{syntax}
-    \slab{Values}  &V, W \in \UValCat &::= &  x \mid \lambda x.M \mid \Rec\,g\,x.M \mid \Record{} \mid \Record{V, W} \mid \ell
+    \slab{Values}  &U, V, W \in \UValCat &::= &  x \mid \lambda x.M \mid \Rec\,g\,x.M \mid \Record{} \mid \Record{V, W} \mid \ell
     \smallskip \\
     \slab{Computations}  &M,N \in \UCompCat  &::= & V \mid M\,W \mid \Let\; \Record{x,y} = V \; \In \; N\\
                          &     &\mid& \Case\; V\, \{\ell \mapsto M; y \mapsto N\} \mid \Absurd\,V
-    % &    &\mid& \Vmap\;(x.M)\;V \\
     \smallskip \\
-    \slab{Evaluation contexts} &\EC \in \UEvalCat &::= & [~] \mid \EC\;W \\ %\mid \Let\; x \revto \EC \;\In\; N \\
+    \slab{Evaluation contexts} &\EC \in \UEvalCat &::= & [~] \mid \EC\;W \\
   \end{syntax}
 
   \textbf{Reductions}
@@ -2034,7 +2055,6 @@ term) to cope with the case of pattern matching failure.
     \Case \; \ell \; \{ \ell \mapsto M; y \mapsto N\} &\reducesto& M \\
     \usemlab{Case_2} &
     \Case \; \ell \; \{ \ell' \mapsto M; y \mapsto N\} &\reducesto& N[\ell/y], \hfill\quad \text{if } \ell \neq \ell' \\
-    % \usemlab{VMap}      & \Vmap\, (x.M) \,(\ell\, V) &\reducesto& \ell\, M[V/x] \\
     \usemlab{Lift} &
     \EC[M] &\reducesto& \EC[N], \hfill \text{if } M \reducesto N \\
   \end{reductions}
@@ -2112,8 +2132,8 @@ translate to value terms in the target.
 \cps{\Case~V~\{\ell~x \mapsto M; y \mapsto N\}} &=&
   \Case~\cps{V}~\{\ell~x \mapsto \cps{M}; y \mapsto \cps{N}\} \\
 \cps{\Absurd~V}                                 &=& \Absurd~\cps{V} \\
-\cps{\Return~V}                                 &=& \lambda k.k~\cps{V} \\
-\cps{\Let~x \revto M~\In~N}                     &=& \lambda k.\cps{M}(\lambda x.\cps{N}k) \\
+\cps{\Return~V}                                 &=& \lambda k.k\,\cps{V} \\
+\cps{\Let~x \revto M~\In~N}                     &=& \lambda k.\cps{M}(\lambda x.\cps{N}\,k) \\
 \end{eqs}
 \el
 \]
@@ -2121,7 +2141,7 @@ translate to value terms in the target.
 \label{fig:cps-cbv}
 \end{figure}
 
-\section{First-order CPS translations of effect handlers}
+\section{CPS transforming deep effect handlers}
 \label{sec:fo-cps}
 
 The translation of a computation term by the basic CPS translation in
@@ -2160,7 +2180,7 @@ operation invocation can be reinstated when the resumption is invoked.
 \subsection{Curried translation}
 \label{sec:first-order-curried-cps}
 
-We first consider a curried CPS translation that builds the
+We first consider a curried CPS translation that extends the
 translation of Figure~\ref{fig:cps-cbv}. The extension to operations
 and handlers is localised to the additional features because currying
 conveniently lets us get away with a shift in interpretation: rather
@@ -2174,7 +2194,7 @@ is as follows.
 %
 \begin{equations}
 \cps{\Do\;\ell\;V} &\defas& \lambda k.\lambda h.h~\Record{\ell,\Record{\cps{V}, \lambda x.k~x~h}} \\
-\cps{\Handle \; M \; \With \; H} &\defas& \cps{M}~\cps{\hret}~\cps{\hops}, ~\text{where} \smallskip\\
+\cps{\Handle \; M \; \With \; H} &\defas& \cps{M}~\cps{\hret}~\cps{\hops} \smallskip\\
 \cps{\{ \Return \; x \mapsto N \}} &\defas& \lambda x . \lambda h . \cps{N} \\
 \cps{\{ \ell~p~r \mapsto N_\ell \}_{\ell \in \mathcal{L}}}
 &\defas&
@@ -2229,11 +2249,11 @@ which makes it unviable in practice.
     basis for an implementation. This deficiency is essentially due to
     the curried representation of the continuation stack.
 
-  \item The image of the translation yields context independent
-    administrative redexes, i.e. redexes that could be reduced
-    statically. This is a classic problem with CPS translation, which
-    is typically dealt with by introducing a second pass to clean up
-    the image~\cite{DanvyF92}.
+  \item The image of the translation yields static administrative
+    redexes, i.e. redexes that could be reduced statically. This is a
+    classic problem with CPS translation, which is typically dealt
+    with by introducing a second pass to clean up the
+    image~\cite{DanvyF92}.
 \end{enumerate}
 
 The following minimal example readily illustrates both issues.
@@ -2297,11 +2317,63 @@ continuations~\citeyearpar{MaterzokB12}.
 
 \subsection{Uncurried translation}
 \label{sec:first-order-uncurried-cps}
+%
+%
+\begin{figure}
+  \flushleft
+  \textbf{Syntax}
+  \begin{syntax}
+    \slab{Computations}  &M,N \in \UCompCat  &::= & \cdots \mid \XCancel{M\,W} \mid V\,W \mid U\,V\,W \smallskip \\
+    \XCancel{\slab{Evaluation contexts}} &\XCancel{\EC \in \UEvalCat} &::= & \XCancel{[~] \mid \EC\;W} \\
+  \end{syntax}
 
-In this section we seek to refine the CPS translation for deep
-handlers to be properly tail-recursive. As remarked in the previous
-section, the crux of the problem is the curried representation of the
-continuation pair. To rectify this problem we can adapt the standard
+  \textbf{Reductions}
+  \begin{reductions}
+    \usemlab{App_1}   & (\lambda x . M) V &\reducesto& M[V/x] \\
+    \usemlab{App_2}   & (\lambda x . \lambda y. \, M) V\, W &\reducesto& M[V/x,W/y] \\
+    \XCancel{\usemlab{Lift}} & \XCancel{\EC[M]} &\reducesto& \XCancel{\EC[N], \hfill \text{if } M \reducesto N}
+  \end{reductions}
+  \caption{Adjustments to the syntax and semantics of $\UCalc$.}
+  \label{fig:refined-cps-cbv-target}
+\end{figure}
+%
+In this section we will refine the CPS translation for deep handlers
+to make it properly tail-recursive. As remarked in the previous
+section, the lack of tail-recursion is apparent in the syntax of the
+target calculus $\UCalc$ as it permits an arbitrary computation term
+in the function position of an application term.
+%
+
+As a first step we may impose a syntax restriction in target calculus
+such that the term in function position must be a value. With this
+restriction the syntax of $\UCalc$ implements the property that any
+term constructor features at most one computation term, and this
+computation term always appears in tail position. Thus this
+restriction suffices to ensure that every function application will be
+in tail-position.
+%
+Figure~\ref{fig:refined-cps-cbv-target} contains the adjustments to
+syntax and semantics of $\UCalc$. The target calculus now supports
+both unary and binary application forms. As we shall see shortly,
+binary application turns out be convenient when we enrich the notion
+of continuation. Both application forms are comprised only of value
+terms. As a result the dynamic semantics of $\UCalc$ no longer makes
+use of evaluation contexts, hence we remove them altogether. The
+reduction rule $\usemlab{App_1}$ applies to unary application and it
+is the same as the $\usemlab{App}$-rule in
+Figure~\ref{fig:cps-cbv-target}. The new $\usemlab{App_2}$-rule
+applies to binary application: it performs a simultaneous substitution
+of the arguments $V$ and $W$ for the parameters $x$ and $y$,
+respectively, in the function body $M$.
+%
+
+These changes to $\UCalc$ immediately invalidates the curried
+translation from the previous section as the image of the translation
+is no longer well-formed.
+%
+% The crux of the problem is the curried representation of the
+% continuation pair.
+To rectify this problem we can adapt the standard
 technique of \citet{MaterzokB12} to uncurry our CPS
 translation. Uncurrying necessitates a change of representation for
 continuations: a continuation is now an alternating list of pure
@@ -2314,13 +2386,12 @@ translation is adjusted as follows to account for the new
 representation of continuations.
 %
 \begin{equations}
-\cps{\Return~V}             &\defas& \lambda (k \cons ks).k~\cps{V}~ks \\
-\cps{\Let~x \revto M~\In~N} &\defas& \lambda (k \cons ks).\cps{M}((\lambda x.\lambda ks.\cps{N}(k \cons ks)) \cons ks)
+\cps{\Return~V}             &\defas& \lambda (k \cons ks).k\,\cps{V}\,ks \\
+\cps{\Let~x \revto M~\In~N} &\defas& \lambda (k \cons ks).\cps{M}((\lambda x.\lambda ks'.\cps{N}(k \cons ks')) \cons ks)
 \smallskip \\
-\cps{\Do\;\ell\;V} &\defas& \lambda (k \cons h \cons ks).h~\Record{\ell,\Record{\cps{V}, \lambda x.\lambda ks.k~x~(h \cons ks)}}~ks
+\cps{\Do\;\ell\;V} &\defas& \lambda (k \cons h \cons ks).h\,\Record{\ell,\Record{\cps{V}, \lambda x.\lambda ks'.k\,x\,(h \cons ks')}}\,ks
 \smallskip \\
-\cps{\Handle \; M \; \With \; H} &\defas& \lambda ks . \cps{M} (\cps{\hret} \cons \cps{\hops} \cons ks)
- , ~\text{where} \smallskip\\
+\cps{\Handle \; M \; \With \; H} &\defas& \lambda ks . \cps{M} (\cps{\hret} \cons \cps{\hops} \cons ks) \smallskip\\
 \cps{\{\Return \; x \mapsto N\}} &\defas& \lambda x.\lambda ks.\Let\; (h \cons ks') = ks \;\In\; \cps{N}\,ks'
 \\
 \cps{\{\ell \; p \; r \mapsto N_\ell\}_{\ell \in \mathcal{L}}}
@@ -2334,14 +2405,12 @@ representation of continuations.
               \Let\; (k' \cons h' \cons ks') = ks \;\In\; \\
               h'\,\Record{y, \Record{p, \lambda x.\lambda ks''.\,r\,x\,(k' \cons h' \cons ks'')}}\,ks'\\
               \el \smallskip\\
-\pcps{M} &\defas& \cps{M}~((\lambda x\,ks.x) \cons (\lambda \Record{z,\Record{p,r}}. \lambda ks.\,\Absurd~z) \cons \nil)
+\pcps{M} &\defas& \cps{M}~((\lambda x.\lambda ks.x) \cons (\lambda \Record{z,\Record{p,r}}. \lambda ks.\,\Absurd~z) \cons \nil)
 \end{equations}
 %
 The other cases are as in the original CPS translation in
-Figure~\ref{fig:cps-cbv}.  The stacks of continuations are now lists,
-where pure continuations and effect continuations occupy alternating
-positions.
-
+Figure~\ref{fig:cps-cbv}.
+%
 Since we now use a list representation for the stacks of
 continuations, we have had to modify the translations of all the
 constructs that manipulate continuations. For $\Return$ and $\Let$, we
@@ -2356,12 +2425,35 @@ is the same as before, except for explicit passing of the
 $ks$. Forwarding now pattern matches on the stack to extract the next
 continuation pair, rather than accepting them as arguments.
 %
-Proper tail recursion coincides with a refinement of the target
-syntax. Now applications are either of the form $V\,W$ or of the form
-$U\,V\,W$. We could also add a rule for applying a two argument lambda
-abstraction to two arguments at once and eliminate the
-$\usemlab{Lift}$ rule, but we defer this until our higher order
-translation in Section~\ref{sec:higher-order-uncurried-cps}.
+% Proper tail recursion coincides with a refinement of the target
+% syntax. Now applications are either of the form $V\,W$ or of the form
+% $U\,V\,W$. We could also add a rule for applying a two argument lambda
+% abstraction to two arguments at once and eliminate the
+% $\usemlab{Lift}$ rule, but we defer this until our higher order
+% translation in Section~\ref{sec:higher-order-uncurried-cps}.
+
+Let us revisit the example from
+Section~\ref{sec:first-order-curried-cps} to see first hand that our
+refined translation makes the example properly tail-recursive.
+%
+\begin{equations}
+\pcps{\Return\;\Record{}}
+     &=         & (\lambda (k \cons ks).k\,\Record{}\,ks)\,((\lambda x.\lambda ks.x) \cons (\lambda \Record{z, \_}.\lambda ks.\Absurd\,z) \cons \nil)  \\
+     &\reducesto& (\lambda x.\lambda ks.x)\,\Record{}\,((\lambda \Record{z,\_}.\lambda ks.\Absurd\,z) \cons \nil)\\
+     &\reducesto& \Record{}
+\end{equations}
+%
+The image of this uncurried translation admits three
+$\reducesto$-reduction steps (disregarding the administrative steps
+induced by pattern matching), which is one less step than admitted by
+the image of the curried translation. The `missing' step is precisely
+the partial application of the initial pure continuation function,
+which was not in tail position. Note, however, that the first
+reduction is still administrative. The involved redex is still static,
+meaning that it could be eliminated at translation time.
+%
+\dhil{Discuss dynamic and static administrative redex.}
+
 
 \chapter{Abstract machine semantics}
 
