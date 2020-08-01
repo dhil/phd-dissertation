@@ -2193,8 +2193,10 @@ have been $\eta$-reduced.  The translation of operations and handlers
 is as follows.
 %
 \begin{equations}
+\cps{-} &:& \CompCat \to \UCompCat\\
 \cps{\Do\;\ell\;V} &\defas& \lambda k.\lambda h.h~\Record{\ell,\Record{\cps{V}, \lambda x.k~x~h}} \\
-\cps{\Handle \; M \; \With \; H} &\defas& \cps{M}~\cps{\hret}~\cps{\hops} \smallskip\\
+\cps{\Handle \; M \; \With \; H} &\defas& \cps{M}~\cps{\hret}~\cps{\hops} \medskip\\
+\cps{-} &:& \HandlerCat \to \UCompCat\\
 \cps{\{ \Return \; x \mapsto N \}} &\defas& \lambda x . \lambda h . \cps{N} \\
 \cps{\{ \ell~p~r \mapsto N_\ell \}_{\ell \in \mathcal{L}}}
 &\defas&
@@ -2230,7 +2232,8 @@ identity pure continuation (which discards its handler argument), and
 an effect continuation that is never intended to be called.
 %
 \begin{equations}
-\pcps{M} &=& \cps{M}~(\lambda x.\lambda h.x)~(\lambda \Record{z,\_}.\Absurd~z) \\
+\pcps{-} &:& \CompCat \to \UCompCat\\
+\pcps{M} &\defas& \cps{M}~(\lambda x.\lambda h.x)~(\lambda \Record{z,\_}.\Absurd~z) \\
 \end{equations}
 %
 Conceptually, this translation encloses the translated program in a
@@ -2391,12 +2394,14 @@ translation is adjusted as follows to account for the new
 representation of continuations.
 %
 \begin{equations}
+\cps{-} &:& \CompCat \to \UCompCat\\
 \cps{\Return~V}             &\defas& \lambda (k \cons ks).k\,\cps{V}\,ks \\
 \cps{\Let~x \revto M~\In~N} &\defas& \lambda (k \cons ks).\cps{M}((\lambda x.\lambda ks'.\cps{N}(k \cons ks')) \cons ks)
 \smallskip \\
 \cps{\Do\;\ell\;V} &\defas& \lambda (k \cons h \cons ks).h\,\Record{\ell,\Record{\cps{V}, \lambda x.\lambda ks'.k\,x\,(h \cons ks')}}\,ks
 \smallskip \\
-\cps{\Handle \; M \; \With \; H} &\defas& \lambda ks . \cps{M} (\cps{\hret} \cons \cps{\hops} \cons ks) \smallskip\\
+\cps{\Handle \; M \; \With \; H} &\defas& \lambda ks . \cps{M} (\cps{\hret} \cons \cps{\hops} \cons ks) \medskip\\
+\cps{-} &:& \HandlerCat \to \UCompCat\\
 \cps{\{\Return \; x \mapsto N\}} &\defas& \lambda x.\lambda ks.\Let\; (h \cons ks') = ks \;\In\; \cps{N}\,ks'
 \\
 \cps{\{\ell \; p \; r \mapsto N_\ell\}_{\ell \in \mathcal{L}}}
@@ -2409,7 +2414,8 @@ representation of continuations.
 \hforward((y,p,r),ks) &\defas& \bl
               \Let\; (k' \cons h' \cons ks') = ks \;\In\; \\
               h'\,\Record{y, \Record{p, \lambda x.\lambda ks''.\,r\,x\,(k' \cons h' \cons ks'')}}\,ks'\\
-              \el \smallskip\\
+              \el \medskip\\
+\pcps{-} &:& \CompCat \to \UCompCat\\
 \pcps{M} &\defas& \cps{M}~((\lambda x.\lambda ks.x) \cons (\lambda \Record{z,\Record{p,r}}. \lambda ks.\,\Absurd~z) \cons \nil)
 \end{equations}
 %
@@ -2479,9 +2485,10 @@ Rather than representing resumptions as functions, we move to an
 explicit representation of resumptions as \emph{reversed} stacks of
 pure and effect continuations. By choosing to reverse the order of
 pure and effect continuations, we can construct resumptions
-efficiently using regular cons-lists. We convert these reversed stacks
-to actual functions on demand using a special
-$\Let\;r=\Res\,V\;\In\;N$ computation term that reduces as follows.
+efficiently using regular cons-lists. We augment the syntax and
+semantics of $\UCalc$ with a computation term
+$\Let\;r=\Res\,V\;\In\;N$ which allow us to convert these reversed
+stacks to actual functions on demand.
 %
 \begin{reductions}
   \usemlab{Res}
@@ -2502,9 +2509,12 @@ modified to account for the change in representation of
 resumptions.
 %
 \begin{equations}
+\cps{-} &:& \CompCat \to \UCompCat\\
   \cps{\Do\;\ell\;V}
      &\defas& \lambda k \cons h \cons ks.\,h\, \Record{\ell,\Record{\cps{V}, h \cons k \cons \nil}}\, ks
-  \\
+   \medskip\\
+%
+\cps{-} &:& \HandlerCat \to \UCompCat\\
   \cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}
      &\defas& \bl
                 \lambda \Record{z,\Record{p,rs}}.\lambda ks.\Case \;z\; \{
@@ -2524,6 +2534,162 @@ resumption stack with the current continuation pair.
 %
 % Since we have only changed the representation of resumptions, the
 % translation of top-level programs remains the same.
+
+\subsection{Higher-order translation for deep effect handlers}
+\label{sec:higher-order-uncurried-deep-handlers-cps}
+%
+\begin{figure}
+%
+\textbf{Static patterns and static lists}
+%
+\begin{syntax}
+\slab{Static patterns} &\sP& ::= & \sk \scons \sP \mid \sks \\
+\slab{Static lists} &\VS& ::= & V \scons \VS \mid \reflect V \\
+\end{syntax}
+%
+\textbf{Reification}
+%
+\begin{equations}
+\reify (V \scons \VS) &\defas& V \dcons \reify \VS \\
+\reify \reflect V     &\defas& V \\
+\end{equations}
+%
+\textbf{Values}
+%
+\begin{displaymath}
+\begin{eqs}
+\cps{-}                    &:& \ValCat \to \UValCat\\
+\cps{x}                    &\defas& x \\
+\cps{\lambda x.M}          &\defas& \dlam x\,ks.\cps{M} \sapp \reflect ks \\
+\cps{\Lambda \alpha.M}     &\defas& \dlam z\,ks.\cps{M} \sapp \reflect ks \\
+\cps{\Record{}}            &\defas& \Record{} \\
+\cps{\Record{\ell = V; W}} &\defas& \Record{\ell = \cps{V}; \cps{W}} \\
+\cps{\ell~V}               &\defas& \ell~\cps{V} \\
+\end{eqs}
+\end{displaymath}
+%
+\textbf{Computations}
+%
+\begin{equations}
+\cps{-}  &:& (\CompCat \times (\UValCat \to \UCompCat)^\ast) \to \UCompCat\\
+\cps{V\,W}                                       &\defas& \slam \sks.\cps{V} \dapp \cps{W} \dapp \reify \sks \\
+\cps{V\,T}                                       &\defas& \slam \sks.\cps{V} \dapp \Record{} \dapp \reify \sks \\
+\cps{\Let\; \Record{\ell=x;y} = V \; \In \; N}  &\defas& \slam \sks.\Let\; \Record{\ell=x;y} = \cps{V} \; \In \; \cps{N} \sapp \sks \\
+\cps{\Case~V~\{\ell~x \mapsto M; y \mapsto N\}} &\defas&
+  \slam \sks.\Case~\cps{V}~\{\ell~x \mapsto \cps{M} \sapp \sks; y \mapsto \cps{N} \sapp \sks\} \\
+\cps{\Absurd~V}                                 &\defas& \slam \sks.\Absurd~\cps{V} \\
+\cps{\Return~V}             &\defas& \slam \sk \scons \sks.\sk \dapp \cps{V} \dapp \reify \sks \\
+\cps{\Let~x \revto M~\In~N} &\defas& \slam \sk \scons \sks.\cps{M} \sapp ((\dlam x\,ks.\cps{N} \sapp (\sk \scons \reflect ks)) \scons \sks) \\
+\cps{\Do\;\ell\;V} &\defas& \slam \sk \scons \sh \scons \sks.\sh \dapp
+                             (\ell~\Record{\cps{V}, \sh \dcons \sk \dcons \dnil}) \dapp \reify \sks \\
+\cps{\Handle \; M \; \With \; H} &\defas& \slam \sks . \cps{M} \sapp (\cps{\hret} \scons \cps{\hops} \scons \sks),~\text{where}
+\smallskip \\
+%
+\end{equations}
+%
+\textbf{Handler definitions}
+%
+\begin{equations}
+\cps{-} &:& \HandlerCat \to \UCompCat\\
+\cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\, ks.\dLet\; (h \dcons ks') = ks \;\dIn\; \cps{N} \sapp \reflect ks'
+\\
+\cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}
+&\defas&
+\bl
+\dlam z \, ks.\Case \;z\; \{
+      \bl
+      (\ell~\Record{p, s} \mapsto \dLet\;r=\Fun\,s \;\dIn\; \cps{N_{\ell}} \sapp \reflect ks)_{\ell \in \mathcal{L}};\,
+      y \mapsto \hforward \} \\
+      \el \\
+\el \\
+\hforward &\defas& \bl
+              \dLet\; (k' \dcons h' \dcons ks') = ks \;\dIn\; \\
+              \Vmap\,(\dlam\Record{p, s}\,(k \dcons ks).k\,\Record{p, h' \dcons k' \dcons s}\,ks)\,y\,(h' \dcons ks') \\
+              \el
+\end{equations}
+
+\textbf{Top level program}
+%
+\begin{equations}
+\pcps{M} &=& \cps{M} \sapp ((\dlam x\,ks.x) \scons (\dlam z\,ks.\Absurd~z) \scons \snil) \\
+\end{equations}
+\vspace{-1em}
+
+\caption{Higher-order uncurried CPS translation of $\HCalc$}
+\label{fig:cps-higher-order-uncurried}
+\end{figure}
+%
+We now adapt our uncurried CPS translation to a higher-order one-pass
+CPS translation~\cite{DanvyF90} that partially evaluates
+administrative redexes at translation time.
+%
+Following Danvy and Nielsen~\cite{DanvyN03}, we adopt a two-level
+lambda calculus notation to distinguish between \emph{static} lambda
+abstraction and application in the meta language and \emph{dynamic}
+lambda abstraction and application in the target language.
+%
+The idea is that redexes marked as static are reduced as part of the
+translation (at compile time), whereas those marked as dynamic are
+reduced at runtime.
+%
+The CPS translation is given in
+Figure~\ref{fig:cps-higher-order-uncurried}.
+
+An overline denotes a static syntax constructor and an underline
+denotes a dynamic syntax constructor. In order to facilitate this
+notation we write application explicitly as an infix ``at'' symbol
+($@$). We assume the meta language is pure and hence respects the
+usual $\beta$ and $\eta$ equivalences. We extend the overline and
+underline notation to distinguish between static and dynamic let
+bindings.
+
+The reify operator $\reify$ maps static lists to dynamic ones and the
+reflect constructor $\reflect$ allows dynamic lists to be treated as
+static.
+%
+We use list pattern matching in the meta language.
+%
+\begin{equations}
+(\slam (\sk \scons \sP).\sM) \sapp (V \scons \VS)
+  &=& \sLet\; \sk = V \;\sIn\; (\slam \sP.\sM) \sapp \VS \\
+(\slam (\sk \scons \sP).\sM) \sapp \reflect V
+  &=& \dLet\; (k \dcons ks) = V \;\dIn\;
+      \sLet\; \sk = k \;\sIn\; (\slam \sP.\sM) \sapp \reflect ks \\
+\end{equations}
+Here we let $\sM$ range over meta language expressions.
+
+Now the target calculus is refined so that all lambda abstractions and
+applications take two arguments, the $\usemlab{Lift}$ rule is removed,
+and the $\usemlab{App}$ rule is replaced by the following reduction
+rule.
+%
+\begin{reductions}
+\usemlab{AppTwo}   & (\dlam x\,ks . \, M) \dapp V \dapp W &\reducesto& M[V/x, W/ks] \\
+\end{reductions}
+%
+We add an extra dummy argument to the translation of type lambda
+abstractions and applications in order to ensure that all dynamic
+functions take exactly two arguments.
+%
+The single argument lambdas and applications from the first-order
+uncurried translation are still present, but now they are all static.
+
+In order to reason about the behaviour of the \semlab{Handle-op} rule,
+which is defined in terms of an evaluation context, we extend the CPS
+translation to evaluation contexts.
+%
+\begin{displaymath}
+\ba{@{}r@{~}c@{~}r@{~}l@{}}
+\cps{[~]}                           &=& \slam \sks.           &\sks \\
+\cps{\Let\; x \revto \EC \;\In\; N} &=& \slam \sk \scons \sks.&\cps{\EC} \sapp ((\dlam x\,ks.\cps{N} \sapp (k \scons \reflect ks)) \scons \sks) \\
+\cps{\Handle\; \EC \;\With\; H}     &=& \slam \sks.           &\cps{\EC} \sapp (\cps{\hret} \scons \cps{\hops} \scons \sks) \\
+\ea
+\end{displaymath}
+The following lemma is the characteristic property of the CPS
+translation on evaluation contexts.
+%
+This allows us to focus on the computation contained within
+an evaluation context.
 
 \chapter{Abstract machine semantics}
 
