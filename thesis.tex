@@ -2373,6 +2373,11 @@ is no longer well-formed.
 %
 % The crux of the problem is the curried representation of the
 % continuation pair.
+The crux of the problem is that the curried interpretation of
+continuations causes the CPS translation to produce `large'
+application terms, e.g. the translation rule for effect forwarding
+produces three-argument application term.
+%
 To rectify this problem we can adapt the standard
 technique of \citet{MaterzokB12} to uncurry our CPS
 translation. Uncurrying necessitates a change of representation for
