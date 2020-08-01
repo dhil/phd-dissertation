@@ -2459,6 +2459,71 @@ meaning that it could be eliminated at translation time.
 %
 \dhil{Discuss dynamic and static administrative redex.}
 
+\subsection{Resumptions as explicit reversed stacks}
+\label{sec:first-order-explicit-resump}
+%
+\dhil{Show an example involving administrative redexes produced by resumptions}
+%
+Thus far resumptions have been represented as functions, and
+forwarding has been implemented using function composition. The
+composition of resumption gives rise to unnecessary dynamic
+administrative redexes as function composition necessitates the
+introduction of an additional lambda abstraction.
+%
+
+We can avert generating these administrative redexes by applying a
+variation of the technique that we used in the previous section to
+uncurry the curried CPS translation.
+%
+Rather than representing resumptions as functions, we move to an
+explicit representation of resumptions as \emph{reversed} stacks of
+pure and effect continuations. By choosing to reverse the order of
+pure and effect continuations, we can construct resumptions
+efficiently using regular cons-lists. We convert these reversed stacks
+to actual functions on demand using a special
+$\Let\;r=\Res\,V\;\In\;N$ computation term that reduces as follows.
+%
+\begin{reductions}
+  \usemlab{Res}
+  & \Let\;r=\Res\,(V_n \cons \dots \cons V_1 \cons \nil)\;\In\;N
+  & \reducesto
+  & N[\lambda x\,k.V_1\,x\,(V_2 \cons \dots \cons V_n \cons k)/r]
+\end{reductions}
+%
+This reduction rule reverses the stack, extracts the top continuation
+$V_1$, and prepends the remainder onto the current stack $W$. The
+stack representing a resumption and the remaining stack $W$ are
+reminiscent of the zipper data structure for representing cursors in
+lists~\cite{Huet97}. Thus we may think of resumptions as representing
+pointers into the stack of handlers.
+%
+The translations of $\Do$, handling, and forwarding need to be
+modified to account for the change in representation of
+resumptions.
+%
+\begin{equations}
+  \cps{\Do\;\ell\;V}
+     &\defas& \lambda k \cons h \cons ks.\,h\, \Record{\ell,\Record{\cps{V}, h \cons k \cons \nil}}\, ks
+  \\
+  \cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}
+     &\defas& \bl
+                \lambda \Record{z,\Record{p,rs}}.\lambda ks.\Case \;z\; \{
+                  \bl
+                   (\ell \mapsto \Let\;r=\Res\;rs \;\In\; \cps{N_{\ell}}\, ks)_{\ell \in \mathcal{L}};\,\\
+                   y \mapsto \hforward((y,p,rs),ks) \} \\
+                  \el \\
+             \el \\
+  \hforward((y,p,r),ks)
+    &\defas&\Let\; (k' \cons h' \cons ks') = ks \;\In\; h'\,\Record{y,\Record{p,h'::k'::r}} \,ks'
+\end{equations}
+%
+The translation of $\Do$ constructs an initial resumption stack,
+operation clauses extract and convert the current resumption stack
+into a function using the $\Res$, and $\hforward$ augments the current
+resumption stack with the current continuation pair.
+%
+% Since we have only changed the representation of resumptions, the
+% translation of top-level programs remains the same.
 
 \chapter{Abstract machine semantics}
 
