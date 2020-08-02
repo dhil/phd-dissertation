@@ -2006,13 +2006,14 @@ consume stack space.
 
 The syntax, semantics, and syntactic sugar for the target calculus
 $\UCalc$ is given in Figure~\ref{fig:cps-cbv-target}. The calculus
-largely amounts to an untyped variation of $\BCalcRec$, specifically
+largely amounts to an untyped variation of $\BCalc$, specifically
 we retain the syntactic distinction between values ($V$) and
 computations ($M$).
 %
 The values ($V$) comprise lambda abstractions ($\lambda x.M$),
-recursive functions ($\Rec\,g\,x.M$), empty tuples ($\Record{}$),
-pairs ($\Record{V,W}$), and first-class labels ($\ell$).
+% recursive functions ($\Rec\,g\,x.M$),
+empty tuples ($\Record{}$), pairs ($\Record{V,W}$), and first-class
+labels ($\ell$).
 %
 Computations ($M$) comprise values ($V$), applications ($M~V$), pair
 elimination ($\Let\; \Record{x, y} = V \;\In\; N$), label elimination
@@ -2038,7 +2039,8 @@ term) to cope with the case of pattern matching failure.
   \flushleft
   \textbf{Syntax}
   \begin{syntax}
-    \slab{Values}  &U, V, W \in \UValCat &::= &  x \mid \lambda x.M \mid \Rec\,g\,x.M \mid \Record{} \mid \Record{V, W} \mid \ell
+    \slab{Values}  &U, V, W \in \UValCat &::= &  x \mid \lambda x.M \mid % \Rec\,g\,x.M
+                                          \mid \Record{} \mid \Record{V, W} \mid \ell
     \smallskip \\
     \slab{Computations}  &M,N \in \UCompCat  &::= & V \mid M\,W \mid \Let\; \Record{x,y} = V \; \In \; N\\
                          &     &\mid& \Case\; V\, \{\ell \mapsto M; y \mapsto N\} \mid \Absurd\,V
@@ -2049,7 +2051,7 @@ term) to cope with the case of pattern matching failure.
   \textbf{Reductions}
   \begin{reductions}
     \usemlab{App}   & (\lambda x . \, M) V &\reducesto& M[V/x] \\
-    \usemlab{Rec}   & (\Rec\,g\,x.M) V     &\reducesto& M[\Rec\,g\,x.M/g,V/x]\\
+    % \usemlab{Rec}   & (\Rec\,g\,x.M) V     &\reducesto& M[\Rec\,g\,x.M/g,V/x]\\
     \usemlab{Split} & \Let \; \Record{x,y} = \Record{V,W} \; \In \; N &\reducesto& N[V/x,W/y] \\
     \usemlab{Case_1} &
     \Case \; \ell \; \{ \ell \mapsto M; y \mapsto N\} &\reducesto& M \\
@@ -2088,7 +2090,7 @@ term) to cope with the case of pattern matching failure.
 \section{CPS transform for fine-grain call-by-value}
 \label{sec:cps-cbv}
 
-We start by giving a CPS translation of $\BCalcRec$ in
+We start by giving a CPS translation of $\BCalc$ in
 Figure~\ref{fig:cps-cbv}. Fine-grain call-by-value admits a
 particularly simple CPS translation due to the separation of values
 and computations. All constructs from the source language are
@@ -2114,7 +2116,7 @@ translate to value terms in the target.
 \cps{x}                    &=& x \\
 \cps{\lambda x.M}          &=& \lambda x.\cps{M} \\
 \cps{\Lambda \alpha.M}     &=& \lambda k.\cps{M}~k \\
-\cps{\Rec\,g\,x.M}         &=& \Rec\,g\,x.\cps{M}\\
+% \cps{\Rec\,g\,x.M}         &=& \Rec\,g\,x.\cps{M}\\
 \cps{\Record{}}            &=& \Record{} \\
 \cps{\Record{\ell = V; W}} &=& \Record{\ell = \cps{V}; \cps{W}} \\
 \cps{\ell~V}               &=& \ell~\cps{V} \\
@@ -2137,7 +2139,7 @@ translate to value terms in the target.
 \end{eqs}
 \el
 \]
-\caption{First-order CPS translation of fine-grain call-by-value.}
+\caption{First-order CPS translation of $\BCalc$.}
 \label{fig:cps-cbv}
 \end{figure}
 
@@ -2523,8 +2525,8 @@ resumptions.
                    y \mapsto \hforward((y,p,rs),ks) \} \\
                   \el \\
              \el \\
-  \hforward((y,p,r),ks)
-    &\defas&\Let\; (k' \cons h' \cons ks') = ks \;\In\; h'\,\Record{y,\Record{p,h'::k'::r}} \,ks'
+  \hforward((y,p,rs),ks)
+    &\defas&\Let\; (k' \cons h' \cons ks') = ks \;\In\; h'\,\Record{y,\Record{p,h' \cons k' \cons rs}} \,ks'
 \end{equations}
 %
 The translation of $\Do$ constructs an initial resumption stack,
@@ -2540,19 +2542,19 @@ resumption stack with the current continuation pair.
 %
 \begin{figure}
 %
-\textbf{Static patterns and static lists}
-%
-\begin{syntax}
-\slab{Static patterns} &\sP& ::= & \sk \scons \sP \mid \sks \\
-\slab{Static lists} &\VS& ::= & V \scons \VS \mid \reflect V \\
-\end{syntax}
-%
-\textbf{Reification}
-%
-\begin{equations}
-\reify (V \scons \VS) &\defas& V \dcons \reify \VS \\
-\reify \reflect V     &\defas& V \\
-\end{equations}
+% \textbf{Static patterns and static lists}
+% %
+% \begin{syntax}
+% \slab{Static patterns} &\sP& ::= & \sk \scons \sP \mid \sks \\
+% \slab{Static lists} &\VS& ::= & V \scons \VS \mid \reflect V \\
+% \end{syntax}
+% %
+% \textbf{Reification}
+% %
+% \begin{equations}
+% \reify (V \scons \VS) &\defas& V \dcons \reify \VS \\
+% \reify \reflect V     &\defas& V \\
+% \end{equations}
 %
 \textbf{Values}
 %
@@ -2582,8 +2584,7 @@ resumption stack with the current continuation pair.
 \cps{\Let~x \revto M~\In~N} &\defas& \slam \sk \scons \sks.\cps{M} \sapp ((\dlam x\,ks.\cps{N} \sapp (\sk \scons \reflect ks)) \scons \sks) \\
 \cps{\Do\;\ell\;V} &\defas& \slam \sk \scons \sh \scons \sks.\sh \dapp
                              (\ell~\Record{\cps{V}, \sh \dcons \sk \dcons \dnil}) \dapp \reify \sks \\
-\cps{\Handle \; M \; \With \; H} &\defas& \slam \sks . \cps{M} \sapp (\cps{\hret} \scons \cps{\hops} \scons \sks),~\text{where}
-\smallskip \\
+\cps{\Handle \; M \; \With \; H} &\defas& \slam \sks . \cps{M} \sapp (\cps{\hret} \scons \cps{\hops} \scons \sks)
 %
 \end{equations}
 %
@@ -2591,92 +2592,250 @@ resumption stack with the current continuation pair.
 %
 \begin{equations}
 \cps{-} &:& \HandlerCat \to \UCompCat\\
-\cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\, ks.\dLet\; (h \dcons ks') = ks \;\dIn\; \cps{N} \sapp \reflect ks'
+\cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\, ks.\Let\; (h \dcons ks') = ks \;\In\; \cps{N} \sapp \reflect ks'
 \\
+% \cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}
+% &\defas&
+% \bl
+% \dlam z \, ks.\Case \;z\; \{
+%       \bl
+%       (\ell~\Record{p, s} \mapsto \dLet\;r=\Fun\,s \;\dIn\; \cps{N_{\ell}} \sapp \reflect ks)_{\ell \in \mathcal{L}};\,
+%       y \mapsto \hforward \} \\
+%       \el \\
+% \el \\
+% \hforward &\defas& \bl
+%               \dLet\; (k' \dcons h' \dcons ks') = ks \;\dIn\; \\
+%               \Vmap\,(\dlam\Record{p, s}\,(k \dcons ks).k\,\Record{p, h' \dcons k' \dcons s}\,ks)\,y\,(h' \dcons ks') \\
+%               \el\\
 \cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}
-&\defas&
-\bl
-\dlam z \, ks.\Case \;z\; \{
-      \bl
-      (\ell~\Record{p, s} \mapsto \dLet\;r=\Fun\,s \;\dIn\; \cps{N_{\ell}} \sapp \reflect ks)_{\ell \in \mathcal{L}};\,
-      y \mapsto \hforward \} \\
-      \el \\
-\el \\
-\hforward &\defas& \bl
-              \dLet\; (k' \dcons h' \dcons ks') = ks \;\dIn\; \\
-              \Vmap\,(\dlam\Record{p, s}\,(k \dcons ks).k\,\Record{p, h' \dcons k' \dcons s}\,ks)\,y\,(h' \dcons ks') \\
-              \el
+     &\defas& \bl
+                \dlam \Record{z,\Record{p,rs}}\,ks.\Case \;z\; \{
+                  \bl
+                   (\ell \mapsto \Let\;r=\Res\;rs \;\In\; \cps{N_{\ell}} \sapp \reflect ks)_{\ell \in \mathcal{L}};\,\\
+                   y \mapsto \hforward((y,p,rs),ks) \} \\
+                  \el \\
+             \el \\
+\hforward((y,p,rs),ks)
+    &\defas&\Let\; (k' \dcons h' \dcons ks') = ks \;\In\; h'\,\Record{y,\Record{p,h' \dcons k' \dcons rs}} \,ks'
 \end{equations}
-
+%
 \textbf{Top level program}
 %
 \begin{equations}
 \pcps{M} &=& \cps{M} \sapp ((\dlam x\,ks.x) \scons (\dlam z\,ks.\Absurd~z) \scons \snil) \\
 \end{equations}
-\vspace{-1em}
 
-\caption{Higher-order uncurried CPS translation of $\HCalc$}
+\caption{Higher-order uncurried CPS translation of $\HCalc$.}
 \label{fig:cps-higher-order-uncurried}
 \end{figure}
 %
-We now adapt our uncurried CPS translation to a higher-order one-pass
-CPS translation~\cite{DanvyF90} that partially evaluates
-administrative redexes at translation time.
+% \begin{figure}[t]
+% \flushleft
+% Values
+% \begin{equations}
+%   \cps{x}                    &\defas& x \\
+%   \cps{\lambda x.M}          &\defas& \dlam x\,\dhk.\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons \dhk' = \dhk\;\In\;\cps{M} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk') \\
+%   \cps{\Lambda \alpha.M}     &\defas& \dlam z\,\dhk.\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons \dhk' = \dhk\;\In\;\cps{M} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk') \\
+%   \cps{\Rec\,g\,x.M} &\defas& \Rec\,g\,x\,\dhk.\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons \dhk' = \dhk\;\In\;\cps{M} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk') \\
+%   \multicolumn{3}{c}{
+%   \cps{\Record{}} \defas \Record{}
+%   \qquad
+%   \cps{\Record{\ell = \!\!V; W}} \defas \Record{\ell = \!\cps{V}; \cps{W}}
+%   \qquad
+%   \cps{\ell\,V} \defas \ell\,\cps{V}
+%   }
+% \end{equations}
+% % \begin{displaymath}
+% % \end{displaymath}
+% Computations
+% \begin{equations}
+% \cps{V\,W}                                       &\defas& \slam \shk.\cps{V} \dapp \cps{W} \dapp \reify \shk \\
+% \cps{V\,T}                                       &\defas& \slam \shk.\cps{V} \dapp \Record{} \dapp \reify \shk \\
+% \cps{\Let\; \Record{\ell=x;y} = V \; \In \; N}  &\defas& \slam \shk.\Let\; \Record{\ell=x;y} = \cps{V} \; \In \; \cps{N} \sapp \shk \\
+% \cps{\Case~V~\{\ell~x \mapsto M; y \mapsto N\}} &\defas&
+%   \slam \shk.\Case~\cps{V}~\{\ell~x \mapsto \cps{M} \sapp \shk; y \mapsto \cps{N} \sapp \shk\} \\
+% \cps{\Absurd~V}                                 &\defas& \slam \shk.\Absurd~\cps{V} \\
+% \end{equations}
+% \begin{equations}
+% \cps{\Return\,V} &=& \slam \shk.\kapp\;(\reify \shk)\;\cps{V} \\
+% \cps{\Let~x \revto M~\In~N} &=&
+%   \bl\slam \sRecord{\shf,  \sRecord{\svhret, \svhops}} \scons \shk.\\
+%   \qquad \cps{M} \sapp (\bl\sRecord{\reflect((\dlam x\,\dhk.\bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\
+%     \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify\shf), \el\\
+%     \sRecord{\svhret, \svhops}} \scons \shk)\el
+%   \el\\
+% \cps{\Do\;\ell\;V} &\defas&
+%   \slam \sRecord{\shf, \sRecord{\svhret, \svhops}} \scons \shk.\,
+%          \reify\svhops \dapp \dRecord{\ell,\dRecord{\cps{V}, \dRecord{\reify \shf, \dRecord{\reify\svhret, \reify\svhops}} \dcons \dnil}} \dapp \reify \shk \\
+% \cps{\Handle^\depth \, M \; \With \; H} &\defas&
+% \slam \shk . \cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \shk) \\
+% \cps{H}^\depth &=& \sRecord{\reflect \cps{\hret}, \reflect \cps{\hops}^\depth}\\
+% \cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\,\dhk.\bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}} \dcons k' = k\;\In\\\cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')\el
+% \\
+% \cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}^\depth
+% &\defas&
+% \bl
+% \dlam \dRecord{z,\dRecord{p,\dhkr}}\,\dhk.\bl
+%               \Case \;z\; \{
+%                 \begin{eqs}
+%                   (\ell &\mapsto& \Let\;r=\Res^\depth\,\dhkr\;\In\;  \\
+%                         &       & \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In\\
+%                         &       & \cps{N_{\ell}} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk'))_{\ell \in \mathcal{L}}\\
+%                   y     &\mapsto& \hforward((y, p, \dhkr), \dhk) \} \\
+%                 \end{eqs} \\
+%               \el \\
+% \el \\
+% \hforward((y, p, \dhkr), \dhk) &\defas& \bl
+%               \Let\; \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dhk \;\In \\
+%               \Let\; rk' = \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhkr\;\In\\
+%               \vhops \dapp \dRecord{y,\dRecord{p, rk'}} \dapp \dhk' \\
+%               \el
+% \end{equations}
+
+% Top-level program
+% \begin{equations}
+% \pcps{M} &=& \cps{M} \sapp (\sRecord{\snil, \sRecord{\reflect \dlam x\,\dhk. x, \reflect \dlam \dRecord{z,\dRecord{p,rk}}\,\dhk.\Absurd~z}} \scons \snil) \\
+% \end{equations}
+
+% \caption{Higher-Order Uncurried CPS Translation of $\HCalc$}
+% \label{fig:cps-higher-order-uncurried}
+% \end{figure}
 %
-Following Danvy and Nielsen~\cite{DanvyN03}, we adopt a two-level
-lambda calculus notation to distinguish between \emph{static} lambda
-abstraction and application in the meta language and \emph{dynamic}
-lambda abstraction and application in the target language.
+% We now adapt our uncurried CPS translation to a higher-order one-pass
+% CPS translation~\cite{DanvyF90} that partially evaluates
+% administrative redexes at translation time.
+% %
+% Following Danvy and Nielsen~\cite{DanvyN03}, we adopt a two-level
+% lambda calculus notation to distinguish between \emph{static} lambda
+% abstraction and application in the meta language and \emph{dynamic}
+% lambda abstraction and application in the target language.
+% %
+% The idea is that redexes marked as static are reduced as part of the
+% translation (at compile time), whereas those marked as dynamic are
+% reduced at runtime.
+% %
+% The CPS translation is given in
+% Figure~\ref{fig:cps-higher-order-uncurried}.
+
+We now adapt the translation of Section~\ref{sec:pure-as-stack} to a
+higher-order one-pass CPS translation~\citep{DanvyF90} that partially
+evaluates administrative redexes at translation time.
 %
-The idea is that redexes marked as static are reduced as part of the
-translation (at compile time), whereas those marked as dynamic are
-reduced at runtime.
+Following \citet{DanvyN03}, we adopt a two-level lambda calculus
+notation to distinguish between \emph{static} lambda abstraction and
+application in the meta language and \emph{dynamic} lambda abstraction
+and application in the target language:
+{\color{blue}$\overline{\text{overline}}$} denotes a static syntax
+constructor; {\color{red}$\underline{\text{underline}}$} denotes a
+dynamic syntax constructor. The principal idea is that redexes marked
+as static are reduced as part of the translation (at compile time),
+whereas those marked as dynamic are reduced at runtime. To facilitate
+this notation we write application in both calculi with an infix
+``at'' symbol ($@$).
+
+\paragraph{Static terms}
+Static constructs are marked in
+{\color{blue}$\overline{\text{static blue}}$}, and their redexes are
+reduced as part of the translation (at compile time).  We make use of
+static lambda abstractions, pairs, and lists. Reflection of dynamic
+language values into the static language is written as $\reflect V$.
 %
+We use $\shk$ for variables representing statically known
+continuations (frame stacks), $\shf$ for variables representing pure
+frame stacks, and $\chi$ for variables representing handlers.
+%
+We let $\sV, \sW$ range over meta language values,
+$\sM$ range over static language expressions,
+and $\sP, \sQ$ over static language patterns.
+%
+We use list and record pattern matching in the meta language, which
+behaves as follows:
+%
+\begin{displaymath}
+  \ba{@{~}l@{~}l}
+    &(\slam \sRecord{\sP, \sQ}.\,\sM) \sapp \sRecord{\sV, \sW}\\
+  = &(\slam \sP.\,\slam \sQ.\,\sM) \sapp \sV \sapp \sW\\
+  = &(\slam (\sP \scons \sQ).\,\sM) \sapp (\sV \scons \sW)
+  \ea
+\end{displaymath}
+%
+Static language values, comprised of reflected values, pairs, and list
+conses, are reified as dynamic language values $\reify \sV$ by
+induction on their structure:
+%
+\[
+  \ba{@{}l@{\qquad}c@{\qquad}r}
+    \reify \reflect V \defas V
+    &\reify (\sV \scons \sW) \defas \reify \sV \dcons \reify \sW
+    &\reify \sRecord{\sV, \sW} \defas \dRecord{\reify \sV, \reify \sW}
+  \ea
+\]
+%
+We assume the static language is pure and hence respects the usual
+$\beta$ and $\eta$ equivalences.
+
+\paragraph{Higher-order translation}
 The CPS translation is given in
-Figure~\ref{fig:cps-higher-order-uncurried}.
+Figure~\ref{fig:cps-higher-order-uncurried}. In essence, it is the
+same as the CPS translation for deep and shallow handlers we described
+in Section~\ref{sec:pure-as-stack}, albeit separated into static and
+dynamic parts. A major difference that has a large cosmetic effect on
+the presentation of the translation is that we maintain the invariant
+that the statically known stack ($\sk$) always contains at least one
+frame, consisting of a triple
+$\sRecord{\reflect V_{fs}, \sRecord{\reflect V_{ret}, \reflect
+    V_{ops}}}$ of reflected dynamic pure frame stacks, return
+handlers, and operation handlers. Maintaining this invariant ensures
+that all translations are uniform in whether they appear statically
+within the scope of a handler or not, and this simplifies our
+correctness proof.  To maintain the invariant, any place where a
+dynamically known stack is passed in (as a continuation parameter
+$k$), it is immediately decomposed using a dynamic language $\Let$ and
+repackaged as a static value with reflected variable
+names. Unfortunately, this does add some clutter to the translation
+definition, as compared to the translations above. However, there is a
+payoff in the removal of administrative reductions at run time.
 
-An overline denotes a static syntax constructor and an underline
-denotes a dynamic syntax constructor. In order to facilitate this
-notation we write application explicitly as an infix ``at'' symbol
-($@$). We assume the meta language is pure and hence respects the
-usual $\beta$ and $\eta$ equivalences. We extend the overline and
-underline notation to distinguish between static and dynamic let
-bindings.
+\subsubsection{Correctness}
+\label{sec:higher-order-cps-deep-handlers-correctness}
 
-The reify operator $\reify$ maps static lists to dynamic ones and the
-reflect constructor $\reflect$ allows dynamic lists to be treated as
-static.
-%
-We use list pattern matching in the meta language.
-%
-\begin{equations}
-(\slam (\sk \scons \sP).\sM) \sapp (V \scons \VS)
-  &=& \sLet\; \sk = V \;\sIn\; (\slam \sP.\sM) \sapp \VS \\
-(\slam (\sk \scons \sP).\sM) \sapp \reflect V
-  &=& \dLet\; (k \dcons ks) = V \;\dIn\;
-      \sLet\; \sk = k \;\sIn\; (\slam \sP.\sM) \sapp \reflect ks \\
-\end{equations}
-Here we let $\sM$ range over meta language expressions.
+To prove the correctness of our CPS translation
+(Theorem~\ref{thm:ho-simulation}), we first state several lemmas
+describing how translated terms behave. In view of the invariant of
+the translation that we described above, we state each of these lemmas
+in terms of static continuation stacks where the shape of the top
+element is always known statically, i.e., it is of the form
+$\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons
+\sW$. Moreover, the static values $\sV_{fs}$, $\sV_{ret}$, and
+$\sV_{ops}$ are all reflected dynamic terms (i.e., of the form
+$\reflect V$). This fact is used implicitly in our proofs, which are
+given in Appendix~\ref{sec:proofs}.
 
-Now the target calculus is refined so that all lambda abstractions and
-applications take two arguments, the $\usemlab{Lift}$ rule is removed,
-and the $\usemlab{App}$ rule is replaced by the following reduction
-rule.
+First, the higher-order CPS translation commutes with substitution:
+\begin{lemma}[Substitution]\label{lem:subst}
+  %
+  The CPS translation $\cps{-}$ commutes with substitution in value terms
+  %
+  \[
+    \cps{W}[\cps{V}/x] = \cps{W[V/x]},
+  \]
+  %
+  and with substitution in computation terms
+  \[
+       (\cps{M} \sapp (\sk \scons \sh \scons \sks))[\cps{V}/x]
+      = \cps{M[V/x]} \sapp (\sk \scons \sh \scons \sks)[\cps{V}/x].
+  \]
+  %
+\end{lemma}
 %
-\begin{reductions}
-\usemlab{AppTwo}   & (\dlam x\,ks . \, M) \dapp V \dapp W &\reducesto& M[V/x, W/ks] \\
-\end{reductions}
+\begin{proof}
+  TODO\dots
+\end{proof}
 %
-We add an extra dummy argument to the translation of type lambda
-abstractions and applications in order to ensure that all dynamic
-functions take exactly two arguments.
-%
-The single argument lambdas and applications from the first-order
-uncurried translation are still present, but now they are all static.
-
 In order to reason about the behaviour of the \semlab{Handle-op} rule,
 which is defined in terms of an evaluation context, we extend the CPS
-translation to evaluation contexts.
+translation to evaluation contexts:
+
 %
 \begin{displaymath}
 \ba{@{}r@{~}c@{~}r@{~}l@{}}
@@ -2685,12 +2844,131 @@ translation to evaluation contexts.
 \cps{\Handle\; \EC \;\With\; H}     &=& \slam \sks.           &\cps{\EC} \sapp (\cps{\hret} \scons \cps{\hops} \scons \sks) \\
 \ea
 \end{displaymath}
+%
 The following lemma is the characteristic property of the CPS
 translation on evaluation contexts.
 %
 This allows us to focus on the computation contained within
 an evaluation context.
 
+\begin{lemma}[Decomposition]
+\label{lem:decomposition}
+%
+\begin{equations}
+\cps{\EC[M]} \sapp (\sV \scons \sW) &=& \cps{M} \sapp (\cps{\EC} \sapp (\sV \scons \sW)) \\
+\end{equations}
+%
+\end{lemma}
+%
+\begin{proof}
+  TODO\dots
+\end{proof}
+%
+Though we have eliminated the static administrative redexes, we are
+still left with one form of administrative redex that cannot be
+eliminated statically because it only appears at run-time. These arise
+from pattern matching against a reified stack of continuations and are
+given by the $\usemlab{SplitList}$ rule.
+
+\begin{reductions}
+\usemlab{SplitList} & \Let\; (k \dcons ks) = V \dcons W \;\In\; M &\reducesto& M[V/k, W/ks] \\
+\end{reductions}
+%
+This is isomorphic to the \usemlab{Split} rule, but we now treat lists
+and \usemlab{SplitList} as distinct from pairs, unit, and
+\usemlab{Split} in the higher-order translation so that we can
+properly account for administrative reduction.
+%
+We write $\areducesto$ for the compatible closure of
+\usemlab{SplitList}.
+
+By definition, $\reify \reflect V = V$, but we also need to reason
+about the inverse composition.
+%
+\begin{lemma}[Reflect after reify]
+\label{lem:reflect-after-reify}
+$\cps{M} \sapp (V_1 \scons \dots V_n \scons \reflect \reify \VS)
+  \areducesto^*
+    \cps{M} \sapp (V_1 \scons \dots V_n \scons \VS)$
+\end{lemma}
+%
+\begin{proof}
+  Proof is by induction on the structure of $M$.
+\end{proof}
+%
+We next observe that the CPS translation simulates forwarding.
+%
+\begin{lemma}[Forwarding]
+\label{lem:forwarding}
+If $\ell \notin dom(H_1)$ then:
+%
+\begin{displaymath}
+    \cps{\hops_1} \dapp \ell\,\Record{U, V} \dapp (V_2 \dcons \cps{\hops_2} \dcons W)
+\reducesto^+
+    \cps{\hops_2} \dapp \ell\,\Record{U, \cps{\hops_2} \dcons V_2 \dcons V} \dapp W
+\end{displaymath}
+\end{lemma}
+%
+\begin{proof}
+  TODO\dots
+\end{proof}
+%
+Now we show that the translation simulates the \semlab{Handle-op}
+rule.
+
+%
+\begin{lemma}[Handling]
+\label{lem:handle-op}
+If $\ell \notin BL(\EC)$ and $\hell = \{\ell\,p\,r \mapsto N_\ell\}$ then:
+%
+\begin{displaymath}
+\bl
+\cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\cps{\hret} \scons \cps{\hops} \scons \VS)) \reducesto^+\areducesto^* \\
+\quad
+    (\cps{N_\ell} \sapp \VS)[\cps{V}/p, (\lambda y\,ks.\cps{\Return\;y} \sapp (\cps{\EC} \sapp (\cps{\hret} \scons \cps{\hops} \scons \reflect ks)))/r] \\
+\el
+\end{displaymath}
+\end{lemma}
+%
+%
+\begin{proof}
+Follows from Lemmas~\ref{lem:decomposition},
+\ref{lem:reflect-after-reify}, and \ref{lem:forwarding}.
+\end{proof}
+%
+We now turn to our main result which is a simulation result in style
+of Plotkin~\cite{Plotkin75}. The theorem shows that the only extra
+behaviour exhibited by a translated term is the bureaucracy of
+deconstructing the continuation stack.
+%
+
+%
+\begin{theorem}[Simulation]
+\label{thm:ho-simulation}
+If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
+\end{theorem}
+%
+\begin{proof}
+  TODO\dots
+\end{proof}
+%
+The proof is by case analysis on the reduction relation using Lemmas
+\ref{lem:decomposition}--\ref{lem:handle-op}. The \semlab{Handle-op}
+case follows from Lemma~\ref{lem:handle-op}.
+
+In common with most CPS translations, full abstraction does not
+hold. However, as our semantics is deterministic it is straightforward
+to show a backward simulation result.
+%
+\begin{corollary}[Backwards simulation]
+If $\pcps{M} \reducesto^+ \areducesto^* V$ then there exists $W$ such that
+$M \reducesto^* W$ and $\pcps{W} = V$.
+\end{corollary}
+%
+\begin{proof}
+  TODO\dots
+\end{proof}
+%
 \chapter{Abstract machine semantics}
 
 \part{Expressiveness}

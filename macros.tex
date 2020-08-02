@@ -80,6 +80,7 @@
 \newcommand{\FV}{\ensuremath{\mathrm{FV}}}
 
 \newcommand{\reducesto}[0]{\ensuremath{\leadsto}}
+\newcommand{\areducesto}{\ensuremath{\reducesto_{\textrm{a}}}}
 \newcommand{\stepsto}[0]{\ensuremath{\longrightarrow}}
 \newcommand{\EC}{\ensuremath{\mathcal{E}}}
 
@@ -95,6 +96,8 @@
 \newcommand{\hops}{H^{\mathrm{ops}}}
 %\newcommand{\hex}{H^{\mathrm{ex}}}
 \newcommand{\hell}{H^{\ell}}
+
+\newcommand{\depth}{\delta}
 
 \newcommand{\alertbox}[2]{{\par\noindent\small\color{red} \framebox{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule}{\textbf{#1:} #2}}}}
 \newcommand{\todo}[1]{\alertbox{TODO}{#1}}
@@ -225,6 +228,9 @@
 \newcommand{\hforward}{M_{\textrm{forward}}}
 \newcommand{\hid}{V_{\textrm{id}}}
 
+% continuation application
+\newcommand{\kapp}{\keyw{app}}
+
 %%% Continuation names
 %%% The following set of macros are a bit more consistent with those
 %%% currently used by the abstract machine, and don't use the plural
@@ -246,9 +252,12 @@
 \newcommand{\shk}{\kappa}  % handler continuations
 \newcommand{\sLet}{\static{\Let}}
 \newcommand{\sIn}{\static{\In}}
-\newcommand{\sk}{\kappa}
-\newcommand{\sks}{\mathit{\kappa s}}
-\newcommand{\sh}{\eta}
+% \newcommand{\sk}{\kappa}
+% \newcommand{\sks}{\mathit{\kappa s}}
+\newcommand{\sks}{\kappa}
+% \newcommand{\sh}{\eta}
+\newcommand{\sk}{\theta}
+\newcommand{\sh}{\chi}
 \newcommand{\sx}{\varepsilon}
 
 \newcommand{\sP}{\mathcal{P}}
@@ -256,3 +265,9 @@
 \newcommand{\Vmap}{\keyw{vmap}}
 \newcommand{\Vmapsnd}{\keyw{vmapsnd}}
 \newcommand{\Fun}{\keyw{fun}}
+
+% Canonical variables for handler components
+\newcommand{\vhret}{h^{\mathrm{ret}}}
+\newcommand{\vhops}{h^{\mathrm{ops}}}
+\newcommand{\svhret}{\chi^{\mathrm{ret}}}
+\newcommand{\svhops}{\chi^{\mathrm{ops}}}
