@@ -2372,7 +2372,7 @@ of the arguments $V$ and $W$ for the parameters $x$ and $y$,
 respectively, in the function body $M$.
 %
 
-These changes to $\UCalc$ immediately invalidates the curried
+These changes to $\UCalc$ immediately invalidate the curried
 translation from the previous section as the image of the translation
 is no longer well-formed.
 %
@@ -2573,7 +2573,7 @@ resumption stack with the current continuation pair.
 \textbf{Computations}
 %
 \begin{equations}
-\cps{-}  &:& (\CompCat \times (\UValCat \to \UCompCat)^\ast) \to \UCompCat\\
+\cps{-}  &:& \CompCat \to \UValCat^\ast \to \UCompCat\\
 \cps{V\,W}                                       &\defas& \slam \sks.\cps{V} \dapp \cps{W} \dapp \reify \sks \\
 \cps{V\,T}                                       &\defas& \slam \sks.\cps{V} \dapp \Record{} \dapp \reify \sks \\
 \cps{\Let\; \Record{\ell=x;y} = V \; \In \; N}  &\defas& \slam \sks.\Let\; \Record{\ell=x;y} = \cps{V} \; \In \; \cps{N} \sapp \sks \\
@@ -2582,8 +2582,8 @@ resumption stack with the current continuation pair.
 \cps{\Absurd~V}                                 &\defas& \slam \sks.\Absurd~\cps{V} \\
 \cps{\Return~V}             &\defas& \slam \sk \scons \sks.\sk \dapp \cps{V} \dapp \reify \sks \\
 \cps{\Let~x \revto M~\In~N} &\defas& \slam \sk \scons \sks.\cps{M} \sapp ((\dlam x\,ks.\cps{N} \sapp (\sk \scons \reflect ks)) \scons \sks) \\
-\cps{\Do\;\ell\;V} &\defas& \slam \sk \scons \sh \scons \sks.\sh \dapp
-                             (\ell~\Record{\cps{V}, \sh \dcons \sk \dcons \dnil}) \dapp \reify \sks \\
+\cps{\Do\;\ell\;V}
+     &\defas& \slam \sk \scons \sh \scons \sks.\sh \dapp \Record{\ell,\Record{\cps{V}, \sh \dcons \sk \dcons \dnil}} \dapp \reify \sks\\
 \cps{\Handle \; M \; \With \; H} &\defas& \slam \sks . \cps{M} \sapp (\cps{\hret} \scons \cps{\hops} \scons \sks)
 %
 \end{equations}
@@ -2622,6 +2622,7 @@ resumption stack with the current continuation pair.
 \textbf{Top level program}
 %
 \begin{equations}
+\pcps{-} &:& \CompCat \to \UCompCat\\
 \pcps{M} &=& \cps{M} \sapp ((\dlam x\,ks.x) \scons (\dlam z\,ks.\Absurd~z) \scons \snil) \\
 \end{equations}
 
@@ -2795,6 +2796,22 @@ repackaged as a static value with reflected variable
 names. Unfortunately, this does add some clutter to the translation
 definition, as compared to the translations above. However, there is a
 payoff in the removal of administrative reductions at run time.
+%
+\dhil{Rewrite the above.}
+%
+Let us again revisit the example from
+Section~\ref{sec:first-order-curried-cps} to see that the higher-order
+translation eliminates the static redex at translation time.
+%
+\begin{equations}
+\pcps{\Return\;\Record{}}
+    &=& (\slam \sk \scons \sks. \sk \dapp \Record{} \dapp \reify \sks) \sapp ((\dlam x\,ks.x) \scons (\dlam z\,ks.\Absurd\;z) \scons \snil)\\
+    &=& (\dlam x\,ks.x) \dapp \Record{} \dapp ((\dlam z\,ks.\Absurd\;z) \dcons \dnil)\\
+    &\reducesto& \Record{}
+\end{equations}
+%
+In contrast with the previous translations, the image of this
+translation admits only a single dynamic reduction.
 
 \subsubsection{Correctness}
 \label{sec:higher-order-cps-deep-handlers-correctness}
@@ -2832,10 +2849,9 @@ First, the higher-order CPS translation commutes with substitution:
   TODO\dots
 \end{proof}
 %
-In order to reason about the behaviour of the \semlab{Handle-op} rule,
+In order to reason about the behaviour of the \semlab{Op} rule,
 which is defined in terms of an evaluation context, we extend the CPS
-translation to evaluation contexts:
-
+translation to evaluation contexts.
 %
 \begin{displaymath}
 \ba{@{}r@{~}c@{~}r@{~}l@{}}
@@ -2913,7 +2929,7 @@ If $\ell \notin dom(H_1)$ then:
   TODO\dots
 \end{proof}
 %
-Now we show that the translation simulates the \semlab{Handle-op}
+Now we show that the translation simulates the \semlab{Op}
 rule.
 
 %
@@ -2953,7 +2969,7 @@ If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
 \end{proof}
 %
 The proof is by case analysis on the reduction relation using Lemmas
-\ref{lem:decomposition}--\ref{lem:handle-op}. The \semlab{Handle-op}
+\ref{lem:decomposition}--\ref{lem:handle-op}. The \semlab{Op}
 case follows from Lemma~\ref{lem:handle-op}.
 
 In common with most CPS translations, full abstraction does not
