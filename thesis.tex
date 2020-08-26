@@ -1914,6 +1914,11 @@ getting stuck on an unhandled operation.
 \subsection{Syntax and static semantics}
 \subsection{Dynamic semantics}
 
+\section{Flavours of control}
+\subsection{Undelimited control}
+\subsection{Delimited control}
+\subsection{Composable control}
+
 \chapter{N-ary handlers}
 \label{ch:multi-handlers}
 
@@ -2277,10 +2282,12 @@ The following minimal example readily illustrates both issues.
 \begin{equations}
 \pcps{\Return\;\Record{}}
      &=         & (\lambda k.k\,\Record{})\,(\lambda x.\lambda h.x)\,(\lambda \Record{z,\_}.\Absurd\,z)  \\
-     &\reducesto& ((\lambda x.\lambda h.x)\,\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z)\\
+     &\reducesto& ((\lambda x.\lambda h.x)\,\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z) \\
      &\reducesto& (\lambda h.\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z)\\
      &\reducesto& \Record{} \\
 \end{equations}
+%
+\dhil{Mark the second reduction, so that it can be referred back to}
 %
 The second and third reductions simulate handling $\Return\;\Record{}$
 at the top level. The second reduction partially applies the curried
@@ -2394,12 +2401,12 @@ continuations causes the CPS translation to produce `large'
 application terms, e.g. the translation rule for effect forwarding
 produces three-argument application term.
 %
-To rectify this problem we can adapt the standard
-technique of \citet{MaterzokB12} to uncurry our CPS
-translation. Uncurrying necessitates a change of representation for
-continuations: a continuation is now an alternating list of pure
-continuation functions and effect continuation functions. Thus, we
-move to an explicit representation of the runtime handler stack.
+To rectify this problem we can adapt the technique of
+\citet{MaterzokB12} to uncurry our CPS translation. Uncurrying
+necessitates a change of representation for continuations: a
+continuation is now an alternating list of pure continuation functions
+and effect continuation functions. Thus, we move to an explicit
+representation of the runtime handler stack.
 %
 The change of continuation representation means the CPS translation
 for effect handlers is no longer a conservative extension. The
@@ -2682,7 +2689,6 @@ to a static value $\sV$ is equal to substituting $\sV$ for $\sks$ in
 $\sM$. The second equation provides a means for applying a static
 lambda abstraction to a static list component-wise.
 %
-\dhil{What about $\eta$-equivalence?}
 
 Reflected static values are reified as dynamic language values
 $\reify \sV$ by induction on their structure.
@@ -2931,6 +2937,30 @@ If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
 %   TODO\dots
 % \end{proof}
 %
+
+\section{Related work}
+\label{sec:cps-related-work}
+
+\subsection{Plotkin's colon translation}
+
+\citeauthor{Plotkin75}'s original CPS translation yielded static
+administrative redexes.  Clearly this translation is undesirable from
+a practical point of view as it generates an additional and completely
+artefactual overhead. From a theoretical point of view such a CPS
+translation is also undesirable as the presence of administrative
+redexes makes proof of correctness considerably more involved.
+%
+\citeauthor{Plotkin75}'s simulation theorem shows a correspondence
+between reductions in a given source program and its transformed
+program. To establish this correspondence in the presence of
+administrative redexes, \citeauthor{Plotkin75} introduced the
+so-called ``colon''-translation\dots
+
+% between the sourceTo prove the correctness of his CPS translation, \citet{Plotkin75}
+% made use of a so-called ``colon''-translation to bypass administrative reductions
+
+\subsection{Iterated CPS translations}
+
 \chapter{Abstract machine semantics}
 
 \part{Expressiveness}
