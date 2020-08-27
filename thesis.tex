@@ -2944,15 +2944,35 @@ If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
 
 \paragraph{Plotkin's colon translation}
 
-% The presence of static administrative redexes in the image of a CPS
-% translation provides hurdles for establishing the correctness of the
-% translation in terms of a simulation result, which says that every
-% reduction sequence in a given source program is mimicked by the
-% transformed program.
-% %
-% \citet{Plotkin75} introduced the so-called \emph{colon translation} to
-% overcome static administrative reductions. The colon translation is
-% itself a CPS translation which yields
+The defacto standard method for proving the correctness of a CPS
+translation is by way of a simulation result. Simulation states that
+every reduction sequence in a given source program is mimicked by its
+CPS transformation.
+%
+Static administrative redexes in the image of a CPS translation
+provide hurdles for proving simulation, since these redexes do not
+arise in the source program.
+%
+\citet{Plotkin75} uses the so-called \emph{colon translation} to
+overcome static administrative reductions.
+%
+Informally, it is defined such that given a source term $M$ and a
+continuation $k$, the term $M : k$ is the result of performing all
+static administrative reductions on $\cps{M}\,k$, that is
+$\cps{M}\,k \reducesto^\ast M : k$.
+%
+Thus this translation makes it possible to bypass administrative
+reductions and instead focus on the reductions inherited from the
+source program.
+%
+The colon translation captures precisely the intuition that drives CPS
+transforms, namely, that if in the source $M \reducesto^\ast \Return\;V$
+then in the image $\cps{M}\,k \reducesto^\ast k\,\cps{V}$.
+
+
+% CPS The colon translation captures the
+% intuition tThe colon translation is itself a CPS translation which
+% yields
 
 
 % In his seminal work, \citet{Plotkin75} devises CPS translations for
