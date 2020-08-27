@@ -1899,6 +1899,7 @@ getting stuck on an unhandled operation.
 \dhil{Reader}
 \dhil{State}
 \dhil{Nondeterminism}
+\dhil{Inversion of control: generator from iterator}
 
 \section{Parameterised handlers}
 \label{sec:unary-parameterised-handlers}
@@ -2941,25 +2942,48 @@ If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
 \section{Related work}
 \label{sec:cps-related-work}
 
-\subsection{Plotkin's colon translation}
+\paragraph{Plotkin's colon translation}
 
-\citeauthor{Plotkin75}'s original CPS translation yielded static
-administrative redexes.  Clearly this translation is undesirable from
-a practical point of view as it generates an additional and completely
-artefactual overhead. From a theoretical point of view such a CPS
-translation is also undesirable as the presence of administrative
-redexes makes proof of correctness considerably more involved.
-%
-\citeauthor{Plotkin75}'s simulation theorem shows a correspondence
-between reductions in a given source program and its transformed
-program. To establish this correspondence in the presence of
-administrative redexes, \citeauthor{Plotkin75} introduced the
-so-called ``colon''-translation\dots
+% The presence of static administrative redexes in the image of a CPS
+% translation provides hurdles for establishing the correctness of the
+% translation in terms of a simulation result, which says that every
+% reduction sequence in a given source program is mimicked by the
+% transformed program.
+% %
+% \citet{Plotkin75} introduced the so-called \emph{colon translation} to
+% overcome static administrative reductions. The colon translation is
+% itself a CPS translation which yields
 
-% between the sourceTo prove the correctness of his CPS translation, \citet{Plotkin75}
-% made use of a so-called ``colon''-translation to bypass administrative reductions
 
-\subsection{Iterated CPS translations}
+% In his seminal work, \citet{Plotkin75} devises CPS translations for
+% call-by-value lambda calculus into call-by-name lambda calculus and
+% vice versa. \citeauthor{Plotkin75} establishes the correctness of his
+% translations by way of simulations, which is to say that every
+% reduction sequence in a given source program is mimicked by the
+% transformed program.
+% %
+% His translations generate static administrative redexes, and as argued
+% previously in this chapter from a practical view point this is an
+% undesirable property in practice. However, it is also an undesirable
+% property from a theoretical view point as the presence of
+% administrative redexes interferes with the simulation proofs.
+
+% To handle the static administrative redexes, \citeauthor{Plotkin75}
+% introduced the so-called \emph{colon translation} to bypass static
+% administrative reductions, thus providing a means for focusing on
+% reductions induced by abstractions inherited from the source program.
+% %
+% The colon translation is itself a CPS translation, that given a source
+% expression, $e$, and some continuation, $K$, produces a CPS term such
+% that $\cps{e}K \reducesto e : K$.
+
+% \citet{DanvyN03} used this insight to devise a one-pass CPS
+% translation that contracts all administrative redexes at translation
+% time.
+
+\paragraph{Iterated CPS transform}
+
+\paragraph{Partial evaluation}
 
 \chapter{Abstract machine semantics}
 
