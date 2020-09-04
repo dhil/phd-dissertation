@@ -2569,8 +2569,9 @@ resumption stack with the current continuation pair.
 \begin{eqs}
 \cps{-}                    &:& \ValCat \to \UValCat\\
 \cps{x}                    &\defas& x \\
-\cps{\lambda x.M}          &\defas& \dlam x\,ks.\cps{M} \sapp \reflect ks \\
-\cps{\Lambda \alpha.M}     &\defas& \dlam z\,ks.\cps{M} \sapp \reflect ks \\
+\cps{\lambda x.M}          &\defas& \dlam x\,ks.\Let\;(k \dcons h \dcons ks') = ks \;\In\;\cps{M} \sapp (\reflect k \scons \reflect h \scons \reflect ks') \\
+% \cps{\Rec\,g\,x.M}         &\defas& \Rec\;f\,x\,ks.\cps{M} \sapp \reflect ks\\
+\cps{\Lambda \alpha.M}     &\defas& \dlam z\,ks.\Let\;(k \dcons h \dcons ks') = ks \;\In\;\cps{M} \sapp (\reflect k \scons \reflect h \scons \reflect ks') \\
 \cps{\Record{}}            &\defas& \Record{} \\
 \cps{\Record{\ell = V; W}} &\defas& \Record{\ell = \cps{V}; \cps{W}} \\
 \cps{\ell~V}               &\defas& \ell~\cps{V} \\
@@ -2587,10 +2588,15 @@ resumption stack with the current continuation pair.
 \cps{\Case~V~\{\ell~x \mapsto M; y \mapsto N\}} &\defas&
   \slam \sks.\Case~\cps{V}~\{\ell~x \mapsto \cps{M} \sapp \sks; y \mapsto \cps{N} \sapp \sks\} \\
 \cps{\Absurd~V}                                 &\defas& \slam \sks.\Absurd~\cps{V} \\
-\cps{\Return~V}             &\defas& \slam \sk \scons \sks.\sk \dapp \cps{V} \dapp \reify \sks \\
-\cps{\Let~x \revto M~\In~N} &\defas& \slam \sk \scons \sks.\cps{M} \sapp ((\dlam x\,ks.\cps{N} \sapp (\sk \scons \reflect ks)) \scons \sks) \\
+\cps{\Return~V}             &\defas& \slam \sk \scons \sks.\reify \sk \dapp \cps{V} \dapp \reify \sks \\
+\cps{\Let~x \revto M~\In~N} &\defas& \slam \sk \scons \sks.\cps{M} \sapp
+                 (\reflect (\dlam x\,ks.
+                    \ba[t]{@{}l}
+                       \Let\;(h \dcons ks') = ks\;\In\\
+                       \cps{N} \sapp (\sk \scons \reflect h \scons \reflect ks')) \scons \sks)
+                    \ea\\
 \cps{\Do\;\ell\;V}
-     &\defas& \slam \sk \scons \sh \scons \sks.\sh \dapp \Record{\ell,\Record{\cps{V}, \sh \dcons \sk \dcons \dnil}} \dapp \reify \sks\\
+     &\defas& \slam \sk \scons \sh \scons \sks.\reify \sh \dapp \Record{\ell,\Record{\cps{V}, \reify \sh \dcons \reify \sk \dcons \dnil}} \dapp \reify \sks\\
 \cps{\Handle \; M \; \With \; H} &\defas& \slam \sks . \cps{M} \sapp (\cps{\hret} \scons \cps{\hops} \scons \sks)
 %
 \end{equations}
@@ -2599,18 +2605,27 @@ resumption stack with the current continuation pair.
 %
 \begin{equations}
 \cps{-} &:& \HandlerCat \to \UCompCat\\
-\cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\, ks.\Let\; (h \dcons ks') = ks \;\In\; \cps{N} \sapp \reflect ks'
+\cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\, ks.
+   \ba[t]{@{~}l}
+      \Let\; (h \dcons k \dcons h' \dcons ks') = ks \;\In\\
+      \cps{N} \sapp (\reflect k \scons \reflect h' \scons \reflect ks')
+   \ea
 \\
 \cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}
      &\defas& \bl
                 \dlam \Record{z,\Record{p,rs}}\,ks.\Case \;z\; \{
-                  \bl
-                   (\ell \mapsto \Let\;r=\Res\;rs \;\In\; \cps{N_{\ell}} \sapp \reflect ks)_{\ell \in \mathcal{L}};\,\\
-                   y \mapsto \hforward((y,p,rs),ks) \} \\
-                  \el \\
+                  \ba[t]{@{}l@{}c@{~}l}
+                  &(\ell \mapsto&
+                    \ba[t]{@{}l}
+                       \Let\;r=\Res\;rs \;\In\\
+                       \Let\;(k \dcons h \dcons ks') = ks \;\In\\
+                       \cps{N_{\ell}} \sapp (\reflect k \scons \reflect h \scons \reflect ks'))_{\ell \in \mathcal{L}};
+                    \ea\\
+                   &y \mapsto& \hforward((y,p,rs),ks) \} \\
+                  \ea \\
              \el \\
 \hforward((y,p,rs),ks)
-    &\defas&\Let\; (k' \dcons h' \dcons ks') = ks \;\In\; h'\,\Record{y,\Record{p,h' \dcons k' \dcons rs}} \,ks'
+    &\defas&\Let\; (k' \dcons h' \dcons ks') = ks \;\In\; h' \dapp \Record{y,\Record{p,h' \dcons k' \dcons rs}} \dapp ks'
 \end{equations}
 %
 \textbf{Top level program}
@@ -2648,10 +2663,10 @@ constructors in the respective calculi we mark static constructors
 with a {\color{blue}$\overline{\text{blue overline}}$}, whilst dynamic
 constructors are marked with a
 {\color{red}$\underline{\text{red underline}}$}. The principal idea is
-that redexes marked as static are reduced as part of the translation
-(at compile time), whereas those marked as dynamic are reduced at
-runtime. To facilitate this notation we write application in both
-calculi with an infix ``at'' symbol ($@$).
+that redexes marked as static are reduced as part of the translation,
+whereas those marked as dynamic are reduced at runtime. To facilitate
+this notation we write application explicitly using an infix ``at''
+symbol ($@$) in both calculi.
 
 \paragraph{Static terms}
 %
@@ -2663,23 +2678,23 @@ the following productions.
 %
 \begin{syntax}
   \slab{Static patterns} &\sP \in \SPatCat &::=& \sks \mid \sk \scons \sP\\
-  \slab{Static values} & \sV, \sW \in \SValCat &::=& V \mid \reflect V \mid \sV \scons \sW \mid \slam \sP. \sM\\
-  \slab{Static computations} & \sM \in \SCompCat &::=& \sV \sapp \sW \mid \sV \dapp V \dapp W
+  \slab{Static values} & \sV, \sW \in \SValCat &::=& \reflect V \mid \sV \scons \sW \mid \slam \sP. \sM\\
+  \slab{Static computations} & \sM \in \SCompCat &::=& \sV \mid \sV \sapp \sW \mid \sV \dapp V \dapp W
 \end{syntax}
 %
 The patterns comprise only static list deconstructing. We let $\sP$
 range over static patterns.
 %
-The static values comprise dynamic values, reflected dynamic values,
-static lists, and static lambda abstractions. We let $\sV, \sW$ range
-over meta language values; by convention we shall use variables $\sk$
-to denote statically known pure continuations, $\sh$ to denote
-statically known effect continuations, and $\sks$ to denote statically
-known continuations.
+The static values comprise reflected dynamic values, static lists, and
+static lambda abstractions. We let $\sV, \sW$ range over meta language
+values; by convention we shall use variables $\sk$ to denote
+statically known pure continuations, $\sh$ to denote statically known
+effect continuations, and $\sks$ to denote statically known
+continuations.
 %
 We shall use $\sM$ to range over static computations, which comprise
-static application and binary dynamic application of a static value to
-two dynamic values.
+static values, static application and binary dynamic application of a
+static value to two dynamic values.
 %
 Static computations are subject to the following equational axioms.
 %
@@ -2705,7 +2720,7 @@ $\reify \sV$ by induction on their structure.
   \ea
 \]
 %
-\dhil{Need to spell out that static pattern matching may induce dynamic (administrative) reductions}
+%\dhil{Need to spell out that static pattern matching may induce dynamic (administrative) reductions}
 %
 \paragraph{Higher-order translation}
 %
@@ -2715,17 +2730,56 @@ same as the refined first-order uncurried CPS translation, although
 the notation is slightly more involved due to the separation of static
 and dynamic parts.
 %
-The translation on values is mostly homomorphic on the syntax
-constructors, except for $\lambda$- and $\Lambda$-abstractions which
-are translated in the exact same way, because the target calculus has
-no notion of types. As per usual continuation passing style practice,
-the translation of a lambda abstraction yields a dynamic binary lambda
-abstraction, where the second parameter is intended to be the
-continuation parameter. However, the translation slightly diverge from
-the usual practice in the translation of the body as the result of
-$\cps{M}$ is applied statically, rather than dynamically, to the
-(reflected) continuation parameter.
+The translation function for computation terms is staged: for any
+given computation term the translation yields a static function, which
+can be applied to a static continuation to ultimately yield a
+$\UCalc$-computation term. Staging is key to eliminating static
+administrative redexes as any static function may perform static
+computation by manipulating its provided static continuation
+
+
+a binary higher-order
+function; it is higher-order because its second parameter is a list of
+static continuation functions.
+
+% A major difference that has a large cosmetic effect on the
+% presentation of the translation is that we maintain the invariant that
+% the statically known stack ($\sk$) always contains at least one frame,
+% consisting of a triple
+% $\sRecord{\reflect V_{fs}, \sRecord{\reflect V_{ret}, \reflect
+%     V_{ops}}}$ of reflected dynamic pure frame stacks, return
+% handlers, and operation handlers. Maintaining this invariant ensures
+% that all translations are uniform in whether they appear statically
+% within the scope of a handler or not, and this simplifies our
+% correctness proof.  To maintain the invariant, any place where a
+% dynamically known stack is passed in (as a continuation parameter
+% $k$), it is immediately decomposed using a dynamic language $\Let$ and
+% repackaged as a static value with reflected variable
+% names. Unfortunately, this does add some clutter to the translation
+% definition, as compared to the translations above. However, there is a
+% payoff in the removal of administrative reductions at run time. The
+% translations presented by \citet{HillerstromLAS17} and
+% \citet{HillerstromL18} did not do this decomposition and repackaging
+% step, which resulted in additional administrative reductions in the
+% translation due to the translations of $\Let$ and $\Do$ being passed
+% dynamic continuations when they were expecting statically known ones.
 %
+The translation on values is mostly homomorphic on the syntax
+constructors, except for $\lambda$-abstractions and
+$\Lambda$-abstractions which are translated in the exact same way,
+because the target calculus has no notion of types. As per usual
+continuation passing style practice, the translation of a lambda
+abstraction yields a dynamic binary lambda abstraction, where the
+second parameter is intended to be the continuation
+parameter.
+
+%
+However, the translation slightly diverge from the usual
+practice in the translation of the body as the result of $\cps{M}$ is
+applied statically, rather than dynamically, to the (reflected)
+continuation parameter.
+%
+
 The reason is that the translation on computations is staged: for any
 given computation term the translation yields a static function, which
 can be applied to a static continuation to ultimately produce a
@@ -2736,7 +2790,7 @@ for instance done in the translation of $\Let$.
 %
 \dhil{Spell out why this translation qualifies as `higher-order'.}
 
-Let us again revisit the example from
+Let us revisit the example from
 Section~\ref{sec:first-order-curried-cps} to see that the higher-order
 translation eliminates the static redex at translation time.
 %
@@ -2812,7 +2866,12 @@ translation to evaluation contexts.
 \begin{equations}
 \cps{-}                             &:& \EvalCat \to \SValCat\\
 \cps{[~]}                           &\defas& \slam \sks.\sks \\
-\cps{\Let\; x \revto \EC \;\In\; N} &\defas& \slam \sk \scons \sks.\cps{\EC} \sapp ((\dlam x\,ks.\cps{N} \sapp (k \scons \reflect ks)) \scons \sks) \\
+\cps{\Let\; x \revto \EC \;\In\; N} &\defas& \slam \sk \scons \sks.\cps{\EC} \sapp
+            (\reflect(\dlam x\,ks.
+               \ba[t]{@{}l}
+                 \Let\;(h \dcons ks') = ks\;\In\;\\
+                 \cps{N} \sapp (\sk \scons \reflect h \scons \reflect ks')) \scons \sks)
+               \ea\\
 \cps{\Handle\; \EC \;\With\; H}     &\defas& \slam \sks. \cps{\EC} \sapp (\cps{\hret} \scons \cps{\hops} \scons \sks)
 \end{equations}
 %
