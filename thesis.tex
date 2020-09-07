@@ -2571,7 +2571,7 @@ resumption stack with the current continuation pair.
 \cps{x}                    &\defas& x \\
 \cps{\lambda x.M}          &\defas& \dlam x\,ks.\Let\;(k \dcons h \dcons ks') = ks \;\In\;\cps{M} \sapp (\reflect k \scons \reflect h \scons \reflect ks') \\
 % \cps{\Rec\,g\,x.M}         &\defas& \Rec\;f\,x\,ks.\cps{M} \sapp \reflect ks\\
-\cps{\Lambda \alpha.M}     &\defas& \dlam z\,ks.\Let\;(k \dcons h \dcons ks') = ks \;\In\;\cps{M} \sapp (\reflect k \scons \reflect h \scons \reflect ks') \\
+\cps{\Lambda \alpha.M}     &\defas& \dlam \Unit\,ks.\Let\;(k \dcons h \dcons ks') = ks \;\In\;\cps{M} \sapp (\reflect k \scons \reflect h \scons \reflect ks') \\
 \cps{\Record{}}            &\defas& \Record{} \\
 \cps{\Record{\ell = V; W}} &\defas& \Record{\ell = \cps{V}; \cps{W}} \\
 \cps{\ell~V}               &\defas& \ell~\cps{V} \\
@@ -2632,7 +2632,7 @@ resumption stack with the current continuation pair.
 %
 \begin{equations}
 \pcps{-} &:& \CompCat \to \UCompCat\\
-\pcps{M} &=& \cps{M} \sapp ((\dlam x\,ks.x) \scons (\dlam z\,ks.\Absurd~z) \scons \snil) \\
+\pcps{M} &=& \cps{M} \sapp (\reflect (\dlam x\,ks.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil) \\
 \end{equations}
 
 \caption{Higher-order uncurried CPS translation of $\HCalc$.}
@@ -2730,17 +2730,177 @@ same as the refined first-order uncurried CPS translation, although
 the notation is slightly more involved due to the separation of static
 and dynamic parts.
 %
-The translation function for computation terms is staged: for any
-given computation term the translation yields a static function, which
-can be applied to a static continuation to ultimately yield a
-$\UCalc$-computation term. Staging is key to eliminating static
-administrative redexes as any static function may perform static
-computation by manipulating its provided static continuation
+
+The translation on values is almost homomorphic on the syntax
+constructors. The notable exceptions are the translations of
+$\lambda$-abstractions and $\Lambda$-abstractions. The former gives
+rise to dynamic computation at runtime, and thus, the translation
+emits a dynamic $\dlam$-abstraction with two formal parameters: the
+function parameter, $x$, and the continuation parameter, $ks$. The
+body of the $\dlam$-abstraction is somewhat anomalous as the
+continuation $ks$ is subject to immediate dynamic deconstruction just
+to be reconstructed again and used as a static argument to the
+translation of the original body computation $M$. This deconstruction
+and reconstruction may at first glance appear to be rather pointless,
+however, a closer look reveals that it performs a critical role as it
+ensures that the translation on computation terms has immediate access
+to the next pure and effect continuation functions. In fact, the
+translation is set up such that every generated dynamic
+$\dlam$-abstraction deconstructs its continuation argument
+appropriately to be to expose just enough (static) continuation
+structure in order to guarantee that static pattern matching never
+fails.
+%
+(Though, the translation is somewhat unsatisfactory regarding this
+deconstruction of dynamic continuations as the various generated
+dynamic lambda abstractions do not deconstruct their continuation
+arguments uniformly. I will return to discuss this dissatisfaction
+shortly.)
+%
+Since the target language is oblivious to types any
+$\Lambda$-abstraction gets translated in a similar way to
+$\Lambda$-abstraction, where the first parameter becomes a placeholder
+for a ``dummy'' unit argument.
+
+The translation of computation terms is more interesting. Note the
+type of the translation function,
+$\cps{-} : \CompCat \to \SValCat^\ast \to \UCompCat$. It is a binary
+function, taking a $\HCalc$-computation term as its first argument and
+a static continuation as its second argument, and ultimately produces
+a $\UCalc$-computation term. The static continuation may be
+manipulated during the translation as is done in the translations of
+$\Return$, $\Let$, $\Do$, and $\Handle$. The translation of $\Return$
+consumes the next pure continuation function $\sk$ and applies it
+dynamically it to the translation of $V$ and the reified remainder,
+$\sks$, of the static continuation. Keep in mind that the translation
+of $\Return$ only consumes one of the two guaranteed available
+continuation functions from the provided continuation argument, as a
+consequence the next continuation function in $\sks$ is an effect
+continuation. This consequence is accounted for in the translations of
+$\Let$ and $\Return$-clauses, which are precisely the two possible
+(dynamic) origins of $\sk$. For instance, the translation of $\Let$
+consumes the current pure continuation function and generates a
+replacement: a pure continuation function which expects an odd dynamic
+continuation $ks$, which it deconstructs to expose the effect
+continuation $h$ along with the current pure continuation function in
+the translation of $N$. The modified continuation is passed to the
+translation of $M$.
+%
+To provide a flavour of how this continuation manipulation functions
+in practice, consider the following example term.
+%
+\begin{derivation}
+     &\pcps{\Let\;x \revto \Return\;V\;\In\;N}\\
+    =& \reason{definition of $\pcps{-}$}\\
+     &\ba[t]{@{}l}(\slam \sk \scons \sks.\cps{\Return\;V} \sapp
+        (\reflect(\dlam x\,ks.
+         \ba[t]{@{}l}
+           \Let\;(h \dcons ks') = ks \;\In\\
+           \cps{N} \sapp (\sk \scons \reflect h \scons \reflect ks')) \scons \sks)
+           \ea\\
+           \sapp (\reflect (\dlam x\,ks.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil))
+      \ea\\
+    =& \reason{definition of $\cps{-}$}\\
+     &\ba[t]{@{}l}(\slam \sk \scons \sks.(\slam \sk \scons \sks. \reify \sk \dapp \cps{V} \dapp \reify \sks) \sapp
+        (\reflect(\dlam x\,ks.
+         \ba[t]{@{}l}
+           \Let\;(h \dcons ks') = ks \;\In\\
+           \cps{N} \sapp (\sk \scons \reflect h \scons \reflect ks')) \scons \sks)
+           \ea\\
+           \sapp (\reflect (\dlam x\,ks.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil))
+      \ea\\
+    =& \reason{static $\beta$-reduction}\\
+     &(\slam \sk \scons \sks. \reify \sk \dapp \cps{V} \dapp \reify \sks)
+      \sapp
+       (\reflect(\dlam x\,ks.
+         \ba[t]{@{}l}
+           \Let\;(h \dcons ks') = ks \;\In\\
+           \cps{N} \sapp
+           \ba[t]{@{}l}
+              (\reflect (\dlam x\,ks.x) \scons \reflect h \scons \reflect ks'))\\
+              ~~\scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil))
+           \ea
+         \ea\\
+    =& \reason{static $\beta$-reduction}\\
+    &\ba[t]{@{}l@{~}l}
+       &(\dlam x\,ks.
+             \Let\;(h \dcons ks') = ks \;\In\;
+             \cps{N} \sapp
+                (\reflect (\dlam x\,ks.x) \scons \reflect h \scons \reflect ks'))\\
+       \dapp& \cps{V} \dapp ((\dlam z\,ks.\Absurd~z) \dcons \dnil)\\
+      \ea\\
+\reducesto& \reason{\usemlab{App_2}}\\
+    &\Let\;(h \dcons ks') = (\dlam z\,ks.\Absurd~z) \dcons \dnil \;\In\;
+             \cps{N[V/x]} \sapp
+           (\reflect (\dlam x\,ks.x) \scons \reflect h \scons \reflect ks'))\\
+\reducesto^+& \reason{dynamic pattern matching and substitution}\\
+          &\cps{N[V/x]} \sapp
+           (\reflect (\dlam x\,ks.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \reflect \dnil)
+\end{derivation}
+%
+The translation of $\Return$ provides the generated dynamic pure
+continuation function with the odd continuation
+$((\dlam z\,ks.\Absurd~z) \dcons \dnil)$. After the \usemlab{App_2}
+reduction, the pure continuation function deconstructs the odd
+continuation in order to bind the current effect continuation function
+to the name $h$, which would have been used during the translation of
+$N$.
+
+The translation of $\Do$ consumes both the current pure continuation
+function and current effect continuation function. It applies the
+effect continuation function dynamically to an operation package and
+the reified remainder of the continuation. As usual, the operation
+package contains the payload and the resumption, which is a reversed
+slice of the provided continuation. The translation of $\Handle$
+applies the translation of $M$ to the current continuation extended
+with the translation of the $\Return$-clause, acting as a pure
+continuation function, and the translation of operation-clauses,
+acting as an effect continuation function.
+
+The translation of a return clause $\hret$ of some handler $H$
+generates a dynamic lambda abstraction, which expects an odd
+continuation. In its body it extracts three elements from the
+continuation parameter $ks$. The first element is discarded as it is
+the effect continuation corresponding to the translation of
+$\hops$. The other two elements are used to statically expose the next
+pure and effect continuation functions in the translation of $N$.
+%
+The translation of $\hops$ also generates a dynamic lambda
+abstraction, which unpacks the operation package to perform a
+case-split on the operation label $z$. The continuation $ks$ is
+deconstructed in the branch for $\ell$ in order to expose the
+continuation structure. The forwarding branch also deconstructs the
+continuation, however, for a different purpose, namely, to augment the
+resumption $rs$ the next pure and effect continuation functions.
+%
+\dhil{Remark that an alternative to cluttering the translations with
+  unpacking and repacking of continuations would be to make static
+  pattern generate dynamic let bindings whenever necessary. While it
+  may reduce the dynamic administrative reductions, it makes the
+  simulation proof more complicated.}
+
+% : the $\dlam$-abstractions generated by translating $\lambda$-abstractions, $\Lambda$-abstractions, and operation clauses expose the next two continuation functions, whilst the dynamic lambda abstraction generated by translating $\Let$ only expose the next continuation, others expose only the next one, and the translation of
+% $\lambda$-abstractions expose the next two continuation functions, 
 
 
-a binary higher-order
-function; it is higher-order because its second parameter is a list of
-static continuation functions.
+
+% The translation on values and handler definitions generates dynamic
+% lambda abstractions. Whilst the translation on computations generates
+% static lambda abstractions.
+
+% Static continuation application corresponds to
+
+% The translation function for computation terms is staged: for any
+% given computation term the translation yields a static function, which
+% can be applied to a static continuation to ultimately yield a
+% $\UCalc$-computation term. Staging is key to eliminating static
+% administrative redexes as any static function may perform static
+% computation by manipulating its provided static continuation
+
+
+% a binary higher-order
+% function; it is higher-order because its second parameter is a list of
+% static continuation functions.
 
 % A major difference that has a large cosmetic effect on the
 % presentation of the translation is that we maintain the invariant that
@@ -2764,29 +2924,30 @@ static continuation functions.
 % translation due to the translations of $\Let$ and $\Do$ being passed
 % dynamic continuations when they were expecting statically known ones.
 %
-The translation on values is mostly homomorphic on the syntax
-constructors, except for $\lambda$-abstractions and
-$\Lambda$-abstractions which are translated in the exact same way,
-because the target calculus has no notion of types. As per usual
-continuation passing style practice, the translation of a lambda
-abstraction yields a dynamic binary lambda abstraction, where the
-second parameter is intended to be the continuation
-parameter.
 
-%
-However, the translation slightly diverge from the usual
-practice in the translation of the body as the result of $\cps{M}$ is
-applied statically, rather than dynamically, to the (reflected)
-continuation parameter.
-%
+% The translation on values is mostly homomorphic on the syntax
+% constructors, except for $\lambda$-abstractions and
+% $\Lambda$-abstractions which are translated in the exact same way,
+% because the target calculus has no notion of types. As per usual
+% continuation passing style practice, the translation of a lambda
+% abstraction yields a dynamic binary lambda abstraction, where the
+% second parameter is intended to be the continuation
+% parameter.
 
-The reason is that the translation on computations is staged: for any
-given computation term the translation yields a static function, which
-can be applied to a static continuation to ultimately produce a
-$\UCalc$-computation term. This staging is key to eliminating static
-administrative redexes as any static function may perform static
-computation by manipulating its provided static continuation, as is
-for instance done in the translation of $\Let$.
+% %
+% However, the translation slightly diverge from the usual
+% practice in the translation of the body as the result of $\cps{M}$ is
+% applied statically, rather than dynamically, to the (reflected)
+% continuation parameter.
+% %
+
+% The reason is that the translation on computations is staged: for any
+% given computation term the translation yields a static function, which
+% can be applied to a static continuation to ultimately produce a
+% $\UCalc$-computation term. This staging is key to eliminating static
+% administrative redexes as any static function may perform static
+% computation by manipulating its provided static continuation, as is
+% for instance done in the translation of $\Let$.
 %
 \dhil{Spell out why this translation qualifies as `higher-order'.}
 
@@ -2796,8 +2957,8 @@ translation eliminates the static redex at translation time.
 %
 \begin{equations}
 \pcps{\Return\;\Record{}}
-    &=& (\slam \sk \scons \sks. \sk \dapp \Record{} \dapp \reify \sks) \sapp ((\dlam x\,ks.x) \scons (\dlam z\,ks.\Absurd\;z) \scons \snil)\\
-    &=& (\dlam x\,ks.x) \dapp \Record{} \dapp ((\dlam z\,ks.\Absurd\;z) \dcons \dnil)\\
+    &=& (\slam \sk \scons \sks. \sk \dapp \Record{} \dapp \reify \sks) \sapp (\reflect (\dlam x\,ks.x) \scons \reflect (\dlam z\,ks.\Absurd\;z) \scons \snil)\\
+    &=& (\dlam x\,ks.x) \dapp \Record{} \dapp (\reflect (\dlam z\,ks.\Absurd\;z) \dcons \dnil)\\
     &\reducesto& \Record{}
 \end{equations}
 %
