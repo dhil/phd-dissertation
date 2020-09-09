@@ -2485,10 +2485,42 @@ induced by pattern matching), which is one less step than admitted by
 the image of the curried translation. The `missing' step is precisely
 the partial application of the initial pure continuation function,
 which was not in tail position. Note, however, that the first
-reduction is still administrative. The involved redex is still static,
-meaning that it could be eliminated at translation time.
+reduction is remains administrative, the reduction is entirely static,
+and as such, it can be dealt with as part of the translation.
 %
-\dhil{Discuss dynamic and static administrative redex.}
+
+\paragraph{Administrative redexes}
+
+We can determine whether a redex is administrative in the image by
+determining whether it corresponds to a redex in the preimage. If
+there is no corresponding redex, then the redex is said to be
+administrative. We can further classify an administrative redex as to
+whether it is \emph{static} or \emph{dynamic}. A static administrative
+redex is a by-product of the translation that does not contribute to
+the implementation of the dynamic behaviour of the preimage.
+%
+In contrast, a dynamic administrative redex is a genuine
+implementation detail that supports some part of the dynamic behaviour
+of the preimage. An example of such a detail is the implementation of
+effect forwarding. In $\HCalc$ effect forwarding involves no auxiliary
+reductions, any operation invocation is instantaneously dispatched to
+a suitable handler (if such one exists).
+%
+The translation presented above realises effect forwarding by
+explicitly applying the next effect continuation. This application is
+an example of a dynamic administrative reduction. Though, not all
+dynamic administrative redexes are necessary, for instance, the
+implementation of resumptions as a composition of
+$\lambda$-abstractions gives rise to administrative reductions upon
+invocation. As we shall see in
+Section~\ref{sec:first-order-explicit-resump} administrative
+reductions due to resumption invocation can be dealt with by choosing
+a more clever implementation of resumptions.
+
+We can characterise static administrative redexes\dots
+\dhil{Characterise static redexes\dots}
+
+% \dhil{Discuss dynamic and static administrative redex.}
 
 \subsection{Resumptions as explicit reversed stacks}
 \label{sec:first-order-explicit-resump}
