@@ -3027,10 +3027,10 @@ CPS translation commutes with substitution.
   and with substitution in handler definitions
   %
   \begin{equations}
-     (\cps{\hret} \sapp (\sk \scons \sh \scons \sks))[\cps{V}/x]
-      &=& \cps{\hret[V/x]} \sapp (\sk \scons \sh \scons \sks)[\cps{V}/x],\\
-     (\cps{\hops} \sapp (\sk \scons \sh \scons \sks))[\cps{V}/x]
-      &=& \cps{\hops[V/x]} \sapp (\sk \scons \sh \scons \sks)[\cps{V}/x].
+     \cps{\hret}[\cps{V}/x]
+      &=& \cps{\hret[V/x]},\\
+     \cps{\hops}[\cps{V}/x]
+      &=& \cps{\hops[V/x]}.
   \end{equations}
 \end{lemma}
 %
@@ -3117,8 +3117,8 @@ Reflection after reification may give rise to dynamic administrative
 reductions, i.e.
 %
 \[
-\cps{M} \sapp (V_1 \scons \dots V_n \scons \reflect \reify \sV)
-  \areducesto^* \cps{M} \sapp (V_1 \scons \dots V_n \scons \sV)
+\cps{M} \sapp (\sV_1 \scons \dots \sV_n \scons \reflect \reify \sW)
+  \areducesto^* \cps{M} \sapp (\sV_1 \scons \dots \sV_n \scons \sW)
 \]
 \end{lemma}
 %
@@ -3153,9 +3153,9 @@ If $\ell \notin BL(\EC)$ and $\hell = \{\ell\,p\,r \mapsto N_\ell\}$ then
 %
 \begin{displaymath}
 \bl
-\cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\cps{\hret} \scons \cps{\hops} \scons \sV)) \reducesto^+\areducesto^* \\
+\cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\reflect\cps{\hret} \scons \reflect\cps{\hops} \scons \sV)) \reducesto^+\areducesto^* \\
 \quad
-    (\cps{N_\ell} \sapp \sV)[\cps{V}/p, (\lambda y\,ks.\cps{\Return\;y} \sapp (\cps{\EC} \sapp (\cps{\hret} \scons \cps{\hops} \scons \reflect ks)))/r] \\
+    (\cps{N_\ell} \sapp \sV)[\cps{V}/p, (\lambda y\,ks.\cps{\Return\;y} \sapp (\cps{\EC} \sapp (\reflect\cps{\hret} \scons \reflect\cps{\hops} \scons \reflect ks)))/r] \\
 \el
 \end{displaymath}
 \end{lemma}
@@ -3196,9 +3196,22 @@ If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
 %
 
 \section{CPS transforming shallow effect handlers}
-\label{sec:cps-deep-shallow}
+\label{sec:cps-shallow}
+
+In this section we will continue to build upon the higher-order
+uncurried CPS translation
+(Section~\ref{sec:higher-order-uncurried-deep-handlers-cps}). Specifically,
+we will adapt it to be able to translate shallow effect handlers. The
+dynamic nature of shallow handlers pose an interesting challenge as
+shallow resumption invocation discards its handler. Consequently
+evaluation after resumption may occur under a potentially different
+handler which is determined dynamically by the context. This means
+that the CPS translation must be able to update the current
+continuation pair.
+\dhil{Fix the text}
 
 \subsection{A flawed attempt}
+\label{sec:cps-shallow-flawed}
 We adapt our higher-order CPS translation to accommodate both shallow
 and deep handlers.
 
@@ -3211,16 +3224,16 @@ and deep handlers.
                \ea\\
 \cps{\ShallowHandle \; M \; \With \; H} &\defas&
 \slam \sks . \cps{M} \sapp (\reflect\kid \scons \reflect\cps{\hret} \scons \reflect\cps{\hops}^\dagger \scons \sks) \\
-\cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\, \dhk.
-    \ba[t]{@{}l}
-       \Let\; (\_ \dcons \dk \dcons \vhret \dcons \vhops \dcons \dhk') = \dhk \;\In\\
-       \cps{N} \sapp (\reflect \dk \scons \reflect \vhret \scons \reflect \vhops \scons \reflect \dhk')
-       \ea \smallskip\\
 \kid &\defas& \dlam x\, \dhk.\Let\; (\vhret \dcons \dhk') = \dhk \;\In\; \vhret \dapp x \dapp \dhk'
 \end{equations}
 %
 \begin{equations}
-\cps{-} &:& \HandlerCat \to \UValCat\\
+  \cps{-} &:& \HandlerCat \to \UValCat\\
+  \cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\, \dhk.
+    \ba[t]{@{}l}
+       \Let\; (\_ \dcons \dk \dcons \vhret \dcons \vhops \dcons \dhk') = \dhk \;\In\\
+       \cps{N} \sapp (\reflect \dk \scons \reflect \vhret \scons \reflect \vhops \scons \reflect \dhk')
+       \ea \smallskip\\
 \cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}^\dagger
 &\defas&
 \bl
@@ -3242,9 +3255,9 @@ and deep handlers.
               \vhops \dapp \Record{y, \Record{p, \vhops \dcons \vhret \dcons \dk \dcons \dhkr}} \dapp \dhk' \\
               \el \\
 \hid &\defas& \dlam\,\Record{z,\Record{p,\dhkr}}\,\dhk.\hforward((z,p,\dhkr),\dhk) \\
-\rid &\defas& \dlam x\, \dhk.\Let\; (\vhops \dcons \dk \dcons \dhk') = \dhk \;\In\; \dk \dapp x \dapp \dhk' \medskip\\
-\pcps{-} &:& \CompCat \to \UCompCat\\
-\pcps{M} &\defas& \cps{M} \sapp (\reflect \kid \scons \reflect (\dlam x\,\dhk.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil) \\
+\rid &\defas& \dlam x\, \dhk.\Let\; (\vhops \dcons \dk \dcons \dhk') = \dhk \;\In\; \dk \dapp x \dapp \dhk'
+% \pcps{-} &:& \CompCat \to \UCompCat\\
+% \pcps{M} &\defas& \cps{M} \sapp (\reflect \kid \scons \reflect (\dlam x\,\dhk.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil) \\
 \end{equations}
 %
 We adapt the representation of continuations so that the current pure
@@ -3262,6 +3275,7 @@ leaks. Avoiding these memory leaks requires a more sophisticated
 approach, which we defer to future work.
 
 \subsection{Simultaneous CPS transform for deep and shallow handlers}
+\label{sec:cps-deep-shallow}
 \begin{figure}
 %
 \textbf{Values}
