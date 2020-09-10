@@ -2629,14 +2629,14 @@ resumption stack with the current continuation pair.
                     \ea\\
 \cps{\Do\;\ell\;V}
      &\defas& \slam \sk \scons \sh \scons \sks.\reify \sh \dapp \Record{\ell,\Record{\cps{V}, \reify \sh \dcons \reify \sk \dcons \dnil}} \dapp \reify \sks\\
-\cps{\Handle \; M \; \With \; H} &\defas& \slam \sks . \cps{M} \sapp (\cps{\hret} \scons \cps{\hops} \scons \sks)
+\cps{\Handle \; M \; \With \; H} &\defas& \slam \sks . \cps{M} \sapp (\reflect \cps{\hret} \scons \reflect \cps{\hops} \scons \sks)
 %
 \end{equations}
 %
 \textbf{Handler definitions}
 %
 \begin{equations}
-\cps{-} &:& \HandlerCat \to \UCompCat\\
+\cps{-} &:& \HandlerCat \to \UValCat\\
 \cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\, ks.
    \ba[t]{@{~}l}
       \Let\; (h \dcons k \dcons h' \dcons ks') = ks \;\In\\
@@ -3194,6 +3194,94 @@ If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
 %   TODO\dots
 % \end{proof}
 %
+
+\section{A simultaneous CPS transform for deep and shallow handlers}
+\label{sec:cps-deep-shallow}
+
+\begin{figure}
+%
+\textbf{Values}
+%
+\begin{equations}
+  \cps{-}                    &:& \ValCat \to \UValCat\\
+  % \cps{x}                    &\defas& x\\
+  \cps{\lambda x.M}          &\defas& \dlam x\,\dhk.\Let\;(\dk \dcons \dhk') = \dhk\;\In\;\cps{M} \sapp (\reflect\dk \scons \reflect \dhk') \\
+  \cps{\Lambda \alpha.M}     &\defas& \dlam \Unit\,\dhk.\Let\;(\dk \dcons \dhk') = \dhk\;\In\;\cps{M} \sapp (\reflect\dk \scons \reflect \dhk') \\
+  \cps{\Rec\,g\,x.M} &\defas& \Rec\,g\,x\,\dhk.\Let\;(\dk \dcons \dhk') = \dhk\;\In\;\cps{M} \sapp (\reflect\dk \scons \reflect \dhk') \\
+  % \multicolumn{3}{c}{
+  % \cps{\Record{}} \defas \Record{}
+  % \qquad
+  % \cps{\Record{\ell = \!\!V; W}} \defas \Record{\ell = \!\cps{V}; \cps{W}}
+  % \qquad
+  % \cps{\ell\,V} \defas \ell\,\cps{V}
+  % }
+\end{equations}
+%
+\textbf{Computations}
+%
+\begin{equations}
+\cps{-}                                          &:& \CompCat \to \SValCat^\ast \to \UCompCat\\
+% \cps{V\,W}                                       &\defas& \slam \shk.\cps{V} \dapp \cps{W} \dapp \reify \shk \\
+% \cps{V\,T}                                       &\defas& \slam \shk.\cps{V} \dapp \Record{} \dapp \reify \shk \\
+% \cps{\Let\; \Record{\ell=x;y} = V \; \In \; N}   &\defas& \slam \shk.\Let\; \Record{\ell=x;y} = \cps{V} \; \In \; \cps{N} \sapp \shk \\
+% \cps{\Case~V~\{\ell~x \mapsto M; y \mapsto N\}}  &\defas&
+%   \slam \shk.\Case~\cps{V}~\{\ell~x \mapsto \cps{M} \sapp \shk; y \mapsto \cps{N} \sapp \shk\} \\
+% \cps{\Absurd~V}                                  &\defas& \slam \shk.\Absurd~\cps{V} \\
+% \end{equations}
+% \begin{equations}
+\cps{\Return\,V} &\defas& \slam \shk.\kapp\;(\reify \shk)\;\cps{V} \\
+\cps{\Let~x \revto M~\In~N} &\defas&
+   \bl\slam \sRecord{\shf,  \sRecord{\svhret, \svhops}} \scons \shk.
+      \ba[t]{@{}l}
+         \cps{M} \sapp (\sRecord{\bl\reflect((\dlam x\,\dhk.\bl\Let\;(\dk \dcons \dhk') = \dhk\;\In\\
+         \cps{N} \sapp (\reflect\dk \scons \reflect \dhk')) \el\\
+         \dcons \reify\shf), \sRecord{\svhret, \svhops}} \scons \shk)\el
+      \ea
+  \el\\
+\cps{\Do\;\ell\;V} &\defas&
+  \slam \sRecord{\shf, \sRecord{\svhret, \svhops}} \scons \shk.\,
+        \reify\svhops \bl\dapp \dRecord{\ell,\dRecord{\cps{V}, \dRecord{\reify \shf, \dRecord{\reify\svhret, \reify\svhops}} \dcons \dnil}}\\
+                         \dapp \reify \shk\el \\
+\cps{\Handle^\depth \, M \; \With \; H} &\defas&
+\slam \shk . \cps{M} \sapp (\sRecord{\snil, \sRecord{\reflect \cps{\hret}, \reflect \cps{\hops}^\depth}} \scons \shk) \\
+\end{equations}
+%
+\textbf{Handler definitions}
+%
+\begin{equations}
+\cps{-}                    &:& \HandlerCat \to \UValCat\\
+% \cps{H}^\depth &=& \sRecord{\reflect \cps{\hret}, \reflect \cps{\hops}^\depth}\\
+\cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\,\dhk.\Let\;(\dk \dcons \dhk') = \dhk\;\In\;\cps{N} \sapp (\reflect\dk \scons \reflect \dhk') \\
+\cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}^\depth
+&\defas&
+\dlam \dRecord{z,\dRecord{p,\dhkr}}\,\dhk.
+              \Case \;z\; \{
+               \ba[t]{@{}l@{}c@{~}l}
+                (&\ell &\mapsto
+                   \ba[t]{@{}l}
+                      \Let\;r=\Res^\depth\,\dhkr\;\In\;  \\
+                      \Let\;(\dk \dcons \dhk') = \dhk\;\In\\
+                      \cps{N_{\ell}} \sapp (\reflect\dk \scons \reflect \dhk'))_{\ell \in \mathcal{L}}
+                    \ea\\
+                  &y     &\mapsto \hforward((y, p, \dhkr), \dhk) \} \\
+                \ea \\
+\hforward((y, p, \dhkr), \dhk) &\defas& \bl
+              \Let\; \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dhk \;\In \\
+              % \Let\; rk' = \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhkr\;\In\\
+              \vhops \dapp \dRecord{y,\dRecord{p, \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhkr}} \dapp \dhk' \\
+              \el
+\end{equations}
+
+\textbf{Top-level program}
+%
+\begin{equations}
+\pcps{-}                    &:& \CompCat \to \UCompCat\\
+\pcps{M} &\defas& \cps{M} \sapp (\sRecord{\snil, \sRecord{\reflect \dlam x\,\dhk. x, \reflect \dlam \dRecord{z,\dRecord{p,rk}}\,\dhk.\Absurd~z}} \scons \snil) \\
+\end{equations}
+%
+\caption{Adjustments to the higher-order uncurried CPS translation.}
+\label{fig:cps-higher-order-uncurried}
+\end{figure}
 
 \section{Related work}
 \label{sec:cps-related-work}
