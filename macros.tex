@@ -246,7 +246,7 @@
 \newcommand{\dlk}{s}    % let continuations
 \newcommand{\dhf}{q}    % handler frames
 \newcommand{\dhk}{ks}    % handler continuations
-\newcommand{\dhkr}{rk}  % reverse handler continuations
+\newcommand{\dhkr}{rs}  % reverse handler continuations
 \newcommand{\dLet}{\dynamic{\Let}}
 \newcommand{\dIn}{\dynamic{\In}}
 
@@ -280,3 +280,7 @@
 % \newcommand{\dk}{\dRecord{fs,\dRecord{\vhret,\vhops}}}
 \newcommand{\dk}{k}
 
+%
+\renewcommand{\hid}{V_\mathrm{forward}}
+\newcommand{\kid}{V_\mathrm{id}}
+\newcommand{\rid}{V_\mathrm{ret}}

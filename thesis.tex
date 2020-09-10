@@ -2614,18 +2614,18 @@ resumption stack with the current continuation pair.
 %
 \begin{equations}
 \cps{-}  &:& \CompCat \to \SValCat^\ast \to \UCompCat\\
-\cps{V\,W}                                       &\defas& \slam \sks.\cps{V} \dapp \cps{W} \dapp \reify \sks \\
-\cps{V\,T}                                       &\defas& \slam \sks.\cps{V} \dapp \Record{} \dapp \reify \sks \\
+\cps{V\,W}                                      &\defas& \slam \sks.\cps{V} \dapp \cps{W} \dapp \reify \sks \\
+\cps{V\,T}                                      &\defas& \slam \sks.\cps{V} \dapp \Record{} \dapp \reify \sks \\
 \cps{\Let\; \Record{\ell=x;y} = V \; \In \; N}  &\defas& \slam \sks.\Let\; \Record{\ell=x;y} = \cps{V} \; \In \; \cps{N} \sapp \sks \\
 \cps{\Case~V~\{\ell~x \mapsto M; y \mapsto N\}} &\defas&
   \slam \sks.\Case~\cps{V}~\{\ell~x \mapsto \cps{M} \sapp \sks; y \mapsto \cps{N} \sapp \sks\} \\
 \cps{\Absurd~V}                                 &\defas& \slam \sks.\Absurd~\cps{V} \\
 \cps{\Return~V}             &\defas& \slam \sk \scons \sks.\reify \sk \dapp \cps{V} \dapp \reify \sks \\
 \cps{\Let~x \revto M~\In~N} &\defas& \slam \sk \scons \sks.\cps{M} \sapp
-                 (\reflect (\dlam x\,ks.
+                 (\reflect (\dlam x\,\dhk.
                     \ba[t]{@{}l}
-                       \Let\;(h \dcons ks') = ks\;\In\\
-                       \cps{N} \sapp (\sk \scons \reflect h \scons \reflect ks')) \scons \sks)
+                       \Let\;(h \dcons \dhk') = \dhk\;\In\\
+                       \cps{N} \sapp (\sk \scons \reflect h \scons \reflect \dhk')) \scons \sks)
                     \ea\\
 \cps{\Do\;\ell\;V}
      &\defas& \slam \sk \scons \sh \scons \sks.\reify \sh \dapp \Record{\ell,\Record{\cps{V}, \reify \sh \dcons \reify \sk \dcons \dnil}} \dapp \reify \sks\\
@@ -2637,34 +2637,34 @@ resumption stack with the current continuation pair.
 %
 \begin{equations}
 \cps{-} &:& \HandlerCat \to \UValCat\\
-\cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\, ks.
+\cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\, \dhk.
    \ba[t]{@{~}l}
-      \Let\; (h \dcons k \dcons h' \dcons ks') = ks \;\In\\
-      \cps{N} \sapp (\reflect k \scons \reflect h' \scons \reflect ks')
+      \Let\; (h \dcons \dk \dcons h' \dcons \dhk') = \dhk \;\In\\
+      \cps{N} \sapp (\reflect \dk \scons \reflect h' \scons \reflect \dhk')
    \ea
 \\
 \cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}
-     &\defas& \bl
-                \dlam \Record{z,\Record{p,rs}}\,ks.\Case \;z\; \{
+    &\defas& \bl
+                \dlam \Record{z,\Record{p,\dhkr}}\,\dhk.\Case \;z\; \{
                   \ba[t]{@{}l@{}c@{~}l}
                   &(\ell \mapsto&
                     \ba[t]{@{}l}
-                       \Let\;r=\Res\;rs \;\In\\
-                       \Let\;(k \dcons h \dcons ks') = ks \;\In\\
-                       \cps{N_{\ell}} \sapp (\reflect k \scons \reflect h \scons \reflect ks'))_{\ell \in \mathcal{L}};
+                       \Let\;r=\Res\;\dhkr \;\In\\
+                       \Let\;(\dk \dcons h \dcons \dhk') = \dhk \;\In\\
+                       \cps{N_{\ell}} \sapp (\reflect \dk \scons \reflect h \scons \reflect \dhk'))_{\ell \in \mathcal{L}};
                     \ea\\
-                   &y \mapsto& \hforward((y,p,rs),ks) \} \\
+                   &y \mapsto& \hforward((y,p,\dhkr),\dhk) \} \\
                   \ea \\
              \el \\
-\hforward((y,p,rs),ks)
-    &\defas&\Let\; (k' \dcons h' \dcons ks') = ks \;\In\; h' \dapp \Record{y,\Record{p,h' \dcons k' \dcons rs}} \dapp ks'
+\hforward((y,p,\dhkr),\dhk)
+    &\defas&\Let\; (\dk' \dcons h' \dcons \dhk') = \dhk \;\In\; h' \dapp \Record{y,\Record{p,h' \dcons \dk' \dcons \dhkr}} \dapp \dhk'
 \end{equations}
 %
 \textbf{Top level program}
 %
 \begin{equations}
 \pcps{-} &:& \CompCat \to \UCompCat\\
-\pcps{M} &=& \cps{M} \sapp (\reflect (\dlam x\,ks.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil) \\
+\pcps{M} &=& \cps{M} \sapp (\reflect (\dlam x\,\dhk.x) \scons \reflect (\dlam z\,\dhk.\Absurd~z) \scons \snil) \\
 \end{equations}
 
 \caption{Higher-order uncurried CPS translation of $\HCalc$.}
@@ -2844,30 +2844,30 @@ in practice, consider the following example term.
     =& \reason{static $\beta$-reduction}\\
      &(\slam \sk \scons \sks. \reify \sk \dapp \cps{V} \dapp \reify \sks)
       \sapp
-       (\reflect(\dlam x\,ks.
+       (\reflect(\dlam x\,\dhk.
          \ba[t]{@{}l}
-           \Let\;(h \dcons ks') = ks \;\In\\
+           \Let\;(h \dcons \dhk') = \dhk \;\In\\
            \cps{N} \sapp
            \ba[t]{@{}l}
-              (\reflect (\dlam x\,ks.x) \scons \reflect h \scons \reflect ks'))\\
-              ~~\scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil))
+              (\reflect (\dlam x\,\dhk.x) \scons \reflect h \scons \reflect \dhk'))\\
+              ~~\scons \reflect (\dlam z\,\dhk.\Absurd~z) \scons \snil))
            \ea
          \ea\\
     =& \reason{static $\beta$-reduction}\\
     &\ba[t]{@{}l@{~}l}
-       &(\dlam x\,ks.
-             \Let\;(h \dcons ks') = ks \;\In\;
+       &(\dlam x\,\dhk.
+             \Let\;(h \dcons \dhk') = \dhk \;\In\;
              \cps{N} \sapp
-                (\reflect (\dlam x\,ks.x) \scons \reflect h \scons \reflect ks'))\\
-       \dapp& \cps{V} \dapp ((\dlam z\,ks.\Absurd~z) \dcons \dnil)\\
+                (\reflect (\dlam x\,\dhk.x) \scons \reflect h \scons \reflect \dhk'))\\
+       \dapp& \cps{V} \dapp ((\dlam z\,\dhk.\Absurd~z) \dcons \dnil)\\
       \ea\\
 \reducesto& \reason{\usemlab{App_2}}\\
-    &\Let\;(h \dcons ks') = (\dlam z\,ks.\Absurd~z) \dcons \dnil \;\In\;
+    &\Let\;(h \dcons \dhk') = (\dlam z\,\dhk.\Absurd~z) \dcons \dnil \;\In\;
              \cps{N[V/x]} \sapp
-           (\reflect (\dlam x\,ks.x) \scons \reflect h \scons \reflect ks'))\\
+           (\reflect (\dlam x\,\dhk.x) \scons \reflect h \scons \reflect \dhk'))\\
 \reducesto^+& \reason{dynamic pattern matching and substitution}\\
           &\cps{N[V/x]} \sapp
-           (\reflect (\dlam x\,ks.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \reflect \dnil)
+           (\reflect (\dlam x\,\dhk.x) \scons \reflect (\dlam z\,\dhk.\Absurd~z) \scons \reflect \dnil)
 \end{derivation}
 %
 The translation of $\Return$ provides the generated dynamic pure
@@ -2989,8 +2989,8 @@ translation eliminates the static redex at translation time.
 %
 \begin{equations}
 \pcps{\Return\;\Record{}}
-    &=& (\slam \sk \scons \sks. \sk \dapp \Record{} \dapp \reify \sks) \sapp (\reflect (\dlam x\,ks.x) \scons \reflect (\dlam z\,ks.\Absurd\;z) \scons \snil)\\
-    &=& (\dlam x\,ks.x) \dapp \Record{} \dapp (\reflect (\dlam z\,ks.\Absurd\;z) \dcons \dnil)\\
+    &=& (\slam \sk \scons \sks. \sk \dapp \Record{} \dapp \reify \sks) \sapp (\reflect (\dlam x\,\dhk.x) \scons \reflect (\dlam z\,\dhk.\Absurd\;z) \scons \snil)\\
+    &=& (\dlam x\,\dhk.x) \dapp \Record{} \dapp (\reflect (\dlam z\,\dhk.\Absurd\;z) \dcons \dnil)\\
     &\reducesto& \Record{}
 \end{equations}
 %
@@ -3195,9 +3195,73 @@ If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
 % \end{proof}
 %
 
-\section{A simultaneous CPS transform for deep and shallow handlers}
+\section{CPS transforming shallow effect handlers}
 \label{sec:cps-deep-shallow}
 
+\subsection{A flawed attempt}
+We adapt our higher-order CPS translation to accommodate both shallow
+and deep handlers.
+
+\begin{equations}
+\cps{-} &:& \CompCat \to \SValCat^\ast \to \UCompCat\\
+\cps{\Do\;\ell\;V} &\defas& \slam \sk \scons \svhret \scons \svhops \scons \sks.
+            \reify\svhops \ba[t]{@{}l}
+                 \dapp \Record{\ell, \Record{\cps{V}, \reify\svhops \dcons \reify\svhret \dcons \reify\sk \dcons \dnil}}\\
+                 \dapp \reify \sks
+               \ea\\
+\cps{\ShallowHandle \; M \; \With \; H} &\defas&
+\slam \sks . \cps{M} \sapp (\reflect\kid \scons \reflect\cps{\hret} \scons \reflect\cps{\hops}^\dagger \scons \sks) \\
+\cps{\{\Return \; x \mapsto N\}} &\defas& \dlam x\, \dhk.
+    \ba[t]{@{}l}
+       \Let\; (\_ \dcons \dk \dcons \vhret \dcons \vhops \dcons \dhk') = \dhk \;\In\\
+       \cps{N} \sapp (\reflect \dk \scons \reflect \vhret \scons \reflect \vhops \scons \reflect \dhk')
+       \ea \smallskip\\
+\kid &\defas& \dlam x\, \dhk.\Let\; (\vhret \dcons \dhk') = \dhk \;\In\; \vhret \dapp x \dapp \dhk'
+\end{equations}
+%
+\begin{equations}
+\cps{-} &:& \HandlerCat \to \UValCat\\
+\cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}^\dagger
+&\defas&
+\bl
+\dlam \Record{z,\Record{p,\dhkr}}\,\dhk.\\
+    \qquad\Case \;z\; \{
+        \ba[t]{@{}l@{}c@{~}l}
+           (&\ell &\mapsto
+             \ba[t]{@{}l}
+               \Let\;(\dk \dcons \vhret \dcons \vhops \dcons \dhk') = \dhk\;\In\\
+               \Let\;(\_ \dcons \_ \dcons \dhkr') = \dhkr \;\In\\
+               \Let\;r = \Res\,(\hid \dcons \rid \dcons \dhkr') \;\In \\
+         \cps{N_{\ell}} \sapp (\reflect\dk \scons \reflect\vhret \scons \reflect\vhops \scons \reflect \dhk'))_{\ell \in \mathcal{L}} \\
+         \ea \\
+      &y &\mapsto \hforward((y,p,\dhkr),\dhk) \} \\
+      \ea
+\el\\
+\hforward((y, p, \dhkr), \dhk) &\defas& \bl
+              \Let\; (\dk \dcons \vhret \dcons \vhops \dcons \dhk') = \dhk \;\In \\
+              \vhops \dapp \Record{y, \Record{p, \vhops \dcons \vhret \dcons \dk \dcons \dhkr}} \dapp \dhk' \\
+              \el \\
+\hid &\defas& \dlam\,\Record{z,\Record{p,\dhkr}}\,\dhk.\hforward((z,p,\dhkr),\dhk) \\
+\rid &\defas& \dlam x\, \dhk.\Let\; (\vhops \dcons \dk \dcons \dhk') = \dhk \;\In\; \dk \dapp x \dapp \dhk' \medskip\\
+\pcps{-} &:& \CompCat \to \UCompCat\\
+\pcps{M} &\defas& \cps{M} \sapp (\reflect \kid \scons \reflect (\dlam x\,\dhk.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil) \\
+\end{equations}
+%
+We adapt the representation of continuations so that the current pure
+continuation is separate from the pure continuation corresponding to
+the return clause.
+%
+Thus a stack of continuations is now a sequence of triples consisting
+of two pure continuations followed by an effect continuation.
+%
+Crucially, this enables us to replace the current handler with a dummy
+identity handler in the resumption of a shallow handler clause.
+%
+Unfortunately, inserting such dummy handlers can lead to memory
+leaks. Avoiding these memory leaks requires a more sophisticated
+approach, which we defer to future work.
+
+\subsection{Simultaneous CPS transform for deep and shallow handlers}
 \begin{figure}
 %
 \textbf{Values}
@@ -3282,6 +3346,9 @@ If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
 \caption{Adjustments to the higher-order uncurried CPS translation.}
 \label{fig:cps-higher-order-uncurried}
 \end{figure}
+%
+
+
 
 \section{Related work}
 \label{sec:cps-related-work}
