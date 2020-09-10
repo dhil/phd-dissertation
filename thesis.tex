@@ -3288,7 +3288,7 @@ If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
 
 \paragraph{Plotkin's colon translation}
 
-The defacto standard method for proving the correctness of a CPS
+The traditional method for proving the correctness of a CPS
 translation is by way of a simulation result. Simulation states that
 every reduction sequence in a given source program is mimicked by its
 CPS transformation.
@@ -3300,10 +3300,10 @@ arise in the source program.
 \citet{Plotkin75} uses the so-called \emph{colon translation} to
 overcome static administrative reductions.
 %
-Informally, it is defined such that given a source term $M$ and a
-continuation $k$, the term $M : k$ is the result of performing all
-static administrative reductions on $\cps{M}\,k$, that is
-$\cps{M}\,k \reducesto^\ast M : k$.
+Informally, it is defined such that given some source term $M$ and
+some continuation $k$, then the term $M : k$ is the result of
+performing all static administrative reductions on $\cps{M}\,k$, that
+is to say $\cps{M}\,k \areducesto^* M : k$.
 %
 Thus this translation makes it possible to bypass administrative
 reductions and instead focus on the reductions inherited from the
