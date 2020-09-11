@@ -1077,8 +1077,11 @@ that the binder $x : A$.
   \EC[M] &\reducesto& \EC[N], \hfill\quad \text{if } M \reducesto N \\
 \end{reductions}
 \begin{syntax}
-\slab{Evaluation contexts} &  \mathcal{E} \in \EvalCat &::=& [\,] \mid \Let \; x \revto \mathcal{E} \; \In \; N
+\slab{Evaluation contexts} &  \mathcal{E} \in \EvalCat &::=& [~] \mid \Let \; x \revto \mathcal{E} \; \In \; N
 \end{syntax}
+%
+\dhil{Describe evaluation contexts as functions: decompose and plug.}
+%
 %%\[
 % Evaluation context lift
 %% \inferrule*[Lab=\semlab{Lift}]
@@ -1090,13 +1093,14 @@ that the binder $x : A$.
 \label{fig:base-language-small-step}
 \end{figure}
 %
-In this section we present the dynamic semantics of \BCalc{}. We opt
-to use a \citet{Felleisen87}-style contextual small-step semantics,
-since in conjunction with fine-grain call-by-value (FGCBV), it yields
-a considerably simpler semantics than the traditional structural
-operational semantics (SOS)~\cite{Plotkin04a}, because only the rule
-for let bindings admits a continuation wheres in ordinary
-call-by-value SOS each congruence rule admits a continuation.
+In this section I will present the dynamic semantics of \BCalc{}. I
+have chosen opt to use a \citet{Felleisen87}-style contextual
+small-step semantics, since in conjunction with fine-grain
+call-by-value (FGCBV), it yields a considerably simpler semantics than
+the traditional structural operational semantics
+(SOS)~\cite{Plotkin04a}, because only the rule for let bindings admits
+a continuation wheres in ordinary call-by-value SOS each congruence
+rule admits a continuation.
 %
 The simpler semantics comes at the expense of a more verbose syntax,
 which is not a concern as one can readily convert between fine-grain
@@ -1247,7 +1251,7 @@ computation term, $M$, in some larger context, $\EC$, and reduce it in
 the said context to another computation $N$ if $M$ reduces outside out
 the context to that particular $N$. In our formalism, we call this
 rule \semlab{Lift}. Evaluation contexts are generated from the empty
-context $[~]$ and let expressions $\Let\;x \revto \EC \;\In\;N$.
+context ($[~]$) and let expressions ($\Let\;x \revto \EC \;\In\;N$).
 
 The choices of using fine-grain call-by-value and evaluation contexts
 may seem odd, if not arbitrary at this point; the reader may wonder
@@ -1298,8 +1302,8 @@ contexts.
   By structural induction on $M$.
   \begin{description}
   \item[Base step] $M = N$ where $N$ is either $\Return\;V$,
-    $\Absurd^C\;V$, $V\,W$, or $V\,T$. In either case take
-    $\EC = [\,]$ such that $M = \EC[N]$.
+    $\Absurd^C\;V$, $V\,W$, or $V\,T$. In each case take $\EC = [\,]$
+    such that $M = \EC[N]$.
   \item[Inductive step]
     %
     There are several cases to consider. In each case we must find an
@@ -1313,10 +1317,8 @@ contexts.
       \item[Case] $M = \Let\;x \revto M' \;\In\;N$: By the induction
         hypothesis it follows that $M'$ is either stuck or it
         decomposes (uniquely) into an evaluation context $\EC'$ and a
-        redex $N'$. If $M$ is stuck, then take
-        $\EC = \Let\;x \revto [\,] \;\In\;N$ such that $M =
-        \EC[M']$. Otherwise take $\EC = \Let\;x \revto \EC'\;\In\;N$
-        such that $M = \EC[N']$.
+        redex $N'$. If $M'$ is stuck, then so is $M$. Otherwise take
+        $\EC = \Let\;x \revto \EC'\;\In\;N$ such that $M = \EC[N']$.
     \end{itemize}
   \end{description}
 \end{proof}
@@ -1333,23 +1335,23 @@ realisable function in \BCalc{} is effect-free and total.
 \end{definition}
 %
 \begin{theorem}[Progress]\label{thm:base-language-progress}
-  Suppose $\typ{}{M : C}$, then there exists $\typ{}{N : C}$, such
-  that $M \reducesto^\ast N$ and $N$ is normal.
+  Suppose $\typ{}{M : C}$, then $M$ is normal or there exists
+  $\typ{}{N : C}$ such that $M \reducesto^\ast N$.
 \end{theorem}
 %
 \begin{proof}
   Proof by induction on typing derivations.
 \end{proof}
 %
-\begin{corollary}
-  Every closed computation term in \BCalc{} is terminating.
-\end{corollary}
+% \begin{corollary}
+%   Every closed computation term in \BCalc{} is terminating.
+% \end{corollary}
 %
-The calculus also satisfies the \emph{preservation} property,
-which states that if some computation $M$ is well-typed and reduces to
-some other computation $M'$, then $M'$ is also well-typed.
+The calculus also satisfies the \emph{subject reduction} property,
+which states that if some computation $M$ is well typed and reduces to
+some other computation $M'$, then $M'$ is also well typed.
 %
-\begin{theorem}[Preservation]\label{thm:base-language-preservation}
+\begin{theorem}[Subject reduction]\label{thm:base-language-preservation}
   Suppose $\typ{\Gamma}{M : C}$ and $M \reducesto M'$, then
   $\typ{\Gamma}{M' : C}$.
 \end{theorem}
@@ -1383,8 +1385,7 @@ abstraction form for recursive functions.
 \end{syntax}
 %
 The $\Rec$ construct binds the function name $f$ and its argument $x$
-in the body $M$. Typing of recursive functions is standard and
-entirely straightforward.
+in the body $M$. Typing of recursive functions is standard.
 %
 \begin{mathpar}
   \inferrule*[Lab=\tylab{Rec}]
@@ -1392,7 +1393,7 @@ entirely straightforward.
     {\typ{\Delta;\Gamma}{(\Rec \; f^{A \to C} \, x . M) : A \to C}}
 \end{mathpar}
 %
-The reduction semantics are similarly simple.
+The reduction semantics are also standard.
 %
 \begin{reductions}
   \semlab{Rec} &
@@ -1407,9 +1408,8 @@ progress theorem as some programs may now diverge.
 %
 \begin{theorem}[Progress]
   \label{thm:base-rec-language-progress}
-  Suppose $\typ{}{M : C}$, then there exists $\typ{}{N : C}$, such
-  that $M \reducesto^\ast N$ either diverges or $N\not\reducesto$ and
-  $N$ is normal.
+  Suppose $\typ{}{M : C}$, then $M$ is normal or there exists
+  $\typ{}{N : C}$ such that $M \reducesto^\ast N$.
 \end{theorem}
 %
 \begin{proof}
@@ -1420,7 +1420,7 @@ progress theorem as some programs may now diverge.
 \label{sec:tracking-div}
 %
 With the $\Rec$-operator in \BCalcRec{} we can now implement the
-customary factorial function.
+factorial function.
 %
 \[
   \bl
@@ -1451,7 +1451,7 @@ Section~\ref{sec:notions-of-purity} we shall make clear the notion of
 purity that we have mind, however, first let us briefly illustrate how
 we might utilise the effect system to track divergence.
 
-The key to track divergence is to modify the \tylab{Rec} to inject
+The key to tracking divergence is to modify the \tylab{Rec} to inject
 some primitive operation into the effect row.
 %
 \begin{mathpar}
@@ -1542,11 +1542,11 @@ The term `pure' is heavily overloaded in the programming literature.
 \label{sec:row-polymorphism}
 \dhil{A discussion of alternative row systems}
 
-\section{Type and effect inference}
-\dhil{While I would like to detail the type and effect inference, it
-  may not be worth the effort. The reason I would like to do this goes
-  back to 2016 when Richard Eisenberg asked me about how we do effect
-  inference in Links.}
+% \section{Type and effect inference}
+% \dhil{While I would like to detail the type and effect inference, it
+%   may not be worth the effort. The reason I would like to do this goes
+%   back to 2016 when Richard Eisenberg asked me about how we do effect
+%   inference in Links.}
 
 \chapter{Unary handlers}
 \label{ch:unary-handlers}
@@ -3545,6 +3545,619 @@ then in the image $\cps{M}\,k \reducesto^\ast k\,\cps{V}$.
 \paragraph{Partial evaluation}
 
 \chapter{Abstract machine semantics}
+\dhil{The text is this chapter needs to be reworked}
+
+In this chapter we develop an abstract machine that supports deep and
+shallow handlers \emph{simultaneously}, using the generalised
+continuation structure we identified in the previous section for the
+CPS translation. We also build upon prior work~\citep{HillerstromL16}
+that developed an abstract machine for deep handlers by generalising
+the continuation structure of a CEK machine (Control, Environment,
+Kontinuation)~\citep{FelleisenF86}.
+%
+% \citet{HillerstromL16} sketched an adaptation for shallow handlers. It
+% turns out that this adaptation had a subtle flaw, similar to the flaw
+% in the sketched implementation of a CPS translation for shallow
+% handlers given by \citet{HillerstromLAS17}. We fix the flaw here with
+% a full development of shallow handlers along with a statement of the
+% correctness property.
+
+\section{Syntax and semantics}
+The abstract machine syntax is given in
+Figure~\ref{fig:abstract-machine-syntax}.
+% A machine continuation is a list of handler frames. A handler frame is
+% a pair of a \emph{handler closure} (handler definition) and a
+% \emph{pure continuation} (a sequence of let bindings), analogous to
+% the structured frames used in the CPS translation in
+% \Sec\ref{sec:higher-order-uncurried-cps}.
+% %
+% Handling an operation amounts to searching through the continuation
+% for a matching handler.
+% %
+% The resumption is constructed during the search by reifying each
+% handler frame. As in the CPS translation, the resumption is assembled
+% in one of two ways depending on whether the matching handler is deep
+% or shallow.
+% %
+% For a deep handler, the current handler closure is included, and a deep
+% resumption is a reified continuation.
+% %
+% An invocation of a deep resumption amounts to concatenating it with
+% the current machine continuation.
+% %
+% For a shallow handler, the current handler closure must be discarded
+% leaving behind a dangling pure continuation, and a shallow resumption
+% is a pair of this pure continuation and the remaining reified
+% continuation.
+% %
+% (By contrast, the prior flawed adaptation prematurely precomposed the
+% pure continuation with the outer handler in the current resumption.)
+% %
+% An invocation of a shallow resumption again amounts to concatenating
+% it with the current machine continuation, but taking care to
+% concatenate the dangling pure continuation with that of the next
+% frame.
+%
+\begin{figure}[t]
+\flushleft
+\begin{syntax}
+\slab{Configurations}           & \conf &::= & \cek{M \mid \env \mid \shk \circ \shk'} \\
+\slab{Value environments}       &\env   &::= & \emptyset \mid \env[x \mapsto v] \\
+\slab{Values}                   &v, w   &::= & (\env, \lambda x^A . M) \mid (\env, \Lambda \alpha^K . M) \\
+                                &       &\mid& \Record{} \mid \Record{\ell = v; w} \mid (\ell\, v)^R \mid \shk^A \mid (\shk, \slk)^A \medskip\\
+% \end{syntax}
+% \begin{displaymath}
+% \ba{@{}l@{~~}r@{~}c@{~}l@{\quad}l@{~~}r@{~}c@{~}l@{}}
+% \slab{Continuations}            &\shk   &::= & \nil \mid \shf \cons \shk & \slab{Continuation frames}      &\shf   &::= & (\slk, \chi) \\
+%                                 &       &    &                           & \slab{Handler closures}         &\chi   &::= & (\env, H)^\depth \smallskip \\
+% \slab{Pure continuations}       &\slk   &::= & \nil \mid \slf \cons \slk & \slab{Pure continuation frames} &\slf   &::= & (\env, x, N) \\
+% \ea
+% \end{displaymath}
+% \begin{syntax}
+\slab{Continuations}            &\shk   &::= & \nil \mid \shf \cons \shk \\
+\slab{Continuation frames}      &\shf   &::= & (\slk, \chi) \\
+\slab{Pure continuations}       &\slk   &::= & \nil \mid \slf \cons \slk \\
+\slab{Pure continuation frames} &\slf   &::= & (\env, x, N) \\
+\slab{Handler closures}         &\chi   &::= & (\env, H) \mid (\env, H)^\dagger \medskip \\
+\end{syntax}
+
+\caption{Abstract machine syntax.}
+\label{fig:abstract-machine-syntax}
+\end{figure}
+
+%% A CEK machine~\citep{FelleisenF86} operates on configurations, which
+%% are (Control, Environment, Continuation) triples.
+%% %
+% Our machine, like Hillerström and Lindley's, generalises the usual
+% notion of continuation to accommodate handlers.
+%
+%
+\begin{figure}[p]
+\dhil{Fix figure formatting}
+\begin{minipage}{0.90\textheight}%
+%% Identity continuation
+%% \[
+%% \shk_0 = [(\nil, (\emptyset, \{\Return\;x \mapsto x\}))]
+%% \]
+
+\textbf{Transition function}
+\begin{displaymath}
+\bl
+\ba{@{}l@{~}r@{~}c@{~}l@{\quad}l@{}}
+\mlab{Init} & \multicolumn{4}{@{}c@{}}{M \stepsto \cek{M \mid \emptyset \mid [(\nil, (\emptyset, \{\Return\;x \mapsto \Return\;x\}))]}} \\[1ex]
+% App
+\mlab{AppClosure} & \cek{ V\;W \mid \env \mid \shk}
+    &\stepsto& \cek{ M \mid \env'[x \mapsto \val{W}{\env}] \mid \shk},
+       &\text{if }\val{V}{\env} = (\env', \lambda x^A.M) \\
+
+\mlab{AppRec} & \cek{ V\;W \mid \env \mid \shk}
+    &\stepsto& \cek{ M \mid \env'[g \mapsto (\env', \Rec\,g^{A \to C}\,x.M), x \mapsto \val{W}{\env}] \mid \shk},
+      &\text{if }\val{V}{\env} = (\env', \Rec\,g^{A \to C}\,x.M) \\
+
+% App - continuation
+\mlab{AppCont} & \cek{ V\;W \mid \env \mid \shk}
+    &\stepsto& \cek{ \Return \; W \mid \env \mid \shk' \concat \shk},
+       &\text{if }\val{V}{\env} = (\shk')^A \\
+
+\mlab{AppCont^\dagger} & \cek{ V\,W \mid \env \mid (\slk, \chi) \cons \shk}
+  &\stepsto&
+  \cek{\Return\; W \mid \env \mid \shk' \concat ((\slk' \concat \slk, \chi) \cons \shk)},
+     &\text{if } \val{V}{\env} = (\shk', \slk')^A \\
+
+% TyApp
+\mlab{AppType} & \cek{ V\,T \mid \env \mid \shk}
+      &\stepsto& \cek{ M[T/\alpha] \mid \env' \mid \shk},
+          &\text{if }\val{V}{\env} = (\env', \Lambda \alpha^K . \, M) \\[1ex]
+\ea \\
+\ba{@{}l@{}r@{~}c@{~}l@{\quad}l@{}}
+\mlab{Split} & \cek{ \Let \; \Record{\ell = x;y} = V \; \In \; N \mid \env \mid \shk}
+      &\stepsto& \cek{ N \mid \env[x \mapsto v, y \mapsto w] \mid \shk},
+                  & \text {if }\val{V}{\env} = \Record{\ell=v; w} \\
+
+% Case
+\mlab{Case} & \cek{ \Case\; V\, \{ \ell~x \mapsto M; y \mapsto N\} \mid \env \mid \shk}
+         &\stepsto& \left\{\ba{@{}l@{}}
+                           \cek{ M \mid \env[x \mapsto v] \mid \shk}, \\
+                           \cek{ N \mid \env[y \mapsto \ell'\, v] \mid \shk}, \\
+                           \ea \right.
+                           &
+                           \ba{@{}l@{}}
+                             \text{if }\val{V}{\env} = \ell\, v \\
+                             \text{if }\val{V}{\env} = \ell'\, v \text{ and } \ell \neq \ell' \\
+                           \ea \\[2ex]
+
+% Let - eval M
+\mlab{Let} & \cek{ \Let \; x \revto M \; \In \; N \mid \env \mid (\slk, \chi) \cons \shk}
+    &\stepsto& \cek{ M \mid \env \mid ((\env,x,N) \cons \slk, \chi) \cons \shk} \\
+
+% Handle
+\mlab{Handle} & \cek{ \Handle^\depth \, M \; \With \; H \mid \env \mid \shk}
+       &\stepsto& \cek{ M \mid \env \mid (\nil, (\env, H)^\depth) \cons \shk} \\[1ex]
+
+% Return - let binding
+\mlab{RetCont} &\cek{ \Return \; V \mid \env \mid ((\env',x,N) \cons \slk, \chi) \cons \shk}
+          &\stepsto& \cek{ N \mid \env'[x \mapsto \val{V}{\env}] \mid (\slk, \chi) \cons \shk} \\
+
+% Return - handler
+\mlab{RetHandler} & \cek{ \Return \; V \mid \env \mid (\nil, (\env',H)) \cons \shk}
+           &\stepsto& \cek{ M \mid \env'[x \mapsto \val{V}{\env}] \mid \shk},
+            & \text{if } \hret = \{\Return\; x \mapsto M\} \\
+\mlab{RetTop} & \cek{\Return\;V \mid \env \mid \nil} &\stepsto& \val{V}{\env} \\[1ex]
+
+% Deep
+\mlab{Do} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env', H)) \cons \shk) \circ \shk'}
+          &\stepsto& \multicolumn{2}{@{}l@{}}{\cek{M \mid \env'[x \mapsto \val{V}{\env},
+                                                                r \mapsto (\shk' \concat [(\slk, (\env', H))])^B] \mid \shk},} \\
+&&& \multicolumn{2}{@{}r@{}}{\text{if } \ell : A \to B \in E \text{ and } \hell = \{\ell\; x \; r \mapsto M\}} \\
+
+% Shallow
+\mlab{Do^\dagger} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\gamma', H)^\dagger) \cons \shk) \circ \shk'} &\stepsto&
+  \multicolumn{2}{@{}l@{}}{\cek{M \mid \env'[x \mapsto \val{V}{\env}, r \mapsto (\shk', \slk)^B] \mid \shk},}\\
+&&&\multicolumn{2}{@{}r@{}}{\text{if } \ell : A \to B \in E \text{ and } \hell = \{\ell\; x \; r \mapsto M\}} \\
+
+% Forward
+\mlab{Forward} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env', H)^\depth) \cons \shk) \circ \shk'}
+           &\stepsto& \cek{ (\Do \; \ell \; V)^E \mid \env \mid \shk \circ (\shk' \concat [(\slk, (\env', H)^\depth)])},
+                      & \text{if } \hell = \emptyset \\
+\ea \\
+\el
+\end{displaymath}
+
+\textbf{Value interpretation}
+\begin{displaymath}
+\ba{@{}r@{~}c@{~}l@{}}
+\val{x}{\env}                    &=& \env(x) \\
+\val{\Record{}}{\env}            &=& \Record{} \\
+\ea
+\qquad
+\ba{@{}r@{~}c@{~}l@{}}
+\val{\lambda x^A.M}{\env}        &=& (\env, \lambda x^A.M) \\
+\val{\Record{\ell = V; W}}{\env} &=& \Record{\ell = \val{V}{\env}; \val{W}{\env}} \\
+\ea
+\qquad
+\ba{@{}r@{~}c@{~}l@{}}
+\val{\Lambda \alpha^K.M}{\env}   &=& (\env, \Lambda \alpha^K.M) \\
+\val{(\ell\, V)^R}{\env}         &=& (\ell\; \val{V}{\env})^R \\
+\ea
+\qquad
+\val{\Rec\,g^{A \to C}\,x.M}{\env} = (\env, \Rec\,g^{A \to C}\,x.M) \\
+\end{displaymath}
+
+\caption{Abstract machine semantics.}
+\label{fig:abstract-machine-semantics}
+\end{minipage}
+\end{figure}
+%
+%
+A configuration $\conf = \cek{M \mid \env \mid \shk \circ \shk'}$
+of our abstract machine is a quadruple of a computation term ($M$), an
+environment ($\env$) mapping free variables to values, and two
+continuations ($\shk$) and ($\shk'$).
+%
+The latter continuation is always the identity, except when forwarding
+an operation, in which case it is used to keep track of the extent to
+which the operation has been forwarded.
+%
+We write $\cek{M \mid \env \mid \shk}$ as syntactic sugar for $\cek{M
+  \mid \env \mid \shk \circ []}$ where $[]$ is the identity
+continuation.
+%
+%% Our continuations differ from the standard machine. On the one hand,
+%% they are somewhat simplified, due to our strict separation between
+%% computations and values. On the other hand, they have considerably
+%% more structure in order to accommodate effects and handlers.
+
+Values consist of function closures, type function closures, records,
+variants, and captured continuations.
+%
+A continuation $\shk$ is a stack of frames $[\shf_1, \dots,
+\shf_n]$. We annotate captured continuations with input types in order
+to make the results of Section~\ref{subsec:machine-correctness} easier
+to state. Each frame $\shf = (\slk, \chi)$ represents pure
+continuation $\slk$, corresponding to a sequence of let bindings,
+inside handler closure $\chi$.
+%
+A pure continuation is a stack of pure frames. A pure frame $(\env, x,
+N)$ closes a let-binding $\Let \;x=[~] \;\In\;N$ over environment
+$\env$. A handler closure $(\env, H)$ closes a handler definition $H$
+over environment $\env$.
+%
+We write $\nil$ for an empty stack, $x \cons s$ for the result of
+pushing $x$ on top of stack $s$, and $s \concat s'$ for the
+concatenation of stack $s$ on top of $s'$. We use pattern matching to
+deconstruct stacks.
+
+The abstract machine semantics defining the transition function $\stepsto$ is given in
+Fig.~\ref{fig:abstract-machine-semantics}.
+%
+It depends on an interpretation function $\val{-}$ for values.
+%
+The machine is initialised (\mlab{Init}) by placing a term in a
+configuration alongside the empty environment and identity
+continuation.
+%
+The rules (\mlab{AppClosure}), (\mlab{AppRec}), (\mlab{AppCont}),
+(\mlab{AppCont^\dagger}), (\mlab{AppType}), (\mlab{Split}), and
+(\mlab{Case}) enact the elimination of values.
+%
+The rules (\mlab{Let}) and (\mlab{Handle}) extend the current
+continuation with let bindings and handlers respectively.
+%
+The rule (\mlab{RetCont}) binds a returned value if there is a pure
+continuation in the current continuation frame;
+%
+(\mlab{RetHandler}) invokes the return clause of a handler if the pure
+continuation is empty; and (\mlab{RetTop}) returns a final value if
+the continuation is empty.
+%
+%% The rule (\mlab{Op}) switches to a special four place configuration in
+%% order to handle an operation. The fourth component of the
+%% configuration is an auxiliary forwarding continuation, which keeps
+%% track of the continuation frames through which the operation has been
+%% forwarded. It is initialised to be empty.
+%% %
+The rule (\mlab{Do}) applies the current handler to an operation if
+the label matches one of the operation clauses. The captured
+continuation is assigned the forwarding continuation with the current
+frame appended to the end of it.
+%
+The rule (\mlab{Do^\dagger}) is much like (\mlab{Do}), except it
+constructs a shallow resumption, discarding the current handler but
+keeping the current pure continuation.
+%
+The rule (\mlab{Forward}) appends the current continuation
+frame onto the end of the forwarding continuation.
+%
+The (\mlab{Init}) rule provides a canonical way to map a computation
+term onto a configuration.
+
+\newcommand{\Chiid}{\ensuremath{\Chi_{\text{id}}}}
+\newcommand{\kappaid}{\ensuremath{\kappa_{\text{id}}}}
+
+\paragraph{Example} To make the transition rules in
+Figure~\ref{fig:abstract-machine-semantics} concrete we give an
+example of the abstract machine in action. We reuse the small producer
+and consumer from Section~\ref{sec:shallow-handlers-tutorial}. We
+reproduce their definitions here in ANF.
+%
+\[
+\bl
+\Ones \defas \Rec\;ones~\Unit. \Do\; \Yield~1; ones~\Unit \\
+\AddTwo \defas
+      \lambda \Unit.
+         \Let\; x \revto \Do\;\Await~\Unit \;\In\;
+         \Let\; y \revto \Do\;\Await~\Unit \;\In\;
+         x + y \\
+\el
+\]%
+%
+Let $N_x$ denote the term $\Let\;x \revto \Do\;\Await~\Unit\;\In\;N_y$
+and $N_y$ the term $\Let\;y \revto \Do\;\Await~\Unit\;\In\;x+y$.
+%
+%% For clarity, we annotate each bound variable $resume$ with a subscript
+%% $\Await$ or $\Yield$ according to whether it was captured by a
+%% consumer or a producer.
+%
+Suppose $\Ones$, $\AddTwo$, $\Pipe$, and $\Copipe$ are bound in
+$\env_\top$. Furthermore, let $H_\Pipe$ and $H_\Copipe$ denote the
+pipe and copipe handler definitions. The machine begins by applying
+$\Pipe$.
+%
+\begin{derivation}
+  &\cek{\Pipe~\Record{\Ones, \AddTwo} \mid \env_\top \mid \kappaid}\\
+  \stepsto& \reason{apply $\Pipe$}\\
+  &\cek{\ShallowHandle\;c~\Unit\;\With\;H_\Pipe \mid \env_\top[c \mapsto (\emptyset, \AddTwo), p \mapsto (\emptyset, \Ones)] \mid \kappaid}\\
+  \stepsto& \reason{install $H_\Pipe$ with $\env_\Pipe = \env_\top[c \mapsto (\emptyset, \AddTwo), p \mapsto (\emptyset, \Ones)]$}\\
+  &\cek{c~\Unit \mid \env_\Pipe \mid (\nil, (\env_\Pipe, H_\Pipe)) \cons \kappaid}\\
+  \stepsto& \reason{apply $c$ and $\val{c}\env_\Pipe = (\emptyset, \AddTwo)$}\\
+  &\cek{N_x \mid \emptyset \mid (\nil, (\env_\Pipe, H_\Pipe)) \cons \kappaid}\\
+  \stepsto& \reason{focus on left operand}\\
+  &\cek{\Do\;\Await~\Unit \mid \emptyset \mid ([(\emptyset, x, N_y)], (\env_\Pipe, H_\Pipe)) \cons \kappaid}\\
+  \stepsto& \reason{shallow continuation capture $v_\Await = (\nil, [(\emptyset, x, N_y)])$}\\
+  &\cek{\Copipe~\Record{resume, p} \mid \env_\Pipe[resume \mapsto v_\Await] \mid \kappaid}\\
+\end{derivation}
+%
+The invocation of $\Await$ begins a search through the machine
+continuation to locate a matching handler. In this instance the
+top-most handler $H_\Pipe$ handles $\Await$. The complete shallow
+resumption consists of an empty continuation and a singleton pure
+continuation. The former is empty as $H_\Pipe$ is a shallow handler,
+meaning that it is discarded.
+
+Evaluation continues by applying $\Copipe$.
+%
+\begin{derivation}
+  \stepsto& \reason{apply $\Copipe$}\\
+  &\cek{\ShallowHandle\; p~\Unit \;\With\;H_\Copipe \mid \env_\top[c \mapsto v_\Await, p \mapsto (\emptyset, \Ones)] \mid \kappaid}\\
+  \stepsto& \reason{install $H_\Copipe$ with $\env_\Copipe = \env_\top[c \mapsto v_\Await, p \mapsto (\emptyset, \Ones)]$}\\
+  &\cek{p~\Unit \mid \env_\Copipe \mid (\emptyset, (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
+  \stepsto^2& \reason{apply $p$, $\val{p}\env_\Copipe = (\emptyset, \Ones)$, and $\env_{\Ones} = \emptyset[ones \mapsto (\emptyset, \Ones)]$}\\
+  % &\cek{\Do\;\Yield~1;~ones~\Unit \mid \env_{ones} \mid (\nil, (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
+  % \stepsto^2& \reason{focus on $\Yield$}\\
+  &\cek{\Do\;\Yield~1 \mid \env_{\Ones} \mid ([(\env_{\Ones},\_,ones~\Unit)], (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
+  \stepsto& \reason{shallow continuation capture $v_\Yield = (\nil, [(\env_{\Ones}, \_, ones~\Unit)])$}\\
+  &\cek{\Pipe~\Record{resume, \lambda\Unit.c~s} \mid \env_\Copipe[s \mapsto 1,resume \mapsto v_\Yield] \mid \kappaid}
+\end{derivation}
+%
+At this point the situation is similar as before: the invocation of
+$\Yield$ causes the continuation to be unwound in order to find an
+appropriate handler, which happens to be $H_\Copipe$. Next $\Pipe$ is
+applied.
+%
+\begin{derivation}
+  \stepsto& \reason{apply $\Pipe$ and $\env_\Pipe' = \env_\top[c \mapsto (\env_\Copipe[c \mapsto v_\Await, s\mapsto 1]), p \mapsto v_\Yield])]$}\\
+  &\cek{\ShallowHandle\;c~\Unit\;\With\; H_\Pipe \mid \env_\Pipe' \mid \kappaid}\\
+  \stepsto& \reason{install $H_\Pipe$}\\
+  &\cek{c~\Unit \mid \env_\Pipe' \mid (\nil, (\env_\Pipe', H_\Pipe)) \cons \kappaid}\\
+  \stepsto& \reason{apply $c$ and $\val{c}\env_\Pipe' = (\env_\Copipe[c \mapsto v_\Await, s\mapsto 1])$}\\
+  &\cek{c~s \mid \env_\Copipe[c \mapsto v_\Await, s\mapsto 1] \mid (\nil, (\env_\Pipe', H_\Pipe)) \cons \kappaid}\\
+  \stepsto& \reason{shallow resume with $v_\Await = (\nil, [(\emptyset,x,N_y)])$}\\
+  &\cek{\Return\;1 \mid \env_\Pipe' \mid ([(\emptyset,x,N_y)], (\env_\Pipe', H_\Pipe)) \cons \kappaid}
+\end{derivation}
+%
+Applying the resumption concatenates the first component (the
+continuation) with the machine continuation. The second component
+(pure continuation) gets concatenated with the pure continuation of
+the top-most frame of the machine continuation. Thus in this
+particular instance, the machine continuation is manipulated as
+follows.
+%
+\[
+  \ba{@{~}l@{~}l}
+   &\nil \concat ([(\emptyset,x,N_y)] \concat \nil, (\env_\Pipe', H_\Pipe)) \cons \kappaid\\
+   =& ([(\emptyset,x,N_y)], (\env_\Pipe', H_\Pipe)) \cons \kappaid
+  \ea
+\]
+%
+Because the control component contains the expression $\Return\;1$ and
+the pure continuation is nonempty, the machine applies the pure
+continuation.
+\begin{derivation}
+  \stepsto& \reason{apply pure continuation, $\env_{\AddTwo} = \emptyset[x \mapsto 1]$}\\
+  &\cek{N_y \mid \env_{\AddTwo} \mid (\nil, (\env_\Pipe', H_\Pipe)) \cons \kappaid}\\
+  \stepsto& \reason{focus on right operand}\\
+  &\cek{\Do\;\Await~\Unit \mid \env_{\AddTwo} \mid ([(\env_{\AddTwo}, y, x + y)], (\env_\Pipe', H_\Pipe)) \cons \kappaid}\\
+  \stepsto^2& \reason{shallow continuation capture $w_\Await = (\nil, [(\env_{\AddTwo}, y, x + y)])$, apply $\Copipe$}\\
+  &\cek{\ShallowHandle\;p~\Unit \;\With\; \env_\Copipe \mid \env_\top[c \mapsto w_\Await, p \mapsto v_\Yield] \mid \kappaid}\\
+  \reducesto& \reason{install $H_\Copipe$ with $\env_\Copipe = \env_\top[c \mapsto w_\Await, p \mapsto v_\Yield]$}\\
+  &\cek{p~\Unit \mid \env_\Copipe \mid (\nil, (\env_\Copipe, H_\Copipe)) \cons \kappaid}
+\end{derivation}
+%
+The variable $p$ is bound to the shallow resumption $v_\Yield$, thus
+invoking it will transfer control back to the $\Ones$ computation.
+%
+\begin{derivation}
+  \stepsto & \reason{shallow resume with $v_\Yield = (\nil, [(\env_{\Ones}, \_, ones~\Unit)])$}\\
+  &\cek{\Return\;\Unit \mid \env_\Copipe \mid ([(\env_{\Ones}, \_, ones~\Unit)], (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
+  \stepsto^3& \reason{apply pure continuation, apply $ones$, focus on $\Yield$}\\
+  &\cek{\Do\;\Yield~1 \mid \env_{\Ones} \mid ([(\env_{\Ones}, \_, ones~\Unit)], (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
+\end{derivation}
+%
+At this stage the machine repeats the transitions from before: the
+shallow continuation of $\Do\;\Yield~1$ is captured, control passes to
+the $\Yield$ clause in $H_\Copipe$, which again invokes $\Pipe$ and
+subsequently installs the $H_\Pipe$ handler with an environment
+$\env_\Pipe''$. The handler runs the computation $c~\Unit$, where $c$
+is an abstraction over the resumption $w_\Await$ applied to the
+yielded value $1$.
+%
+\begin{derivation}
+  \stepsto^6 & \reason{by the above reasoning, shallow resume with $w_\Await = (\nil, [(\env_{\AddTwo}, y, x + y)])$}\\
+  &\cek{x + y \mid \env_{\AddTwo}[y \mapsto 1] \mid (\nil, (\env_\Pipe'', H_\Pipe)) \cons \kappaid}\\
+  \stepsto& \reason{$\val{x}\env_{\AddTwo}[y\mapsto 1] = 1$ and $\val{y}\env_{\AddTwo}[y\mapsto 1] = 1$}\\
+  &\cek{\Return\;2 \mid \env_{\AddTwo}[y \mapsto 1] \mid (\nil, (\env_\Pipe'', H_\Pipe)) \cons \kappaid}
+\end{derivation}
+%
+Since the pure continuation is empty the $\Return$ clause of $H_\Pipe$
+gets invoked with the value $2$. Afterwards the $\Return$ clause of the
+identity continuation in $\kappaid$ is invoked, ultimately
+transitioning to the following final configuration.
+%
+\begin{derivation}
+  \stepsto^2& \reason{by the above reasoning}\\
+  &\cek{\Return\;2 \mid \emptyset \mid \nil}
+\end{derivation}
+%
+%\env_\top[c \mapsto (\env_\Copipe, \lambda\Unit.w_\Await~1),p \mapsto (\nil, [(\env_{\Ones}, \_, ones~\Unit)])]
+\begin{figure}[t]
+\flushleft
+\newcommand{\contapp}[2]{#1 #2}
+\newcommand{\contappp}[2]{#1(#2)}
+%% \newcommand{\contapp}[2]{#1[#2]}
+%% \newcommand{\contapp}[2]{#1\mathbin{@}#2}
+%% \newcommand{\contappp}[2]{#1\mathbin{@}(#2)}
+%
+Configurations
+\begin{displaymath}
+\inv{\cek{M \mid \env \mid \shk \circ \shk'}} = \contappp{\inv{\shk' \concat \shk}}{\inv{M}\env}
+                                              = \contappp{\inv{\shk'}}{\contapp{\inv{\shk}}{\inv{M}\env}}
+\end{displaymath}
+
+Pure continuations
+\begin{displaymath}
+\contapp{\inv{[]}}{M} = M \qquad \contapp{\inv{((\env, x, N) \cons \slk)}}{M}
+  = \contappp{\inv{\slk}}{\Let\; x \revto M \;\In\; \inv{N}(\env \res \{x\})}
+\end{displaymath}
+%% \begin{equations}
+%% \contapp{\inv{[]}}{M}
+%%   &=& M \\
+%% \contapp{\inv{((\env, x, N) \cons \slk)}}{M}
+%%   &=& \contappp{\inv{\slk}}{\Let\; x \revto M \;\In\; \inv{N}(\env \res \{x\})} \\
+%% \end{equations}
+
+Continuations
+\begin{displaymath}
+\contapp{\inv{[]}}{M}
+  = M \qquad
+\contapp{\inv{(\slk, \chi) \cons \shk}}{M}
+  = \contapp{\inv{\shk}}{(\contappp{\inv{\chi}}{\contappp{\inv{\slk}}{M}})}
+\end{displaymath}
+%% \begin{equations}
+%% \contapp{\inv{[]}}{M}
+%%   &=& M \\
+%% \contapp{\inv{(\slk, \chi) \cons \shk}}{M}
+%%   &=& \contapp{\inv{\shk}}{(\contappp{\inv{\chi}}{\contappp{\inv{\slk}}{M}})} \\
+%% \end{equations}
+
+Handler closures
+\begin{displaymath}
+\contapp{\inv{(\env, H)}^\depth}{M}
+  = \Handle^\depth\;M\;\With\;\inv{H}\env
+\end{displaymath}
+%% \begin{equations}
+%% \contapp{\inv{(\env, H)}}{M}
+%%   &=& \Handle\;M\;\With\;\inv{H}\env \\
+%% \contapp{\inv{(\env, H)^\dagger}}{M}
+%%   &=& \ShallowHandle\;M\;\With\;\inv{H}\env \\
+%% \end{equations}
+
+Computation terms
+\begin{equations}
+\inv{V\,W}\env &=& \inv{V}\env\,\inv{W}{\env} \\
+\inv{V\,T}\env &=& \inv{V}\env\,T \\
+\inv{\Let\;\Record{\ell = x; y} = V \;\In\;N}\env
+  &=& \Let\;\Record{\ell = x; y} =\inv{V}\env \;\In\; \inv{N}(\env \res \{x, y\}) \\
+\inv{\Case\;V\,\{\ell\;x \mapsto M; y \mapsto N\}}\env
+  &=& \Case\;\inv{V}\env \,\{\ell\;x \mapsto \inv{M}(\env \res \{x\}); y \mapsto \inv{N}(\env \res \{y\})\} \\
+\inv{\Return\;V}\env &=& \Return\;\inv{V}\env \\
+\inv{\Let\;x \revto M \;\In\;N}\env
+  &=& \Let\;x \revto\inv{M}\env \;\In\; \inv{N}(\env \res \{x\}) \\
+\inv{\Do\;\ell\;V}\env
+  &=& \Do\;\ell\;\inv{V}\env \\
+\inv{\Handle^\depth\;M\;\With\;H}\env
+  &=& \Handle^\depth\;\inv{M}\env\;\With\;\inv{H}\env \\
+\end{equations}
+
+Handler definitions
+\begin{equations}
+\inv{\{\Return\;x \mapsto M\}}\env
+  &=& \{\Return\;x \mapsto \inv{M}(\env \res \{x\})\} \\
+\inv{\{\ell\;x\;k \mapsto M\} \uplus H}\env
+  &=& \{\ell\;x\;k \mapsto \inv{M}(\env \res \{x, k\}\} \uplus \inv{H}\env \\
+\end{equations}
+
+Value terms and values
+\begin{displaymath}
+\ba{@{}c@{}}
+\begin{eqs}
+\inv{x}\env                  &=& \inv{v}, \quad \text{ if }\env(x) = v \\
+\inv{x}\env                  &=& x, \quad \text{ if }x \notin dom(\env) \\
+\inv{\lambda x^A.M}\env      &=& \lambda x^A.\inv{M}(\env \res \{x\}) \\
+\inv{\Lambda \alpha^K.M}\env &=& \Lambda \alpha^K.\inv{M}\env \\
+\inv{\Record{}}\env          &=& \Record{} \\
+\inv{\Record{\ell=V; W}}\env &=& \Record{\ell=\inv{V}\env; \inv{W}\env} \\
+\inv{(\ell\;V)^R}\env        &=& (\ell\;\inv{V}\env)^R \\
+\end{eqs}
+\quad
+\begin{eqs}
+\inv{\shk^A} &=& \lambda x^A.\inv{\shk}(\Return\;x) \\
+\inv{(\shk, \slk)^A} &=& \lambda x^A.\inv{\slk}(\inv{\shk}(\Return\;x)) \\
+\inv{(\env, \lambda x^A.M)}      &=& \lambda x^A.\inv{M}(\env \res \{x\}) \\
+\inv{(\env, \Lambda \alpha^K.M)} &=& \Lambda \alpha^K.\inv{M}\env \\
+\inv{\Record{}}                &=& \Record{} \\
+\inv{\Record{\ell=v; w}}       &=& \Record{\ell=\inv{v}; \inv{w}} \\
+\inv{(\ell\;v)^R}              &=& (\ell\;\inv{v})^R \\
+\end{eqs} \smallskip\\
+\inv{\Rec\,g^{A \to C}\,x.M}\env = \Rec\,g^{A \to C}\,x.\inv{M}(\env \res \{g, x\})
+                                = \inv{(\env, \Rec\,g^{A \to C}\,x.M)} \\
+\ea
+\end{displaymath}
+
+\caption{Mapping from abstract machine configurations to terms.}
+\label{fig:config-to-term}
+\end{figure}
+
+
+\paragraph{Remark} If the main continuation is empty then the machine gets
+stuck. This occurs when an operation is unhandled, and the forwarding
+continuation describes the succession of handlers that have failed to
+handle the operation along with any pure continuations that were
+encountered along the way.
+%
+Assuming the input is a well-typed closed computation term $\typc{}{M
+  : A}{E}$, the machine will either not terminate, return a value of
+type $A$, or get stuck failing to handle an operation appearing in
+$E$. We now make the correspondence between the operational semantics
+and the abstract machine more precise.
+
+\section{Correctness}
+\label{subsec:machine-correctness}
+
+Fig.~\ref{fig:config-to-term} defines an inverse mapping $\inv{-}$
+from configurations to computation terms via a collection of mutually
+recursive functions defined on configurations, continuations,
+computation terms, handler definitions, value terms, and values.
+%
+We write $dom(\gamma)$ for the domain of $\gamma$ and $\gamma \res
+\{x_1, \dots, x_n\}$ for the restriction of environment $\gamma$ to
+$dom(\gamma) \res \{x_1, \dots, x_n\}$.
+%
+The $\inv{-}$ function enables us to classify the abstract machine
+reduction rules by how they relate to the operational
+semantics.
+%
+The rules (\mlab{Init}) and (\mlab{RetTop}) concern only initial
+input and final output, neither a feature of the operational
+semantics.
+%
+The rules (\mlab{AppCont^\depth}), (\mlab{Let}), (\mlab{Handle}),
+and (\mlab{Forward}) are administrative in that $\inv{-}$ is invariant
+under them.
+%
+This leaves $\beta$-rules (\mlab{AppClosure}), (\mlab{AppRec}),
+(\mlab{AppType}), (\mlab{Split}), (\mlab{Case}), (\mlab{RetCont}),
+(\mlab{RetHandler}), (\mlab{Do}), and (\mlab{Do^\dagger}),
+each of which corresponds directly to performing a reduction in the
+operational semantics.
+%
+We write $\stepsto_a$ for administrative steps, $\stepsto_\beta$ for
+$\beta$-steps, and $\Stepsto$ for a sequence of steps of the form
+$\stepsto_a^* \stepsto_\beta$.
+
+Each reduction in the operational semantics is simulated by a sequence
+of administrative steps followed by a single $\beta$-step in the
+abstract machine. The $Id$ handler (\S\ref{subsec:terms})
+implements the top-level identity continuation.
+\\
+\begin{theorem}[Simulation]
+\label{lem:simulation}
+If $M \reducesto N$, then for any $\conf$ such that $\inv{\conf} =
+Id(M)$ there exists $\conf'$ such that $\conf \Stepsto \conf'$ and
+$\inv{\conf'} = Id(N)$.
+%% If $M \reducesto N$, then for any $\conf$ such that $\inv{\conf} = M$
+%% there exists $\conf'$ such that $\conf \Stepsto \conf'$ and
+%% $\inv{\conf'} = N$.
+\end{theorem}
+
+\begin{proof}
+By induction on the derivation of $M \reducesto N$.
+\end{proof}
+
+\begin{corollary}
+If $\typc{}{M : A}{E}$ and $M \reducesto^+ N \not\reducesto$, then $M
+\stepsto^+ \conf$ with $\inv{\conf} = N$.
+\end{corollary}
+
 
 \part{Expressiveness}
 \chapter{Computability, complexity, and expressivness}

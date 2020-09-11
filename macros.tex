@@ -84,6 +84,7 @@
 \newcommand{\reducesto}[0]{\ensuremath{\leadsto}}
 \newcommand{\areducesto}{\ensuremath{\reducesto_{\textrm{a}}}}
 \newcommand{\stepsto}[0]{\ensuremath{\longrightarrow}}
+\newcommand{\Stepsto}{\Longrightarrow}
 \newcommand{\EC}{\ensuremath{\mathcal{E}}}
 
 \newcommand{\BL}{\ensuremath{\mathsf{BL}}}
@@ -284,3 +285,25 @@
 \renewcommand{\hid}{V_\mathrm{forward}}
 \newcommand{\kid}{V_\mathrm{id}}
 \newcommand{\rid}{V_\mathrm{ret}}
+
+% Examples
+\newcommand{\Pipe}{\dec{pipe}}
+\newcommand{\Copipe}{\dec{copipe}}
+\newcommand{\Ones}{\dec{ones}}
+\newcommand{\Yield}{\dec{Yield}}
+\newcommand{\Await}{\dec{Await}}
+\newcommand{\AddTwo}{\ensuremath{\dec{add}_2}}
+
+% Abstract machine
+\newcommand{\cek}[1]{\ensuremath{\langle #1 \rangle}}
+% Environments
+\newcommand{\env}{\ensuremath{\gamma}}
+% restrict an environment
+\newcommand{\res}{\backslash}
+
+% abstract machine translations
+\newcommand{\val}[2]{\llbracket #1 \rrbracket #2}
+\newcommand{\inv}[1]{\llparenthesis #1 \rrparenthesis}
+
+% configurations
+\newcommand{\conf}{\mathcal{C}}
