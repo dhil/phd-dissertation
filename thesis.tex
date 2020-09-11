@@ -129,14 +129,17 @@
 %% Acknowledgements
 \begin{acknowledgements}
   Firstly, I want to thank Sam Lindley for his guidance, advice, and
-  encouragement throughout my studies. He has been ardent supervisor,
-  and he has always been generous with his time. I am fortunate to
-  have been supervised by him.
+  encouragement throughout my studies. He has been enthusiastic
+  supervisor, and he has always been generous with his time. I am
+  fortunate to have been supervised by him.
 
-  My work has been supported by \href{https://www.epsrc.ac.uk/}{EPSRC}
-  grant \href{http://pervasiveparallelism.inf.ed.ac.uk}{EP/L01503X/1}
-  (EPSRC Centre for Doctoral Training in Pervasive Parallelism) and by
-  ERC Consolidator Grant Skye (grant number 682315).
+  Throughout my studies I have received funding from the
+  \href{https://www.ed.ac.uk/informatics}{School of Informatics} at
+  The University of Edinburgh, as well as an
+  \href{https://www.epsrc.ac.uk/}{EPSRC} grant
+  \href{http://pervasiveparallelism.inf.ed.ac.uk}{EP/L01503X/1} (EPSRC
+  Centre for Doctoral Training in Pervasive Parallelism), and by ERC
+  Consolidator Grant Skye (grant number 682315).
 
   List of people to thank
   \begin{itemize}
@@ -3385,7 +3388,7 @@ deconstructions also gets bigger. The continuation representation
 needs more structure. While it is seductive to program with lists, it
 quickly gets unwieldy.
 
-\subsection{Simultaneous CPS transform for deep and shallow handlers}
+\subsection{Effect handlers via generalised continuations}
 \label{sec:cps-deep-shallow}
 \begin{figure}
 %
@@ -3393,31 +3396,31 @@ quickly gets unwieldy.
 %
 \begin{equations}
   \cps{-}                    &:& \ValCat \to \UValCat\\
-  % \cps{x}                    &\defas& x\\
+  \cps{x}                    &\defas& x\\
   \cps{\lambda x.M}          &\defas& \dlam x\,\dhk.\Let\;(\dk \dcons \dhk') = \dhk\;\In\;\cps{M} \sapp (\reflect\dk \scons \reflect \dhk') \\
   \cps{\Lambda \alpha.M}     &\defas& \dlam \Unit\,\dhk.\Let\;(\dk \dcons \dhk') = \dhk\;\In\;\cps{M} \sapp (\reflect\dk \scons \reflect \dhk') \\
   \cps{\Rec\,g\,x.M} &\defas& \Rec\,g\,x\,\dhk.\Let\;(\dk \dcons \dhk') = \dhk\;\In\;\cps{M} \sapp (\reflect\dk \scons \reflect \dhk') \\
-  % \multicolumn{3}{c}{
-  % \cps{\Record{}} \defas \Record{}
-  % \qquad
-  % \cps{\Record{\ell = \!\!V; W}} \defas \Record{\ell = \!\cps{V}; \cps{W}}
-  % \qquad
-  % \cps{\ell\,V} \defas \ell\,\cps{V}
-  % }
+  \multicolumn{3}{c}{
+  \cps{\Record{}} \defas \Record{}
+  \qquad
+  \cps{\Record{\ell = \!\!V; W}} \defas \Record{\ell = \!\cps{V}; \cps{W}}
+  \qquad
+  \cps{\ell\,V} \defas \ell\,\cps{V}
+  }
 \end{equations}
 %
 \textbf{Computations}
 %
 \begin{equations}
 \cps{-}                                          &:& \CompCat \to \SValCat^\ast \to \UCompCat\\
-% \cps{V\,W}                                       &\defas& \slam \shk.\cps{V} \dapp \cps{W} \dapp \reify \shk \\
-% \cps{V\,T}                                       &\defas& \slam \shk.\cps{V} \dapp \Record{} \dapp \reify \shk \\
-% \cps{\Let\; \Record{\ell=x;y} = V \; \In \; N}   &\defas& \slam \shk.\Let\; \Record{\ell=x;y} = \cps{V} \; \In \; \cps{N} \sapp \shk \\
-% \cps{\Case~V~\{\ell~x \mapsto M; y \mapsto N\}}  &\defas&
-%   \slam \shk.\Case~\cps{V}~\{\ell~x \mapsto \cps{M} \sapp \shk; y \mapsto \cps{N} \sapp \shk\} \\
-% \cps{\Absurd~V}                                  &\defas& \slam \shk.\Absurd~\cps{V} \\
-% \end{equations}
-% \begin{equations}
+\cps{V\,W}                                       &\defas& \slam \shk.\cps{V} \dapp \cps{W} \dapp \reify \shk \\
+\cps{V\,T}                                       &\defas& \slam \shk.\cps{V} \dapp \Record{} \dapp \reify \shk \\
+\cps{\Let\; \Record{\ell=x;y} = V \; \In \; N}   &\defas& \slam \shk.\Let\; \Record{\ell=x;y} = \cps{V} \; \In \; \cps{N} \sapp \shk \\
+\cps{\Case~V~\{\ell~x \mapsto M; y \mapsto N\}}  &\defas&
+  \slam \shk.\Case~\cps{V}~\{\ell~x \mapsto \cps{M} \sapp \shk; y \mapsto \cps{N} \sapp \shk\} \\
+\cps{\Absurd~V}                                  &\defas& \slam \shk.\Absurd~\cps{V} \\
+\end{equations}
+\begin{equations}
 \cps{\Return\,V} &\defas& \slam \shk.\kapp\;(\reify \shk)\;\cps{V} \\
 \cps{\Let~x \revto M~\In~N} &\defas&
    \bl\slam \sRecord{\shf,  \sRecord{\svhret, \svhops}} \scons \shk.
