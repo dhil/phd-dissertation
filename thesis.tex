@@ -3210,22 +3210,75 @@ that the CPS translation must be able to update the current
 continuation pair.
 \dhil{Fix the text}
 
-\subsection{A flawed attempt}
+\subsection{A specious attempt}
 \label{sec:cps-shallow-flawed}
-We adapt our higher-order CPS translation to accommodate both shallow
-and deep handlers.
+%
+Initially it is tempting to try to extend the interpretation of the
+continuation representation in the higher-order uncurried CPS
+translation for deep handlers to squeeze in shallow handlers. The
+first obstacle one encounters is how to decouple a pure continuation
+from its handler such that it can later be `adopted' by another
+handler.
 
+To fully uninstall a handler, we must uninstall both the pure
+continuation function corresponding to its return clause and the
+effect continuation function corresponding to its operation clauses.
+%
+In the current setup it is impossible to reliably uninstall the former
+as due to the translation of $\Let$-expressions it may be embedded
+arbitrarily deep within the current pure continuation and the
+extensional representation of pure continuations means that we cannot
+decompose them.
+
+A quick fix to this problem is to treat pure continuation functions
+arising from return clauses separately from pure continuation
+functions arising from $\Let$-expressions.
+%
+Thus we can interpret the continuation as a sequence of triples
+consisting of two pure continuation functions followed by an effect
+continuation function, where the first pure continuation function
+corresponds the continuation induced by some $\Let$-expression and the
+second corresponds to the return clause of the current handler.
+%
+To distinguish between the two kinds of pure continuations, we shall
+write $\svhret$ for statically known pure continuations arising from
+return clauses, and $\vhret$ for dynamically known ones. Similarly, we
+write $\svhops$ and $\vhops$ for statically and dynamically,
+respectively, known effect continuations. With this notation in mind,
+we may translate operation invocation and handler installation using
+the new interpretation of the continuation representation as follows.
+%
 \begin{equations}
-\cps{-} &:& \CompCat \to \SValCat^\ast \to \UCompCat\\
+\cps{-} &:& \CompCat \to \SValCat^\ast \to \UCompCat \smallskip\\
 \cps{\Do\;\ell\;V} &\defas& \slam \sk \scons \svhret \scons \svhops \scons \sks.
             \reify\svhops \ba[t]{@{}l}
                  \dapp \Record{\ell, \Record{\cps{V}, \reify\svhops \dcons \reify\svhret \dcons \reify\sk \dcons \dnil}}\\
                  \dapp \reify \sks
-               \ea\\
+               \ea\smallskip\\
 \cps{\ShallowHandle \; M \; \With \; H} &\defas&
-\slam \sks . \cps{M} \sapp (\reflect\kid \scons \reflect\cps{\hret} \scons \reflect\cps{\hops}^\dagger \scons \sks) \\
+\slam \sks . \cps{M} \sapp (\reflect\kid \scons \reflect\cps{\hret} \scons \reflect\cps{\hops}^\dagger \scons \sks) \medskip\\
 \kid &\defas& \dlam x\, \dhk.\Let\; (\vhret \dcons \dhk') = \dhk \;\In\; \vhret \dapp x \dapp \dhk'
 \end{equations}
+%
+The only change to the translation of operation invocation is the
+extra bureaucracy induced by the additional pure continuation.
+%
+The translation of handler installation is a little more interesting
+as it must make up an initial pure continuation in order to maintain
+the sequence of triples interpretation of the continuation
+structure. As the initial pure continuation we use the administrative
+function $\kid$, which amounts to a dynamic variation of the
+translation rule for the trivial computation term $\Return$: it
+invokes the next pure continuation with whatever value it was
+provided.
+%
+
+Although, I will not demonstrate it here, the translation rules for
+$\lambda$-abstractions, $\Lambda$-abstractions, and $\Let$-expressions
+must also be adjusted accordingly to account for the extra
+bureaucracy. The same is true for the translation of $\Return$-clause,
+thus it is rather straightforward to adapt it to the new continuation
+interpretation.
 %
 \begin{equations}
   \cps{-} &:& \HandlerCat \to \UValCat\\
@@ -3233,7 +3286,17 @@ and deep handlers.
     \ba[t]{@{}l}
        \Let\; (\_ \dcons \dk \dcons \vhret \dcons \vhops \dcons \dhk') = \dhk \;\In\\
        \cps{N} \sapp (\reflect \dk \scons \reflect \vhret \scons \reflect \vhops \scons \reflect \dhk')
-       \ea \smallskip\\
+       \ea
+\end{equations}
+%
+As before, it discards its associated effect continuation, which is
+the first element of the dynamic continuation $ks$. In addition it
+extracts the next continuation triple and reifies it as a static
+continuation triple.
+%
+The interesting rule is the translation of operation clauses.
+%
+\begin{equations}
 \cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}^\dagger
 &\defas&
 \bl
@@ -3249,30 +3312,78 @@ and deep handlers.
          \ea \\
       &y &\mapsto \hforward((y,p,\dhkr),\dhk) \} \\
       \ea
-\el\\
+\el \medskip\\
 \hforward((y, p, \dhkr), \dhk) &\defas& \bl
               \Let\; (\dk \dcons \vhret \dcons \vhops \dcons \dhk') = \dhk \;\In \\
               \vhops \dapp \Record{y, \Record{p, \vhops \dcons \vhret \dcons \dk \dcons \dhkr}} \dapp \dhk' \\
-              \el \\
-\hid &\defas& \dlam\,\Record{z,\Record{p,\dhkr}}\,\dhk.\hforward((z,p,\dhkr),\dhk) \\
+              \el \smallskip\\
+\hid &\defas& \dlam\,\Record{z,\Record{p,\dhkr}}\,\dhk.\hforward((z,p,\dhkr),\dhk) \smallskip\\
 \rid &\defas& \dlam x\, \dhk.\Let\; (\vhops \dcons \dk \dcons \dhk') = \dhk \;\In\; \dk \dapp x \dapp \dhk'
 % \pcps{-} &:& \CompCat \to \UCompCat\\
 % \pcps{M} &\defas& \cps{M} \sapp (\reflect \kid \scons \reflect (\dlam x\,\dhk.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil) \\
 \end{equations}
 %
-We adapt the representation of continuations so that the current pure
-continuation is separate from the pure continuation corresponding to
-the return clause.
+The main difference between this translation rule and the translation
+rule for deep handler operation clauses is the realisation of
+resumptions.
 %
-Thus a stack of continuations is now a sequence of triples consisting
-of two pure continuations followed by an effect continuation.
+Recall that a resumption is represented as a reversed slice of a
+continuation. Thus the deconstruction of the resumption $\dhkr$
+effectively ensures that the current handler gets properly
+uninstalled. However, it presents a new problem as the remainder
+$\dhkr'$ is not a well-formed continuation slice, because the top
+element is a pure continuation without a handler.
 %
-Crucially, this enables us to replace the current handler with a dummy
-identity handler in the resumption of a shallow handler clause.
+
+To rectify this problem, we can insert a dummy identity handler
+composed from $\hid$ and $\rid$. The effect continuation $\hid$
+forwards every operation, and the pure continuation $\rid$ is an
+identity clause. Thus every operation and the return value will be
+effectively be handled by the next handler.
 %
-Unfortunately, inserting such dummy handlers can lead to memory
-leaks. Avoiding these memory leaks requires a more sophisticated
-approach, which we defer to future work.
+Unfortunately, inserting such dummy handlers lead to memory
+leaks.
+%
+\dhil{Give the counting example}
+%
+
+Instead of inserting dummy handlers, one may consider composing the
+current pure continuation with the next pure continuation, meaning
+that the current pure continuation would be handled accordingly by the
+next handler. To retrieve the next pure continuation, we must reach
+under the next handler, i.e. something along the lines of the
+following.
+%
+\[
+  \bl
+    \Let\;(\_ \dcons \_ \dcons \dk \dcons \vhops \dcons \vhret \dcons \dk' \dcons rs') = rs\;\In\\
+    \Let\;r = \Res\,(\vhops \dcons \vhret \dcons (\dk' \circ \dk) \dcons rs')\;\In\;\dots
+  \el
+\]
+%
+where $\circ$ is defined to be function composition in continuation
+passing style.
+%
+\[
+  g \circ f \defas \lambda x\,\dhk.
+    \ba[t]{@{}l}
+      \Let\;(\dk \dcons \dhk') = \dhk\; \In\\
+      f \dapp x \dapp ((\lambda x\,\dhk. g \dapp x \dapp (\dk \dcons \dhk)) \dcons \dhk')
+    \ea
+\]
+%
+This idea is cute, but it reintroduces a variation of the dynamic
+redexes we dealt with in
+Section~\ref{sec:first-order-explicit-resump}.
+%
+Both solutions side step the underlying issue, namely, that the
+continuation structure is still too extensional. The need for a more
+intensional structure is evident in the insertion of $\kid$ in the
+translation of $\Handle$ as a placeholder for the empty pure
+continuation. Another telltale is that the disparity of continuation
+deconstructions also gets bigger. The continuation representation
+needs more structure. While it is seductive to program with lists, it
+quickly gets unwieldy.
 
 \subsection{Simultaneous CPS transform for deep and shallow handlers}
 \label{sec:cps-deep-shallow}
