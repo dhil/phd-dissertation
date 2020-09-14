@@ -3292,10 +3292,10 @@ interpretation.
        \ea
 \end{equations}
 %
-As before, it discards its associated effect continuation, which is
-the first element of the dynamic continuation $ks$. In addition it
-extracts the next continuation triple and reifies it as a static
-continuation triple.
+As before, the translation ensures that the associated effect
+continuation is discarded (the first element of the dynamic
+continuation $ks$). In addition the next continuation triple is
+extracted and reified as a static continuation triple.
 %
 The interesting rule is the translation of operation clauses.
 %
@@ -3341,7 +3341,7 @@ element is a pure continuation without a handler.
 To rectify this problem, we can insert a dummy identity handler
 composed from $\hid$ and $\rid$. The effect continuation $\hid$
 forwards every operation, and the pure continuation $\rid$ is an
-identity clause. Thus every operation and the return value will be
+identity clause. Thus every operation and the return value will
 effectively be handled by the next handler.
 %
 Unfortunately, inserting such dummy handlers lead to memory
@@ -3350,17 +3350,20 @@ leaks.
 \dhil{Give the counting example}
 %
 
-Instead of inserting dummy handlers, one may consider composing the
-current pure continuation with the next pure continuation, meaning
-that the current pure continuation would be handled accordingly by the
-next handler. To retrieve the next pure continuation, we must reach
-under the next handler, i.e. something along the lines of the
-following.
+The use of dummy handlers is symptomatic for the need of a more
+general notion of resumptions. Upon resumption invocation the dangling
+pure continuation should be composed with current pure continuation
+which suggests shallow variation of the resumption construction
+primitive $\Res$ that behaves along the following lines.
 %
 \[
   \bl
-    \Let\;(\_ \dcons \_ \dcons \dk \dcons \vhops \dcons \vhret \dcons \dk' \dcons rs') = rs\;\In\\
-    \Let\;r = \Res\,(\vhops \dcons \vhret \dcons (\dk' \circ \dk) \dcons rs')\;\In\;\dots
+    \Let\; r = \Res^\dagger (\_ \dcons \_ \dcons \dk \dcons h_n^{\mathrm{ops}} \dcons h_n^{\mathrm{ret}} \dcons \dk_n \dcons \cdots \dcons h_1^{\mathrm{ops}} \dcons h_1^{\mathrm{ret}} \dcons \dk_1 \dcons \dnil)\;\In\;N \reducesto\\
+    \quad N[(\dlam x\,\dhk.
+       \ba[t]{@{}l}
+          \Let\; (\dk' \dcons \dhk') = \dhk\;\In\\
+          \dk_1 \dapp x \dapp (h_1^{\mathrm{ret}} \dcons h_1^{\mathrm{ops}} \cdots \dcons \dk_n \dcons h_n^{\mathrm{ret}} \dcons h_n^{\mathrm{ops}} \dcons (\dk' \circ \dk) \dcons \dhk'))/r]
+       \ea
   \el
 \]
 %
@@ -3375,21 +3378,296 @@ passing style.
     \ea
 \]
 %
-This idea is cute, but it reintroduces a variation of the dynamic
-redexes we dealt with in
-Section~\ref{sec:first-order-explicit-resump}.
+The idea is that $\Res^\dagger$ uninstalls the appropriate handler and
+composes the dangling pure continuation $\dk$ with the next
+\emph{dynamically determined} pure continuation $\dk'$, and reverses
+the remainder of the resumption and composes it with the modified
+dynamic continuation ($(\dk' \circ \dk) \dcons ks'$).
 %
-Both solutions side step the underlying issue, namely, that the
-continuation structure is still too extensional. The need for a more
-intensional structure is evident in the insertion of $\kid$ in the
-translation of $\Handle$ as a placeholder for the empty pure
-continuation. Another telltale is that the disparity of continuation
-deconstructions also gets bigger. The continuation representation
-needs more structure. While it is seductive to program with lists, it
-quickly gets unwieldy.
 
-\subsection{Effect handlers via generalised continuations}
-\label{sec:cps-deep-shallow}
+While the underlying idea is correct, this particular realisation of
+the idea is problematic as the use of function composition
+reintroduces a variation of the dynamic administrative redexes that we
+dealt with in Section~\ref{sec:first-order-explicit-resump}.
+%
+In order to avoid generating these administrative redexes we need a
+more intensional continuation representation.
+%
+Another telltale for a more intensional continuation representation is
+the necessary use of the administrative function $\kid$ in the
+translation of $\Handle$ as a placeholder for the empty pure
+continuation.
+%
+In terms of aesthetics, the non-uniform continuation deconstructions
+also suggest that we could do with a more structured interpretation of
+continuations.
+%
+Although it is seductive to program with lists, it quickly gets
+unwieldy.
+
+% The underlying issue is that the continuation structure is still too
+% extensional. The need for a more intensional structure is evident in
+% the insertion of $\kid$ in the translation of $\Handle$ as a
+% placeholder for the empty pure continuation. Another telltale for a
+% more general notion of continuation is that continuation
+% deconstructions are non-uniform due to the single flat list
+% continuation representation. While stuffing everything into lists is
+% seductive, it quickly gets unwieldy.
+
+% Instead of inserting dummy handlers, one may consider composing the
+% current pure continuation with the next pure continuation, meaning
+% that the current pure continuation would be handled accordingly by the
+% next handler. To retrieve the next pure continuation, we must reach
+% under the next handler, i.e. something along the lines of the
+% following.
+% %
+% \[
+%   \bl
+%     \Let\;(\_ \dcons \_ \dcons \dk \dcons \vhops \dcons \vhret \dcons \dk' \dcons rs') = rs\;\In\\
+%     \Let\;r = \Res\,(\vhops \dcons \vhret \dcons (\dk' \circ \dk) \dcons rs')\;\In\;\dots
+%   \el
+% \]
+% %
+% where $\circ$ is defined to be function composition in continuation
+% passing style.
+% %
+% \[
+%   g \circ f \defas \lambda x\,\dhk.
+%     \ba[t]{@{}l}
+%       \Let\;(\dk \dcons \dhk') = \dhk\; \In\\
+%       f \dapp x \dapp ((\lambda x\,\dhk. g \dapp x \dapp (\dk \dcons \dhk)) \dcons \dhk')
+%     \ea
+% \]
+% %
+% This idea is cute, but it reintroduces a variation of the dynamic
+% redexes we dealt with in
+% Section~\ref{sec:first-order-explicit-resump}.
+% %
+% Both solutions side step the underlying issue, namely, that the
+% continuation structure is still too extensional. The need for a more
+% intensional structure is evident in the insertion of $\kid$ in the
+% translation of $\Handle$ as a placeholder for the empty pure
+% continuation. Another telltale is that the disparity of continuation
+% deconstructions also gets bigger. The continuation representation
+% needs more structure. While it is seductive to program with lists, it
+% quickly gets unwieldy.
+
+\subsection{Generalised continuations}
+\label{sec:generalised-continuations}
+
+One problem is that the continuation representation used by the
+higher-order uncurried translation for deep handlers is too
+extensional to support shallow handlers efficiently. Specifically, the
+representation of pure continuations needs to be more intensional to
+enable composition of pure continuations without having to materialise
+administrative continuation functions.
+%
+
+Another problem is that the continuation representation integrates the
+return clause into the pure continuations, but the semantics of
+shallow handlers demands that this return clause is discarded when any
+of the operations is invoked.
+
+The solution to the first problem is to reuse the key idea of
+Section~\ref{sec:first-order-explicit-resump} to avert administrative
+continuation functions by representing a pure continuation as an
+explicit list consisting of pure continuation functions. As a result
+the composition of pure continuation functions can be realised as a
+simple cons-operation.
+%
+
+The solution to the second problem is to pair the continuation
+functions corresponding to the $\Return$-clause and operation clauses
+in order to distinguish the pure continuation function induced by a
+$\Return$-clause from those induced by $\Let$-expressions.
+%
+
+Plugging these two solutions yields the notion of \emph{generalised
+  continuations}. A generalised continuation is a list of
+\emph{continuation frames}. A continuation frame is a triple
+$\Record{fs, \Record{\vhret, \vhops}}$, where $fs$ is list of stack
+frames representing the pure continuation for the computation
+occurring between the current execution and the handler, $\vhret$ is
+the (translation of the) return clause of the enclosing handler, and
+$\vhops$ is the (translation of the) operation clauses.
+%
+
+The change of representation of pure continuations does mean that we
+can no longer invoke them by simple function application. Instead, we
+must inspect the structure of the pure continuation $fs$ and act
+appropriately. To ease notation it is convenient introduce a new
+computation form for pure continuation application $\kapp\;V\;W$ that
+feeds a value $W$ into the continuation represented by $V$. There are
+two reduction rules.
+%
+\begin{reductions}
+  \usemlab{KAppNil}
+  & \kapp\;(\dRecord{\dnil, \dRecord{\vhret, \vhops}} \dcons \dhk)\,W
+  & \reducesto
+  & \vhret\,W\,\dhk
+  \\
+  \usemlab{KAppCons}
+  & \kapp\;(\dRecord{f \cons fs, h} \dcons \dhk)\,W
+  & \reducesto
+  & f\,W\,(\dRecord{fs, h} \dcons \dhk)
+\end{reductions}
+%
+The first rule describes what happens when the pure continuation is
+exhausted and the return clause of the enclosing handler is
+invoked. The second rule describes the case when the pure continuation
+has at least one element: this pure continuation function is invoked
+and the remainder of the continuation is passed in as the new
+continuation.
+
+We must also change how resumptions (i.e. reversed continuations) are
+converted into functions that can be applied. Resumptions for deep
+handlers ($\Res\,V$) are similar to
+Section~\ref{sec:first-order-explicit-resump}, except that we now use
+$\kapp$ to invoke the continuation. Resumptions for shallow handlers
+($\Res^\dagger\,V$) are more complex. Instead of taking all the frames
+and reverse appending them to the current stack, we remove the current
+handler $h$ and move the pure continuation
+($f_1 \dcons \dots \dcons f_m \dcons \dnil$) into the next frame. This
+captures the intended behaviour of shallow handlers: they are removed
+from the stack once they have been invoked. The following two
+reduction rules describe their behaviour.
+%
+\[
+  \ba{@{}l@{\quad}l}
+    \usemlab{Res}
+    & \Let\;r=\Res\,(V_n \dcons \dots \dcons V_1 \dcons \dnil)\;\In\;N
+      \reducesto N[\dlam x\, \dhk.\kapp\;(V_1 \dcons \dots V_n \dcons \dhk)\,x/r] \\
+    \usemlab{Res^\dagger}
+    & \Let\;r=\Res^\dagger\,(\dRecord{f_1 \dcons \dots \dcons f_m \dcons \nil, h} \dcons V_n \dcons \dots \dcons V_1 \dcons \dnil)\;\In\;N \reducesto \\
+    & \qquad N[\dlam x\,\dhk.\bl
+             \Let\,\dRecord{fs',h'} \dcons \dhk' = \dhk\;\In\;\\
+             \kapp\,(V_1 \dcons \dots \dcons V_n \dcons \dRecord{f_1 \dcons \dots \dcons f_m \dcons fs', h'} \dcons \dhk')\,x/r]
+             \el
+  \ea
+\]
+%
+These constructs along with their reduction rules are
+macro-expressible in terms of the existing constructs.
+%
+I choose here to treat them as primitives in order to keep the
+presentation relatively concise.
+
+\subsection{Dynamic terms: the target calculus revisited}
+
+\begin{figure}[t]
+\textbf{Syntax}
+\begin{syntax}
+\slab{Values}        &V, W \in \UValCat &::= & x \mid \dlam x\,\dhk.M \mid \Rec\,g\,x\,\dhk.M \mid \ell \mid \dRecord{V, W}
+\smallskip \\
+\slab{Computations}  &M,N \in \UCompCat  &::= & V \mid U \dapp V \dapp W \mid \Let\; \dRecord{x, y} = V \; \In \; N \\
+&     &\mid& \Case\; V\, \{\ell \mapsto M; x \mapsto N\} \mid \Absurd\;V\\
+&     &\mid& \kapp\,V\,W \mid \Let\;r=\Res^\depth\;V\;\In\;M
+\end{syntax}
+\textbf{Syntactic sugar}
+\begin{displaymath}
+\bl
+\begin{eqs}
+\Let\; x = V \;\In\; N &\equiv& N[V/x] \\
+\ell\;V &\equiv& \dRecord{\ell, V} \\
+\end{eqs}
+\qquad
+\begin{eqs}
+\Record{} &\equiv& \ell_{\Record{}} \\
+\Record{\ell=V; W} &\equiv& \ell\;\dRecord{V, W} \\
+\end{eqs}
+\qquad
+\begin{eqs}
+\dnil &\equiv& \ell_{\dnil} \\
+V \dcons W &\equiv& \ell_{\dcons}\;\dRecord{V, W} \\
+\end{eqs}
+\smallskip \\
+\ba{@{}c@{\quad}c@{}}
+\Case\;V\;\{\ell\,x \mapsto M; y \mapsto N\} \equiv \\
+  \qquad \bl
+         \Let\; y=V \;\In\;
+         \Let\; \dRecord{z, x} = y \;\In \\
+         \Case\;z\;\{\ell \mapsto M; z \mapsto N\} \\
+         \el \\
+\ea
+\qquad
+\ba{@{}l@{\quad}l@{}}
+\Let\;\Record{\ell=x; y} = V \;\In\; N \equiv \\
+  \qquad \bl
+         \Let\; \dRecord{z, z'} = V \;\In\;
+         \Let\; \dRecord{x, y} = z' \;\In \\
+         \Case\; z \;\{\ell \mapsto N; z \mapsto \ell_{\bot}\} \\
+         \el \\
+\ea \\
+\el
+\end{displaymath}
+%
+\textbf{Standard reductions}
+%
+\begin{reductions}
+%% Standard reductions
+\usemlab{App}       & (\dlam x\,\dhk.M) \dapp V \dapp W &\reducesto& M[V/x, W/\dhk] \\
+\usemlab{Rec}       & (\Rec\,g\,x\,\dhk.M) \dapp V \dapp W &\reducesto& M[\Rec\,g\,x\,\dhk.M/g, V/x, W/\dhk] \smallskip\\
+\usemlab{Split}     & \Let \; \dRecord{x, y} = \dRecord{V, W} \; \In \; N &\reducesto& N[V/x, W/y] \\
+\usemlab{Case_1}  &
+  \Case \; \ell \,\{ \ell \; \mapsto M; x \mapsto N\} &\reducesto& M \\
+\usemlab{Case_2}  &
+  \Case \; \ell \,\{ \ell' \; \mapsto M; x \mapsto N\} &\reducesto& N[\ell/x], \hfill\quad \text{if } \ell \neq \ell' \smallskip\\
+\end{reductions}
+%
+\textbf{Continuation reductions}
+%
+\begin{reductions}
+\usemlab{KAppNil} &
+  \kapp \; (\dRecord{\dnil, \dRecord{v, e}} \dcons \dhk) \, V &\reducesto& v \dapp V \dapp \dhk \\
+\usemlab{KAppCons} &
+  \kapp \; (\dRecord{\dlf \dcons \dlk, h} \dcons \dhk) \, V   &\reducesto& \dlf \dapp V \dapp (\dRecord{\dlk, h} \dcons \dhk) \\
+\end{reductions}
+%
+\textbf{Resumption reductions}
+%
+\[
+\ba{@{}l@{\quad}l@{}}
+\usemlab{Res} &
+\Let\;r=\Res(V_n \dcons \dots \dcons V_1 \dcons \dnil)\;\In\;N \reducesto \\
+&\quad N[\dlam x\,\dhk. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons \dhk' = \dhk\;\In\\
+                       \kapp\;(V_1 \dcons \dots \dcons V_n \dcons \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhk')\;x/r]\el
+\\
+\usemlab{Res^\dagger} &
+\Let\;r=\Res^\dagger(\dRecord{\dlf_1 \dcons \dots \dcons \dlf_m \dcons \dnil, h} \dcons V_n \dcons \dots \dcons V_1 \dcons \dnil)\;\In\;N \reducesto\\
+  & \quad N[\dlam x\,k. \bl
+           \Let\;\dRecord{\dlk', h'} \dcons \dhk' = \dhk \;\In \\
+           \kapp\;(V_1 \dcons \dots \dcons V_n \dcons \dRecord{\dlf_1 \dcons \dots \dcons \dlf_m \dcons \dlk', h'} \dcons \dhk')\;x/r] \\
+           \el
+\ea
+\]
+%
+\caption{Untyped target calculus supporting generalised continuations.}
+\label{fig:cps-target-gen-conts}
+\end{figure}
+
+Let us revisit the target
+calculus. Figure~\ref{fig:cps-target-gen-conts} depicts the untyped
+target calculus with support for generalised continuations.
+%
+This is essentially the same as the target calculus used for the
+higher-order uncurried CPS translation for deep effect handlers in
+Section~\ref{sec:higher-order-uncurried-deep-handlers-cps}, except for
+the addition of recursive functions. The calculus also includes the
+$\kapp$ and $\Let\;r=\Res^\depth\;V\;\In\;N$ constructs described in
+Section~\ref{sec:generalised-continuations}. There is a small
+difference in the reduction rules for the resumption constructs: for
+deep resumptions we do an additional pattern match on the current
+continuation ($\dhk$). This is required to make the simulation proof
+for the CPS translation with generalised continuations
+(Section~\ref{sec:cps-gen-conts}) go through, because it makes the
+functions that resumptions get converted to have the same shape as the
+translation of source level functions -- this is required because the
+operational semantics does not treat resumptions as distinct
+first-class objects, but rather as a special kinds of functions
+
+\subsection{Translation with generalised continuations}
+\label{sec:cps-gen-conts}
+%
 \begin{figure}
 %
 \textbf{Values}
@@ -3459,7 +3737,6 @@ quickly gets unwieldy.
                 \ea \\
 \hforward((y, p, \dhkr), \dhk) &\defas& \bl
               \Let\; \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dhk \;\In \\
-              % \Let\; rk' = \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhkr\;\In\\
               \vhops \dapp \dRecord{y,\dRecord{p, \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhkr}} \dapp \dhk' \\
               \el
 \end{equations}
@@ -3468,15 +3745,33 @@ quickly gets unwieldy.
 %
 \begin{equations}
 \pcps{-}                    &:& \CompCat \to \UCompCat\\
-\pcps{M} &\defas& \cps{M} \sapp (\sRecord{\snil, \sRecord{\reflect \dlam x\,\dhk. x, \reflect \dlam \dRecord{z,\dRecord{p,rk}}\,\dhk.\Absurd~z}} \scons \snil) \\
+\pcps{M} &\defas& \cps{M} \sapp (\sRecord{\snil, \sRecord{\reflect \dlam x\,\dhk. x, \reflect \dlam \dRecord{z,\dRecord{p,\dhkr}}\,\dhk.\Absurd~z}} \scons \snil) \\
 \end{equations}
 %
-\caption{Adjustments to the higher-order uncurried CPS translation.}
-\label{fig:cps-higher-order-uncurried}
+\caption{Higher-order uncurried CPS translation for effect handlers.}
+\label{fig:cps-higher-order-uncurried-simul}
 \end{figure}
 %
 
+The CPS translation is given in
+Figure~\ref{fig:cps-higher-order-uncurried-simul}. In essence, it is
+the same as the CPS translation for deep effect handlers as described
+in Section~\ref{sec:higher-order-uncurried-deep-handlers-cps}, though
+it is adjusted to account for generalised continuation representation.
+%
+The translation of $\Return$ invokes the continuation $\shk$ using the
+continuation application primitive $\kapp$.
+%
+The translations of deep and shallow handlers differ only in their use
+of the resumption construction primitive.
 
+A major aesthetic improvement due to the generalised continuation
+representation is that continuation construction and deconstruction is
+now uniform: only a single continuation frame is inspected at any
+time.
+
+\subsubsection{Correctness}
+\dhil{Todo}
 
 \section{Related work}
 \label{sec:cps-related-work}
