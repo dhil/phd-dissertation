@@ -1340,7 +1340,7 @@ realisable function in \BCalc{} is effect-free and total.
 \end{theorem}
 %
 \begin{proof}
-  Proof by induction on typing derivations.
+  By induction on typing derivations.
 \end{proof}
 %
 % \begin{corollary}
@@ -1357,7 +1357,7 @@ some other computation $M'$, then $M'$ is also well typed.
 \end{theorem}
 %
 \begin{proof}
-  Proof by induction on typing derivations.
+  By induction on typing derivations.
 \end{proof}
 
 \section{A primitive effect: recursion}
@@ -3038,8 +3038,8 @@ CPS translation commutes with substitution.
 \end{lemma}
 %
 \begin{proof}
-  Proof is by mutual induction on the structure of $W$, $M$, $\hret$,
-  and $\hops$.
+  By mutual induction on the structure of $W$, $M$, $\hret$, and
+  $\hops$.
 \end{proof}
 %
 It follows as a corollary that top-level substitution is well-behaved.
@@ -3088,7 +3088,7 @@ context.
 \end{lemma}
 %
 \begin{proof}
-  Proof by structural induction on the evaluation context $\EC$.
+  By structural induction on the evaluation context $\EC$.
 \end{proof}
 %
 Even though we have eliminated the static administrative redexes, we
@@ -3126,7 +3126,7 @@ reductions, i.e.
 \end{lemma}
 %
 \begin{proof}
-  Proof is by induction on the structure of $M$.
+  By induction on the structure of $M$.
 \end{proof}
 %
 We next observe that the CPS translation simulates forwarding.
@@ -3144,7 +3144,7 @@ If $\ell \notin dom(H_1)$ then
 \end{lemma}
 %
 \begin{proof}
-  Proof by direct calculation.
+  By direct calculation.
 \end{proof}
 %
 Now we show that the translation simulates the \semlab{Op}
@@ -3179,7 +3179,7 @@ If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
 \end{theorem}
 %
 \begin{proof}
-  Proof is by case analysis on the reduction relation using Lemmas
+  By case analysis on the reduction relation using Lemmas
   \ref{lem:decomposition}--\ref{lem:handle-op}. The \semlab{Op} case
   follows from Lemma~\ref{lem:handle-op}.
 \end{proof}
