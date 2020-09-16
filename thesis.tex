@@ -3552,6 +3552,8 @@ macro-expressible in terms of the existing constructs.
 I choose here to treat them as primitives in order to keep the
 presentation relatively concise.
 
+\dhil{Remark that a `generalised continuation' is a defunctionalised continuation.}
+
 \subsection{Dynamic terms: the target calculus revisited}
 
 \begin{figure}[t]
@@ -3663,7 +3665,7 @@ for the CPS translation with generalised continuations
 functions that resumptions get converted to have the same shape as the
 translation of source level functions -- this is required because the
 operational semantics does not treat resumptions as distinct
-first-class objects, but rather as a special kinds of functions
+first-class objects, but rather as a special kinds of functions.
 
 \subsection{Translation with generalised continuations}
 \label{sec:cps-gen-conts}
@@ -3771,7 +3773,201 @@ now uniform: only a single continuation frame is inspected at any
 time.
 
 \subsubsection{Correctness}
-\dhil{Todo}
+\label{sec:cps-gen-cont-correctness}
+%
+The correctness of this CPS translation
+(Theorem~\ref{thm:ho-simulation-gen-cont}) follows closely the
+correctness result for the higher-order uncurried CPS translation for
+deep handlers (Theorem~\ref{thm:ho-simulation}). Save for the
+syntactic difference, the most notable difference is the extension of
+the operation handling lemma (Lemma~\ref{lem:handle-op-gen-cont}) to
+cover shallow handling in addition to deep handling. Each lemma is
+stated in terms of static continuations, where the shape of the top
+element is always known statically, i.e., it is of the form
+$\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons
+\sW$. Moreover, the static values $\sV_{fs}$, $\sV_{\mret}$, and
+$\sV_{\mops}$ are all reflected dynamic terms (i.e., of the form
+$\reflect V$). This fact is used implicitly in the proofs.
+
+%
+\begin{lemma}[Substitution]\label{lem:subst-gen-cont}
+  %
+  The CPS translation commutes with substitution in value terms
+  %
+  \[
+    \cps{W}[\cps{V}/x] = \cps{W[V/x]},
+  \]
+  %
+  and with substitution in computation terms
+  \[
+    \ba{@{}l@{~}l}
+      &(\cps{M} \sapp (\sRecord{\sV_{fs},\sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW))[\cps{V}/x]\\
+    = &\cps{M[V/x]} \sapp (\sRecord{\sV_{fs},\sRecord{\sV_{\mret},\sV_{\mops}}} \scons\sW)[\cps{V}/x],
+    \ea
+  \]
+  %
+  and with substitution in handler definitions
+  %
+  \begin{equations}
+     \cps{\hret}[\cps{V}/x]
+      &=& \cps{\hret[V/x]},\\
+     \cps{\hops}[\cps{V}/x]
+      &=& \cps{\hops[V/x]}.
+  \end{equations}
+\end{lemma}
+%
+In order to reason about the behaviour of the \semlab{Op} and
+\semlab{Op^\dagger} rules, which are defined in terms of evaluation
+contexts, we extend the CPS translation to evaluation contexts, using
+the same translations as for the corresponding constructs in $\SCalc$.
+%
+\begin{equations}
+  \cps{[~]}
+  &=& \slam \shk. \shk \\
+  \cps{\Let\; x \revto \EC \;\In\; N}
+  &=&
+  \begin{array}[t]{@{}l}
+    \slam \sRecord{\shf, \sRecord{\svhret, \svhops}} \scons \shk.\\
+    \quad \cps{\EC} \sapp (\bl\sRecord{\reflect((\dlam x\,\dhk.\bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons \dhk'=\dhk\;\In\\
+    \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify\shf),\el\\
+    \sRecord{\svhret,\svhops}} \scons \shk)\el
+  \end{array}
+  \\
+  \cps{\Handle^\depth\; \EC \;\With\; H}
+  &=& \slam \shk.\cps{\EC} \sapp (\sRecord{[], \cps{H}^\depth} \scons \shk)
+\end{equations}
+%
+The following lemma is the characteristic property of the CPS
+translation on evaluation contexts.
+%
+This allows us to focus on the computation within an evaluation
+context.
+%
+\begin{lemma}[Evaluation context decomposition]
+  \label{lem:decomposition-gen-cont}
+  \[
+    \cps{\EC[M]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW)
+   =
+    \cps{M} \sapp (\cps{\EC} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW))
+  \]
+\end{lemma}
+%
+By definition, reifying a reflected dynamic value is the identity
+($\reify \reflect V = V$), but we also need to reason about the
+inverse composition. As a result of the invariant that the translation
+always has static access to the top of the handler stack, the
+translated terms are insensitive to whether the remainder of the stack
+is statically known or is a reflected version of a reified stack. This
+is captured by the following lemma. The proof is by induction on the
+structure of $M$ (after generalising the statement to stacks of
+arbitrary depth), and relies on the observation that translated terms
+either access the top of the handler stack, or reify the stack to use
+dynamically, whereupon the distinction between reflected and reified
+becomes void. Again, this lemma holds when the top of the static
+continuation is known.
+%
+\begin{lemma}[Reflect after reify]
+  \label{lem:reflect-after-reify-gen-cont}
+
+  \[
+    \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \reflect \reify \sW)
+  =
+  \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW).
+  \]
+\end{lemma}
+
+The next lemma states that the CPS translation correctly simulates
+forwarding. The proof is by inspection of how the translation of
+operation clauses treats non-handled operations.
+%
+\begin{lemma}[Forwarding]\label{lem:forwarding-gen-cont}
+  If $\ell \notin dom(H_1)$ then:
+  %
+  \[
+    \bl
+    \cps{\hops_1}^\delta \dapp \dRecord{\ell, \dRecord{V_p, V_{\dhkr}}} \dapp (\dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W)
+    \reducesto^+ \qquad \\
+    \hfill
+       \cps{\hops_2}^\delta \dapp \dRecord{\ell, \dRecord{V_p, \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons V_{\dhkr}}} \dapp W. \\
+    \el
+  \]
+  %
+\end{lemma}
+
+The following lemma is central to our simulation theorem. It
+characterises the sense in which the translation respects the handling
+of operations.  Note how the values substituted for the resumption
+variable $r$ in both cases are in the image of the translation of
+$\lambda$-terms in the CPS translation. This is thanks to the precise
+way that the reductions rules for resumption construction works in our
+dynamic language, as described above.
+%
+\begin{lemma}[Handling]\label{lem:handle-op-gen-cont}
+Suppose $\ell \notin BL(\EC)$ and $\hell = \{\ell\,p\,r \mapsto N_\ell\}$. If $H$ is deep then
+  %
+  \[
+    \bl
+    \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW)) \reducesto^+ \\
+    \quad (\cps{N_\ell} \sapp \sRecord{\sV_{fs},\sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW)\\
+    \qquad \quad [\cps{V}/p,
+    \dlam x\,\dhk.\bl
+    \Let\;\dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dhk\;\In\;\\
+    \cps{\Return\;x} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\reflect \dlk, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect\dhk'))/r]. \\
+    \el\\
+    \el
+  \]
+  %
+  Otherwise if $H$ is shallow then
+  %
+  \[
+   \bl
+    \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}^\dagger} \scons \sRecord{\sV_{fs},\sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW)) \reducesto^+ \\
+    \quad (\cps{N_\ell} \sapp \sRecord{\sV_{fs},\sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW)\\
+    \qquad [\cps{V}/p, \dlam x\,\dhk.  \bl
+    \Let\;\dRecord{\dlk, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dhk \;\In \\
+    \cps{\Return\;x} \sapp (\cps{\EC} \sapp (\sRecord{\reflect \dlk, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect\dhk'))/r]. \\
+    \el \\
+    \el
+  \]
+  %
+\end{lemma}
+
+\medskip
+
+Now the main result for the translation: a simulation result in the
+style of \citet{Plotkin75}.
+%
+\begin{theorem}[Simulation]
+  \label{thm:ho-simulation-gen-cont}
+  If $M \reducesto N$ then
+  \[
+  \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}}
+  \scons \sW) \reducesto^+ \cps{N} \sapp (\sRecord{\sV_{fs},
+    \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW).
+  \]
+\end{theorem}
+
+\begin{proof}
+  The proof is by case analysis on the reduction relation using Lemmas
+  \ref{lem:decomposition-gen-cont}--\ref{lem:handle-op-gen-cont}. In
+  particular, the \semlab{Op} and \semlab{Op^\dagger} cases follow
+  from Lemma~\ref{lem:handle-op-gen-cont}.
+\end{proof}
+
+In common with most CPS translations, full abstraction does not hold
+(a function could count the number of handlers it is invoked within by
+examining the continuation, for example). However, as the semantics is
+deterministic it is straightforward to show a backward simulation
+result.
+%
+\begin{lemma}[Backwards simulation]
+  If $\pcps{M} \reducesto^+ V$ then there exists $W$
+  such that $M \reducesto^* W$ and $\pcps{W} = V$.
+\end{lemma}
+%
+\begin{corollary}
+$M \reducesto^\ast V$ if and only if $\pcps{M} \reducesto^\ast \pcps{V}$.
+\end{corollary}
 
 \section{Related work}
 \label{sec:cps-related-work}

@@ -94,9 +94,11 @@
 \newcommand{\Res}{\keyw{res}}
 
 %% Handler projections.
-\newcommand{\hret}{H^{\mathrm{ret}}}
+\newcommand{\mret}{\mathrm{ret}}
+\newcommand{\mops}{\mathrm{ops}}
+\newcommand{\hret}{H^{\mret}}
 \newcommand{\hval}{\hret}
-\newcommand{\hops}{H^{\mathrm{ops}}}
+\newcommand{\hops}{H^{\mops}}
 %\newcommand{\hex}{H^{\mathrm{ex}}}
 \newcommand{\hell}{H^{\ell}}
 
@@ -273,18 +275,18 @@
 \newcommand{\Fun}{\keyw{fun}}
 
 % Canonical variables for handler components
-\newcommand{\vhret}{h^{\mathrm{ret}}}
-\newcommand{\vhops}{h^{\mathrm{ops}}}
-\newcommand{\svhret}{\chi^{\mathrm{ret}}}
-\newcommand{\svhops}{\chi^{\mathrm{ops}}}
+\newcommand{\vhret}{h^{\mret}}
+\newcommand{\vhops}{h^{\mops}}
+\newcommand{\svhret}{\chi^{\mret}}
+\newcommand{\svhops}{\chi^{\mops}}
 
 % \newcommand{\dk}{\dRecord{fs,\dRecord{\vhret,\vhops}}}
 \newcommand{\dk}{k}
 
 %
-\renewcommand{\hid}{V_\mathrm{ops}}
+\renewcommand{\hid}{V_{\mops}}
 \newcommand{\kid}{V_\mathrm{id}}
-\newcommand{\rid}{V_\mathrm{ret}}
+\newcommand{\rid}{V_{\mret}}
 
 % Examples
 \newcommand{\Pipe}{\dec{pipe}}
