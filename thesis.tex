@@ -1164,11 +1164,11 @@ follows.
 \ea
 \]
 %
-The attentive reader will notice that we are using the same notation
-for type and term substitutions. In fact, we shall go further and
-unify the two notions of substitution by combining them. As such we
-may think of a combined substitution map as pair of a term
-substitution map and a type substitution map, i.e.
+The attentive reader will notice that I am using the same notation for
+type and term substitutions. In fact, we shall go further and unify
+the two notions of substitution by combining them. As such we may
+think of a combined substitution map as pair of a term substitution
+map and a type substitution map, i.e.
 $\sigma : (\VarCat \times \ValCat)^\ast \times (\TyVarCat \times
 \TypeCat)^\ast$. The application of a combined substitution mostly the
 same as the application of a term substitution map save for a couple
@@ -1943,15 +1943,15 @@ Continuation-passing style (CPS) is a \emph{canonical} program
 notation that makes every facet of control flow and data flow
 explicit. In CPS every function takes an additional function-argument
 called the \emph{continuation}, which represents the next computation
-in evaluation position. CPS is canonical in the sense that is
-definable in pure $\lambda$-calculus without any primitives. As an
-informal illustration of CPS consider again the rudimentary factorial
-function from Section~\ref{sec:tracking-div}.
+in evaluation position. CPS is canonical in the sense that it is
+definable in pure $\lambda$-calculus without any further
+primitives. As an informal illustration of CPS consider again the
+rudimentary factorial function from Section~\ref{sec:tracking-div}.
 %
 \[
   \bl
     \dec{fac} : \Int \to \Int\\
-    \dec{fac} \defas \Rec\;f~n.
+    \dec{fac} \defas \lambda n.
        \ba[t]{@{}l}
          \Let\;is\_zero \revto n = 0\;\In\\
          \If\;is\_zero\;\Then\; \Return\;1\\
@@ -1972,23 +1972,18 @@ implementation of this function changes as follows.
   \bl
   \dec{fac}_{\dec{cps}} : \Int \to (\Int \to \alpha) \to \alpha\\
   \dec{fac}_{\dec{cps}} \defas \lambda n.\lambda k.
-     =_{\dec{cps}}~n~0~
-       (\ba[t]{@{~}l}
-          \lambda is\_zero.\\
-          \quad\ba[t]{@{~}l}
+     (=_{\dec{cps}})~n~0~
+       (\lambda is\_zero.
+          \ba[t]{@{~}l}
           \If\;is\_zero\;\Then\; k~1\\
           \Else\;
-          -_{\dec{cps}}~n~1~
+          (-_{\dec{cps}})~n~1~
             (\lambda n'.
                \dec{fac}_{\dec{cps}}~n'~
-                  (\lambda m. *_{\dec{cps}}~n~m~
-                  (\lambda res. k~res))))
+                  (\lambda m. (*_{\dec{cps}})~n~m~k)))
           \ea
-        \ea
   \el
 \]
-%
-\dhil{Adjust the example to avoid stepping into the margin.}
 %
 There are several worthwhile observations to make about the
 differences between the two implementations $\dec{fac}$ and
@@ -2000,12 +1995,9 @@ continuation. By convention the continuation parameter is named $k$ in
 the implementation. The continuation captures the remainder of
 computation that ultimately produces a result of type $\alpha$, or put
 differently: it determines what to do with the result returned by an
-invocation of $\dec{fac}$. Semantically the continuation corresponds
+invocation of $\dec{fac}_{\dec{cps}}$. Semantically the continuation corresponds
 to the surrounding evaluation
-context.% , thus with a bit of hand-waving
-% we can say that for $\EC[\dec{fac}~2]$ the entire evaluation $\EC$
-% would be passed as the continuation argument to the CPS version:
-% $\dec{fac}_{\dec{cps}}~2~\EC$.
+context.
 %
 Secondly note that every $\Let$-binding in $\dec{fac}$ has become a
 function application in $\dec{fac}_{\dec{cps}}$. The functions
@@ -2016,10 +2008,11 @@ has been turned into an application of continuation $k$, and the
 implicit return $n*m$ in the $\Else$-branch has been turned into an
 explicit application of the continuation.
 %
-Thirdly note every function application is in tail position. This is a
-characteristic property of CPS that makes CPS feasible as a practical
-implementation strategy since programs in CPS notation does not
-consume stack space.
+Thirdly note every function application occurs in tail position. This
+is a characteristic property of CPS that makes CPS feasible as a
+practical implementation strategy since programs in CPS notation do
+not consume stack space.
+%
 \dhil{The focus of the introduction should arguably not be to explain CPS.}
 \dhil{Justify CPS as an implementation technique}
 \dhil{Give a side-by-side reduction example of $\dec{fac}$ and $\dec{fac}_{\dec{cps}}$.}
@@ -2110,6 +2103,10 @@ term) to cope with the case of pattern matching failure.
 \caption{Untyped target calculus for the CPS translations.}
 \label{fig:cps-cbv-target}
 \end{figure}
+
+\dhil{Most of the primitives are Church encodable. Discuss the value
+  of treating them as primitive rather than syntactic sugar (target
+  languages such as JavaScript has similar primitives).}
 
 \section{CPS transform for fine-grain call-by-value}
 \label{sec:cps-cbv}
@@ -2266,10 +2263,10 @@ Conceptually, this translation encloses the translated program in a
 top-level handler with an empty collection of operation clauses and an
 identity return clause.
 
-We may regard this particular CPS translation as being simple, because
-it requires virtually no extension to the CPS translation for
-$\BCalc$. However, this translation suffers from two deficiencies
-which makes it unviable in practice.
+A pleasing property of this particular CPS translation is that it is a
+conservative extension to the CPS translation for $\BCalc$. Alas, this
+translation also suffers two displeasing properties which makes it
+unviable in practice.
 
 \begin{enumerate}
   \item The image of the translation is not \emph{properly
@@ -2280,9 +2277,11 @@ which makes it unviable in practice.
 
   \item The image of the translation yields static administrative
     redexes, i.e. redexes that could be reduced statically. This is a
-    classic problem with CPS translation, which is typically dealt
+    classic problem with CPS translations. This problem can be dealt
     with by introducing a second pass to clean up the
-    image~\cite{DanvyF92}.
+    image~\cite{Plotkin75}. By clever means the clean up pass and the
+    translation pass can be fused together to make an one-pass
+    translation~\cite{DanvyF92,DanvyN03}.
 \end{enumerate}
 
 The following minimal example readily illustrates both issues.
@@ -2291,7 +2290,7 @@ The following minimal example readily illustrates both issues.
 \pcps{\Return\;\Record{}}
      &=         & (\lambda k.k\,\Record{})\,(\lambda x.\lambda h.x)\,(\lambda \Record{z,\_}.\Absurd\,z)  \\
      &\reducesto& ((\lambda x.\lambda h.x)\,\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z) \\
-     &\reducesto& (\lambda h.\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z)\\
+     &\reducesto& (\lambda h.\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z) \numberthis\label{eq:cps-admin-reduct} \\
      &\reducesto& \Record{} \\
 \end{equations}
 %
@@ -2314,7 +2313,7 @@ As for administrative redexes, observe that the first reduction is
 administrative. It is an artefact introduced by the translation, and
 thus it has nothing to do with the dynamic semantics of the original
 term. We can eliminate such redexes statically. We will address this
-issue in Section~\ref{sec:higher-order-cps}.
+issue in Section~\ref{sec:higher-order-uncurried-deep-handlers-cps}.
 
 Nevertheless, we can show that the image of this CPS translation
 simulates the preimage. Due to the presence of administrative
@@ -2375,13 +2374,13 @@ target calculus $\UCalc$ as it permits an arbitrary computation term
 in the function position of an application term.
 %
 
-As a first step we may impose a syntax restriction in target calculus
-such that the term in function position must be a value. With this
+As a first step we may restrict the syntax of the target calculus such
+that the term in function position must be a value. With this
 restriction the syntax of $\UCalc$ implements the property that any
 term constructor features at most one computation term, and this
 computation term always appears in tail position. Thus this
 restriction suffices to ensure that every function application will be
-in tail-position.
+in tail position.
 %
 Figure~\ref{fig:refined-cps-cbv-target} contains the adjustments to
 syntax and semantics of $\UCalc$. The target calculus now supports
@@ -2407,7 +2406,7 @@ is no longer well-formed.
 The crux of the problem is that the curried interpretation of
 continuations causes the CPS translation to produce `large'
 application terms, e.g. the translation rule for effect forwarding
-produces three-argument application term.
+produces a three-argument application term.
 %
 To rectify this problem we can adapt the technique of
 \citet{MaterzokB12} to uncurry our CPS translation. Uncurrying
@@ -2478,18 +2477,20 @@ refined translation makes the example properly tail-recursive.
 \begin{equations}
 \pcps{\Return\;\Record{}}
      &=         & (\lambda (k \cons ks).k\,\Record{}\,ks)\,((\lambda x.\lambda ks.x) \cons (\lambda \Record{z, \_}.\lambda ks.\Absurd\,z) \cons \nil)  \\
-     &\reducesto& (\lambda x.\lambda ks.x)\,\Record{}\,((\lambda \Record{z,\_}.\lambda ks.\Absurd\,z) \cons \nil)\\
+     &\reducesto& (\lambda x.\lambda ks.x)\,\Record{}\,((\lambda \Record{z,\_}.\lambda ks.\Absurd\,z) \cons \nil) \numberthis\label{eq:cps-admin-reduct-2}\\
      &\reducesto& \Record{}
 \end{equations}
 %
-The image of this uncurried translation admits three
-$\reducesto$-reduction steps (disregarding the administrative steps
-induced by pattern matching), which is one less step than admitted by
-the image of the curried translation. The `missing' step is precisely
-the partial application of the initial pure continuation function,
-which was not in tail position. Note, however, that the first
-reduction is remains administrative, the reduction is entirely static,
-and as such, it can be dealt with as part of the translation.
+The reduction sequence in the image of this uncurried translation has
+one fewer steps (disregarding the administrative steps induced by
+pattern matching) than in the image of the curried translation. The
+`missing' step is precisely the reduction marked
+(\ref{eq:cps-admin-reduct}), which was a partial application of the
+initial pure continuation function that was not in tail
+position. Note, however, that the first reduction
+(\ref{eq:cps-admin-reduct-2}) remains administrative, the reduction is
+entirely static, and as such, it can be dealt with as part of the
+translation.
 %
 
 \paragraph{Administrative redexes}
@@ -2511,8 +2512,8 @@ a suitable handler (if such one exists).
 %
 The translation presented above realises effect forwarding by
 explicitly applying the next effect continuation. This application is
-an example of a dynamic administrative reduction. Though, not all
-dynamic administrative redexes are necessary, for instance, the
+an example of a dynamic administrative reduction. Not every dynamic
+administrative reduction is necessary, though. For instance, the
 implementation of resumptions as a composition of
 $\lambda$-abstractions gives rise to administrative reductions upon
 invocation. As we shall see in
@@ -2520,8 +2521,8 @@ Section~\ref{sec:first-order-explicit-resump} administrative
 reductions due to resumption invocation can be dealt with by choosing
 a more clever implementation of resumptions.
 
-We can characterise static administrative redexes\dots
-\dhil{Characterise static redexes\dots}
+% We can characterise static administrative redexes\dots
+% \dhil{Characterise static redexes\dots}
 
 % \dhil{Discuss dynamic and static administrative redex.}
 
@@ -2537,7 +2538,7 @@ administrative redexes as function composition necessitates the
 introduction of an additional lambda abstraction.
 %
 
-We can avert generating these administrative redexes by applying a
+We can avoid generating these administrative redexes by applying a
 variation of the technique that we used in the previous section to
 uncurry the curried CPS translation.
 %
@@ -2589,8 +2590,8 @@ resumptions.
 %
 The translation of $\Do$ constructs an initial resumption stack,
 operation clauses extract and convert the current resumption stack
-into a function using the $\Res$, and $\hforward$ augments the current
-resumption stack with the current continuation pair.
+into a function using the $\Res$ construct, and $\hforward$ augments
+the current resumption stack with the current continuation pair.
 %
 
 \subsection{Higher-order translation for deep effect handlers}
@@ -2674,8 +2675,8 @@ resumption stack with the current continuation pair.
 \label{fig:cps-higher-order-uncurried}
 \end{figure}
 %
-In the previous sections, we have step-wise refined the initial
-curried CPS translation for deep effect handlers
+In the previous sections, we have seen step-wise refinements of the
+initial curried CPS translation for deep effect handlers
 (Section~\ref{sec:first-order-curried-cps}) to be properly
 tail-recursive (Section~\ref{sec:first-order-uncurried-cps}) and to
 avoid yielding unnecessary dynamic administrative redexes for
@@ -2686,30 +2687,30 @@ yields static administrative redexes. In this section we will further
 refine the CPS translation to eliminate all static administrative
 redexes at translation time.
 %
-Specifically, we will adapt the translation to a higher-order one-pass
-CPS translation~\citep{DanvyF90} that partially evaluates
+Specifically, the translation will be adapted to a higher-order
+one-pass CPS translation~\citep{DanvyF90} that partially evaluates
 administrative redexes at translation time.
 %
-Following \citet{DanvyN03}, we adopt a two-level lambda calculus
+Following \citet{DanvyN03}, I will use a two-level lambda calculus
 notation to distinguish between \emph{static} lambda abstraction and
 application in the meta language and \emph{dynamic} lambda abstraction
 and application in the target language. To disambiguate syntax
-constructors in the respective calculi we mark static constructors
+constructors in the respective calculi I will mark static constructors
 with a {\color{blue}$\overline{\text{blue overline}}$}, whilst dynamic
 constructors are marked with a
 {\color{red}$\underline{\text{red underline}}$}. The principal idea is
 that redexes marked as static are reduced as part of the translation,
 whereas those marked as dynamic are reduced at runtime. To facilitate
-this notation we write application explicitly using an infix ``at''
-symbol ($@$) in both calculi.
+this notation I will write application explicitly using an infix
+``at'' symbol ($@$) in both calculi.
 
 \paragraph{Static terms}
 %
-As in the dynamic target language, we will represent continuations as
+As in the dynamic target language, continuations are represented as
 alternating lists of pure continuation functions and effect
-continuation functions. To ease notation we are going make use of
-pattern matching notation. The static meta language is generated by
-the following productions.
+continuation functions. To ease notation I will make use of pattern
+matching notation. The static meta language is generated by the
+following productions.
 %
 \begin{syntax}
   \slab{Static patterns} &\sP \in \SPatCat &::=& \sks \mid \sk \scons \sP\\
@@ -2727,7 +2728,7 @@ statically known pure continuations, $\sh$ to denote statically known
 effect continuations, and $\sks$ to denote statically known
 continuations.
 %
-We shall use $\sM$ to range over static computations, which comprise
+I shall use $\sM$ to range over static computations, which comprise
 static values, static application and binary dynamic application of a
 static value to two dynamic values.
 %
@@ -2782,19 +2783,17 @@ ensures that the translation on computation terms has immediate access
 to the next pure and effect continuation functions. In fact, the
 translation is set up such that every generated dynamic
 $\dlam$-abstraction deconstructs its continuation argument
-appropriately to be to expose just enough (static) continuation
-structure in order to guarantee that static pattern matching never
-fails.
+appropriately to expose just enough (static) continuation structure in
+order to guarantee that static pattern matching never fails.
 %
-(Though, the translation is somewhat unsatisfactory regarding this
+(The translation is somewhat unsatisfactory regarding this
 deconstruction of dynamic continuations as the various generated
 dynamic lambda abstractions do not deconstruct their continuation
-arguments uniformly. I will return to discuss this dissatisfaction
-shortly.)
+arguments uniformly.)
 %
 Since the target language is oblivious to types any
 $\Lambda$-abstraction gets translated in a similar way to
-$\Lambda$-abstraction, where the first parameter becomes a placeholder
+$\lambda$-abstraction, where the first parameter becomes a placeholder
 for a ``dummy'' unit argument.
 
 The translation of computation terms is more interesting. Note the
@@ -2806,10 +2805,10 @@ a $\UCalc$-computation term. The static continuation may be
 manipulated during the translation as is done in the translations of
 $\Return$, $\Let$, $\Do$, and $\Handle$. The translation of $\Return$
 consumes the next pure continuation function $\sk$ and applies it
-dynamically it to the translation of $V$ and the reified remainder,
+dynamically to the translation of $V$ and the reified remainder,
 $\sks$, of the static continuation. Keep in mind that the translation
 of $\Return$ only consumes one of the two guaranteed available
-continuation functions from the provided continuation argument, as a
+continuation functions from the provided continuation argument; as a
 consequence the next continuation function in $\sks$ is an effect
 continuation. This consequence is accounted for in the translations of
 $\Let$ and $\Return$-clauses, which are precisely the two possible
@@ -3006,7 +3005,7 @@ construction and deconstruction).
 \label{sec:higher-order-cps-deep-handlers-correctness}
 
 We establish the correctness of the higher-order uncurried CPS
-translation via a simulation result in style of
+translation via a simulation result in the style of
 Plotkin~\cite{Plotkin75} (Theorem~\ref{thm:ho-simulation}). However,
 before we can state and prove this result, we first several auxiliary
 lemmas describing how translated terms behave. First, the higher-order
@@ -3055,9 +3054,9 @@ It follows as a corollary that top-level substitution is well-behaved.
   Lemma~\ref{lem:ho-cps-subst}.
 \end{proof}
 %
-In order to reason about the behaviour \semlab{Op} rule, which is
-defined in terms of an evaluation context, we need to extend the CPS
-translation to evaluation contexts.
+In order to reason about the behaviour of the \semlab{Op} rule, which
+is defined in terms of an evaluation context, we need to extend the
+CPS translation to evaluation contexts.
 %
 \begin{equations}
 \cps{-}                             &:& \EvalCat \to \SValCat\\
@@ -3154,13 +3153,14 @@ rule.
 \label{lem:handle-op}
 If $\ell \notin BL(\EC)$ and $\hell = \{\ell\,p\,r \mapsto N_\ell\}$ then
 %
-\begin{displaymath}
+\[
 \bl
-\cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\reflect\cps{\hret} \scons \reflect\cps{\hops} \scons \sV)) \reducesto^+\areducesto^* \\
+\cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\reflect\cps{\hret} \scons \reflect\cps{\hops} \scons \sV)) \reducesto^+\areducesto^\ast \\
 \quad
-    (\cps{N_\ell} \sapp \sV)[\cps{V}/p, (\lambda y\,ks.\cps{\Return\;y} \sapp (\cps{\EC} \sapp (\reflect\cps{\hret} \scons \reflect\cps{\hops} \scons \reflect ks)))/r] \\
+    (\cps{N_\ell} \sapp \sV)[\cps{V}/p, (\lambda y\,ks.\cps{\Return\;y} \sapp (\cps{\EC} \sapp (\reflect\cps{\hret} \scons \reflect\cps{\hops} \scons \reflect ks)))/]
 \el
-\end{displaymath}
+\]
+%
 \end{lemma}
 %
 \begin{proof}
@@ -3246,8 +3246,8 @@ second corresponds to the return clause of the current handler.
 To distinguish between the two kinds of pure continuations, we shall
 write $\svhret$ for statically known pure continuations arising from
 return clauses, and $\vhret$ for dynamically known ones. Similarly, we
-write $\svhops$ and $\vhops$ for statically and dynamically,
-respectively, known effect continuations. With this notation in mind,
+write $\svhops$ and $\vhops$, respectively, for statically and
+dynamically, known effect continuations. With this notation in mind,
 we may translate operation invocation and handler installation using
 the new interpretation of the continuation representation as follows.
 %
@@ -3352,9 +3352,10 @@ leaks.
 
 The use of dummy handlers is symptomatic for the need of a more
 general notion of resumptions. Upon resumption invocation the dangling
-pure continuation should be composed with current pure continuation
-which suggests shallow variation of the resumption construction
-primitive $\Res$ that behaves along the following lines.
+pure continuation should be composed with the current pure
+continuation which suggests the need for a shallow variation of the
+resumption construction primitive $\Res$ that behaves along the
+following lines.
 %
 \[
   \bl
@@ -3393,14 +3394,14 @@ dealt with in Section~\ref{sec:first-order-explicit-resump}.
 In order to avoid generating these administrative redexes we need a
 more intensional continuation representation.
 %
-Another telltale for a more intensional continuation representation is
-the necessary use of the administrative function $\kid$ in the
-translation of $\Handle$ as a placeholder for the empty pure
-continuation.
+Another telltale sign that we require a more intensional continuation
+representation is the necessary use of the administrative function
+$\kid$ in the translation of $\Handle$ as a placeholder for the empty
+pure continuation.
 %
 In terms of aesthetics, the non-uniform continuation deconstructions
-also suggest that we could do with a more structured interpretation of
-continuations.
+also suggest that we could benefit from a more structured
+interpretation of continuations.
 %
 Although it is seductive to program with lists, it quickly gets
 unwieldy.
@@ -3469,7 +3470,7 @@ shallow handlers demands that this return clause is discarded when any
 of the operations is invoked.
 
 The solution to the first problem is to reuse the key idea of
-Section~\ref{sec:first-order-explicit-resump} to avert administrative
+Section~\ref{sec:first-order-explicit-resump} to avoid administrative
 continuation functions by representing a pure continuation as an
 explicit list consisting of pure continuation functions. As a result
 the composition of pure continuation functions can be realised as a
@@ -3511,6 +3512,8 @@ two reduction rules.
   & \reducesto
   & f\,W\,(\dRecord{fs, h} \dcons \dhk)
 \end{reductions}
+%
+\dhil{Say something about skip frames?}
 %
 The first rule describes what happens when the pure continuation is
 exhausted and the return clause of the enclosing handler is
@@ -3998,6 +4001,8 @@ source program.
 The colon translation captures precisely the intuition that drives CPS
 transforms, namely, that if in the source $M \reducesto^\ast \Return\;V$
 then in the image $\cps{M}\,k \reducesto^\ast k\,\cps{V}$.
+
+\dhil{Check whether the first pass marks administrative redexes}
 
 
 % CPS The colon translation captures the
