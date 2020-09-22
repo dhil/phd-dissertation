@@ -2399,8 +2399,6 @@ These changes to $\UCalc$ immediately invalidate the curried
 translation from the previous section as the image of the translation
 is no longer well-formed.
 %
-% The crux of the problem is the curried representation of the
-% continuation pair.
 The crux of the problem is that the curried interpretation of
 continuations causes the CPS translation to produce `large'
 application terms, e.g. the translation rule for effect forwarding
@@ -2754,10 +2752,20 @@ $\reify \sV$ by induction on their structure.
   \ea
 \]
 %
-%\dhil{Need to spell out that static pattern matching may induce dynamic (administrative) reductions}
-%
+
 \paragraph{Higher-order translation}
 %
+As we shall see this translation manipulates the continuation
+intricate ways; and since we maintain the interpretation of the
+continuation as an alternating list of pure continuation functions and
+effect continuation functions it is useful to define the `parity' of a
+continuation as follows:
+%
+a continuation is said to be \emph{odd} if the top element is an
+effect continuation function, otherwise it is said to \emph{even}.
+
+%
+
 The complete CPS translation is given in
 Figure~\ref{fig:cps-higher-order-uncurried}. In essence, it is the
 same as the refined first-order uncurried CPS translation, although
@@ -2931,6 +2939,11 @@ the image of this translation contains only a single dynamic reduction
 continuation construction and deconstruction); both
 \eqref{eq:cps-admin-reduct-1} and \eqref{eq:cps-admin-reduct-2}
 reductions have been eliminated as part of the translation.
+
+The elimination of static redexes coincides with a refinements of the
+target calculus. Unary application is no longer a necessary
+primitive. Every unary application dealt with by the metalanguage,
+i.e. all unary applications are static.
 
 \paragraph{Implicit lazy continuation deconstruction}
 %
