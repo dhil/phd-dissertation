@@ -2286,15 +2286,13 @@ unviable in practice.
 
 The following minimal example readily illustrates both issues.
 %
-\begin{equations}
+\begin{align*}
 \pcps{\Return\;\Record{}}
-     &=         & (\lambda k.k\,\Record{})\,(\lambda x.\lambda h.x)\,(\lambda \Record{z,\_}.\Absurd\,z)  \\
-     &\reducesto& ((\lambda x.\lambda h.x)\,\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z) \\
-     &\reducesto& (\lambda h.\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z) \numberthis\label{eq:cps-admin-reduct} \\
-     &\reducesto& \Record{} \\
-\end{equations}
-%
-\dhil{Mark the second reduction, so that it can be referred back to}
+     =         & (\lambda k.k\,\Record{})\,(\lambda x.\lambda h.x)\,(\lambda \Record{z,\_}.\Absurd\,z)  \\
+     \reducesto& ((\lambda x.\lambda h.x)\,\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z) \numberthis\label{eq:cps-admin-reduct-1}\\
+     \reducesto& (\lambda h.\Record{})\,(\lambda \Record{z,\_}.\Absurd\,z) \numberthis\label{eq:cps-admin-reduct-2}\\
+     \reducesto& \Record{}
+\end{align*}
 %
 The second and third reductions simulate handling $\Return\;\Record{}$
 at the top level. The second reduction partially applies the curried
@@ -2477,7 +2475,7 @@ refined translation makes the example properly tail-recursive.
 \begin{equations}
 \pcps{\Return\;\Record{}}
      &=         & (\lambda (k \cons ks).k\,\Record{}\,ks)\,((\lambda x.\lambda ks.x) \cons (\lambda \Record{z, \_}.\lambda ks.\Absurd\,z) \cons \nil)  \\
-     &\reducesto& (\lambda x.\lambda ks.x)\,\Record{}\,((\lambda \Record{z,\_}.\lambda ks.\Absurd\,z) \cons \nil) \numberthis\label{eq:cps-admin-reduct-2}\\
+     &\reducesto& (\lambda x.\lambda ks.x)\,\Record{}\,((\lambda \Record{z,\_}.\lambda ks.\Absurd\,z) \cons \nil)\\
      &\reducesto& \Record{}
 \end{equations}
 %
@@ -2485,11 +2483,11 @@ The reduction sequence in the image of this uncurried translation has
 one fewer steps (disregarding the administrative steps induced by
 pattern matching) than in the image of the curried translation. The
 `missing' step is precisely the reduction marked
-(\ref{eq:cps-admin-reduct}), which was a partial application of the
+\eqref{eq:cps-admin-reduct-2}, which was a partial application of the
 initial pure continuation function that was not in tail
-position. Note, however, that the first reduction
-(\ref{eq:cps-admin-reduct-2}) remains administrative, the reduction is
-entirely static, and as such, it can be dealt with as part of the
+position. Note, however, that the first reduction (corresponding to
+\eqref{eq:cps-admin-reduct-1}) remains administrative, the reduction
+is entirely static, and as such, it can be dealt with as part of the
 translation.
 %
 
@@ -2826,7 +2824,8 @@ pure continuation are few. We can derive the all possible
 instantiations systematically by using the operational semantics of
 $\HCalc$. According to the operational semantics the continuation of a
 $\Return$-computation is either the continuation of a
-$\Let$-expression or a $\Return$-clause.
+$\Let$-expression or a $\Return$-clause (a bare top-level
+$\Return$-computation is handled by the $\pcps{-}$ translation).
 %
 The translations of $\Let$-expressions and $\Return$-clauses each
 account for odd continuations. For example, the translation of $\Let$
@@ -2915,161 +2914,6 @@ continuation structure. The forwarding branch also deconstructs the
 continuation, but for a different purpose; it augments the resumption
 $\dhkr$ with the next pure and effect continuation functions.
 
-% The translation of
-% $\Handle$ applies the translation of $M$ to the current continuation
-% extended with the translation of the $\Return$-clause, acting as a
-% pure continuation function, and the translation of operation-clauses,
-% acting as an effect continuation function.
-
-% The translation on values is almost homomorphic on the syntax
-% constructors. The notable exceptions are the translations of
-% $\lambda$-abstractions and $\Lambda$-abstractions. The former gives
-% rise to dynamic computation at runtime, and thus, the translation
-% emits a dynamic $\dlam$-abstraction with two formal parameters: the
-% function parameter, $x$, and the continuation parameter, $ks$. The
-% body of the $\dlam$-abstraction is somewhat anomalous as the
-% continuation $ks$ is subject to immediate dynamic deconstruction just
-% to be reconstructed again and used as a static argument to the
-% translation of the original body computation $M$. This deconstruction
-% and reconstruction may at first glance appear to be rather pointless,
-% however, a closer look reveals that it performs a critical role as it
-% ensures that the translation on computation terms has immediate access
-% to the next pure and effect continuation functions. In fact, the
-% translation is set up such that every generated dynamic
-% $\dlam$-abstraction deconstructs its continuation argument
-% appropriately to expose just enough (static) continuation structure in
-% order to guarantee that static pattern matching never fails.
-% %
-% (The translation is somewhat unsatisfactory regarding this
-% deconstruction of dynamic continuations as the various generated
-% dynamic lambda abstractions do not deconstruct their continuation
-% arguments uniformly.)
-% %
-% Since the target language is oblivious to types any
-% $\Lambda$-abstraction gets translated in a similar way to
-% $\lambda$-abstraction, where the first parameter becomes a placeholder
-% for a ``dummy'' unit argument.
-
-% The translation of computation terms is more interesting. Note the
-% type of the translation function,
-% $\cps{-} : \CompCat \to \SValCat^\ast \to \UCompCat$. It is a binary
-% function, taking a $\HCalc$-computation term as its first argument and
-% a static continuation as its second argument, and ultimately produces
-% a $\UCalc$-computation term. The static continuation may be
-% manipulated during the translation as is done in the translations of
-% $\Return$, $\Let$, $\Do$, and $\Handle$. The translation of $\Return$
-% consumes the next pure continuation function $\sk$ and applies it
-% dynamically to the translation of $V$ and the reified remainder,
-% $\sks$, of the static continuation. Keep in mind that the translation
-% of $\Return$ only consumes one of the two guaranteed available
-% continuation functions from the provided continuation argument; as a
-% consequence the next continuation function in $\sks$ is an effect
-% continuation. This consequence is accounted for in the translations of
-% $\Let$ and $\Return$-clauses, which are precisely the two possible
-% (dynamic) origins of $\sk$. For instance, the translation of $\Let$
-% consumes the current pure continuation function and generates a
-% replacement: a pure continuation function which expects an odd dynamic
-% continuation $ks$, which it deconstructs to expose the effect
-% continuation $h$ along with the current pure continuation function in
-% the translation of $N$. The modified continuation is passed to the
-% translation of $M$.
-% %
-% To provide a flavour of how this continuation manipulation functions
-% in practice, consider the following example term.
-% %
-% \begin{derivation}
-%      &\pcps{\Let\;x \revto \Return\;V\;\In\;N}\\
-%     =& \reason{definition of $\pcps{-}$}\\
-%      &\ba[t]{@{}l}(\slam \sk \scons \sks.\cps{\Return\;V} \sapp
-%         (\reflect(\dlam x\,ks.
-%          \ba[t]{@{}l}
-%            \Let\;(h \dcons ks') = ks \;\In\\
-%            \cps{N} \sapp (\sk \scons \reflect h \scons \reflect ks')) \scons \sks)
-%            \ea\\
-%            \sapp (\reflect (\dlam x\,ks.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil))
-%       \ea\\
-%     =& \reason{definition of $\cps{-}$}\\
-%      &\ba[t]{@{}l}(\slam \sk \scons \sks.(\slam \sk \scons \sks. \reify \sk \dapp \cps{V} \dapp \reify \sks) \sapp
-%         (\reflect(\dlam x\,ks.
-%          \ba[t]{@{}l}
-%            \Let\;(h \dcons ks') = ks \;\In\\
-%            \cps{N} \sapp (\sk \scons \reflect h \scons \reflect ks')) \scons \sks)
-%            \ea\\
-%            \sapp (\reflect (\dlam x\,ks.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil))
-%       \ea\\
-%     =& \reason{static $\beta$-reduction}\\
-%      &(\slam \sk \scons \sks. \reify \sk \dapp \cps{V} \dapp \reify \sks)
-%       \sapp
-%        (\reflect(\dlam x\,\dhk.
-%          \ba[t]{@{}l}
-%            \Let\;(h \dcons \dhk') = \dhk \;\In\\
-%            \cps{N} \sapp
-%            \ba[t]{@{}l}
-%               (\reflect (\dlam x\,\dhk.x) \scons \reflect h \scons \reflect \dhk'))\\
-%               ~~\scons \reflect (\dlam z\,\dhk.\Absurd~z) \scons \snil))
-%            \ea
-%          \ea\\
-%     =& \reason{static $\beta$-reduction}\\
-%     &\ba[t]{@{}l@{~}l}
-%        &(\dlam x\,\dhk.
-%              \Let\;(h \dcons \dhk') = \dhk \;\In\;
-%              \cps{N} \sapp
-%                 (\reflect (\dlam x\,\dhk.x) \scons \reflect h \scons \reflect \dhk'))\\
-%        \dapp& \cps{V} \dapp ((\dlam z\,\dhk.\Absurd~z) \dcons \dnil)\\
-%       \ea\\
-% \reducesto& \reason{\usemlab{App_2}}\\
-%     &\Let\;(h \dcons \dhk') = (\dlam z\,\dhk.\Absurd~z) \dcons \dnil \;\In\;
-%              \cps{N[V/x]} \sapp
-%            (\reflect (\dlam x\,\dhk.x) \scons \reflect h \scons \reflect \dhk'))\\
-% \reducesto^+& \reason{dynamic pattern matching and substitution}\\
-%           &\cps{N[V/x]} \sapp
-%            (\reflect (\dlam x\,\dhk.x) \scons \reflect (\dlam z\,\dhk.\Absurd~z) \scons \reflect \dnil)
-% \end{derivation}
-% %
-% The translation of $\Return$ provides the generated dynamic pure
-% continuation function with the odd continuation
-% $((\dlam z\,ks.\Absurd~z) \dcons \dnil)$. After the \usemlab{App_2}
-% reduction, the pure continuation function deconstructs the odd
-% continuation in order to bind the current effect continuation function
-% to the name $h$, which would have been used during the translation of
-% $N$.
-
-% The translation of $\Do$ consumes both the current pure continuation
-% function and current effect continuation function. It applies the
-% effect continuation function dynamically to an operation package and
-% the reified remainder of the continuation. As usual, the operation
-% package contains the payload and the resumption, which is a reversed
-% slice of the provided continuation. The translation of $\Handle$
-% applies the translation of $M$ to the current continuation extended
-% with the translation of the $\Return$-clause, acting as a pure
-% continuation function, and the translation of operation-clauses,
-% acting as an effect continuation function.
-
-% The translation of a return clause $\hret$ of some handler $H$
-% generates a dynamic lambda abstraction, which expects an odd
-% continuation. In its body it extracts three elements from the
-% continuation parameter $ks$. The first element is discarded as it is
-% the effect continuation corresponding to the translation of
-% $\hops$. The other two elements are used to statically expose the next
-% pure and effect continuation functions in the translation of $N$.
-% %
-% The translation of $\hops$ also generates a dynamic lambda
-% abstraction, which unpacks the operation package to perform a
-% case-split on the operation label $z$. The continuation $ks$ is
-% deconstructed in the branch for $\ell$ in order to expose the
-% continuation structure. The forwarding branch also deconstructs the
-% continuation, however, for a different purpose, namely, to augment the
-% resumption $rs$ the next pure and effect continuation functions.
-%
-\dhil{Remark that an alternative to cluttering the translations with
-  unpacking and repacking of continuations would be to make static
-  pattern generate dynamic let bindings whenever necessary. While it
-  may reduce the dynamic administrative reductions, it makes the
-  simulation proof more complicated.}
-
-%
-\dhil{Spell out why this translation qualifies as `higher-order'.}
-
 Let us revisit the example from
 Section~\ref{sec:first-order-curried-cps} to see that the higher-order
 translation eliminates the static redex at translation time.
@@ -3081,10 +2925,33 @@ translation eliminates the static redex at translation time.
     &\reducesto& \Record{}
 \end{equations}
 %
-In contrast with the previous translations, the image of this
-translation admits only a single dynamic reduction (disregarding the
-dynamic administrative reductions arising from continuation
-construction and deconstruction).
+In contrast with the previous translations, the reduction sequence in
+the image of this translation contains only a single dynamic reduction
+(disregarding the dynamic administrative reductions arising from
+continuation construction and deconstruction); both
+\eqref{eq:cps-admin-reduct-1} and \eqref{eq:cps-admin-reduct-2}
+reductions have been eliminated as part of the translation.
+
+\paragraph{Implicit lazy continuation deconstruction}
+%
+An alternative to the explicit deconstruction of continuations is to
+implicitly deconstruct continuations on demand when static pattern
+matching fails. This was the approach taken by
+\citet*{HillerstromLAS17}. On one hand this approach leads to a
+slightly slicker presentation. On the other hand it complicates the
+proof of correctness as one must account for static pattern matching
+failure.
+%
+A practical argument in favour of the explicit eager continuation
+deconstruction is that it is more accessible from an implementation
+point of view. No implementation details are hidden away in side
+conditions.
+%
+Furthermore, it is not clear that lazy deconstruction has any
+advantage over eager deconstruction, as the translation must reify the
+continuation when it transitions from computations to values and
+reflect the continuation when it transitions from values to
+computations, in which case static pattern matching would fail.
 
 \subsubsection{Correctness}
 \label{sec:higher-order-cps-deep-handlers-correctness}
