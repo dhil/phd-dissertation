@@ -2453,7 +2453,7 @@ Since we now use a list representation for the stacks of
 continuations, we have had to modify the translations of all the
 constructs that manipulate continuations. For $\Return$ and $\Let$, we
 extract the top continuation $k$ and manipulate it analogously to the
-original translation in Figure\ \ref{fig:cps-cbv}. For $\Do$, we
+original translation in Figure~\ref{fig:cps-cbv}. For $\Do$, we
 extract the top pure continuation $k$ and effect continuation $h$ and
 invoke $h$ in the same way as the curried translation, except that we
 explicitly maintain the stack $ks$ of additional continuations. The
@@ -2765,57 +2765,74 @@ Figure~\ref{fig:cps-higher-order-uncurried}. In essence, it is the
 same as the refined first-order uncurried CPS translation, although
 the notation is slightly more involved due to the separation of static
 and dynamic parts.
-%
 
-The translation on values is almost homomorphic on the syntax
-constructors. The notable exceptions are the translations of
-$\lambda$-abstractions and $\Lambda$-abstractions. The former gives
-rise to dynamic computation at runtime, and thus, the translation
-emits a dynamic $\dlam$-abstraction with two formal parameters: the
-function parameter, $x$, and the continuation parameter, $ks$. The
-body of the $\dlam$-abstraction is somewhat anomalous as the
-continuation $ks$ is subject to immediate dynamic deconstruction just
-to be reconstructed again and used as a static argument to the
-translation of the original body computation $M$. This deconstruction
-and reconstruction may at first glance appear to be rather pointless,
-however, a closer look reveals that it performs a critical role as it
-ensures that the translation on computation terms has immediate access
-to the next pure and effect continuation functions. In fact, the
-translation is set up such that every generated dynamic
-$\dlam$-abstraction deconstructs its continuation argument
-appropriately to expose just enough (static) continuation structure in
-order to guarantee that static pattern matching never fails.
-%
-(The translation is somewhat unsatisfactory regarding this
-deconstruction of dynamic continuations as the various generated
-dynamic lambda abstractions do not deconstruct their continuation
-arguments uniformly.)
-%
-Since the target language is oblivious to types any
-$\Lambda$-abstraction gets translated in a similar way to
-$\lambda$-abstraction, where the first parameter becomes a placeholder
-for a ``dummy'' unit argument.
+As before, the translation comprises three translation functions, one
+for each syntactic category: values, computations, and handler
+definitions. Amongst the three functions, the translation function for
+computations stands out, because it is the only one that operates on
+static continuations. Its type signature,
+$\cps{-} : \CompCat \to \SValCat^\ast \to \UCompCat$, signifies that
+it is a binary function, taking a $\HCalc$-computation term as its
+first argument and a static continuation (a list of static values) as
+its second argument, and ultimately produces a $\UCalc$-computation
+term. Thus the computation translation function is able to manipulate
+the continuation. In fact, the translation is said to be higher-order
+because the continuation parameter is a higher-order: it is a list of
+functions.
 
-The translation of computation terms is more interesting. Note the
-type of the translation function,
-$\cps{-} : \CompCat \to \SValCat^\ast \to \UCompCat$. It is a binary
-function, taking a $\HCalc$-computation term as its first argument and
-a static continuation as its second argument, and ultimately produces
-a $\UCalc$-computation term. The static continuation may be
-manipulated during the translation as is done in the translations of
-$\Return$, $\Let$, $\Do$, and $\Handle$. The translation of $\Return$
-consumes the next pure continuation function $\sk$ and applies it
-dynamically to the translation of $V$ and the reified remainder,
-$\sks$, of the static continuation. Keep in mind that the translation
-of $\Return$ only consumes one of the two guaranteed available
-continuation functions from the provided continuation argument; as a
-consequence the next continuation function in $\sks$ is an effect
-continuation. This consequence is accounted for in the translations of
-$\Let$ and $\Return$-clauses, which are precisely the two possible
-(dynamic) origins of $\sk$. For instance, the translation of $\Let$
+To ensure that static continuation manipulation is well-defined the
+translation maintains the invariant that the statically known
+continuation stack ($\sk$) always contains at least two continuation
+functions, i.e. a complete continuation pair consisting of a pure
+continuation function and an effect continuation function.
+%
+This invariant guarantees that all translations are uniform in whether
+they appear statically within the scope of a handler or not, and this
+also simplifies the correctness proof
+(Theorem~\ref{thm:ho-simulation}).
+%
+Maintaining this invariant has a cosmetic effect on the presentation
+of the translation. This effect manifests in any place where a
+dynamically known continuation stack is passed in (as a continuation
+parameter $\dhk$), as it must be deconstructed using a dynamic
+language $\Let$ to expose the continuation structure and subsequently
+reconstructed as a static value with reflected variable names.
+
+The translation of $\lambda$-abstractions provides an example of this
+deconstruction and reconstruction in action. The dynamic continuation
+$\dhk$ is deconstructed to expose to the next pure continuation
+function $\dk$ and effect continuation $h$, and the remainder of the
+continuation $\dhk'$; these names are immediately reflected and put
+back together to form a static continuation that is provided to the
+translation of the body computation $M$.
+
+The only translation rule that consumes a complete reflected
+continuation pair is the translation of $\Do$. The effect continuation
+function, $\sh$, is dynamically applied to an operation package and
+the reified remainder of the continuation $\sks$. As usual, the
+operation package contains the payload and the resumption, which is
+represented as a reversed continuation slice.
+%
+The only other translation rules that manipulate the continuation are
+$\Return$ and $\Let$, which only consume the pure continuation
+function $\sk$. For example, the translation of $\Return$ is a dynamic
+application of $\sk$ to the translation of the value $V$ and the
+remainder of the continuation $\sks$.
+%
+The shape of $\sks$ is odd, meaning that the top element is an effect
+continuation function. Thus the pure continuation $\sk$ has to account
+for this odd shape. Fortunately, the possible instantiations of the
+pure continuation are few. We can derive the all possible
+instantiations systematically by using the operational semantics of
+$\HCalc$. According to the operational semantics the continuation of a
+$\Return$-computation is either the continuation of a
+$\Let$-expression or a $\Return$-clause.
+%
+The translations of $\Let$-expressions and $\Return$-clauses each
+account for odd continuations. For example, the translation of $\Let$
 consumes the current pure continuation function and generates a
 replacement: a pure continuation function which expects an odd dynamic
-continuation $ks$, which it deconstructs to expose the effect
+continuation $\dhk$, which it deconstructs to expose the effect
 continuation $h$ along with the current pure continuation function in
 the translation of $N$. The modified continuation is passed to the
 translation of $M$.
@@ -2880,32 +2897,169 @@ continuation in order to bind the current effect continuation function
 to the name $h$, which would have been used during the translation of
 $N$.
 
-The translation of $\Do$ consumes both the current pure continuation
-function and current effect continuation function. It applies the
-effect continuation function dynamically to an operation package and
-the reified remainder of the continuation. As usual, the operation
-package contains the payload and the resumption, which is a reversed
-slice of the provided continuation. The translation of $\Handle$
-applies the translation of $M$ to the current continuation extended
-with the translation of the $\Return$-clause, acting as a pure
-continuation function, and the translation of operation-clauses,
-acting as an effect continuation function.
-
-The translation of a return clause $\hret$ of some handler $H$
-generates a dynamic lambda abstraction, which expects an odd
-continuation. In its body it extracts three elements from the
-continuation parameter $ks$. The first element is discarded as it is
-the effect continuation corresponding to the translation of
-$\hops$. The other two elements are used to statically expose the next
-pure and effect continuation functions in the translation of $N$.
+The translation of $\Handle$ applies the translation of $M$ to the
+current continuation extended with the translation of the
+$\Return$-clause, acting as a pure continuation function, and the
+translation of operation-clauses, acting as an effect continuation
+function.
 %
-The translation of $\hops$ also generates a dynamic lambda
-abstraction, which unpacks the operation package to perform a
-case-split on the operation label $z$. The continuation $ks$ is
-deconstructed in the branch for $\ell$ in order to expose the
+The translation of a $\Return$-clause discards the effect continuation
+$h$ and in addition exposes the next pure continuation $\dk$ and
+effect continuation $h'$ which are reflected to form a static
+continuation for the translation of $N$.
+%
+The translation of operation clauses unpacks the provided operation
+package to perform a case-split on the operation label $z$. The branch
+for $\ell$ deconstructs the continuation $\dhk$ in order to expose the
 continuation structure. The forwarding branch also deconstructs the
-continuation, however, for a different purpose, namely, to augment the
-resumption $rs$ the next pure and effect continuation functions.
+continuation, but for a different purpose; it augments the resumption
+$\dhkr$ with the next pure and effect continuation functions.
+
+% The translation of
+% $\Handle$ applies the translation of $M$ to the current continuation
+% extended with the translation of the $\Return$-clause, acting as a
+% pure continuation function, and the translation of operation-clauses,
+% acting as an effect continuation function.
+
+% The translation on values is almost homomorphic on the syntax
+% constructors. The notable exceptions are the translations of
+% $\lambda$-abstractions and $\Lambda$-abstractions. The former gives
+% rise to dynamic computation at runtime, and thus, the translation
+% emits a dynamic $\dlam$-abstraction with two formal parameters: the
+% function parameter, $x$, and the continuation parameter, $ks$. The
+% body of the $\dlam$-abstraction is somewhat anomalous as the
+% continuation $ks$ is subject to immediate dynamic deconstruction just
+% to be reconstructed again and used as a static argument to the
+% translation of the original body computation $M$. This deconstruction
+% and reconstruction may at first glance appear to be rather pointless,
+% however, a closer look reveals that it performs a critical role as it
+% ensures that the translation on computation terms has immediate access
+% to the next pure and effect continuation functions. In fact, the
+% translation is set up such that every generated dynamic
+% $\dlam$-abstraction deconstructs its continuation argument
+% appropriately to expose just enough (static) continuation structure in
+% order to guarantee that static pattern matching never fails.
+% %
+% (The translation is somewhat unsatisfactory regarding this
+% deconstruction of dynamic continuations as the various generated
+% dynamic lambda abstractions do not deconstruct their continuation
+% arguments uniformly.)
+% %
+% Since the target language is oblivious to types any
+% $\Lambda$-abstraction gets translated in a similar way to
+% $\lambda$-abstraction, where the first parameter becomes a placeholder
+% for a ``dummy'' unit argument.
+
+% The translation of computation terms is more interesting. Note the
+% type of the translation function,
+% $\cps{-} : \CompCat \to \SValCat^\ast \to \UCompCat$. It is a binary
+% function, taking a $\HCalc$-computation term as its first argument and
+% a static continuation as its second argument, and ultimately produces
+% a $\UCalc$-computation term. The static continuation may be
+% manipulated during the translation as is done in the translations of
+% $\Return$, $\Let$, $\Do$, and $\Handle$. The translation of $\Return$
+% consumes the next pure continuation function $\sk$ and applies it
+% dynamically to the translation of $V$ and the reified remainder,
+% $\sks$, of the static continuation. Keep in mind that the translation
+% of $\Return$ only consumes one of the two guaranteed available
+% continuation functions from the provided continuation argument; as a
+% consequence the next continuation function in $\sks$ is an effect
+% continuation. This consequence is accounted for in the translations of
+% $\Let$ and $\Return$-clauses, which are precisely the two possible
+% (dynamic) origins of $\sk$. For instance, the translation of $\Let$
+% consumes the current pure continuation function and generates a
+% replacement: a pure continuation function which expects an odd dynamic
+% continuation $ks$, which it deconstructs to expose the effect
+% continuation $h$ along with the current pure continuation function in
+% the translation of $N$. The modified continuation is passed to the
+% translation of $M$.
+% %
+% To provide a flavour of how this continuation manipulation functions
+% in practice, consider the following example term.
+% %
+% \begin{derivation}
+%      &\pcps{\Let\;x \revto \Return\;V\;\In\;N}\\
+%     =& \reason{definition of $\pcps{-}$}\\
+%      &\ba[t]{@{}l}(\slam \sk \scons \sks.\cps{\Return\;V} \sapp
+%         (\reflect(\dlam x\,ks.
+%          \ba[t]{@{}l}
+%            \Let\;(h \dcons ks') = ks \;\In\\
+%            \cps{N} \sapp (\sk \scons \reflect h \scons \reflect ks')) \scons \sks)
+%            \ea\\
+%            \sapp (\reflect (\dlam x\,ks.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil))
+%       \ea\\
+%     =& \reason{definition of $\cps{-}$}\\
+%      &\ba[t]{@{}l}(\slam \sk \scons \sks.(\slam \sk \scons \sks. \reify \sk \dapp \cps{V} \dapp \reify \sks) \sapp
+%         (\reflect(\dlam x\,ks.
+%          \ba[t]{@{}l}
+%            \Let\;(h \dcons ks') = ks \;\In\\
+%            \cps{N} \sapp (\sk \scons \reflect h \scons \reflect ks')) \scons \sks)
+%            \ea\\
+%            \sapp (\reflect (\dlam x\,ks.x) \scons \reflect (\dlam z\,ks.\Absurd~z) \scons \snil))
+%       \ea\\
+%     =& \reason{static $\beta$-reduction}\\
+%      &(\slam \sk \scons \sks. \reify \sk \dapp \cps{V} \dapp \reify \sks)
+%       \sapp
+%        (\reflect(\dlam x\,\dhk.
+%          \ba[t]{@{}l}
+%            \Let\;(h \dcons \dhk') = \dhk \;\In\\
+%            \cps{N} \sapp
+%            \ba[t]{@{}l}
+%               (\reflect (\dlam x\,\dhk.x) \scons \reflect h \scons \reflect \dhk'))\\
+%               ~~\scons \reflect (\dlam z\,\dhk.\Absurd~z) \scons \snil))
+%            \ea
+%          \ea\\
+%     =& \reason{static $\beta$-reduction}\\
+%     &\ba[t]{@{}l@{~}l}
+%        &(\dlam x\,\dhk.
+%              \Let\;(h \dcons \dhk') = \dhk \;\In\;
+%              \cps{N} \sapp
+%                 (\reflect (\dlam x\,\dhk.x) \scons \reflect h \scons \reflect \dhk'))\\
+%        \dapp& \cps{V} \dapp ((\dlam z\,\dhk.\Absurd~z) \dcons \dnil)\\
+%       \ea\\
+% \reducesto& \reason{\usemlab{App_2}}\\
+%     &\Let\;(h \dcons \dhk') = (\dlam z\,\dhk.\Absurd~z) \dcons \dnil \;\In\;
+%              \cps{N[V/x]} \sapp
+%            (\reflect (\dlam x\,\dhk.x) \scons \reflect h \scons \reflect \dhk'))\\
+% \reducesto^+& \reason{dynamic pattern matching and substitution}\\
+%           &\cps{N[V/x]} \sapp
+%            (\reflect (\dlam x\,\dhk.x) \scons \reflect (\dlam z\,\dhk.\Absurd~z) \scons \reflect \dnil)
+% \end{derivation}
+% %
+% The translation of $\Return$ provides the generated dynamic pure
+% continuation function with the odd continuation
+% $((\dlam z\,ks.\Absurd~z) \dcons \dnil)$. After the \usemlab{App_2}
+% reduction, the pure continuation function deconstructs the odd
+% continuation in order to bind the current effect continuation function
+% to the name $h$, which would have been used during the translation of
+% $N$.
+
+% The translation of $\Do$ consumes both the current pure continuation
+% function and current effect continuation function. It applies the
+% effect continuation function dynamically to an operation package and
+% the reified remainder of the continuation. As usual, the operation
+% package contains the payload and the resumption, which is a reversed
+% slice of the provided continuation. The translation of $\Handle$
+% applies the translation of $M$ to the current continuation extended
+% with the translation of the $\Return$-clause, acting as a pure
+% continuation function, and the translation of operation-clauses,
+% acting as an effect continuation function.
+
+% The translation of a return clause $\hret$ of some handler $H$
+% generates a dynamic lambda abstraction, which expects an odd
+% continuation. In its body it extracts three elements from the
+% continuation parameter $ks$. The first element is discarded as it is
+% the effect continuation corresponding to the translation of
+% $\hops$. The other two elements are used to statically expose the next
+% pure and effect continuation functions in the translation of $N$.
+% %
+% The translation of $\hops$ also generates a dynamic lambda
+% abstraction, which unpacks the operation package to perform a
+% case-split on the operation label $z$. The continuation $ks$ is
+% deconstructed in the branch for $\ell$ in order to expose the
+% continuation structure. The forwarding branch also deconstructs the
+% continuation, however, for a different purpose, namely, to augment the
+% resumption $rs$ the next pure and effect continuation functions.
 %
 \dhil{Remark that an alternative to cluttering the translations with
   unpacking and repacking of continuations would be to make static
@@ -2913,75 +3067,6 @@ resumption $rs$ the next pure and effect continuation functions.
   may reduce the dynamic administrative reductions, it makes the
   simulation proof more complicated.}
 
-% : the $\dlam$-abstractions generated by translating $\lambda$-abstractions, $\Lambda$-abstractions, and operation clauses expose the next two continuation functions, whilst the dynamic lambda abstraction generated by translating $\Let$ only expose the next continuation, others expose only the next one, and the translation of
-% $\lambda$-abstractions expose the next two continuation functions, 
-
-
-
-% The translation on values and handler definitions generates dynamic
-% lambda abstractions. Whilst the translation on computations generates
-% static lambda abstractions.
-
-% Static continuation application corresponds to
-
-% The translation function for computation terms is staged: for any
-% given computation term the translation yields a static function, which
-% can be applied to a static continuation to ultimately yield a
-% $\UCalc$-computation term. Staging is key to eliminating static
-% administrative redexes as any static function may perform static
-% computation by manipulating its provided static continuation
-
-
-% a binary higher-order
-% function; it is higher-order because its second parameter is a list of
-% static continuation functions.
-
-% A major difference that has a large cosmetic effect on the
-% presentation of the translation is that we maintain the invariant that
-% the statically known stack ($\sk$) always contains at least one frame,
-% consisting of a triple
-% $\sRecord{\reflect V_{fs}, \sRecord{\reflect V_{ret}, \reflect
-%     V_{ops}}}$ of reflected dynamic pure frame stacks, return
-% handlers, and operation handlers. Maintaining this invariant ensures
-% that all translations are uniform in whether they appear statically
-% within the scope of a handler or not, and this simplifies our
-% correctness proof.  To maintain the invariant, any place where a
-% dynamically known stack is passed in (as a continuation parameter
-% $k$), it is immediately decomposed using a dynamic language $\Let$ and
-% repackaged as a static value with reflected variable
-% names. Unfortunately, this does add some clutter to the translation
-% definition, as compared to the translations above. However, there is a
-% payoff in the removal of administrative reductions at run time. The
-% translations presented by \citet{HillerstromLAS17} and
-% \citet{HillerstromL18} did not do this decomposition and repackaging
-% step, which resulted in additional administrative reductions in the
-% translation due to the translations of $\Let$ and $\Do$ being passed
-% dynamic continuations when they were expecting statically known ones.
-%
-
-% The translation on values is mostly homomorphic on the syntax
-% constructors, except for $\lambda$-abstractions and
-% $\Lambda$-abstractions which are translated in the exact same way,
-% because the target calculus has no notion of types. As per usual
-% continuation passing style practice, the translation of a lambda
-% abstraction yields a dynamic binary lambda abstraction, where the
-% second parameter is intended to be the continuation
-% parameter.
-
-% %
-% However, the translation slightly diverge from the usual
-% practice in the translation of the body as the result of $\cps{M}$ is
-% applied statically, rather than dynamically, to the (reflected)
-% continuation parameter.
-% %
-
-% The reason is that the translation on computations is staged: for any
-% given computation term the translation yields a static function, which
-% can be applied to a static continuation to ultimately produce a
-% $\UCalc$-computation term. This staging is key to eliminating static
-% administrative redexes as any static function may perform static
-% computation by manipulating its provided static continuation, as is
-% for instance done in the translation of $\Let$.
 %
 \dhil{Spell out why this translation qualifies as `higher-order'.}
 
@@ -3120,7 +3205,7 @@ reductions, i.e.
 %
 \[
 \cps{M} \sapp (\sV_1 \scons \dots \sV_n \scons \reflect \reify \sW)
-  \areducesto^* \cps{M} \sapp (\sV_1 \scons \dots \sV_n \scons \sW)
+  \areducesto^\ast \cps{M} \sapp (\sV_1 \scons \dots \sV_n \scons \sW)
 \]
 \end{lemma}
 %
@@ -3405,53 +3490,6 @@ interpretation of continuations.
 %
 Although it is seductive to program with lists, it quickly gets
 unwieldy.
-
-% The underlying issue is that the continuation structure is still too
-% extensional. The need for a more intensional structure is evident in
-% the insertion of $\kid$ in the translation of $\Handle$ as a
-% placeholder for the empty pure continuation. Another telltale for a
-% more general notion of continuation is that continuation
-% deconstructions are non-uniform due to the single flat list
-% continuation representation. While stuffing everything into lists is
-% seductive, it quickly gets unwieldy.
-
-% Instead of inserting dummy handlers, one may consider composing the
-% current pure continuation with the next pure continuation, meaning
-% that the current pure continuation would be handled accordingly by the
-% next handler. To retrieve the next pure continuation, we must reach
-% under the next handler, i.e. something along the lines of the
-% following.
-% %
-% \[
-%   \bl
-%     \Let\;(\_ \dcons \_ \dcons \dk \dcons \vhops \dcons \vhret \dcons \dk' \dcons rs') = rs\;\In\\
-%     \Let\;r = \Res\,(\vhops \dcons \vhret \dcons (\dk' \circ \dk) \dcons rs')\;\In\;\dots
-%   \el
-% \]
-% %
-% where $\circ$ is defined to be function composition in continuation
-% passing style.
-% %
-% \[
-%   g \circ f \defas \lambda x\,\dhk.
-%     \ba[t]{@{}l}
-%       \Let\;(\dk \dcons \dhk') = \dhk\; \In\\
-%       f \dapp x \dapp ((\lambda x\,\dhk. g \dapp x \dapp (\dk \dcons \dhk)) \dcons \dhk')
-%     \ea
-% \]
-% %
-% This idea is cute, but it reintroduces a variation of the dynamic
-% redexes we dealt with in
-% Section~\ref{sec:first-order-explicit-resump}.
-% %
-% Both solutions side step the underlying issue, namely, that the
-% continuation structure is still too extensional. The need for a more
-% intensional structure is evident in the insertion of $\kid$ in the
-% translation of $\Handle$ as a placeholder for the empty pure
-% continuation. Another telltale is that the disparity of continuation
-% deconstructions also gets bigger. The continuation representation
-% needs more structure. While it is seductive to program with lists, it
-% quickly gets unwieldy.
 
 \subsection{Generalised continuations}
 \label{sec:generalised-continuations}
