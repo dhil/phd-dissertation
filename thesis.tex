@@ -883,11 +883,60 @@ variables.
 
 \paragraph{Proper tail-recursion}
 
-Many industrial-strength functional programming languages such as
-SML~\cite{MilnerTHM97}, OCaml~\cite{LeroyDFGRV20},
-Scheme~\cite{SperberDFSFM10} rely heavily on being properly
-tail-recursive\dots
-\dhil{TODO define properly tail-recursive}
+Many implementations of functional programming languages to be
+tail-recursive in order to enable unbounded iteration as otherwise
+nested repeated function calls would quickly run out of space on a
+computer.
+%
+Intuitively, tail-recursion permits an already allocated stack frame
+for some on-going function call to be reused by a nested function
+call, provided that this nested call is the last thing to occur before
+returning from the on-going function call.
+%
+Any decent implementation of Standard ML~\cite{MilnerTHM97},
+OCaml~\cite{LeroyDFGRV20}, or Scheme~\cite{SperberDFSFM10} will be
+tail-recursive. I intentionally say implementation, because it is
+often the case that the specification or user manual does not
+explicitly require a suitable implementation to be tail-recursive; in
+fact of the three languages just mentioned only Scheme mandates an
+implementation to be tail-recursive.
+%
+The Scheme specification actually goes further and demands that an
+implementation is \emph{properly tail-recursive}, which provides
+strict guarantees on the asymptotic space consumption of tail
+calls~\cite{Clinger98}.
+
+Tail calls will become important in Chapter~\ref{ch:cps} when I will
+discuss continuation passing style as an implementation technique for
+effect handlers, as tail calls are ubiquitous in continuation passing
+style.
+%
+Therefore let us formally characterise tail calls by adapting a
+syntactic characterisation due to \citet{Clinger98}.
+%
+\begin{definition}[Tail computation]\label{def:tail-comp}
+  The notion of tail computation is defined inductively as follows.
+  %
+  \begin{itemize}
+    \item The body $M$ of a $\lambda$-abstraction ($\lambda x. M$) is a
+      tail computation.
+    \item If $\Case\;V\;\{\ell\,x \mapsto M; y \mapsto N\}$ is a tail
+      computation, then both $M$ and $N$ are tail computations.
+    \item If $\Let\;\Record{\ell = x; y} = V \;\In\;N$ is a tail
+      computation, then $N$ is a tail computation.
+    \item If $\Let\;x \revto M\;\In\;N$ is a tail computation, then
+      $N$ is a tail computation.
+    \item Nothing else is a tail computation.
+  \end{itemize}
+\end{definition}
+%
+\begin{definition}[Tail call]\label{def:tail-call}
+  A tail call is tail computation that has the form $V\,W$.
+\end{definition}
+%
+The syntactic position of a tail call is often referred to as the
+\emph{tail-position}.
+%
 
 \subsection{Typing rules}
 \label{sec:base-language-type-rules}
