@@ -2495,9 +2495,11 @@ We can determine whether a redex is administrative in the image by
 determining whether it corresponds to a redex in the preimage. If
 there is no corresponding redex, then the redex is said to be
 administrative. We can further classify an administrative redex as to
-whether it is \emph{static} or \emph{dynamic}. A static administrative
-redex is a by-product of the translation that does not contribute to
-the implementation of the dynamic behaviour of the preimage.
+whether it is \emph{static} or \emph{dynamic}.
+
+A static administrative redex is a by-product of the translation that
+does not contribute to the implementation of the dynamic behaviour of
+the preimage.
 %
 The separation between value and computation terms in fine-grain
 call-by-value makes it evident where static administrative redexes can
@@ -2506,8 +2508,8 @@ from the translation where each computation term induces a
 $\lambda$-abstraction. Each induced $\lambda$-abstraction must
 necessarily be eliminated by a unary application. These unary
 applications are administrative; they do not correspond to reductions
-in the preimage. Instead the applications that do correspond to
-reductions in the preimage are the binary continuation applications.
+in the preimage. The applications that do correspond to reductions in
+the preimage are the binary (continuation) applications.
 
 A dynamic administrative redex is a genuine implementation detail that
 supports some part of the dynamic behaviour of the preimage. An
@@ -3173,25 +3175,36 @@ If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
 
 In this section we will continue to build upon the higher-order
 uncurried CPS translation
-(Section~\ref{sec:higher-order-uncurried-deep-handlers-cps}). Specifically,
-we will adapt it to be able to translate shallow effect handlers. The
-dynamic nature of shallow handlers pose an interesting challenge as
-shallow resumption invocation discards its handler. Consequently
-evaluation after resumption may occur under a potentially different
-handler which is determined dynamically by the context. This means
-that the CPS translation must be able to update the current
-continuation pair.
-\dhil{Fix the text}
+(Section~\ref{sec:higher-order-uncurried-deep-handlers-cps}) in order
+to add support for shallow handlers. The dynamic nature of shallow
+handlers pose an interesting challenge, because unlike deep resumption
+capture, a shallow resumption capture discards the handler leaving
+behind a dangling pure continuation. The dangling pure continuation
+must be `adopted' by whichever handler the resumption invocation occur
+under. This handler is determined dynamically by the context, meaning
+the CPS translation must be able to modify continuation pairs.
+
+In Section~\ref{sec:cps-shallow-flawed} I will discuss an attempt at a
+`natural' extension of the higher-order uncurried CPS translation for
+deep handlers, but for various reasons this extension is
+flawed. However, the insights gained by attempting this extension
+leads to yet another change of the continuation representation
+(Section~\ref{sec:generalised-continuations}) resulting in the notion
+of a \emph{generalised continuation}.
+%
+In Section~\ref{sec:cps-gen-conts} we will see how generalised
+continuations provide a basis for implementing deep and shallow effect
+handlers simultaneously, solving all of the problems encountered thus
+far uniformly.
 
 \subsection{A specious attempt}
 \label{sec:cps-shallow-flawed}
 %
 Initially it is tempting to try to extend the interpretation of the
 continuation representation in the higher-order uncurried CPS
-translation for deep handlers to squeeze in shallow handlers. The
-first obstacle one encounters is how to decouple a pure continuation
-from its handler such that it can later be `adopted' by another
-handler.
+translation for deep handlers to squeeze in shallow handlers. The main
+obstacle one encounters is how to decouple a pure continuation from
+its handler such that a it can later be picked up by another handler.
 
 To fully uninstall a handler, we must uninstall both the pure
 continuation function corresponding to its return clause and the
@@ -3481,6 +3494,7 @@ presentation relatively concise.
 \dhil{Remark that a `generalised continuation' is a defunctionalised continuation.}
 
 \subsection{Dynamic terms: the target calculus revisited}
+\label{sec:target-calculus-revisited}
 
 \begin{figure}[t]
 \textbf{Syntax}
