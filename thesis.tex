@@ -2499,10 +2499,20 @@ whether it is \emph{static} or \emph{dynamic}. A static administrative
 redex is a by-product of the translation that does not contribute to
 the implementation of the dynamic behaviour of the preimage.
 %
-In contrast, a dynamic administrative redex is a genuine
-implementation detail that supports some part of the dynamic behaviour
-of the preimage. An example of such a detail is the implementation of
-effect forwarding. In $\HCalc$ effect forwarding involves no auxiliary
+The separation between value and computation terms in fine-grain
+call-by-value makes it evident where static administrative redexes can
+arise. They arise from computation terms, which can clearly be seen
+from the translation where each computation term induces a
+$\lambda$-abstraction. Each induced $\lambda$-abstraction must
+necessarily be eliminated by a unary application. These unary
+applications are administrative; they do not correspond to reductions
+in the preimage. Instead the applications that do correspond to
+reductions in the preimage are the binary continuation applications.
+
+A dynamic administrative redex is a genuine implementation detail that
+supports some part of the dynamic behaviour of the preimage. An
+example of such a detail is the implementation of effect
+forwarding. In $\HCalc$ effect forwarding involves no auxiliary
 reductions, any operation invocation is instantaneously dispatched to
 a suitable handler (if such one exists).
 %
@@ -2516,11 +2526,6 @@ invocation. As we shall see in
 Section~\ref{sec:first-order-explicit-resump} administrative
 reductions due to resumption invocation can be dealt with by choosing
 a more clever implementation of resumptions.
-
-% We can characterise static administrative redexes\dots
-% \dhil{Characterise static redexes\dots}
-
-% \dhil{Discuss dynamic and static administrative redex.}
 
 \subsection{Resumptions as explicit reversed stacks}
 \label{sec:first-order-explicit-resump}
