@@ -21,7 +21,8 @@
 \usepackage{caption,subcaption}  % Sub figures support
 \DeclareCaptionFormat{underlinedfigure}{#1#2#3\hrulefill}
 \captionsetup[figure]{format=underlinedfigure}
-\usepackage[T1]{fontenc}      % Fixes font issues
+\usepackage[T1]{fontenc}      % Fixes issues with accented characters
+%\usepackage{libertine}
 %\usepackage{lmodern}
 \usepackage[activate=true,
     final,
@@ -31,13 +32,6 @@
     factor=1100,
     stretch=10,
     shrink=10]{microtype}
-\usepackage{enumerate}        % Customise enumerate-environments
-\usepackage{xcolor}           % Colours
-\usepackage{xspace}           % Smart spacing in commands.
-\usepackage{tikz}
-\usetikzlibrary{fit,calc,trees,positioning,arrows,chains,shapes.geometric,%
-    decorations.pathreplacing,decorations.pathmorphing,shapes,%
-    matrix,shapes.symbols,intersections}
 
 \SetProtrusion{encoding={*},family={bch},series={*},size={6,7}}
               {1={ ,750},2={ ,500},3={ ,500},4={ ,500},5={ ,500},
@@ -50,6 +44,14 @@
      "29={150, }, % right bracket, add space from left
      \textquotedblleft={ ,150}, % left quotation mark, space from right
      \textquotedblright={150, }} % right quotation mark, space from left
+
+\usepackage{enumerate}        % Customise enumerate-environments
+\usepackage{xcolor}           % Colours
+\usepackage{xspace}           % Smart spacing in commands.
+\usepackage{tikz}
+\usetikzlibrary{fit,calc,trees,positioning,arrows,chains,shapes.geometric,%
+    decorations.pathreplacing,decorations.pathmorphing,shapes,%
+    matrix,shapes.symbols,intersections}
 
 \usepackage[customcolors,shade]{hf-tikz}  % Shaded backgrounds.
 \hfsetfillcolor{gray!40}
@@ -881,61 +883,87 @@ bindings, pair deconstructing, and case splitting. In each of those
 cases we subtract the relevant binder(s) from the set of free
 variables.
 
-\paragraph{Proper tail-recursion}
+\paragraph{Tail recursion}
 
-Many implementations of functional programming languages to be
-tail-recursive in order to enable unbounded iteration as otherwise
-nested repeated function calls would quickly run out of space on a
-computer.
+In practice implementations of functional programming languages tend
+to be tail-recursive in order to enable unbounded iteration. Otherwise
+nested (repeated) function calls would quickly run out of stack space
+on a conventional computer.
 %
 Intuitively, tail-recursion permits an already allocated stack frame
 for some on-going function call to be reused by a nested function
 call, provided that this nested call is the last thing to occur before
 returning from the on-going function call.
 %
+A special case is when the nested function call is a fresh invocation
+of the on-going function call, i.e. a self-reference. In this case the
+nested function call is known as a \emph{tail recursive call},
+otherwise it is simply known as a \emph{tail call}.
+%
+Thus the qualifier ``tail-recursive'' may be somewhat confusing as for
+an implementation to be tail-recursive it must support recycling of
+stack frames for tail calls; it is not sufficient to support tail
+recursive calls.
+%
+
 Any decent implementation of Standard ML~\cite{MilnerTHM97},
 OCaml~\cite{LeroyDFGRV20}, or Scheme~\cite{SperberDFSFM10} will be
-tail-recursive. I intentionally say implementation, because it is
-often the case that the specification or user manual does not
-explicitly require a suitable implementation to be tail-recursive; in
-fact of the three languages just mentioned only Scheme mandates an
-implementation to be tail-recursive.
+tail-recursive. I deliberately say implementation rather than
+specification, because it is often the case that the specification or
+the user manual do not explicitly require a suitable implementation to
+be tail-recursive; in fact of the three languages just mentioned only
+Scheme explicitly mandates an implementation to be
+tail-recursive~\cite{SperberDFSFM10}.
 %
-The Scheme specification actually goes further and demands that an
-implementation is \emph{properly tail-recursive}, which provides
-strict guarantees on the asymptotic space consumption of tail
-calls~\cite{Clinger98}.
+% The Scheme specification actually goes further and demands that an
+% implementation is \emph{properly tail-recursive}, which provides
+% strict guarantees on the asymptotic space consumption of tail
+% calls~\cite{Clinger98}.
 
-Tail calls will become important in Chapter~\ref{ch:cps} where we will
-get to discuss continuation passing style as an implementation
-technique for effect handlers, as tail calls are ubiquitous in
-continuation passing style.
+Tail calls will become important in Chapter~\ref{ch:cps} when we will
+discuss continuation passing style as an implementation technique for
+effect handlers, as tail calls happen to be ubiquitous in continuation
+passing style.
 %
-Therefore let us formally characterise tail calls by adapting a
-syntactic characterisation due to \citet{Clinger98}.
+Therefore let us formally characterise tail calls.
 %
-\begin{definition}[Tail computation]\label{def:tail-comp}
-  The notion of tail computation is defined inductively as follows.
+It is safest to use a syntactic characterisation, as opposed to a
+semantic characterisation, because in the presence of control effects
+(which we will add in Chapter~\ref{ch:unary-handlers}) it surprisingly
+tricky to describe tail calls in terms of control flow such as ``the
+last thing to occur before returning from the enclosing function'' as
+a function may return multiple times. In particular, the effects of a
+function may be replayed several times.
+%
+
+For this reason we will adapt a syntactic characterisation of tail
+calls due to \citet{Clinger98}. First, we define what it means for a
+computation to syntactically \emph{appear in tail position}.
+%
+\begin{definition}[Tail position]\label{def:tail-comp}
+  Tail position is a transitive notion for computation terms, which is
+  defined inductively as follows.
   %
   \begin{itemize}
-    \item The body $M$ of a $\lambda$-abstraction ($\lambda x. M$) is a
-      tail computation.
-    \item If $\Case\;V\;\{\ell\,x \mapsto M; y \mapsto N\}$ is a tail
-      computation, then both $M$ and $N$ are tail computations.
-    \item If $\Let\;\Record{\ell = x; y} = V \;\In\;N$ is a tail
-      computation, then $N$ is a tail computation.
-    \item If $\Let\;x \revto M\;\In\;N$ is a tail computation, then
-      $N$ is a tail computation.
-    \item Nothing else is a tail computation.
+    \item The body $M$ of a $\lambda$-abstraction ($\lambda x. M$) appears in
+    tail position.
+    \item If $\Case\;V\;\{\ell\,x \mapsto M; y \mapsto N\}$ appears in tail
+      position, then both $M$ and $N$ appear in tail positions.
+    \item If $\Let\;\Record{\ell = x; y} = V \;\In\;N$ appears in tail
+      position, then $N$ is in tail position.
+    \item If $\Let\;x \revto M\;\In\;N$ appear in tail position, then
+      $N$ appear in tail position.
+    \item Nothing else appears in tail position.
   \end{itemize}
 \end{definition}
 %
 \begin{definition}[Tail call]\label{def:tail-call}
-  A tail call is tail computation that has the form $V\,W$.
+  An application term $V\,W$ is said to be a tail call if it appears
+  in tail position.
 \end{definition}
 %
-The syntactic position of a tail call is often referred to as the
-\emph{tail-position}.
+% The syntactic position of a tail call is often referred to as the
+% \emph{tail-position}.
 %
 
 \subsection{Typing rules}
