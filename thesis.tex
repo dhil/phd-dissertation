@@ -24,6 +24,8 @@
 \usepackage[T1]{fontenc}      % Fixes issues with accented characters
 %\usepackage{libertine}
 %\usepackage{lmodern}
+%\usepackage{palatino}
+% \usepackage{newpxtext,newpxmath}
 \usepackage[activate=true,
     final,
     tracking=true,
@@ -2102,6 +2104,17 @@ not consume stack space.
 \dhil{Justify CPS as an implementation technique}
 \dhil{Give a side-by-side reduction example of $\dec{fac}$ and $\dec{fac}_{\dec{cps}}$.}
 \dhil{Define desirable properties of a CPS translation: properly tail-recursive, no static administrative redexes}
+%
+\begin{definition}[Properly tail-recursive~\cite{Danvy06}]
+ %
+  A CPS translation $\cps{-}$ is properly tail-recursive if the
+  continuation of every CPS transformed tail call $\cps{V\,W}$ within
+  $\cps{\lambda x.M}$ is $k$, where
+  \begin{equations}
+      \cps{\lambda x.M} &=& \lambda x.\lambda k.\cps{M}\\
+      \cps{V\,W} &=& \cps{V}\,\cps{W}\,k.
+    \end{equations}
+\end{definition}
 
 \section{Initial target calculus}
 \label{sec:target-cps}
