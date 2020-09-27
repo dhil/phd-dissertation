@@ -948,7 +948,9 @@ computation to syntactically \emph{appear in tail position}.
   %
   \begin{itemize}
     \item The body $M$ of a $\lambda$-abstraction ($\lambda x. M$) appears in
-    tail position.
+      tail position.
+    \item The body $M$ of a $\Lambda$-abstraction $(\Lambda \alpha.M)$
+      appears in tail position.
     \item If $\Case\;V\;\{\ell\,x \mapsto M; y \mapsto N\}$ appears in tail
       position, then both $M$ and $N$ appear in tail positions.
     \item If $\Let\;\Record{\ell = x; y} = V \;\In\;N$ appears in tail
@@ -2114,7 +2116,17 @@ not consume stack space.
       \cps{\lambda x.M} &=& \lambda x.\lambda k.\cps{M}\\
       \cps{V\,W} &=& \cps{V}\,\cps{W}\,k.
     \end{equations}
-\end{definition}
+  \end{definition}
+
+\[
+    \ba{@{~}l@{~}l}
+    \pcps{(\lambda x.(\lambda y.\Return\;y)\,x)\,\Unit} &= (\lambda x.(\lambda y.\lambda k.k\,y)\,x)\,\Unit\,(\lambda x.x)\\
+    &\reducesto ((\lambda y.\lambda k.k\,y)\,\Unit)\,(\lambda x.x)\\
+    &\reducesto (\lambda k.k\,\Unit)\,(\lambda x.x)\\
+    &\reducesto (\lambda x.x)\,\Unit\\
+    &\reducesto \Unit
+    \ea
+\]
 
 \section{Initial target calculus}
 \label{sec:target-cps}
@@ -3807,8 +3819,7 @@ of the resumption construction primitive.
 
 A major aesthetic improvement due to the generalised continuation
 representation is that continuation construction and deconstruction is
-now uniform: only a single continuation frame is inspected at any
-time.
+now uniform: only a single continuation frame is inspected at a time.
 
 \subsubsection{Correctness}
 \label{sec:cps-gen-cont-correctness}
