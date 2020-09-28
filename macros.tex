@@ -53,6 +53,7 @@
 \newcommand{\UnitType}{1}
 \newcommand{\One}{1}
 \newcommand{\Int}{\mathsf{Int}}
+\newcommand{\Float}{\mathsf{Float}}
 \newcommand{\Bool}{\mathsf{Bool}}
 \newcommand{\List}{\mathsf{List}}
 \newcommand{\Nat}{\mathsf{Nat}}
@@ -188,6 +189,11 @@
 \newcommand{\pto}[0]{\ensuremath{\rightharpoonup}}
 
 %%
+%% Operation arrows
+%%
+\newcommand{\opto}[0]{\ensuremath{\twoheadrightarrow}}
+
+%%
 %% Lists
 %%
 \newcommand{\nil}{\ensuremath{[]}}
@@ -296,6 +302,14 @@
 \newcommand{\Yield}{\dec{Yield}}
 \newcommand{\Await}{\dec{Await}}
 \newcommand{\AddTwo}{\ensuremath{\dec{add}_2}}
+\newcommand{\Option}{\dec{Option}}
+\newcommand{\Some}{\dec{Some}}
+\newcommand{\None}{\dec{None}}
+\newcommand{\Exn}{\dec{Exn}}
+\newcommand{\fail}{\dec{fail}}
+\newcommand{\optionalise}{\dec{optionalise}}
+\newcommand{\bind}{\ensuremath{\gg\!=}}
+\newcommand{\return}{\dec{return}}
 
 % Abstract machine
 \newcommand{\cek}[1]{\ensuremath{\langle #1 \rangle}}

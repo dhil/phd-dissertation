@@ -219,6 +219,8 @@ lean runtime, desugaring of async/await, generators/iterators, 2)
 giving control to programmers, safer microkernels, everything as a
 library.
 
+\section{Why first-class control matters}
+
 \section{Thesis outline}
 Thesis outline\dots
 
@@ -929,13 +931,14 @@ passing style.
 %
 Therefore let us formally characterise tail calls.
 %
-It is safest to use a syntactic characterisation, as opposed to a
-semantic characterisation, because in the presence of control effects
-(which we will add in Chapter~\ref{ch:unary-handlers}) it surprisingly
-tricky to describe tail calls in terms of control flow such as ``the
-last thing to occur before returning from the enclosing function'' as
-a function may return multiple times. In particular, the effects of a
-function may be replayed several times.
+For our purposes, the most robust characterisation is a syntactic
+characterisation, as opposed to a semantic characterisation, because
+in the presence of control effects (which we will add in
+Chapter~\ref{ch:unary-handlers}) it surprisingly tricky to describe
+tail calls in terms of control flow such as ``the last thing to occur
+before returning from the enclosing function'' as a function may
+return multiple times. In particular, the effects of a function may be
+replayed several times.
 %
 
 For this reason we will adapt a syntactic characterisation of tail
@@ -1988,19 +1991,250 @@ getting stuck on an unhandled operation.
   $\typ{\Gamma}{M' : C}$.
 \end{theorem}
 
-\subsection{Coding nontermination}
+\subsection{Deep handlers in action}
+\label{sec:deep-handlers-in-action}
 
-\subsection{Programming with deep handlers}
-\dhil{Exceptions}
-\dhil{Reader}
-\dhil{State}
-\dhil{Nondeterminism}
-\dhil{Inversion of control: generator from iterator}
+The existing literature already covers an extensive amounts of
+examples of programming with deep effect
+handlers~\cite{KammarLO13,KiselyovSS13,Leijen17}.
+
+
+\subsubsection{Exception handling}
+\label{sec:exn-handling-in-action}
+
+Effect handlers subsume a variety of control abstractions, and
+arguably the simplest such abstraction is exception handling.
+
+\begin{example}[Option monad, directly]
+  %
+  To handle the possibility of failure in a pure functional
+  programming language (e.g. Haskell~\cite{JonesABBBFHHHHJJLMPRRW99}),
+  a computation is run under a particular monad $m$ with some monadic
+  operation $\fail : \Unit \to m~\alpha$ for signalling failure.
+  %
+  Concretely, one can use the \emph{option monad} which interprets the
+  success of as $\Some$ value and failure as $\None$.
+  %
+  For good measure, let us first define the option type constructor.
+  %
+  \[
+    \Option~\alpha \defas [\Some:\alpha;\None]
+  \]
+  %
+  The constructor is parameterised by a type variable $\alpha$. The
+  data constructor $\Some$ carries a payload of type $\alpha$, whilst
+  the other data constructor $\None$ carries no payload.
+  %
+  The monadic interface and its implementation for $\Option$ is as
+  follows.
+  %
+  \[
+    \bl
+      \return : \alpha \to \Option~\alpha\\
+      \return~x \defas \Some~x \smallskip\\
+      - \bind - : \Option~\alpha \to (\alpha \to \Option~\beta) \to \Option~\beta\\
+      m \bind k \defas \Case\;m\;\{
+               \ba[t]{@{}l@{~}c@{~}l}
+                  \None   &\mapsto& \None\\
+                  \Some~x &\mapsto& k~x \}
+               \ea \smallskip\\
+     \fail : \Unit \to \Option~\alpha\\
+     \fail~\Unit \defas \None
+    \el
+  \]
+  %
+  The $\return$ operation lifts a given value into monad by tagging it
+  with $\Some$. The $\bind$ operation (pronounced bind) is the monadic
+  sequencing operation. It takes $m$, an instance of the monad, along
+  with a continuation $k$ and pattern matches on $m$ to determine
+  whether to apply the continuation. If $m$ is $\None$ then (a new
+  instance of) $\None$ is returned -- this essentially models
+  short-circuiting of failed computations. Otherwise if $m$ is $\Some$
+  we apply the continuation $k$ to the payload $x$. The $\fail$
+  operation is simply the constant $\None$.
+  %
+
+  Let us put the monad to use. An illustrative example is safe
+  division. Mathematical division is not defined when the denominator
+  is zero. It is standard for implementations of division in safe
+  programming languages to raise an exception, which we can code
+  monadically as follows.
+  %
+  \[
+    \bl
+      -/_{\dec{m}}- : \Record{\Float, \Float} \to \Option~\Float\\
+      n/_{\dec{m}}\,d \defas
+          \If\;d = 0 \;\Then\;\fail~\Unit\;
+          \Else\;\return~(n \div d)
+    \el
+  \]
+  %
+  If the provided denominator $d$ is zero, then the implementation
+  signals failure by invoking the $\fail$ operation. Otherwise, the
+  implementation performs the mathematical division and lifts the
+  result into the monad via $\return$.
+  %
+  A monadic reading of the type signature tells us not only that the
+  computation may fail, but also that failure is interpreted using the
+  $\Option$ monad.
+
+  Let us use this safe implementation of division to implement a safe
+  function for computing the reciprocal plus one for a given number
+  $x$, i.e. $\frac{1}{x} + 1$.
+  %
+  \[
+    \bl
+      \dec{rpo_m} : \Float \to \Option~\Float\\
+      \dec{rpo_m}~x \defas (1.0 /_{\dec{m}}\,x) \bind (\lambda y. \return~(y + 1.0))
+    \el
+  \]
+  %
+  The implementation first computes the (monadic) result of dividing 1
+  by $x$, and subsequently sequences this result with a continuation
+  that adds one to the result.
+  %
+  Consider some example evaluations.
+  %
+  \[
+    \ba{@{~}l@{~}c@{~}l}
+      \dec{rpo_m}~1.0    &\reducesto^+& \Some~2.0\\
+      \dec{rpo_m}~(-1.0) &\reducesto^+& \Some~0.0\\
+      \dec{rpo_m}~0.0    &\reducesto^+& \None
+    \el
+  \]
+  %
+  The first (respectively second) evaluation follows because
+  $1.0/_{\dec{m}}\,1.0$ returns $\Some~1.0$ (respectively
+  $\Some~(-1.0)$), meaning that $\bind$ applies the continuation to
+  produce the result $\Some~2.0$ (respectively $\Some~0.0$).
+  %
+  The last evaluation follows because $1.0/_{\dec{m}}\,0.0$ returns
+  $\None$, consequently $\bind$ does not apply the continuation, thus
+  producing the result $\None$.
+
+  This idea of using a monad to model failure stems from denotational
+  semantics and is due to Moggi~\cite{Moggi89}.
+
+  Let us now change perspective and reimplement the above example
+  using effect handlers. We can translate the monadic interface into
+  an effect signature consisting of a single operation $\Fail$, whose
+  codomain is the empty type $\Zero$. We also define an auxiliary
+  function $\fail$ which packages an invocation of $\Fail$.
+  %
+  \[
+    \bl
+      \Exn \defas \{\Fail: \Unit \opto \Zero\} \medskip\\
+      \fail : \Unit \to \alpha \eff \Exn\\
+      \fail \defas \lambda\Unit.\Absurd\;(\Do\;\Fail)
+    \el
+  \]
+  %
+  The $\Absurd$ computation term is used to coerce the return type
+  $\Zero$ of $\Fail$ into $\alpha$. This coercion is safe, because an
+  invocation of $\Fail$ can never return as there are no inhabitants
+  of type $\Zero$.
+
+  We can now reimplement the safe division operator.
+  %
+  \[
+    \bl
+      -/- : \Record{\Float, \Float} \to \Float \eff \Exn\\
+      n/d \defas
+          \If\;d = 0 \;\Then\;\fail~\Unit\;
+          \Else\;n \div d
+    \el
+  \]
+  %
+  The primary difference is that the interpretation of failure is no
+  longer fixed. The type signature conveys that the computation may
+  fail, but it says nothing about how failure is interpreted.
+  %
+  It is straightforward to implement the reciprocal function.
+  %
+  \[
+    \bl
+      \dec{rpo} : \Float \to \Float \eff \Exn\\
+      \dec{rpo}~x \defas (1.0 / x) + 1.0
+    \el
+  \]
+  %
+  The monadic bind and return are now gone. We still need to provide
+  an interpretation of $\Fail$. We do this by way of a handler that
+  interprets success as $\Some$ and failure as $\None$.
+  \[
+    \bl
+      \optionalise : (\Unit \to \alpha \eff \Exn) \to \Option~\alpha\\
+      \optionalise \defas \lambda m.
+        \ba[t]{@{~}l}
+          \Handle\;m~\Unit\;\With\\
+           ~\ba{@{~}l@{~}c@{~}l}
+              \Return\;x &\mapsto& \Some~x\\
+              \Fail~\Unit~resume &\mapsto& \None
+            \ea
+        \ea
+    \el
+  \]
+  %
+  The $\return$-case injects the result of $m~\Unit$ into the option
+  type. The $\Fail$-case discards the provided resumption and returns
+  $\None$. Discarding the resumption effectively short-circuits the
+  handled computation. In fact, there is no alternative to discard the
+  resumption in this case as $resume : \Zero \to \Option~\alpha$
+  cannot be invoked. Let us use this handler to interpret the
+  examples.
+  %
+  \[
+    \ba{@{~}l@{~}c@{~}l}
+      \optionalise\,(\lambda\Unit.\dec{rpo}~1.0)    &\reducesto^+& \Some~2.0\\
+      \optionalise\,(\lambda\Unit.\dec{rpo}~(-1.0)) &\reducesto^+& \Some~0.0\\
+      \optionalise\,(\lambda\Unit.\dec{rpo}~0.0)    &\reducesto^+& \None
+    \el
+  \]
+  %
+  The first two evaluations follow because $\dec{rpo}$ returns
+  successfully, and hence, the handler tags the respective results
+  with $\Some$. The last evaluation follows because the safe division
+  operator $-/-$ inside $\dec{rpo}$ performs an invocation of $\Fail$,
+  causing the handler to halt the computation and return $\None$.
+\end{example}
+
+\begin{example}[Catch~\cite{SussmanS75}]
+\end{example}
+
+\subsubsection{Blind and non-blind backtracking}
+
+\begin{example}[Non-blind backtracking]
+  \dhil{Nondeterminism}
+\end{example}
+
+\subsubsection{Stateful computation}
+
+\begin{example}[Dynamic binding]
+  \dhil{Reader}
+\end{example}
+
+\begin{example}[State handling]
+  \dhil{State}
+\end{example}
+
+\subsubsection{Generators and iterators}
+
+\begin{example}[Inversion of control]
+  \dhil{Inversion of control: generator from iterator}
+\end{example}
+
+\begin{example}[Cooperative routines]
+  \dhil{Coop}
+\end{example}
+
+\subsection{Coding nontermination}
 
 \section{Parameterised handlers}
 \label{sec:unary-parameterised-handlers}
 
-\dhil{Example: Lightweight threads}
+\begin{example}[Green threads]
+  \dhil{Example: Lightweight threads}
+\end{example}
 
 \section{Default handlers}
 \label{sec:unary-default-handlers}
@@ -2010,6 +2244,20 @@ getting stuck on an unhandled operation.
 
 \subsection{Syntax and static semantics}
 \subsection{Dynamic semantics}
+
+\subsection{Shallow handlers in action}
+
+\begin{example}[State handling]
+  foo
+\end{example}
+
+\begin{example}[Inversion of control]
+  asd
+\end{example}
+
+\begin{example}[Communicating pipes]
+  bar
+\end{example}
 
 \section{Flavours of control}
 \subsection{Undelimited control}
