@@ -1,0 +1,315 @@
+# Tiny UNIX in Links.
+
+##
+## Environment
+##
+sig getenv : (String) {Getenv:(String) -> String |_}-> String
+fun getenv(s) { do Getenv(s) }
+
+sig environment : ([(String,String)], () {Getenv:(String) -> String |e}~> a) {Getenv{_} |e}~> a
+fun environment(env', m) {
+  handle(m()) {
+    case Return(x) -> x
+    case Getenv(s, resume) ->
+      switch (lookup(s, env')) {
+        case Nothing -> resume("")
+        case Just(s') -> resume(s')
+      }
+  }
+}
+
+typename Environment = [(String, String)];
+
+##
+## User management
+##
+typename User = [|Root|Alice|Bob|];
+typename EnvironmentStore = [(User, Environment)];
+
+sig envs : [(User, Environment)]
+var envs = [ (Root , [("USER", "root") , ("UID", "0")])
+           , (Alice, [("USER", "alice"), ("UID", "1")])
+           , (Bob  , [("USER", "bob")  , ("UID", "2")])
+           ];
+
+sig envOf : (User, [(User, Environment)]) ~> Environment
+fun envOf(user, envs) {
+  switch (envs) {
+    case [] -> error("No environment") # TODO: could interpret as something "fun" such as a kernel panic.
+    case (user', env) :: envs ->
+      if (user == user') env
+      else envOf(user, envs)
+  }
+}
+
+sig su : (User) {Su:(User) -> () |_}-> ()
+fun su(user) { do Su(user) }
+
+sig usermgr : (User, EnvironmentStore, Comp(a, {Getenv:(String) -> String,Su:(User) -> () |e})) {Getenv{_},Su{_} |e}~> a
+fun usermgr(user, envs, m) {
+  environment(envOf(user, envs), fun() {
+    handle(m()) {
+      case Su(user, resume) ->
+          environment(envOf(user, envs), fun(){ resume(()) })
+    }
+  })
+}
+
+##
+## Basic IO
+##
+typename FileDescr = Int;
+
+sig stdout : FileDescr
+var stdout = 1;
+
+sig puts : (FileDescr,String) {Puts:(FileDescr,String) -> () |_}-> ()
+fun puts(fd, s) { do Puts(fd, s) }
+
+sig basicIO : (Comp(a, {Puts:(FileDescr,String) -> () |e})) {Puts{_} |e}~> [String]
+fun basicIO(m) {
+  handle(m()) {
+    case Return(_) -> []
+    case Puts(_, s, resume) -> s :: resume(())
+  }
+}
+
+# TODO: implement file space.
+
+##
+## Generic state handling.
+##
+sig get : () {Get:s |_}-> s
+fun get() { do Get }
+
+sig put : (s) {Put:(s) -> () |_}-> ()
+fun put(st) { do Put(st) }
+
+sig runState : (s, Comp(a, {Get:() -> s,Put:(s) -> () |e})) {Get{_},Put{_} |e}~> (a, s)
+fun runState(st0, m) {
+  var f = handle(m()) {
+    case Return(x) -> fun(st) { (x, st) }
+    case Get(resume) -> fun(st) { resume(st)(st) }
+    case Put(st,resume) -> fun(_) { resume(())(st) }
+  };
+  f(st0)
+}
+
+##
+## Option type
+##
+typename Option(a) = [|None|Some:a|];
+
+##
+## Generic queue
+##
+module Queue {
+  typename T(a) = (front:[a], rear:[a]);
+
+  sig empty : T(a)
+  var empty = (front=[], rear=[]);
+
+  sig enqueue : (a, T(a)) -> T(a)
+  fun enqueue(x, q) {
+    (q with rear = x :: q.rear)
+  }
+
+  sig dequeue : (T(a)) ~> (Option(a), T(a))
+  fun dequeue(q) {
+    switch(q.front) {
+      case [] ->
+        switch (q.rear) {
+          case []   -> (None, q)
+          case rear -> dequeue((front=reverse(rear),rear=[]))
+        }
+      case x :: xs -> (Some(x), (q with front = xs))
+    }
+  }
+
+  sig singleton : (a) -> T(a)
+  fun singleton(x) { enqueue(x, empty) }
+}
+
+##
+## File IO
+##
+sig stdin : FileDescr
+var stdin = 0;
+sig stderr : FileDescr
+var stderr = 3;
+
+sig eof : String
+var eof = "\x00";
+
+sig gets : (FileDescr) {Gets:(FileDescr) -> String |_}-> String
+fun gets(fd) { do Gets(fd) }
+
+typename Mode = [|Create|Append|];
+
+sig fopen : (Mode, String) {Fopen:(Mode, String) -> FileDescr |_}-> FileDescr
+fun fopen(mode, filename) { do Fopen(mode, filename) }
+
+typename File = Queue.T(String);
+
+sig emptyFile : File
+var emptyFile = Queue.empty;
+
+sig writeFile : (String, File) -> File
+fun writeFile(s, file) { Queue.enqueue(s, file) }
+
+sig readFile : (File) ~> (String, File)
+fun readFile(file) {
+  switch (Queue.dequeue(file)) {
+    case (None, file) -> (eof, file)
+    case (Some(s), file) -> (s, file)
+  }
+}
+
+typename FileStore = [(FileDescr, File)];
+
+sig defaultStore : FileStore
+var defaultStore = [ (stdin , emptyFile)
+                   , (stdout, emptyFile)
+                   , (stderr, emptyFile) ];
+
+sig lookupFile : (FileDescr, FileStore) ~> File
+fun lookupFile(fd, fs) {
+   switch (lookup(fd, fs)) {
+     case Nothing -> error("No such file")
+     case Just(file) -> file
+   }
+}
+
+sig replaceFile : (FileDescr, File, FileStore) ~> FileStore
+fun replaceFile(fd, file, fs) {
+  switch (fs) {
+    case [] -> error("No such file")
+    case (fd', file') :: fs' ->
+      if (fd == fd') (fd, file) :: fs'
+      else (fd', file') :: replaceFile(fd, file, fs')
+  }
+}
+
+sig createFile : (FileDescr, FileStore) -> FileStore
+fun createFile(fd, fs) { (fd, emptyFile) :: fs }
+
+sig closeFile : (File) ~> File
+fun closeFile((=front,=rear)) {
+  (front=front ++ reverse(rear), rear=[])
+}
+
+sig allowState : (() {Get-,Put- |e}~> a) -> () {Get:s,Put:(s) -> () |e}~> a
+fun allowState(f) { (f : (() {Get:s,Put:(s) -> () |e}~> a) <- (() {Get-,Put- |e}~> a)) }
+
+sig fileIO : (Comp(a, {Get-,Put-,Gets:(FileDescr) -> String,Puts:(FileDescr,String) -> () |e})) {Get:() {}-> FileStore,Put:(FileStore) -> (),Gets{_},Puts{_} |e}~> a
+fun fileIO(m) {
+  handle(allowState(m)()) {
+    case Gets(fd, resume) ->
+      var fs = get();
+      var (ch, file) = readFile(lookupFile(fd, fs));
+      put(replaceFile(fd, file, fs)); resume(ch)
+    case Puts(fd, ch, resume) ->
+      var fs = get();
+      var fs' = replaceFile(fd, writeFile(ch, lookupFile(fd, fs)), fs);
+      put(fs'); resume(())
+  }
+}
+
+##
+## Processes
+##
+sig yield : () {Yield:() |_}-> ()
+fun yield() { do Yield() }
+
+sig fork : () {Fork:Bool |_}-> Bool
+fun fork() { do Fork }
+
+mutual {
+  typename Process(e::Eff) = forall p::Presence,q::Presence. [|R:(()) {Fork{p},Yield{q} |e}~> PList({ |e})|];
+  typename PList(e::Eff) = [Process({ |e})];
+}
+
+sig runNext : (PList({ |e})) {Yield{_},Fork{_} |e}~> ()
+fun runNext(pending) {
+  switch (concatMap(fun(R(r)) { r(()) }, pending)) {
+    case [] -> ()
+    case pending -> runNext(pending)
+  }
+}
+
+sig timeshare : (Comp(a, {Fork:Bool,Yield:() |e})) {Fork{_},Yield{_} |e}~> PList({ |e})
+fun timeshare(proc) {
+  handle(proc()) {
+     case Return(_) -> []
+     case Yield(resume) -> [R(resume)]
+     case Fork(resume) ->
+       resume(true) ++ resume(false)
+  }
+}
+
+sig schedule : (Comp(a, {Fork:Bool,Yield:() |e})) {Fork{_},Yield{_} |e}~> ()
+fun schedule(m) {
+  runNext(timeshare(m))
+}
+
+# sig replace : (() {Getenv{p},Exece:(() {Getenv:(String) -> String,Exece{q} |e}~> (), [(String, String)]) -> Zero |e}~> a) {Getenv{p},Exece{q} |e}~> ()
+# fun replace(proc) {
+#   handle(proc()) {
+#     case Return(_) -> ()
+#     case Exece(f, env, _) ->
+#       environment(env, f)
+#   }
+# }
+
+##
+## Utilities
+##
+sig echo : (String) {Puts:(FileDescr,String) -> (), Yield:() |_}-> ()
+fun echo(s) {
+  yield(); puts(stdout, s)
+}
+
+sig amiroot : () {Getenv:(String) -> String |_}-> Bool
+fun amiroot() { getenv("UID") == "0" }
+
+sig whoami : () {Getenv:(String) -> String |_}-> String
+fun whoami() { getenv("USER") }
+
+##
+## Example
+##
+
+# Tags puts with the name of the current user.
+sig provenance : (Comp(a, {Getenv:(String) -> String,Puts:(FileDescr,String) -> () |e})) {Getenv:(String) -> String,Puts:(FileDescr,String) -> () |e}~> a
+fun provenance(m) {
+  handle(m()) {
+    case Puts(fd, s, resume) ->
+      var user = whoami();
+      resume(do Puts(fd, user ^^ "> " ^^ s))
+  }
+}
+
+# An example of everything plugged together: a time-shared 'Hello World'.
+sig example : () {Fork:Bool,Getenv:(String) -> String,Su:(User) -> (),Puts:(FileDescr,String) -> (),Yield:() |_}~> ()
+fun example() {
+  var pid = fork();
+  var () = if (pid) su(Alice) else su(Bob);
+  var user = whoami();
+  puts(stdout, "Hello World!");
+  var uid = getenv("UID");
+  echo("My UID is " ^^ uid);
+  (if (amiroot()) { yield(); echo(user ^^ " is running as root.") } else ());
+  echo("My home dir is /home/" ^^ user)
+}
+
+# Wiring of handlers.
+sig init : () {Fork{_},Getenv{_},Su{_},Puts{_},Yield{_} |_}~> [String]
+fun init() {
+  basicIO(fun() {
+    schedule(fun() {
+      usermgr(Root, envs, fun() {
+        provenance(example)
+      })
+    })
+  })
+}
