@@ -1,6 +1,53 @@
 # Tiny UNIX in Links.
 
 ##
+## Functional utils
+##
+typename Option(a) = [|None|Some:a|];
+
+sig modify : (a, b, [(a, b)]) ~> [(a, b)]
+fun modify(x, y, xs) {
+  switch (xs) {
+    case [] -> []
+    case (x', y') :: xs' ->
+      if (x == x') (x, y) :: xs'
+      else (x', y') :: modify(x, y, xs')
+  }
+}
+
+###
+### Generic queue
+###
+module Queue {
+  typename T(a) = (front:[a], rear:[a]);
+
+  sig empty : T(a)
+  var empty = (front=[], rear=[]);
+
+  sig enqueue : (a, T(a)) -> T(a)
+  fun enqueue(x, q) {
+    (q with rear = x :: q.rear)
+  }
+
+  sig dequeue : (T(a)) ~> (Option(a), T(a))
+  fun dequeue(q) {
+    switch(q.front) {
+      case [] ->
+        switch (q.rear) {
+          case []   -> (None, q)
+          case rear -> dequeue((front=reverse(rear),rear=[]))
+        }
+      case x :: xs -> (Some(x), (q with front = xs))
+    }
+  }
+
+  sig singleton : (a) -> T(a)
+  fun singleton(x) { enqueue(x, empty) }
+}
+
+
+
+##
 ## Environment
 ##
 sig getenv : (String) {Getenv:(String) -> String |_}-> String
@@ -96,41 +143,6 @@ fun runState(st0, m) {
 }
 
 ##
-## Option type
-##
-typename Option(a) = [|None|Some:a|];
-
-##
-## Generic queue
-##
-module Queue {
-  typename T(a) = (front:[a], rear:[a]);
-
-  sig empty : T(a)
-  var empty = (front=[], rear=[]);
-
-  sig enqueue : (a, T(a)) -> T(a)
-  fun enqueue(x, q) {
-    (q with rear = x :: q.rear)
-  }
-
-  sig dequeue : (T(a)) ~> (Option(a), T(a))
-  fun dequeue(q) {
-    switch(q.front) {
-      case [] ->
-        switch (q.rear) {
-          case []   -> (None, q)
-          case rear -> dequeue((front=reverse(rear),rear=[]))
-        }
-      case x :: xs -> (Some(x), (q with front = xs))
-    }
-  }
-
-  sig singleton : (a) -> T(a)
-  fun singleton(x) { enqueue(x, empty) }
-}
-
-##
 ## File IO
 ##
 sig stdin : FileDescr
@@ -165,33 +177,53 @@ fun readFile(file) {
   }
 }
 
-typename FileStore = [(FileDescr, File)];
+typename FileTable = [(FileDescr, File)];
+typename FileStore = [(String, FileDescr)];
+typename FileSystem = (next:Int,ft:FileTable,fs:FileStore);
 
-sig defaultStore : FileStore
-var defaultStore = [ (stdin , emptyFile)
-                   , (stdout, emptyFile)
-                   , (stderr, emptyFile) ];
+sig defaultFileSystem : () -> FileSystem
+fun defaultFileSystem() {
+  var defaultTable = [ (stdin , emptyFile)
+                     , (stdout, emptyFile)
+                     , (stderr, emptyFile) ];
 
-sig lookupFile : (FileDescr, FileStore) ~> File
-fun lookupFile(fd, fs) {
-   switch (lookup(fd, fs)) {
+  var defaultStore = [ ("stdin" , stdin)
+                     , ("stdout", stdout)
+                     , ("stderr", stderr) ];
+
+  (next=3,ft=defaultTable,fs=defaultStore)
+}
+
+sig lookupFile : (FileDescr, FileSystem) ~> File
+fun lookupFile(fd, fsys) {
+   switch (lookup(fd, fsys.ft)) {
      case Nothing -> error("No such file")
      case Just(file) -> file
    }
 }
 
-sig replaceFile : (FileDescr, File, FileStore) ~> FileStore
-fun replaceFile(fd, file, fs) {
-  switch (fs) {
-    case [] -> error("No such file")
-    case (fd', file') :: fs' ->
-      if (fd == fd') (fd, file) :: fs'
-      else (fd', file') :: replaceFile(fd, file, fs')
-  }
+sig replaceFile : (FileDescr, File, FileSystem) ~> FileSystem
+fun replaceFile(fd, file, fsys) {
+  var ft = modify(fd, file, fsys.ft);
+  (fsys with ft = ft) # TODO handle nonexistent file.
 }
 
-sig createFile : (FileDescr, FileStore) -> FileStore
-fun createFile(fd, fs) { (fd, emptyFile) :: fs }
+sig createFile : (String, FileSystem) -> (FileDescr, FileSystem)
+fun createFile(filename, fsys) {
+  (fsys.next, (fsys with fs = (filename, fsys.next) :: fsys.fs, next = fsys.next + 1))
+}
+
+sig openFile : (Mode, String, FileSystem) ~> (FileDescr, FileSystem)
+fun openFile(mode, filename, fsys) {
+  var (fd, fsys) = switch (lookup(filename, fsys.fs)) {
+      case Nothing -> createFile(filename, fsys)
+      case Just(fd) -> (fd, fsys)
+  };
+  switch (mode) {
+    case Create -> error("erase")
+    case Append -> (fd, fsys)
+  }
+}
 
 sig closeFile : (File) ~> File
 fun closeFile((=front,=rear)) {
@@ -201,17 +233,28 @@ fun closeFile((=front,=rear)) {
 sig allowState : (() {Get-,Put- |e}~> a) -> () {Get:s,Put:(s) -> () |e}~> a
 fun allowState(f) { (f : (() {Get:s,Put:(s) -> () |e}~> a) <- (() {Get-,Put- |e}~> a)) }
 
-sig fileIO : (Comp(a, {Get-,Put-,Gets:(FileDescr) -> String,Puts:(FileDescr,String) -> () |e})) {Get:() {}-> FileStore,Put:(FileStore) -> (),Gets{_},Puts{_} |e}~> a
+sig fileIO : (Comp(a, {Get-,Put-,Gets:(FileDescr) -> String,Puts:(FileDescr,String) -> (),Fopen:(Mode,String) -> FileDescr |e})) {Get:() {}-> FileSystem,Put:(FileSystem) -> (),Gets{_},Puts{_},Fopen{_} |e}~> a
 fun fileIO(m) {
   handle(allowState(m)()) {
     case Gets(fd, resume) ->
-      var fs = get();
-      var (ch, file) = readFile(lookupFile(fd, fs));
-      put(replaceFile(fd, file, fs)); resume(ch)
+      var fsys = get();
+      var (ch, file) = readFile(lookupFile(fd, fsys));
+      put(replaceFile(fd, file, fsys)); resume(ch)
     case Puts(fd, ch, resume) ->
-      var fs = get();
-      var fs' = replaceFile(fd, writeFile(ch, lookupFile(fd, fs)), fs);
-      put(fs'); resume(())
+      var fsys = get();
+      var fsys' = replaceFile(fd, writeFile(ch, lookupFile(fd, fsys)), fsys);
+      put(fsys'); resume(())
+    case Fopen(mode, filename, resume) ->
+      var fsys = get();
+      var (fd, fsys') = openFile(mode, filename, fsys);
+      put(fsys'); resume(fd)
+  }
+}
+
+sig redirect : (Comp(a, {Puts:(FileDescr,String) -> () |e}), FileDescr) {Puts:(FileDescr,String) -> () |e}~> a
+fun redirect(m, fd) {
+  handle(m()) {
+    case Puts(_,s,resume) -> resume(puts(fd, s))
   }
 }
 
@@ -293,7 +336,11 @@ fun provenance(m) {
 sig example : () {Fork:Bool,Getenv:(String) -> String,Su:(User) -> (),Puts:(FileDescr,String) -> (),Yield:() |_}~> ()
 fun example() {
   var pid = fork();
-  var () = if (pid) su(Alice) else su(Bob);
+  var () = {
+    if (pid) redirect(fun(){puts(stdout, "dummy")}, stderr)
+    else if (fork()) su(Alice)
+    else su(Bob)
+  };
   var user = whoami();
   puts(stdout, "Hello World!");
   var uid = getenv("UID");
@@ -309,6 +356,17 @@ fun init() {
     schedule(fun() {
       usermgr(Root, envs, fun() {
         provenance(example)
+      })
+    })
+  })
+}
+
+sig init' : (FileSystem) {Fopen{_},Fork{_},Get{_},Getenv{_},Gets{_},Put{_},Puts{_},Su{_},Yield{_}|_}~> ((), FileSystem)
+fun init'(fsys) {
+  runState(fsys, fun() {
+    fileIO(fun() {
+      schedule(fun() {
+        usermgr(Root, envs, example)
       })
     })
   })
