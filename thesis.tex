@@ -2175,7 +2175,7 @@ arguably the simplest such abstraction is exception handling.
     \el
   \]
   %
-  The $\return$-case injects the result of $m~\Unit$ into the option
+  The $\Return$-case injects the result of $m~\Unit$ into the option
   type. The $\Fail$-case discards the provided resumption and returns
   $\None$. Discarding the resumption effectively short-circuits the
   handled computation. In fact, there is no alternative to discard the
@@ -2194,8 +2194,45 @@ arguably the simplest such abstraction is exception handling.
   The first two evaluations follow because $\dec{rpo}$ returns
   successfully, and hence, the handler tags the respective results
   with $\Some$. The last evaluation follows because the safe division
-  operator $-/-$ inside $\dec{rpo}$ performs an invocation of $\Fail$,
+  operator ($-/-$) inside $\dec{rpo}$ performs an invocation of $\Fail$,
   causing the handler to halt the computation and return $\None$.
+
+  It is worth noting that we are free to choose another the
+  interpretation of $\Fail$. To conclude this example, let us exercise
+  this freedom and interpret failure outside of $\Option$. For
+  example, we can interpret failure as some default constant.
+  %
+  \[
+    \bl
+      \faild : \Record{\alpha,\Unit \to \alpha \eff \Exn} \to \alpha\\
+      \faild \defas \lambda \Record{default,m}.
+        \ba[t]{@{~}l}
+          \Handle\;m~\Unit\;\With\\
+           ~\ba{@{~}l@{~}c@{~}l}
+              \Return\;x &\mapsto& x\\
+              \Fail~\Unit~\_ &\mapsto& default
+            \ea
+        \ea
+    \el
+  \]
+  %
+  Now the $\Return$-case is just the identity and $\Fail$ is
+  interpreted as the provided default value.
+  %
+  We can reinterpret the above examples using $\faild$ and, for
+  instance, choose the constant $0.0$ as the default value.
+  %
+  \[
+    \ba{@{~}l@{~}c@{~}l}
+      \faild\,\Record{0.0,\lambda\Unit.\dec{rpo}~1.0}    &\reducesto^+& 2.0\\
+      \faild\,\Record{0.0,\lambda\Unit.\dec{rpo}~(-1.0)} &\reducesto^+& 0.0\\
+      \faild\,\Record{0.0,\lambda\Unit.\dec{rpo}~0.0}    &\reducesto^+& 0.0
+    \el
+  \]
+  %
+  Since failure is now interpreted as $0.0$ the second and third
+  computations produce the same result, even though the second
+  computation is successful and the third computation is failing.
 \end{example}
 
 \begin{example}[Catch~\cite{SussmanS75}]
