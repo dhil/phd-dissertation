@@ -148,7 +148,7 @@ fun runState(st0, m) {
 sig stdin : FileDescr
 var stdin = 0;
 sig stderr : FileDescr
-var stderr = 3;
+var stderr = 2;
 
 sig eof : String
 var eof = "\x00";
@@ -160,6 +160,9 @@ typename Mode = [|Create|Append|];
 
 sig fopen : (Mode, String) {Fopen:(Mode, String) -> FileDescr |_}-> FileDescr
 fun fopen(mode, filename) { do Fopen(mode, filename) }
+
+sig fclose : (FileDescr) {Fclose:(FileDescr) -> () |_}-> ()
+fun fclose(fd) { do Fclose(fd) }
 
 typename File = Queue.T(String);
 
@@ -197,7 +200,7 @@ fun defaultFileSystem() {
 sig lookupFile : (FileDescr, FileSystem) ~> File
 fun lookupFile(fd, fsys) {
    switch (lookup(fd, fsys.ft)) {
-     case Nothing -> error("No such file")
+     case Nothing -> error("err: No such file(" ^^ intToString(fd) ^^ ")")
      case Just(file) -> file
    }
 }
@@ -210,18 +213,19 @@ fun replaceFile(fd, file, fsys) {
 
 sig createFile : (String, FileSystem) -> (FileDescr, FileSystem)
 fun createFile(filename, fsys) {
-  (fsys.next, (fsys with fs = (filename, fsys.next) :: fsys.fs, next = fsys.next + 1))
+  var fd = fsys.next;
+  (fd, (next = fd + 1, fs = (filename, fd) :: fsys.fs, ft = (fd, emptyFile) :: fsys.ft))
 }
 
 sig openFile : (Mode, String, FileSystem) ~> (FileDescr, FileSystem)
 fun openFile(mode, filename, fsys) {
-  var (fd, fsys) = switch (lookup(filename, fsys.fs)) {
+  var (fd, fsys') = switch (lookup(filename, fsys.fs)) {
       case Nothing -> createFile(filename, fsys)
       case Just(fd) -> (fd, fsys)
   };
   switch (mode) {
     case Create -> error("erase")
-    case Append -> (fd, fsys)
+    case Append -> (fd, fsys')
   }
 }
 
@@ -233,7 +237,7 @@ fun closeFile((=front,=rear)) {
 sig allowState : (() {Get-,Put- |e}~> a) -> () {Get:s,Put:(s) -> () |e}~> a
 fun allowState(f) { (f : (() {Get:s,Put:(s) -> () |e}~> a) <- (() {Get-,Put- |e}~> a)) }
 
-sig fileIO : (Comp(a, {Get-,Put-,Gets:(FileDescr) -> String,Puts:(FileDescr,String) -> (),Fopen:(Mode,String) -> FileDescr |e})) {Get:() {}-> FileSystem,Put:(FileSystem) -> (),Gets{_},Puts{_},Fopen{_} |e}~> a
+sig fileIO : (Comp(a, {Get-,Put-,Gets:(FileDescr) -> String,Puts:(FileDescr,String) -> (),Fclose:(FileDescr) -> (),Fopen:(Mode,String) -> FileDescr |e})) {Get:() {}-> FileSystem,Put:(FileSystem) -> (),Gets{_},Puts{_},Fclose{_},Fopen{_} |e}~> a
 fun fileIO(m) {
   handle(allowState(m)()) {
     case Gets(fd, resume) ->
@@ -248,6 +252,10 @@ fun fileIO(m) {
       var fsys = get();
       var (fd, fsys') = openFile(mode, filename, fsys);
       put(fsys'); resume(fd)
+    case Fclose(fd, resume) ->
+      var fsys = get();
+      var fsys' = replaceFile(fd, closeFile(lookupFile(fd, fsys)), fsys);
+      put(fsys'); resume(())
   }
 }
 
@@ -361,12 +369,31 @@ fun init() {
   })
 }
 
-sig init' : (FileSystem) {Fopen{_},Fork{_},Get{_},Getenv{_},Gets{_},Put{_},Puts{_},Su{_},Yield{_}|_}~> ((), FileSystem)
+sig example' : () {Fork:Bool,Fclose:(FileDescr) -> (),Fopen:(Mode,String) -> FileDescr,Getenv:(String) -> String,Su:(User) -> (),Puts:(FileDescr,String) -> (),Yield:() |_}~> ()
+fun example'() {
+  var pid = fork();
+  var () = {
+    if (pid) redirect(fun(){puts(stdout, "dummy")}, stderr)
+    else if (fork()) su(Alice)
+    else su(Bob)
+  };
+  var user = whoami();
+  var fd = fopen(Append, user ^^ ".txt");
+  puts(fd, "Hello World!");
+  var uid = getenv("UID");
+  echo("My UID is " ^^ uid);
+  (if (amiroot()) { yield(); echo(user ^^ " is running as root.") } else ());
+  echo("My home dir is /home/" ^^ user);
+  fclose(fd)
+}
+
+
+sig init' : (FileSystem) {Fclose{_},Fopen{_},Fork{_},Get{_},Getenv{_},Gets{_},Put{_},Puts{_},Su{_},Yield{_}|_}~> ((), FileSystem)
 fun init'(fsys) {
   runState(fsys, fun() {
     fileIO(fun() {
       schedule(fun() {
-        usermgr(Root, envs, example)
+        usermgr(Root, envs, example')
       })
     })
   })
