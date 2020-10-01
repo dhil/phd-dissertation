@@ -2004,7 +2004,7 @@ operation invocations.
 This reading was suggested to me by James McKinna (personal
 communication). In this section I will take this reading literally,
 and demonstrate how we can use the power of (deep) effect handlers to
-implement a small operating system that supports multiple users,
+implement a tiny operating system that supports multiple users,
 time-sharing, and file i/o.
 %
 The operating system will be a variation of UNIX~\cite{RitchieT74},
@@ -2121,8 +2121,94 @@ We can now write some contents to the file and observe the effects.
 \subsection{Exceptions: non-local exits}
 \label{sec:tiny-unix-exit}
 
-\subsection{Dynamic binding: the environment}
+\subsection{Dynamic binding: user-specific environments}
 \label{sec:tiny-unix-env}
+
+In UNIX an environment maps keys to string-values. A key-value pair is
+referred to as an \emph{environment variable}. Each user gets their
+own environment with their own set of environment variables. Some
+environment variable names are common to all environments, but their
+valuation may depend on the particular user session. For example, the
+environment variable \texttt{USER} is bound to the (string) name of
+the user; the result of querying the environment for the value of
+\texttt{USER} depends on which user session it is executed under.
+%
+\dhil{The value of an environment variable may also change during execution.}
+
+An environment variable is an instance of dynamic binding. Dynamic
+binding is a computational effect which dates back to the original
+Lisp~\cite{McCarthy60}.
+%
+We will use dynamic binding to implement user-specific environments.
+
+For simplicity we will fix the users to be root, Alice, and Bob.
+%
+\[
+  \User \defas [\Alice;\Bob;\Root]
+\]
+
+Our environment will only support a single environment variable
+intended to store the name of the current user. The value of this
+variable can be accessed via an operation $\Ask$.
+%
+\[
+  \EnvE \defas \{\Ask : \UnitType \opto \String\}
+\]
+%
+Using this operation we can readily implement the \emph{whoami}
+utility from the GNU coreutils~\cite[Section~20.3]{MacKenzieMPPBYS20},
+which returns the name of the current user.
+%
+\[
+  \bl
+    \whoami : \UnitType \to \String \eff \EnvE\\
+    \whoami~\Unit \defas \Do\;\Ask~\Unit
+  \el
+\]
+%
+The following handler implements the environment.
+%
+\[
+  \bl
+    \environment : \Record{\User;\UnitType \to \alpha \eff \EnvE} \to \alpha\\
+    \environment~\Record{user;m} \defas
+       \ba[t]{@{~}l}
+         \Handle\;m\,\Unit\;\With\\
+           ~\ba{@{~}l@{~}c@{~}l}
+              \Return\;res &\mapsto& res\\
+              \Ask~\Unit~resume &\mapsto&
+                \bl
+                  \Case\;user\,\{
+                  \ba[t]{@{}l@{~}c@{~}l}
+                    \Alice &\mapsto& resume~\texttt{"alice"}\\
+                    \Bob   &\mapsto& resume~\texttt{"bob"}\\
+                    \Root  &\mapsto& resume~\texttt{"root"}\}
+                   \ea
+                \el
+           \ea
+       \ea
+  \el
+\]
+%
+The handler takes as input the current $user$ and a computation that
+may perform the $\Ask$ operation. When an invocation of $\Ask$ occurs
+the handler pattern matches on the $user$ parameter and resumes with a
+string representation of the user. With this implementation we can
+interpret an application of $\whoami$.
+%
+\[
+  \environment~\Record{\Root;\whoami} \reducesto^+ \texttt{"root"} : \String
+\]
+%
+It is not difficult to extend this basic environment model to support
+a more faithful UNIX environment supporting an arbitrary number of
+variables. This can be done by parameterising the $\Ask$ operation by
+some name representation (e.g. a string), which the environment
+handler can use to index into a list of string values. In case the
+name is unbound the environment handler can adopt the lax attitude of
+UNIX and resume with the empty string.
+
+\paragraph{Session management}
 
 \subsection{Nondeterminism: time sharing}
 \label{sec:tiny-unix-time}
