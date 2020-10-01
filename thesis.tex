@@ -1991,280 +1991,417 @@ getting stuck on an unhandled operation.
   $\typ{\Gamma}{M' : C}$.
 \end{theorem}
 
-\subsection{Deep handlers in action}
+\section{Deep handlers in action: \OSname}
 \label{sec:deep-handlers-in-action}
 
-The existing literature already covers an extensive amounts of
-examples of programming with deep effect
-handlers~\cite{KammarLO13,KiselyovSS13,Leijen17}.
+A systems software engineering reading of effect handlers may be to
+understand them as modular ``tiny operating systems''. Operationally,
+how an \emph{operating system} interprets a set of \emph{system
+  commands} performed via \emph{system calls} is similar to how an
+effect handler interprets a set of abstract operations performed via
+operation invocations.
+%
+This reading was suggested to me by James McKinna (personal
+communication). In this section I will take this reading literally,
+and demonstrate how we can use the power of (deep) effect handlers to
+implement a small operating system that supports multiple users,
+time-sharing, and file i/o.
+%
+The operating system will be a variation of UNIX~\cite{RitchieT74},
+which we will call \OSname{}.
+%
+To make the task tractable we will occasionally jump some hops and
+make some simplifying assumptions, nevertheless the resulting
+implementation will capture the essence of a UNIX-like operating
+system.
+%
+The implementation will be composed of several small modular effect
+handlers, that each handles a particular set of system commands. In
+this respect, we will truly realise \OSname{} in the spirit of the
+UNIX philosophy~\cite[Section~1.6]{Raymond03}.  The implementation of
+the operating system will showcase several computational effects in
+action including \emph{dynamic binding}, \emph{nondeterminism}, and
+\emph{state}.
 
+\subsection{Basic i/o}
+\label{sec:tiny-unix-bio}
 
-\subsubsection{Exception handling}
-\label{sec:exn-handling-in-action}
+The file system is a cornerstone of UNIX as the notion of \emph{file}
+in UNIX provides a unified abstraction for storing text, interprocess
+communication, and access to devices such as terminals, printers,
+network, etc.
+%
+Initially, we shall take a rather basic view of the file system. In
+fact, our initial system will only contain a single file, and
+moreover, the system will only support writing operations. This system
+hardly qualifies as a UNIX file system. Nevertheless, it serves a
+crucial role for development of \OSname{}, because it provides the
+only means for us to be able to observe the effects of processes.
+%
+We defer development of a more advanced file system to
+Section~\ref{sec:tiny-unix-io}.
 
-Effect handlers subsume a variety of control abstractions, and
-arguably the simplest such abstraction is exception handling.
-
-\begin{example}[Option monad, directly]
-  %
-  To handle the possibility of failure in a pure functional
-  programming language (e.g. Haskell~\cite{JonesABBBFHHHHJJLMPRRW99}),
-  a computation is run under a particular monad $m$ with some monadic
-  operation $\fail : \Unit \to m~\alpha$ for signalling failure.
-  %
-  Concretely, one can use the \emph{option monad} which interprets the
-  success of as $\Some$ value and failure as $\None$.
-  %
-  For good measure, let us first define the option type constructor.
-  %
-  \[
-    \Option~\alpha \defas [\Some:\alpha;\None]
-  \]
-  %
-  The constructor is parameterised by a type variable $\alpha$. The
-  data constructor $\Some$ carries a payload of type $\alpha$, whilst
-  the other data constructor $\None$ carries no payload.
-  %
-  The monadic interface and its implementation for $\Option$ is as
-  follows.
-  %
-  \[
-    \bl
-      \return : \alpha \to \Option~\alpha\\
-      \return~x \defas \Some~x \smallskip\\
-      - \bind - : \Option~\alpha \to (\alpha \to \Option~\beta) \to \Option~\beta\\
-      m \bind k \defas \Case\;m\;\{
-               \ba[t]{@{}l@{~}c@{~}l}
-                  \None   &\mapsto& \None\\
-                  \Some~x &\mapsto& k~x \}
-               \ea \smallskip\\
-     \fail : \Unit \to \Option~\alpha\\
-     \fail~\Unit \defas \None
-    \el
-  \]
-  %
-  The $\return$ operation lifts a given value into monad by tagging it
-  with $\Some$. The $\bind$ operation (pronounced bind) is the monadic
-  sequencing operation. It takes $m$, an instance of the monad, along
-  with a continuation $k$ and pattern matches on $m$ to determine
-  whether to apply the continuation. If $m$ is $\None$ then (a new
-  instance of) $\None$ is returned -- this essentially models
-  short-circuiting of failed computations. Otherwise if $m$ is $\Some$
-  we apply the continuation $k$ to the payload $x$. The $\fail$
-  operation is simply the constant $\None$.
-  %
-
-  Let us put the monad to use. An illustrative example is safe
-  division. Mathematical division is not defined when the denominator
-  is zero. It is standard for implementations of division in safe
-  programming languages to raise an exception, which we can code
-  monadically as follows.
-  %
-  \[
-    \bl
-      -/_{\dec{m}}- : \Record{\Float, \Float} \to \Option~\Float\\
-      n/_{\dec{m}}\,d \defas
-          \If\;d = 0 \;\Then\;\fail~\Unit\;
-          \Else\;\return~(n \div d)
-    \el
-  \]
-  %
-  If the provided denominator $d$ is zero, then the implementation
-  signals failure by invoking the $\fail$ operation. Otherwise, the
-  implementation performs the mathematical division and lifts the
-  result into the monad via $\return$.
-  %
-  A monadic reading of the type signature tells us not only that the
-  computation may fail, but also that failure is interpreted using the
-  $\Option$ monad.
-
-  Let us use this safe implementation of division to implement a safe
-  function for computing the reciprocal plus one for a given number
-  $x$, i.e. $\frac{1}{x} + 1$.
-  %
-  \[
-    \bl
-      \dec{rpo_m} : \Float \to \Option~\Float\\
-      \dec{rpo_m}~x \defas (1.0 /_{\dec{m}}\,x) \bind (\lambda y. \return~(y + 1.0))
-    \el
-  \]
-  %
-  The implementation first computes the (monadic) result of dividing 1
-  by $x$, and subsequently sequences this result with a continuation
-  that adds one to the result.
-  %
-  Consider some example evaluations.
-  %
-  \[
-    \ba{@{~}l@{~}c@{~}l}
-      \dec{rpo_m}~1.0    &\reducesto^+& \Some~2.0\\
-      \dec{rpo_m}~(-1.0) &\reducesto^+& \Some~0.0\\
-      \dec{rpo_m}~0.0    &\reducesto^+& \None
-    \el
-  \]
-  %
-  The first (respectively second) evaluation follows because
-  $1.0/_{\dec{m}}\,1.0$ returns $\Some~1.0$ (respectively
-  $\Some~(-1.0)$), meaning that $\bind$ applies the continuation to
-  produce the result $\Some~2.0$ (respectively $\Some~0.0$).
-  %
-  The last evaluation follows because $1.0/_{\dec{m}}\,0.0$ returns
-  $\None$, consequently $\bind$ does not apply the continuation, thus
-  producing the result $\None$.
-
-  This idea of using a monad to model failure stems from denotational
-  semantics and is due to Moggi~\cite{Moggi89}.
-
-  Let us now change perspective and reimplement the above example
-  using effect handlers. We can translate the monadic interface into
-  an effect signature consisting of a single operation $\Fail$, whose
-  codomain is the empty type $\Zero$. We also define an auxiliary
-  function $\fail$ which packages an invocation of $\Fail$.
-  %
-  \[
-    \bl
-      \Exn \defas \{\Fail: \Unit \opto \Zero\} \medskip\\
-      \fail : \Unit \to \alpha \eff \Exn\\
-      \fail \defas \lambda\Unit.\Absurd\;(\Do\;\Fail)
-    \el
-  \]
-  %
-  The $\Absurd$ computation term is used to coerce the return type
-  $\Zero$ of $\Fail$ into $\alpha$. This coercion is safe, because an
-  invocation of $\Fail$ can never return as there are no inhabitants
-  of type $\Zero$.
-
-  We can now reimplement the safe division operator.
-  %
-  \[
-    \bl
-      -/- : \Record{\Float, \Float} \to \Float \eff \Exn\\
-      n/d \defas
-          \If\;d = 0 \;\Then\;\fail~\Unit\;
-          \Else\;n \div d
-    \el
-  \]
-  %
-  The primary difference is that the interpretation of failure is no
-  longer fixed. The type signature conveys that the computation may
-  fail, but it says nothing about how failure is interpreted.
-  %
-  It is straightforward to implement the reciprocal function.
-  %
-  \[
-    \bl
-      \dec{rpo} : \Float \to \Float \eff \Exn\\
-      \dec{rpo}~x \defas (1.0 / x) + 1.0
-    \el
-  \]
-  %
-  The monadic bind and return are now gone. We still need to provide
-  an interpretation of $\Fail$. We do this by way of a handler that
-  interprets success as $\Some$ and failure as $\None$.
-  \[
-    \bl
-      \optionalise : (\Unit \to \alpha \eff \Exn) \to \Option~\alpha\\
-      \optionalise \defas \lambda m.
-        \ba[t]{@{~}l}
-          \Handle\;m~\Unit\;\With\\
+Much like UNIX we shall model a file as a list of characters, that is
+$\UFile \defas \List~\Char$. For convenience we will use the same
+model for strings, $\String \defas \List~\Char$, such that we can use
+string literal notation to denote the $\texttt{"contents of a file"}$.
+%
+The signature of the basic file system will consist of a single
+operation $\Putc$ for writing a single character to the file.
+%
+\[
+  \IO \defas \{\Putc : \Record{\UFD;\Char} \opto \UnitType\}
+\]
+%
+The operation is parameterised by a file descriptor ($\UFD$) and a
+character. We will leave the file descriptor type abstract until
+Section~\ref{sec:tiny-unix-io}, however, we will assume the existence
+of a term $\stdout : \UFD$ such that we perform invocations of
+$\Putc$.
+%
+Let us define a suitable handler for this operation.
+%
+\[
+  \bl
+    \basicIO : (\UnitType \to \alpha \eff \IO) \to \Record{\alpha; \UFile}\\
+    \basicIO~m \defas
+       \ba[t]{@{~}l}
+         \Handle\;m\,\Unit\;\With\\
            ~\ba{@{~}l@{~}c@{~}l}
-              \Return\;x &\mapsto& \Some~x\\
-              \Fail~\Unit~resume &\mapsto& \None
-            \ea
-        \ea
-    \el
-  \]
-  %
-  The $\Return$-case injects the result of $m~\Unit$ into the option
-  type. The $\Fail$-case discards the provided resumption and returns
-  $\None$. Discarding the resumption effectively short-circuits the
-  handled computation. In fact, there is no alternative to discard the
-  resumption in this case as $resume : \Zero \to \Option~\alpha$
-  cannot be invoked. Let us use this handler to interpret the
-  examples.
-  %
-  \[
-    \ba{@{~}l@{~}c@{~}l}
-      \optionalise\,(\lambda\Unit.\dec{rpo}~1.0)    &\reducesto^+& \Some~2.0\\
-      \optionalise\,(\lambda\Unit.\dec{rpo}~(-1.0)) &\reducesto^+& \Some~0.0\\
-      \optionalise\,(\lambda\Unit.\dec{rpo}~0.0)    &\reducesto^+& \None
-    \el
-  \]
-  %
-  The first two evaluations follow because $\dec{rpo}$ returns
-  successfully, and hence, the handler tags the respective results
-  with $\Some$. The last evaluation follows because the safe division
-  operator ($-/-$) inside $\dec{rpo}$ performs an invocation of $\Fail$,
-  causing the handler to halt the computation and return $\None$.
+              \Return\;res &\mapsto& \Record{res;\nil}\\
+              \Putc~\Record{\_;c}~resume &\mapsto&
+                  \Let\; \Record{res;file} = resume\,\Unit\;\In\;
+                  \Record{res; c \cons file}
+           \ea
+       \ea
+  \el
+\]
+%
+The handler takes as input a computation that produces some value
+$\alpha$, and in doing so may perform the $\IO$ effect.
+%
+The handler ultimately returns a pair consisting of the return value
+$\alpha$ and the final state of the file.
+%
+The $\Return$-case pairs the result $res$ with the empty file $\nil$
+which models the scenario where the computation $m$ performed no
+$\Putc$-operations, e.g.
+$\basicIO\,(\lambda\Unit.\Unit) \reducesto^+
+\Record{\Unit;\texttt{""}}$.
+%
+The $\Putc$-case extends the file by first invoking the resumption,
+whose return type is the same as the handler's return type, thus it
+returns a pair containing the result of $m$ and the file state. The
+file gets extended with the character $c$ before it is returned along
+with the original result of $m$. The file is effectively built bottom
+up starting with the last character.
 
-  It is worth noting that we are free to choose another the
-  interpretation of $\Fail$. To conclude this example, let us exercise
-  this freedom and interpret failure outside of $\Option$. For
-  example, we can interpret failure as some default constant.
-  %
-  \[
-    \bl
-      \faild : \Record{\alpha,\Unit \to \alpha \eff \Exn} \to \alpha\\
-      \faild \defas \lambda \Record{default,m}.
-        \ba[t]{@{~}l}
-          \Handle\;m~\Unit\;\With\\
-           ~\ba{@{~}l@{~}c@{~}l}
-              \Return\;x &\mapsto& x\\
-              \Fail~\Unit~\_ &\mapsto& default
-            \ea
-        \ea
-    \el
-  \]
-  %
-  Now the $\Return$-case is just the identity and $\Fail$ is
-  interpreted as the provided default value.
-  %
-  We can reinterpret the above examples using $\faild$ and, for
-  instance, choose the constant $0.0$ as the default value.
-  %
-  \[
-    \ba{@{~}l@{~}c@{~}l}
-      \faild\,\Record{0.0,\lambda\Unit.\dec{rpo}~1.0}    &\reducesto^+& 2.0\\
-      \faild\,\Record{0.0,\lambda\Unit.\dec{rpo}~(-1.0)} &\reducesto^+& 0.0\\
-      \faild\,\Record{0.0,\lambda\Unit.\dec{rpo}~0.0}    &\reducesto^+& 0.0
-    \el
-  \]
-  %
-  Since failure is now interpreted as $0.0$ the second and third
-  computations produce the same result, even though the second
-  computation is successful and the third computation is failing.
-\end{example}
+Let us define an auxiliary function that writes a string to a given
+file.
+%
+\[
+  \bl
+    \fwrite : \Record{\UFD;\String} \to \UnitType \eff \{\Putc : \Record{\UFD;\Char} \opto \UnitType\}\\
+    \fwrite~\Record{fd;cs} \defas \iter\,(\lambda c.\Do\;\Putc\,\Record{fd;c})\,cs
+  \el
+\]
+%
+The function $\fwrite$ invokes the operation $\Putc$ point-wise on the
+list of characters $cs$ by using the list iteration function $\iter$.
+%
+We can now write some contents to the file and observe the effects.
+%
+\[
+  \ba{@{~}l@{~}l}
+                &\basicIO\,(\lambda\Unit. \fwrite\,\Record{\stdout;\texttt{"Hello"}}; \fwrite\,\Record{\stdout;\texttt{"World"}})\\
+    \reducesto^+& \Record{\Unit;\texttt{"HelloWorld"}} : \Record{\UnitType;\UFile}
+  \ea
+\]
 
-\begin{example}[Catch~\cite{SussmanS75}]
-\end{example}
+\subsection{Exceptions: non-local exits}
+\label{sec:tiny-unix-exit}
 
-\subsubsection{Blind and non-blind backtracking}
+\subsection{Dynamic binding: the environment}
+\label{sec:tiny-unix-env}
 
-\begin{example}[Non-blind backtracking]
-  \dhil{Nondeterminism}
-\end{example}
+\subsection{Nondeterminism: time sharing}
+\label{sec:tiny-unix-time}
 
-\subsubsection{Stateful computation}
+\subsection{State: file i/o}
+\label{sec:tiny-unix-io}
 
-\begin{example}[Dynamic binding]
-  \dhil{Reader}
-\end{example}
 
-\begin{example}[State handling]
-  \dhil{State}
-\end{example}
+% The existing literature already contain an extensive amount of
+% introductory examples of programming with (deep) effect
+% handlers~\cite{KammarLO13,Pretnar15,Leijen17}.
 
-\subsubsection{Generators and iterators}
 
-\begin{example}[Inversion of control]
-  \dhil{Inversion of control: generator from iterator}
-\end{example}
+% \subsubsection{Exception handling}
+% \label{sec:exn-handling-in-action}
 
-\begin{example}[Cooperative routines]
-  \dhil{Coop}
-\end{example}
+% Effect handlers subsume a variety of control abstractions, and
+% arguably the simplest such abstraction is exception handling.
 
-\subsection{Coding nontermination}
+% \begin{example}[Option monad, directly]
+%   %
+%   To handle the possibility of failure in a pure functional
+%   programming language (e.g. Haskell~\cite{JonesABBBFHHHHJJLMPRRW99}),
+%   a computation is run under a particular monad $m$ with some monadic
+%   operation $\fail : \Unit \to m~\alpha$ for signalling failure.
+%   %
+%   Concretely, one can use the \emph{option monad} which interprets the
+%   success of as $\Some$ value and failure as $\None$.
+%   %
+%   For good measure, let us first define the option type constructor.
+%   %
+%   \[
+%     \Option~\alpha \defas [\Some:\alpha;\None]
+%   \]
+%   %
+%   The constructor is parameterised by a type variable $\alpha$. The
+%   data constructor $\Some$ carries a payload of type $\alpha$, whilst
+%   the other data constructor $\None$ carries no payload.
+%   %
+%   The monadic interface and its implementation for $\Option$ is as
+%   follows.
+%   %
+%   \[
+%     \bl
+%       \return : \alpha \to \Option~\alpha\\
+%       \return~x \defas \Some~x \smallskip\\
+%       - \bind - : \Option~\alpha \to (\alpha \to \Option~\beta) \to \Option~\beta\\
+%       m \bind k \defas \Case\;m\;\{
+%                \ba[t]{@{}l@{~}c@{~}l}
+%                   \None   &\mapsto& \None\\
+%                   \Some~x &\mapsto& k~x \}
+%                \ea \smallskip\\
+%      \fail : \Unit \to \Option~\alpha\\
+%      \fail~\Unit \defas \None
+%     \el
+%   \]
+%   %
+%   The $\return$ operation lifts a given value into monad by tagging it
+%   with $\Some$. The $\bind$ operation (pronounced bind) is the monadic
+%   sequencing operation. It takes $m$, an instance of the monad, along
+%   with a continuation $k$ and pattern matches on $m$ to determine
+%   whether to apply the continuation. If $m$ is $\None$ then (a new
+%   instance of) $\None$ is returned -- this essentially models
+%   short-circuiting of failed computations. Otherwise if $m$ is $\Some$
+%   we apply the continuation $k$ to the payload $x$. The $\fail$
+%   operation is simply the constant $\None$.
+%   %
+
+%   Let us put the monad to use. An illustrative example is safe
+%   division. Mathematical division is not defined when the denominator
+%   is zero. It is standard for implementations of division in safe
+%   programming languages to raise an exception, which we can code
+%   monadically as follows.
+%   %
+%   \[
+%     \bl
+%       -/_{\dec{m}}- : \Record{\Float, \Float} \to \Option~\Float\\
+%       n/_{\dec{m}}\,d \defas
+%           \If\;d = 0 \;\Then\;\fail~\Unit\;
+%           \Else\;\return~(n \div d)
+%     \el
+%   \]
+%   %
+%   If the provided denominator $d$ is zero, then the implementation
+%   signals failure by invoking the $\fail$ operation. Otherwise, the
+%   implementation performs the mathematical division and lifts the
+%   result into the monad via $\return$.
+%   %
+%   A monadic reading of the type signature tells us not only that the
+%   computation may fail, but also that failure is interpreted using the
+%   $\Option$ monad.
+
+%   Let us use this safe implementation of division to implement a safe
+%   function for computing the reciprocal plus one for a given number
+%   $x$, i.e. $\frac{1}{x} + 1$.
+%   %
+%   \[
+%     \bl
+%       \dec{rpo_m} : \Float \to \Option~\Float\\
+%       \dec{rpo_m}~x \defas (1.0 /_{\dec{m}}\,x) \bind (\lambda y. \return~(y + 1.0))
+%     \el
+%   \]
+%   %
+%   The implementation first computes the (monadic) result of dividing 1
+%   by $x$, and subsequently sequences this result with a continuation
+%   that adds one to the result.
+%   %
+%   Consider some example evaluations.
+%   %
+%   \[
+%     \ba{@{~}l@{~}c@{~}l}
+%       \dec{rpo_m}~1.0    &\reducesto^+& \Some~2.0\\
+%       \dec{rpo_m}~(-1.0) &\reducesto^+& \Some~0.0\\
+%       \dec{rpo_m}~0.0    &\reducesto^+& \None
+%     \el
+%   \]
+%   %
+%   The first (respectively second) evaluation follows because
+%   $1.0/_{\dec{m}}\,1.0$ returns $\Some~1.0$ (respectively
+%   $\Some~(-1.0)$), meaning that $\bind$ applies the continuation to
+%   produce the result $\Some~2.0$ (respectively $\Some~0.0$).
+%   %
+%   The last evaluation follows because $1.0/_{\dec{m}}\,0.0$ returns
+%   $\None$, consequently $\bind$ does not apply the continuation, thus
+%   producing the result $\None$.
+
+%   This idea of using a monad to model failure stems from denotational
+%   semantics and is due to Moggi~\cite{Moggi89}.
+
+%   Let us now change perspective and reimplement the above example
+%   using effect handlers. We can translate the monadic interface into
+%   an effect signature consisting of a single operation $\Fail$, whose
+%   codomain is the empty type $\Zero$. We also define an auxiliary
+%   function $\fail$ which packages an invocation of $\Fail$.
+%   %
+%   \[
+%     \bl
+%       \Exn \defas \{\Fail: \Unit \opto \Zero\} \medskip\\
+%       \fail : \Unit \to \alpha \eff \Exn\\
+%       \fail \defas \lambda\Unit.\Absurd\;(\Do\;\Fail)
+%     \el
+%   \]
+%   %
+%   The $\Absurd$ computation term is used to coerce the return type
+%   $\Zero$ of $\Fail$ into $\alpha$. This coercion is safe, because an
+%   invocation of $\Fail$ can never return as there are no inhabitants
+%   of type $\Zero$.
+
+%   We can now reimplement the safe division operator.
+%   %
+%   \[
+%     \bl
+%       -/- : \Record{\Float, \Float} \to \Float \eff \Exn\\
+%       n/d \defas
+%           \If\;d = 0 \;\Then\;\fail~\Unit\;
+%           \Else\;n \div d
+%     \el
+%   \]
+%   %
+%   The primary difference is that the interpretation of failure is no
+%   longer fixed. The type signature conveys that the computation may
+%   fail, but it says nothing about how failure is interpreted.
+%   %
+%   It is straightforward to implement the reciprocal function.
+%   %
+%   \[
+%     \bl
+%       \dec{rpo} : \Float \to \Float \eff \Exn\\
+%       \dec{rpo}~x \defas (1.0 / x) + 1.0
+%     \el
+%   \]
+%   %
+%   The monadic bind and return are now gone. We still need to provide
+%   an interpretation of $\Fail$. We do this by way of a handler that
+%   interprets success as $\Some$ and failure as $\None$.
+%   \[
+%     \bl
+%       \optionalise : (\Unit \to \alpha \eff \Exn) \to \Option~\alpha\\
+%       \optionalise \defas \lambda m.
+%         \ba[t]{@{~}l}
+%           \Handle\;m~\Unit\;\With\\
+%            ~\ba{@{~}l@{~}c@{~}l}
+%               \Return\;x &\mapsto& \Some~x\\
+%               \Fail~\Unit~resume &\mapsto& \None
+%             \ea
+%         \ea
+%     \el
+%   \]
+%   %
+%   The $\Return$-case injects the result of $m~\Unit$ into the option
+%   type. The $\Fail$-case discards the provided resumption and returns
+%   $\None$. Discarding the resumption effectively short-circuits the
+%   handled computation. In fact, there is no alternative to discard the
+%   resumption in this case as $resume : \Zero \to \Option~\alpha$
+%   cannot be invoked. Let us use this handler to interpret the
+%   examples.
+%   %
+%   \[
+%     \ba{@{~}l@{~}c@{~}l}
+%       \optionalise\,(\lambda\Unit.\dec{rpo}~1.0)    &\reducesto^+& \Some~2.0\\
+%       \optionalise\,(\lambda\Unit.\dec{rpo}~(-1.0)) &\reducesto^+& \Some~0.0\\
+%       \optionalise\,(\lambda\Unit.\dec{rpo}~0.0)    &\reducesto^+& \None
+%     \el
+%   \]
+%   %
+%   The first two evaluations follow because $\dec{rpo}$ returns
+%   successfully, and hence, the handler tags the respective results
+%   with $\Some$. The last evaluation follows because the safe division
+%   operator ($-/-$) inside $\dec{rpo}$ performs an invocation of $\Fail$,
+%   causing the handler to halt the computation and return $\None$.
+
+%   It is worth noting that we are free to choose another the
+%   interpretation of $\Fail$. To conclude this example, let us exercise
+%   this freedom and interpret failure outside of $\Option$. For
+%   example, we can interpret failure as some default constant.
+%   %
+%   \[
+%     \bl
+%       \faild : \Record{\alpha,\Unit \to \alpha \eff \Exn} \to \alpha\\
+%       \faild \defas \lambda \Record{default,m}.
+%         \ba[t]{@{~}l}
+%           \Handle\;m~\Unit\;\With\\
+%            ~\ba{@{~}l@{~}c@{~}l}
+%               \Return\;x &\mapsto& x\\
+%               \Fail~\Unit~\_ &\mapsto& default
+%             \ea
+%         \ea
+%     \el
+%   \]
+%   %
+%   Now the $\Return$-case is just the identity and $\Fail$ is
+%   interpreted as the provided default value.
+%   %
+%   We can reinterpret the above examples using $\faild$ and, for
+%   instance, choose the constant $0.0$ as the default value.
+%   %
+%   \[
+%     \ba{@{~}l@{~}c@{~}l}
+%       \faild\,\Record{0.0,\lambda\Unit.\dec{rpo}~1.0}    &\reducesto^+& 2.0\\
+%       \faild\,\Record{0.0,\lambda\Unit.\dec{rpo}~(-1.0)} &\reducesto^+& 0.0\\
+%       \faild\,\Record{0.0,\lambda\Unit.\dec{rpo}~0.0}    &\reducesto^+& 0.0
+%     \el
+%   \]
+%   %
+%   Since failure is now interpreted as $0.0$ the second and third
+%   computations produce the same result, even though the second
+%   computation is successful and the third computation is failing.
+% \end{example}
+
+% \begin{example}[Catch~\cite{SussmanS75}]
+% \end{example}
+
+% \subsubsection{Blind and non-blind backtracking}
+
+% \begin{example}[Non-blind backtracking]
+%   \dhil{Nondeterminism}
+% \end{example}
+
+% \subsubsection{Stateful computation}
+
+% \begin{example}[Dynamic binding]
+%   \dhil{Reader}
+% \end{example}
+
+% \begin{example}[State handling]
+%   \dhil{State}
+% \end{example}
+
+% \subsubsection{Generators and iterators}
+
+% \begin{example}[Inversion of control]
+%   \dhil{Inversion of control: generator from iterator}
+% \end{example}
+
+% \begin{example}[Cooperative routines]
+%   \dhil{Coop}
+% \end{example}
+
+% \subsection{Coding nontermination}
 
 \section{Parameterised handlers}
 \label{sec:unary-parameterised-handlers}
