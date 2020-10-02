@@ -2185,11 +2185,11 @@ For simplicity we will fix the users to be root, Alice, and Bob.
 
 Our environment will only support a single environment variable
 intended to store the name of the current user. The value of this
-variable can be accessed via an operation $\Ask$.
+variable can be accessed via an operation $\Ask : \UnitType \opto \String$.
 %
-\[
-  \EnvE \defas \{\Ask : \UnitType \opto \String\}
-\]
+% \[
+%   \EnvE \defas \{\Ask : \UnitType \opto \String\}
+% \]
 %
 Using this operation we can readily implement the \emph{whoami}
 utility from the GNU coreutils~\cite[Section~20.3]{MacKenzieMPPBYS20},
@@ -2197,7 +2197,7 @@ which returns the name of the current user.
 %
 \[
   \bl
-    \whoami : \UnitType \to \String \eff \EnvE\\
+    \whoami : \UnitType \to \String \eff \{\Ask : \UnitType \opto \String\}\\
     \whoami~\Unit \defas \Do\;\Ask~\Unit
   \el
 \]
@@ -2206,7 +2206,7 @@ The following handler implements the environment.
 %
 \[
   \bl
-    \environment : \Record{\User;\UnitType \to \alpha \eff \EnvE} \to \alpha\\
+    \environment : \Record{\User;\UnitType \to \alpha \eff \{\Ask : \UnitType \opto \String\}} \to \alpha\\
     \environment~\Record{user;m} \defas
        \ba[t]{@{~}l}
          \Handle\;m\,\Unit\;\With\\
@@ -2245,7 +2245,48 @@ embrace UNIX's laissez-faire attitude and resume with the empty
 string.
 
 \paragraph{Session management}
+%
+\[
+  \EnvE \defas \{\Ask : \UnitType \opto \String;\Su : \User \opto \UnitType\}
+\]
 
+\[
+  \bl
+    \su : \User \to \UnitType \eff \{\Su : \User \opto \UnitType\}\\
+    \su~user \defas \Do\;\Su~user
+  \el
+\]
+
+\[
+  \bl
+    \sessionmgr : \Record{\User; \UnitType \to \alpha \eff \EnvE} \to \alpha\\
+    \sessionmgr~\Record{user;m} \defas
+      \environment\,\langle{}user;(\lambda\Unit.
+         \ba[t]{@{~}l}
+           \Handle\;m\,\Unit\;\With\\
+             ~\ba{@{~}l@{~}c@{~}l}
+                \Return\;res &\mapsto& res\\
+                \Su~user'~resume &\mapsto& \environment\,\Record{user';resume})\rangle
+              \ea
+         \ea
+  \el
+\]
+
+\[
+  \ba{@{~}l@{~}l}
+    &\bl
+      \basicIO\,(\lambda\Unit.\\
+         \qquad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
+           \qquad\qquad\status\,(\lambda\Unit.
+            \ba[t]{@{}l@{~}l}
+              \su~\Alice;&\fwrite\,\Record{\stdout;\whoami\,\Unit};~\fwrite\,\Record{\stdout;\texttt{" "}};\\
+              \su~\Bob;&\fwrite\,\Record{\stdout;\whoami\,\Unit};~\fwrite\,\Record{\stdout;\texttt{" "}};\\
+              \su~\Root;&\fwrite\,\Record{\stdout;\whoami\,\Unit})})
+            \ea
+     \el \smallskip\\
+   \reducesto^+& \Record{0;\texttt{"alice bob root"}} : \Record{\Int;\UFile}
+ \ea
+\]
 \subsection{Nondeterminism: time sharing}
 \label{sec:tiny-unix-time}
 
