@@ -22,6 +22,7 @@
 \DeclareCaptionFormat{underlinedfigure}{#1#2#3\hrulefill}
 \captionsetup[figure]{format=underlinedfigure}
 \usepackage[T1]{fontenc}      % Fixes issues with accented characters
+\usepackage[scaled=0.85]{beramono}
 %\usepackage{libertine}
 %\usepackage{lmodern}
 %\usepackage{palatino}
@@ -2044,7 +2045,7 @@ Section~\ref{sec:tiny-unix-io}.
 Much like UNIX we shall model a file as a list of characters, that is
 $\UFile \defas \List~\Char$. For convenience we will use the same
 model for strings, $\String \defas \List~\Char$, such that we can use
-string literal notation to denote the $\texttt{"contents of a file"}$.
+string literal notation to denote the $\strlit{contents of a file}$.
 %
 The signature of the basic file system will consist of a single
 operation $\Putc$ for writing a single character to the file.
@@ -2087,7 +2088,7 @@ The $\Return$-case pairs the result $res$ with the empty file $\nil$
 which models the scenario where the computation $m$ performed no
 $\Putc$-operations, e.g.
 $\basicIO\,(\lambda\Unit.\Unit) \reducesto^+
-\Record{\Unit;\texttt{""}}$.
+\Record{\Unit;\strlit{}}$.
 %
 The $\Putc$-case extends the file by first invoking the resumption,
 whose return type is the same as the handler's return type, thus it
@@ -2101,20 +2102,20 @@ file.
 %
 \[
   \bl
-    \fwrite : \Record{\UFD;\String} \to \UnitType \eff \{\Putc : \Record{\UFD;\Char} \opto \UnitType\}\\
-    \fwrite~\Record{fd;cs} \defas \iter\,(\lambda c.\Do\;\Putc\,\Record{fd;c})\,cs
+    \echo : \String \to \UnitType \eff \{\Putc : \Record{\UFD;\Char} \opto \UnitType\}\\
+    \echo~cs \defas \iter\,(\lambda c.\Do\;\Putc\,\Record{\stdout;c})\,cs
   \el
 \]
 %
-The function $\fwrite$ invokes the operation $\Putc$ point-wise on the
+The function $\echo$ invokes the operation $\Putc$ point-wise on the
 list of characters $cs$ by using the list iteration function $\iter$.
 %
 We can now write some contents to the file and observe the effects.
 %
 \[
   \ba{@{~}l@{~}l}
-                &\basicIO\,(\lambda\Unit. \fwrite\,\Record{\stdout;\texttt{"Hello"}}; \fwrite\,\Record{\stdout;\texttt{"World"}})\\
-    \reducesto^+& \Record{\Unit;\texttt{"HelloWorld"}} : \Record{\UnitType;\UFile}
+                &\basicIO\,(\lambda\Unit. \echo~\strlit{Hello}; \echo~\strlit{World})\\
+    \reducesto^+& \Record{\Unit;\strlit{HelloWorld}} : \Record{\UnitType;\UFile}
   \ea
 \]
 
@@ -2151,9 +2152,9 @@ We can now write some contents to the file and observe the effects.
     &\bl
       \basicIO\,(\lambda\Unit.
          \status\,(\lambda\Unit.
-            \fwrite\,\Record{\stdout;\texttt{"dead"}};\exit~1;\fwrite\,\Record{\stdout;\texttt{"code"}}))
+            \echo~\strlit{dead};\exit~1;\echo~\strlit{code}))
      \el\\
-    \reducesto^+& \Record{1;\texttt{"dead"}} : \Record{\Int;\UFile}
+    \reducesto^+& \Record{1;\strlit{dead}} : \Record{\Int;\UFile}
   \ea
 \]
 
@@ -2216,9 +2217,9 @@ The following handler implements the environment.
                 \bl
                   \Case\;user\,\{
                   \ba[t]{@{}l@{~}c@{~}l}
-                    \Alice &\mapsto& resume~\texttt{"alice"}\\
-                    \Bob   &\mapsto& resume~\texttt{"bob"}\\
-                    \Root  &\mapsto& resume~\texttt{"root"}\}
+                    \Alice &\mapsto& resume~\strlit{alice}\\
+                    \Bob   &\mapsto& resume~\strlit{bob}\\
+                    \Root  &\mapsto& resume~\strlit{root}\}
                    \ea
                 \el
            \ea
@@ -2233,7 +2234,7 @@ string representation of the user. With this implementation we can
 interpret an application of $\whoami$.
 %
 \[
-  \environment~\Record{\Root;\whoami} \reducesto^+ \texttt{"root"} : \String
+  \environment~\Record{\Root;\whoami} \reducesto^+ \strlit{root} : \String
 \]
 %
 It is not difficult to extend this basic environment model to support
@@ -2279,16 +2280,88 @@ string.
          \qquad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
            \qquad\qquad\status\,(\lambda\Unit.
             \ba[t]{@{}l@{~}l}
-              \su~\Alice;&\fwrite\,\Record{\stdout;\whoami\,\Unit};~\fwrite\,\Record{\stdout;\texttt{" "}};\\
-              \su~\Bob;&\fwrite\,\Record{\stdout;\whoami\,\Unit};~\fwrite\,\Record{\stdout;\texttt{" "}};\\
-              \su~\Root;&\fwrite\,\Record{\stdout;\whoami\,\Unit})})
+              \su~\Alice;&\echo\,(\whoami\,\Unit);~\echo~\strlit{ };\\
+              \su~\Bob;  &\echo\,(\whoami\,\Unit);~\echo~\strlit{ };\\
+              \su~\Root; &\echo\,(\whoami\,\Unit))})
             \ea
      \el \smallskip\\
-   \reducesto^+& \Record{0;\texttt{"alice bob root"}} : \Record{\Int;\UFile}
+   \reducesto^+& \Record{0;\strlit{alice bob root}} : \Record{\Int;\UFile}
  \ea
 \]
 \subsection{Nondeterminism: time sharing}
 \label{sec:tiny-unix-time}
+
+\[
+  \bl
+    \fork : \UnitType \to \Bool \eff \{\Fork : \UnitType \opto \Bool\}\\
+    \fork~\Unit \defas \Do\;\Fork~\Unit
+  \el
+\]
+
+\[
+  \bl
+    \nondet : (\UnitType \to \alpha \eff \{\Fork:\UnitType \opto \Bool\}) \to \List~\alpha\\
+    \nondet~m \defas
+         \ba[t]{@{}l}
+           \Handle\;m\,\Unit\;\With\\
+             ~\ba{@{~}l@{~}c@{~}l}
+                \Return\;res &\mapsto& [res]\\
+                \Fork~\Unit~resume &\mapsto& resume~\True \concat resume~\False
+              \ea
+         \ea
+  \el
+\]
+
+\[
+  \bl
+    \interrupt : \UnitType \to \UnitType \eff \{\Interrupt : \UnitType \opto \UnitType\}\\
+    \interrupt~\Unit \defas \Do\;\Interrupt~\Unit
+  \el
+\]
+
+\[
+  \Pstate~\alpha~\varepsilon \defas \forall \theta.
+     \ba[t]{@{}l@{}l}
+       [&\Done:\alpha;\\
+        &\Suspended:\UnitType \to \Pstate~\alpha~\varepsilon \eff \{\Interrupt:\theta';\varepsilon\} ]
+     \ea
+\]
+
+\[
+  \bl
+    \slice : (\UnitType \to \alpha \eff \{\Interrupt:\UnitType \opto \UnitType;\varepsilon\}) \to \Pstate~\alpha~\varepsilon\\
+    \slice~m \defas
+         \ba[t]{@{}l}
+           \Handle\;m\,\Unit\;\With\\
+             ~\ba{@{~}l@{~}c@{~}l}
+                \Return\;res &\mapsto& \Done~res\\
+                \Interrupt~\Unit~resume &\mapsto& \Suspended~resume
+              \ea
+         \ea
+  \el
+\]
+
+\[
+  \bl
+    \runNext : \List~(\Pstate~\alpha~\{\Fork:\Bool;\varepsilon\}) \to \List~\alpha \eff \varepsilon\\
+    \runNext~ps \defas
+        \concatMap\,(\lambda p.
+               \ba[t]{@{}l}
+                  \Case\;p\;\{
+                    \ba[t]{@{}l@{~}c@{~}l}
+                       \Done~res         &\mapsto& [res]\\
+                       \Suspended~m &\mapsto& \runNext\,(\nondet~m) \})\,ps
+                    \ea
+                \ea
+  \el
+\]
+
+\[
+  \bl
+     \timeshare : (\UnitType \to \alpha \eff \{\Fork:\UnitType \opto \Bool;\Interrupt:\UnitType \opto \UnitType;\epsilon\}) \to (\List~\alpha) \eff \epsilon\\
+     \timeshare~m \defas \runNext\,[\Suspended\,(\lambda\Unit.\slice~m)]
+  \el
+\]
 
 \subsection{State: file i/o}
 \label{sec:tiny-unix-io}
