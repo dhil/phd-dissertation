@@ -1709,8 +1709,11 @@ no predefined dynamic semantics. The introduction form for effectful
 operations is a computation term.
 %
 \begin{syntax}
-  &M,N \in \CompCat &::=& \cdots \mid~ \tikzmarkin{do1} (\Do \; \ell~V)^E \tikzmarkend{do1}
+  \slab{Value types}             &A,B \in \ValTypeCat   &::=& \cdots \mid~ \tikzmarkin{optype} A \opto B \tikzmarkend{optype}\\
+  \slab{Computations}      &M,N \in \CompCat      &::=& \cdots \mid~ \tikzmarkin{do1} (\Do \; \ell~V)^E \tikzmarkend{do1}
 \end{syntax}
+%
+\dhil{Describe the operation arrow.}
 %
 Informally, the intended behaviour of the new computation term
 $(\Do\; \ell~V)^E$ is that it performs some operation $\ell$ with
@@ -1718,11 +1721,11 @@ value argument $V$. Thus the $\Do$-construct is similar to the typical
 exception-signalling $\keyw{throw}$ or $\keyw{raise}$ constructs found
 in programming languages with support for exceptions. The term is
 annotated with an effect row $E$, providing a handle to obtain the
-current effect context. We make use of this effect row during typing:
+current effect context. We make use of this effect row during typing.
 %
 \begin{mathpar}
   \inferrule*[Lab=\tylab{Do}]
-    { E = \{\ell : A \to B; R\} \\
+    { E = \{\ell : A \opto B; R\} \\
       \typ{\Delta}{E} \\
       \typ{\Delta;\Gamma}{V : A}
     }
@@ -1781,7 +1784,7 @@ syntactic category of handler definitions.
 \begin{syntax}
 \slab{Computations} &M,N \in \CompCat    &::=& \cdots \mid~ \tikzmarkin{deephandlers1} \Handle \; M \; \With \; H\tikzmarkend{deephandlers1}\\[1ex]
 \slab{Handlers}     &H   \in \HandlerCat &::=&  \{ \Return \; x \mapsto M \}
-                                           \mid \{ \ell \; p \; r \mapsto N \} \uplus H\\
+                                           \mid \{ \OpCase{\ell}{p}{r} \mapsto N \} \uplus H\\
 \slab{Terms}        &t \in \TermCat      &::=& \cdots \mid~ \tikzmarkin{handlerdefs} H \tikzmarkend{handlerdefs}
 \end{syntax}
 %
@@ -1789,14 +1792,14 @@ The handle construct $(\Handle \; M \; \With \; H)$ is the counterpart
 to $\Do$. It runs computation $M$ using handler $H$. A handler $H$
 consists of a return clause $\{\Return \; x \mapsto M\}$ and a
 possibly empty set of operation clauses
-$\{\ell \; p_\ell \; r_\ell \mapsto N_\ell\}_{\ell \in \mathcal{L}}$.
+$\{\OpCase{\ell}{p_\ell}{r_\ell} \mapsto N_\ell\}_{\ell \in \mathcal{L}}$.
 %
 The return clause $\{\Return \; x \mapsto M\}$ defines how to
 interpret the final return value of a handled computation. The
 variable $x$ is bound to the final return value in the body $M$.
 %
 Each operation clause
-$\{\ell \; p_\ell \; r_\ell \mapsto N_\ell\}_{\ell \in \mathcal{L}}$
+$\{\OpCase{\ell}{p_\ell}{r_\ell} \mapsto N_\ell\}_{\ell \in \mathcal{L}}$
 defines how to interpret an invocation of a particular operation
 $\ell$. The variables $p_\ell$ and $r_\ell$ are bound in the body
 $N_\ell$: $p_\ell$ binds the argument carried by the operation and
@@ -1807,7 +1810,7 @@ particular operation or the return clause; for these purposes we
 define two convenient projections on handlers in the metalanguage.
 \[
   \ba{@{~}r@{~}c@{~}l@{~}l}
-    \hell &\defas& \{\ell\; p\; r \mapsto N \}, &\quad \text{where } \{\ell\; p\; r \mapsto N \} \in H\\
+    \hell &\defas& \{\OpCase{\ell}{p}{r} \mapsto N \}, &\quad \text{where } \{\OpCase{\ell}{p}{r} \mapsto N \} \in H\\
     \hret &\defas& \{\Return\; x \mapsto N \}, &\quad \text{where } \{\Return\; x \mapsto N \} \in H\\
   \ea
 \]
@@ -1822,7 +1825,7 @@ labels it handles, i.e.
 \begin{equations}
   \dom &:& \HandlerCat \to \LabelCat\\
   \dom(\{\Return\;x \mapsto M\})  &\defas& \emptyset\\
-  \dom(\{\ell\; p\;r \mapsto M\} \uplus H) &\defas& \{\ell\} \cup \dom(H)
+  \dom(\{\OpCase{\ell}{p}{r} \mapsto M\} \uplus H) &\defas& \{\ell\} \cup \dom(H)
 \end{equations}
 
 \subsection{Static semantics}
@@ -1842,9 +1845,9 @@ typing of the $\Do$-construct.
 %\mprset{flushleft}
   \inferrule*[Lab=\tylab{Handler}]
     {{\bl
-       C = A \eff \{(\ell_i : A_i \to B_i)_i; R\} \\
+       C = A \eff \{(\ell_i : A_i \opto B_i)_i; R\} \\
        D = B \eff \{(\ell_i : P_i)_i;           R\}\\
-       H = \{\Return\;x \mapsto M\} \uplus \{ \ell_i\;p_i\;r_i \mapsto N_i \}_i
+       H = \{\Return\;x \mapsto M\} \uplus \{ \OpCase{\ell_i}{p_i}{r_i} \mapsto N_i \}_i
        \el}\\\\
        \typ{\Delta;\Gamma, x : A}{M : D}\\\\
        [\typ{\Delta;\Gamma,p_i : A_i, r_i : B_i \to D}{N_i : D}]_i
@@ -1879,7 +1882,7 @@ for handling return values and another for handling operations.
     &\reducesto& N[V/p, \lambda y . \, \Handle \; \EC[\Return \; y] \; \With \; H/r], \\
 \multicolumn{4}{@{}r@{}}{
        \hfill\ba[t]{@{~}r@{~}l}
-                   \text{where}& \hell = \{ \ell \; p \; r \mapsto N \}\\
+                   \text{where}& \hell = \{ \OpCase{\ell}{p}{r} \mapsto N \}\\
                    \text{and}  & \ell \notin \BL(\EC)
               \ea
 }
@@ -1912,8 +1915,8 @@ $\ell$.
 \[
   \bl
     \ba{@{~}r@{~}c@{~}l}
-        H_{\mathsf{inner}}   &\defas& \{\ell\;p\;r \mapsto r~42; \Return\;x \mapsto \Return~x\}\\
-        H_{\mathsf{outer}} &\defas& \{\ell\;p\;r \mapsto r~0;\Return\;x \mapsto \Return~x \}
+        H_{\mathsf{inner}}   &\defas& \{\OpCase{\ell}{p}{r} \mapsto r~42; \Return\;x \mapsto \Return~x\}\\
+        H_{\mathsf{outer}} &\defas& \{\OpCase{\ell}{p}{r} \mapsto r~0;\Return\;x \mapsto \Return~x \}
     \ea\medskip\\
       \Handle \;
         \left(\Handle\; \Do\;\ell~\Record{}\;\With\; H_{\mathsf{inner}}\right)\;
@@ -2070,7 +2073,7 @@ Let us define a suitable handler for this operation.
          \Handle\;m\,\Unit\;\With\\
            ~\ba{@{~}l@{~}c@{~}l}
               \Return\;res &\mapsto& \Record{res;\nil}\\
-              \Putc~\Record{\_;c}~resume &\mapsto&
+              \OpCase{\Putc}{\Record{\_;c}}{resume} &\mapsto&
                   \Let\; \Record{res;file} = resume\,\Unit\;\In\;
                   \Record{res; c \cons file}
            \ea
@@ -2141,7 +2144,7 @@ We can now write some contents to the file and observe the effects.
          \Handle\;m\,\Unit\;\With\\
            ~\ba{@{~}l@{~}c@{~}l}
               \Return\;\_ &\mapsto& 0\\
-              \Exit~n~\_ &\mapsto& n
+              \ExnCase{\Exit}{n} &\mapsto& n
            \ea
        \ea
   \el
@@ -2213,7 +2216,7 @@ The following handler implements the environment.
          \Handle\;m\,\Unit\;\With\\
            ~\ba{@{~}l@{~}c@{~}l}
               \Return\;res &\mapsto& res\\
-              \Ask~\Unit~resume &\mapsto&
+              \OpCase{\Ask}{\Unit}{resume} &\mapsto&
                 \bl
                   \Case\;user\,\{
                   \ba[t]{@{}l@{~}c@{~}l}
@@ -2267,7 +2270,7 @@ string.
            \Handle\;m\,\Unit\;\With\\
              ~\ba{@{~}l@{~}c@{~}l}
                 \Return\;res &\mapsto& res\\
-                \Su~user'~resume &\mapsto& \environment\,\Record{user';resume})\rangle
+                \OpCase{\Su}{user'}{resume} &\mapsto& \environment\,\Record{user';resume})\rangle
               \ea
          \ea
   \el
@@ -2306,7 +2309,7 @@ string.
            \Handle\;m\,\Unit\;\With\\
              ~\ba{@{~}l@{~}c@{~}l}
                 \Return\;res &\mapsto& [res]\\
-                \Fork~\Unit~resume &\mapsto& resume~\True \concat resume~\False
+                \OpCase{\Fork}{\Unit}{resume} &\mapsto& resume~\True \concat resume~\False
               \ea
          \ea
   \el
@@ -2335,7 +2338,7 @@ string.
            \Handle\;m\,\Unit\;\With\\
              ~\ba{@{~}l@{~}c@{~}l}
                 \Return\;res &\mapsto& \Done~res\\
-                \Interrupt~\Unit~resume &\mapsto& \Suspended~resume
+                \OpCase{\Interrupt}{\Unit}{resume} &\mapsto& \Suspended~resume
               \ea
          \ea
   \el
@@ -2372,6 +2375,16 @@ string.
 
 \[
   \bl
+    \Uget : \UnitType \to \alpha \eff \{\Get:\UnitType \opto \alpha\}\\
+    \Uget~\Unit \defas \Do\;\Get~\Unit \medskip\\
+
+    \Uput : \UnitType \to \alpha \eff \{\Put:\alpha \opto \Unit\}\\
+    \Uput~st \defas \Do\;\Put~st
+  \el
+\]
+
+\[
+  \bl
     \runState : \Record{\beta;\UnitType \to \alpha \eff \State~\beta} \to \Record{\alpha;\beta}\\
     \runState~\Record{st_0;m} \defas
         \ba[t]{@{}l}
@@ -2380,8 +2393,8 @@ string.
                 \Handle\;m\,\Unit\;\With\\
                  ~\ba{@{~}l@{~}c@{~}l}
                    \Return\;res      &\mapsto& \lambda st.\Record{res;st}\\
-                   \Get~\Unit~resume &\mapsto& \lambda st.resume~st~st\\
-                   \Put~st'~resume   &\mapsto& \lambda st.resume~\Unit~st'
+                   \OpCase{\Get}{\Unit}{resume} &\mapsto& \lambda st.resume~st~st\\
+                   \OpCase{\Put}{st'}{resume}   &\mapsto& \lambda st.resume~\Unit~st'
                   \ea
               \ea\\
            \In\; f\,st_0

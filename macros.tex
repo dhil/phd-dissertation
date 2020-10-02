@@ -1,4 +1,21 @@
 %%
+%% Defined-as equality
+%%
+\newcommand{\defas}[0]{\mathrel{\overset{\makebox[0pt]{\mbox{\normalfont\tiny\text{def}}}}{=}}}
+\newcommand{\defnas}[0]{\mathrel{:=}}
+\newcommand{\simdefas}[0]{\mathrel{\overset{\makebox[0pt]{\mbox{\normalfont\tiny\text{def}}}}{\simeq}}}
+
+%%
+%% Partiality
+%%
+\newcommand{\pto}[0]{\ensuremath{\rightharpoonup}}
+
+%%
+%% Operation arrows
+%%
+\newcommand{\opto}[0]{\ensuremath{\twoheadrightarrow}}
+
+%%
 %% Calculi names.
 %%
 \newcommand{\Links}{Links\xspace}
@@ -33,6 +50,10 @@
 \newcommand{\Else}{\keyw{else}}
 \newcommand{\Absurd}{\keyw{absurd}}
 \newcommand{\Record}[1]{\ensuremath{\langle #1 \rangle}}
+\newcommand{\Op}[1]{\ensuremath{\langle\!\!\langle #1 \rangle\!\!\rangle}}
+%\newcommand{\Op}[1]{\ensuremath{\{#1\}}}
+\newcommand{\OpCase}[3]{\Op{#1~#2 \opto #3}}
+\newcommand{\ExnCase}[2]{\Op{#1~#2}}
 \newcommand{\Unit}{\Record{}}
 \newcommand{\Inl}{\keyw{inl}}
 \newcommand{\Inr}{\keyw{inr}}
@@ -177,23 +198,6 @@
 
 
 \newenvironment{smathpar}{\vspace{-3ex}\small\begin{mathpar}}{\end{mathpar}\normalsize\ignorespacesafterend}
-
-%%
-%% Defined-as equality
-%%
-\newcommand{\defas}[0]{\mathrel{\overset{\makebox[0pt]{\mbox{\normalfont\tiny\text{def}}}}{=}}}
-\newcommand{\defnas}[0]{\mathrel{:=}}
-\newcommand{\simdefas}[0]{\mathrel{\overset{\makebox[0pt]{\mbox{\normalfont\tiny\text{def}}}}{\simeq}}}
-
-%%
-%% Partiality
-%%
-\newcommand{\pto}[0]{\ensuremath{\rightharpoonup}}
-
-%%
-%% Operation arrows
-%%
-\newcommand{\opto}[0]{\ensuremath{\twoheadrightarrow}}
 
 %%
 %% Lists
@@ -370,3 +374,5 @@
 \newcommand{\concatMap}{\dec{concatMap}}
 \newcommand{\State}{\dec{State}}
 \newcommand{\runState}{\dec{runState}}
+\newcommand{\Uget}{\dec{get}}
+\newcommand{\Uput}{\dec{put}}
