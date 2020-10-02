@@ -959,7 +959,7 @@ computation to syntactically \emph{appear in tail position}.
       position, then both $M$ and $N$ appear in tail positions.
     \item If $\Let\;\Record{\ell = x; y} = V \;\In\;N$ appears in tail
       position, then $N$ is in tail position.
-    \item If $\Let\;x \revto M\;\In\;N$ appear in tail position, then
+    \item If $\Let\;x \revto M\;\In\;N$ appears in tail position, then
       $N$ appear in tail position.
     \item Nothing else appears in tail position.
   \end{itemize}
@@ -2366,6 +2366,28 @@ string.
 \subsection{State: file i/o}
 \label{sec:tiny-unix-io}
 
+\[
+  \State~\alpha \defas \{\Get:\UnitType \opto \alpha;\Put:\alpha \opto \UnitType\}
+\]
+
+\[
+  \bl
+    \runState : \Record{\beta;\UnitType \to \alpha \eff \State~\beta} \to \Record{\alpha;\beta}\\
+    \runState~\Record{st_0;m} \defas
+        \ba[t]{@{}l}
+           \Let\;f \revto
+              \ba[t]{@{}l}
+                \Handle\;m\,\Unit\;\With\\
+                 ~\ba{@{~}l@{~}c@{~}l}
+                   \Return\;res      &\mapsto& \lambda st.\Record{res;st}\\
+                   \Get~\Unit~resume &\mapsto& \lambda st.resume~st~st\\
+                   \Put~st'~resume   &\mapsto& \lambda st.resume~\Unit~st'
+                  \ea
+              \ea\\
+           \In\; f\,st_0
+        \ea
+  \el
+\]
 
 % The existing literature already contain an extensive amount of
 % introductory examples of programming with (deep) effect
