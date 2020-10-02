@@ -161,15 +161,20 @@ fun example4() {
             status(fun() {
               var parent = fork();
               (if (parent) su(Alice) else su(Bob));
-              echo(whoami () ^^ "> Hello ");
+              echo(whoami() ^^ "> Hello ");
               interrupt();
-              echo(whoami () ^^ "> Bye ");
+              echo(whoami() ^^ "> Bye ");
+              interrupt();
               if (parent) exit(0)
               else {
-                echo(whoami () ^^ "> oops ");
                 var parent = fork();
-                (if (parent) su(Root) else exit(1));
-                echo(whoami () ^^ "> !! ")
+                interrupt();
+                (if (parent) su(Root)
+                 else {
+                  echo(whoami() ^^ "> oops ");
+                  exit(1)
+                });
+                echo(whoami() ^^ "> !! ")
               }
             })
           })
