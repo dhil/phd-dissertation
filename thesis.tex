@@ -2121,6 +2121,42 @@ We can now write some contents to the file and observe the effects.
 \subsection{Exceptions: non-local exits}
 \label{sec:tiny-unix-exit}
 
+\[
+  \Status \defas \{\Exit : \Int \opto \Zero\}
+\]
+
+\[
+  \bl
+    \exit : \Int \to \alpha \eff \Status\\
+    \exit~n \defas \Absurd\;(\Do\;\Exit~n)
+  \el
+\]
+
+\[
+  \bl
+    \status : (\UnitType \to \alpha \eff \Status) \to \Int\\
+    \status~m \defas
+       \ba[t]{@{~}l}
+         \Handle\;m\,\Unit\;\With\\
+           ~\ba{@{~}l@{~}c@{~}l}
+              \Return\;\_ &\mapsto& 0\\
+              \Exit~n~\_ &\mapsto& n
+           \ea
+       \ea
+  \el
+\]
+
+\[
+  \ba{@{~}l@{~}l}
+    &\bl
+      \basicIO\,(\lambda\Unit.
+         \status\,(\lambda\Unit.
+            \fwrite\,\Record{\stdout;\texttt{"dead"}};\exit~1;\fwrite\,\Record{\stdout;\texttt{"code"}}))
+     \el\\
+    \reducesto^+& \Record{1;\texttt{"dead"}} : \Record{\Int;\UFile}
+  \ea
+\]
+
 \subsection{Dynamic binding: user-specific environments}
 \label{sec:tiny-unix-env}
 
