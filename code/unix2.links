@@ -3,6 +3,46 @@
 sig str : ((a, [Char])) ~> (a, String)
 fun str((x, cs)) { (x, implode(cs)) }
 
+typename Option(a) = [|None|Some:a|];
+
+sig lookup : (a, [(a, b)]) ~> Option(b)
+fun lookup(k, kvs) {
+  switch (kvs) {
+    case [] -> None
+    case (k', v) :: kvs' ->
+      if (k == k') Some(v)
+      else lookup(k, kvs')
+  }
+}
+
+sig modify : (a, b, [(a, b)]) ~> [(a, b)]
+fun modify(k, v, kvs) {
+  switch (kvs) {
+    case [] -> []
+    case (k', v') :: kvs' ->
+      if (k == k') (k, v) :: kvs'
+      else (k', v') :: modify(k, v, kvs')
+  }
+}
+
+sig remove : (a, [(a, b)]) ~> [(a, b)]
+fun remove(k, kvs) {
+  switch (kvs) {
+    case [] -> []
+    case (k', v') :: kvs' ->
+      if (k == k') kvs'
+      else (k', v') :: remove(k, kvs')
+  }
+}
+
+sig fromSome : (Option(a)) ~> a
+fun fromSome(x) {
+  switch (x) {
+    case None -> error("fromSome")
+    case Some(x) -> x
+  }
+}
+
 ##
 ## Basic i/o
 ##
@@ -183,7 +223,107 @@ fun example4() {
 }
 
 ##
+## Generic state handling
+##
+sig get : () {Get:s |_}-> s
+fun get() { do Get }
+
+sig put : (s) {Put:(s) -> () |_}-> ()
+fun put(st) { do Put(st) }
+
+sig runState : (s, Comp(a, {Get:() -> s,Put:(s) -> () |e})) {Get{_},Put{_} |e}~> (a, s)
+fun runState(st0, m) {
+  var f = handle(m()) {
+    case Return(x) -> fun(st) { (x, st) }
+    case Get(resume) -> fun(st) { resume(st)(st) }
+    case Put(st,resume) -> fun(_) { resume(())(st) }
+  };
+  f(st0)
+}
+
+##
 ## State: file i/o
 ##
+typename INode      = (loc:Int,lno:Int);
+typename IList      = [(Int, INode)];  # INode index -> INode
+typename Directory  = [(String, Int)]; # Filename -> INode index
+typename DataRegion = [(Int, File)];   # Loc -> File
 
-# TODO.
+typename FileSystem = (dir:Directory,dregion:DataRegion,inodes:IList
+                                    ,lnext:Int         ,inext:Int    );
+
+
+sig falloc : (String, FileSystem) ~> (Int, FileSystem)
+fun falloc(fname, fsys) {
+  var loc = fsys.lnext;
+  var dregion = (loc, []) :: fsys.dregion;
+
+  var i   = fsys.inext;
+  var inode = (loc=loc,lno=1);
+  var inodes = (i, inode) :: fsys.inodes;
+
+  var dir = (fname, i) :: fsys.dir;
+  (i, (=dir,=dregion,=inodes,lnext=loc+1,inext=i+1))
+}
+
+typename WriteMode = [|Create|Append|];
+
+sig fwrite : (WriteMode, String, [Char], FileSystem) ~> FileSystem
+fun fwrite(mode,fname, cs, fsys) {
+  var (ino,fsys') = switch (lookup(fname, fsys.dir)) {
+     case None    -> falloc(fname, fsys)
+     case Some(i) -> (i,fsys)
+  };
+  var inode = fromSome(lookup(ino, fsys'.inodes));
+  var file = fromSome(lookup(inode.loc, fsys'.dregion));
+  var file' = switch (mode) {
+     case Create -> cs
+     case Append -> file ++ cs
+  };
+  (fsys' with dregion = modify(inode.loc, file, fsys'.dregion))
+}
+
+sig fread : (String, FileSystem) ~> Option([Char])
+fun fread(fname, fsys) {
+  switch (lookup(fname, fsys.dir)) {
+    case None    -> None
+    case Some(i) ->
+      var inode = fromSome(lookup(i, fsys.inodes));
+      lookup(inode.loc, fsys.dregion)
+  }
+}
+
+sig flink : (String, String, FileSystem) ~> Option(FileSystem)
+fun flink(src, dest, fsys) {
+  switch (lookup(dest, fsys.dir)) {
+    case None -> None
+    case Some(i) ->
+      var inode  = fromSome(lookup(i, fsys.inodes));
+      var inode  = (inode with lno = inode.lno + 1);
+      var inodes = modify(i, inode, fsys.inodes);
+
+      var dir    = (src, i) :: fsys.dir;
+      Some((fsys with inodes = inodes, dir = dir))
+  }
+}
+
+sig funlink : (String, FileSystem) ~> Option(FileSystem)
+fun funlink(fname, fsys) {
+  switch (lookup(fname, fsys.dir)) {
+    case None -> None
+    case Some(i) ->
+      var dir = remove(fname, fsys.dir);
+
+      var inode  = fromSome(lookup(i, fsys.inodes));
+      var inode  = (inode with lno = inode.lno - 1);
+
+      if (inode.lno > 0) {
+        var inodes = modify(i, inode, fsys.inodes);
+        Some((fsys with inodes = inodes, dir = dir))
+      } else {
+        var dregion = remove(inode.loc, fsys.dregion);
+        var inodes = remove(i, fsys.inodes);
+        Some((fsys with inodes = inodes, dir = dir, dregion = dregion))
+      }
+  }
+}
