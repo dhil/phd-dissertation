@@ -1,0 +1,184 @@
+# Tiny UNIX revision 2.
+
+sig str : ((a, [Char])) ~> (a, String)
+fun str((x, cs)) { (x, implode(cs)) }
+
+##
+## Basic i/o
+##
+typename File = [Char];
+typename FileDescr = Int;
+
+sig stdout : FileDescr
+var stdout = 1;
+
+sig basicIO : (Comp(a, {Putc:(FileDescr,Char) -> () |e})) {Putc{_} |e}~> (a, File)
+fun basicIO(m) {
+  handle(m()) {
+    case Return(res) -> (res, [])
+    case Putc(_, c, resume) ->
+      var (res, file) = resume(());
+      (res, c :: file)
+  }
+}
+
+sig echo : (String) {Putc:(FileDescr,Char) -> () |_}~> ()
+fun echo(cs) { iter(fun(c) { do Putc(stdout, c) }, explode(cs)) }
+
+fun example0() {
+  str(basicIO(fun() {
+        echo("Hello"); echo("World")
+  }))
+}
+
+##
+## Exceptions: non-local exits
+##
+sig exit : (Int) {Exit:(Int) -> Zero |_}-> a
+fun exit(n) { switch(do Exit(n)) {} }
+
+sig status : (Comp(a, {Exit:(Int) -> Zero |e})) {Exit{_} |e}~> Int
+fun status(m) {
+  handle(m()) {
+    case Return(_) -> 0
+    case Exit(n, _) -> n
+  }
+}
+
+fun example1() {
+  str(basicIO(fun() {
+        status(fun() {
+          echo("dead"); exit(1); echo("code")
+        })
+  }))
+}
+
+##
+## Dynamic binding: user-specific environments.
+##
+typename User = [|Alice|Bob|Root|];
+
+sig whoami : () {Ask:String |_}-> String
+fun whoami() { do Ask }
+
+sig env : (User, Comp(a, {Ask:String |e})) {Ask{_} |e}~> a
+fun env(user, m) {
+  handle(m()) {
+    case Return(x) -> x
+    case Ask(resume) ->
+      switch (user) {
+        case Alice -> resume("alice")
+        case Bob   -> resume("bob")
+        case Root  -> resume("root")
+      }
+  }
+}
+
+fun example2() {
+  env(Root, whoami)
+}
+
+###
+### Session management.
+###
+sig su : (User) {Su:(User) -> () |_}-> ()
+fun su(user) { do Su(user) }
+
+sig sessionmgr : (User, Comp(a, {Ask:String,Su:(User) -> () |e})) {Ask{_},Su{_} |e}~> a
+fun sessionmgr(user, m) {
+  env(user, fun() {
+     handle(m()) {
+       case Return(x) -> x
+       case Su(user', resume) ->
+         env(user', fun() { resume(()) })
+     }
+  })
+}
+
+fun example3() {
+  str(basicIO(fun() {
+        sessionmgr(Root, fun() {
+          status(fun() {
+            su(Alice); echo(whoami()); echo(" ");
+            su(Bob);   echo(whoami()); echo(" ");
+            su(Root);  echo(whoami())
+          })
+        })
+  }))
+}
+
+##
+## Nondeterminism: time sharing.
+##
+sig fork : () {Fork:Bool |_}-> Bool
+fun fork() { do Fork }
+
+sig nondet : (Comp(a, {Fork:Bool |e})) {Fork{_} |e}~> [a]
+fun nondet(m) {
+  handle(m()) {
+    case Return(res) -> [res]
+    case Fork(resume) -> resume(true) ++ resume(false)
+  }
+}
+
+sig interrupt : () {Interrupt:() |_}-> ()
+fun interrupt() { do Interrupt }
+
+typename Pstate(a,e::Eff) = forall q::Presence.
+                            [|Done:a
+                             |Paused:() {Interrupt{q} |e}~> Pstate(a, { |e})|];
+
+sig slice : (Comp(a, {Interrupt:() |e})) {Interrupt{_} |e}~> Pstate(a, { |e})
+fun slice(m) {
+  handle(m()) {
+    case Return(res) -> Done(res)
+    case Interrupt(resume) -> Paused(fun() { resume(()) })
+  }
+}
+
+sig runNext : ([Pstate(a, { Fork:Bool |e})]) {Fork{_},Interrupt{_} |e}~> [a]
+fun runNext(ps) {
+  sig run : (Pstate (a, { Fork:() {}-> Bool|e })) {Fork{_},Interrupt{_} |e}~> [a]
+  fun run(p) {
+    switch(p) {
+      case Done(res) -> [res]
+      case Paused(resume) -> runNext(nondet(resume))
+    }
+  }
+  concatMap(run, ps)
+}
+
+sig timeshare : (Comp(a, {Fork:Bool,Interrupt:() |e})) {Fork{_},Interrupt{_} |e}~> [a]
+fun timeshare(m) {
+  var p = Paused(fun() { slice(m) });
+  runNext([p])
+}
+
+fun example4() {
+  str(basicIO(fun() {
+        timeshare(fun() {
+          sessionmgr(Root, fun() {
+            status(fun() {
+              var parent = fork();
+              (if (parent) su(Alice) else su(Bob));
+              echo(whoami () ^^ "> Hello ");
+              interrupt();
+              echo(whoami () ^^ "> Bye ");
+              if (parent) exit(0)
+              else {
+                echo(whoami () ^^ "> oops ");
+                var parent = fork();
+                (if (parent) su(Root) else exit(1));
+                echo(whoami () ^^ "> !! ")
+              }
+            })
+          })
+        })
+      }))
+}
+
+##
+## State: file i/o
+##
+
+# TODO.
