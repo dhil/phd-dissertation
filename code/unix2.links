@@ -46,29 +46,29 @@ fun fromSome(x) {
 ##
 ## Basic i/o
 ##
-typename File = [Char];
+typename File = String;
 typename FileDescr = Int;
 
 sig stdout : FileDescr
 var stdout = 1;
 
-sig basicIO : (Comp(a, {Putc:(FileDescr,Char) -> () |e})) {Putc{_} |e}~> (a, File)
+sig basicIO : (Comp(a, {Write:(FileDescr,String) -> () |e})) {Write{_} |e}~> (a, File)
 fun basicIO(m) {
   handle(m()) {
-    case Return(res) -> (res, [])
-    case Putc(_, c, resume) ->
+    case Return(res) -> (res, "")
+    case Write(_, s, resume) ->
       var (res, file) = resume(());
-      (res, c :: file)
+      (res, s ^^ file)
   }
 }
 
-sig echo : (String) {Putc:(FileDescr,Char) -> () |_}~> ()
-fun echo(cs) { iter(fun(c) { do Putc(stdout, c) }, explode(cs)) }
+sig echo : (String) {Write:(FileDescr,String) -> () |_}~> ()
+fun echo(cs) { do Write(stdout,cs) }
 
 fun example0() {
-  str(basicIO(fun() {
+  basicIO(fun() {
         echo("Hello"); echo("World")
-  }))
+  })
 }
 
 ##
@@ -86,11 +86,11 @@ fun status(m) {
 }
 
 fun example1() {
-  str(basicIO(fun() {
+  basicIO(fun() {
         status(fun() {
           echo("dead"); exit(1); echo("code")
         })
-  }))
+  })
 }
 
 ##
@@ -136,7 +136,7 @@ fun sessionmgr(user, m) {
 }
 
 fun example3() {
-  str(basicIO(fun() {
+  basicIO(fun() {
         sessionmgr(Root, fun() {
           status(fun() {
             su(Alice); echo(whoami()); echo(" ");
@@ -144,7 +144,7 @@ fun example3() {
             su(Root);  echo(whoami())
           })
         })
-  }))
+  })
 }
 
 ##
@@ -195,31 +195,31 @@ fun timeshare(m) {
 }
 
 fun example4() {
-  str(basicIO(fun() {
-        timeshare(fun() {
-          sessionmgr(Root, fun() {
-            status(fun() {
-              var parent = fork();
-              (if (parent) su(Alice) else su(Bob));
-              echo(whoami() ^^ "> Hello ");
-              interrupt();
-              echo(whoami() ^^ "> Bye ");
-              interrupt();
-              if (parent) exit(0)
-              else {
-                var parent = fork();
-                interrupt();
-                (if (parent) su(Root)
-                 else {
-                  echo(whoami() ^^ "> oops ");
-                  exit(1)
-                });
-                echo(whoami() ^^ "> !! ")
-              }
-            })
-          })
+  basicIO(fun() {
+     timeshare(fun() {
+        sessionmgr(Root, fun() {
+           status(fun() {
+             var parent = fork();
+             (if (parent) su(Alice) else su(Bob));
+             echo(whoami() ^^ "> Hello ");
+             interrupt();
+             echo(whoami() ^^ "> Bye ");
+             interrupt();
+             if (parent) exit(0)
+             else {
+               var parent = fork();
+               interrupt();
+               (if (parent) su(Root)
+                else {
+                 echo(whoami() ^^ "> oops ");
+                 exit(1)
+               });
+               echo(whoami() ^^ "> !! ")
+             }
+           })
         })
-      }))
+     })
+  })
 }
 
 ##
@@ -241,9 +241,25 @@ fun runState(st0, m) {
   f(st0)
 }
 
+fun example5() {
+  runState(0, fun() {
+    var x = 3;
+    put(x);
+    assert(x == get(), "Put;Get");
+    var y = get();
+    var z = get();
+    assert(y == z, "Get;Get");
+    put(x+1);
+    put(x+2);
+    assert(get() == x + 2, "Put;Put")
+  })
+}
+
 ##
 ## State: file i/o
 ##
+typename FilePtr    = Option(FileDescr);
+
 typename INode      = (loc:Int,lno:Int);
 typename IList      = [(Int, INode)];  # INode index -> INode
 typename Directory  = [(String, Int)]; # Filename -> INode index
@@ -253,56 +269,49 @@ typename FileSystem = (dir:Directory,dregion:DataRegion,inodes:IList
                                     ,lnext:Int         ,inext:Int    );
 
 
-sig falloc : (String, FileSystem) ~> (Int, FileSystem)
-fun falloc(fname, fsys) {
+sig fcreate : (String, FileSystem) ~> (Int, FileSystem)
+fun fcreate(fname, fsys) {
   var loc = fsys.lnext;
-  var dregion = (loc, []) :: fsys.dregion;
+  var dregion = (loc, "") :: fsys.dregion;
 
-  var i   = fsys.inext;
+  var ino   = fsys.inext;
   var inode = (loc=loc,lno=1);
-  var inodes = (i, inode) :: fsys.inodes;
+  var inodes = (ino, inode) :: fsys.inodes;
 
-  var dir = (fname, i) :: fsys.dir;
-  (i, (=dir,=dregion,=inodes,lnext=loc+1,inext=i+1))
+  var dir = (fname, ino) :: fsys.dir;
+  (ino, (=dir, =dregion, =inodes, lnext=loc+1, inext=ino+1))
 }
 
-typename WriteMode = [|Create|Append|];
+sig fopen : (String, FileSystem) ~> (Option(Int), FileSystem)
+fun fopen(fname, fsys) { (lookup(fname, fsys.dir), fsys) }
 
-sig fwrite : (WriteMode, String, [Char], FileSystem) ~> FileSystem
-fun fwrite(mode,fname, cs, fsys) {
-  var (ino,fsys') = switch (lookup(fname, fsys.dir)) {
-     case None    -> falloc(fname, fsys)
-     case Some(i) -> (i,fsys)
-  };
-  var inode = fromSome(lookup(ino, fsys'.inodes));
-  var file = fromSome(lookup(inode.loc, fsys'.dregion));
-  var file' = switch (mode) {
-     case Create -> cs
-     case Append -> file ++ cs
-  };
-  (fsys' with dregion = modify(inode.loc, file, fsys'.dregion))
+sig fclose : (Int, FileSystem) ~> FileSystem
+fun fclose(_, fsys) { fsys }
+
+sig fwrite : (Int, String, FileSystem) ~> FileSystem
+fun fwrite(ino, cs, fsys) {
+  var inode = fromSome(lookup(ino, fsys.inodes));
+  var file = fromSome(lookup(inode.loc, fsys.dregion));
+  var file' = file ^^ cs;
+  (fsys with dregion = modify(inode.loc, file, fsys.dregion))
 }
 
-sig fread : (String, FileSystem) ~> Option([Char])
-fun fread(fname, fsys) {
-  switch (lookup(fname, fsys.dir)) {
-    case None    -> None
-    case Some(i) ->
-      var inode = fromSome(lookup(i, fsys.inodes));
-      lookup(inode.loc, fsys.dregion)
-  }
+sig fread : (Int, FileSystem) ~> Option(String)
+fun fread(ino, fsys) {
+  var inode = fromSome(lookup(ino, fsys.inodes));
+  lookup(inode.loc, fsys.dregion)
 }
 
 sig flink : (String, String, FileSystem) ~> Option(FileSystem)
 fun flink(src, dest, fsys) {
   switch (lookup(dest, fsys.dir)) {
     case None -> None
-    case Some(i) ->
-      var inode  = fromSome(lookup(i, fsys.inodes));
+    case Some(ino) ->
+      var inode  = fromSome(lookup(ino, fsys.inodes));
       var inode  = (inode with lno = inode.lno + 1);
-      var inodes = modify(i, inode, fsys.inodes);
+      var inodes = modify(ino, inode, fsys.inodes);
 
-      var dir    = (src, i) :: fsys.dir;
+      var dir    = (src, ino) :: fsys.dir;
       Some((fsys with inodes = inodes, dir = dir))
   }
 }
@@ -325,5 +334,51 @@ fun funlink(fname, fsys) {
         var inodes = remove(i, fsys.inodes);
         Some((fsys with inodes = inodes, dir = dir, dregion = dregion))
       }
+  }
+}
+
+sig open' : (String) {Open:(String) -> Option(FileDescr) |_}-> Option(FileDescr)
+fun open'(filename) { do Open(filename) }
+
+sig close : (FileDescr) {Close:(FileDescr) -> () |_}-> ()
+fun close(fd) { do Close(fd) }
+
+sig write : (FileDescr, String) {Write:(FileDescr, String) -> () |_}-> ()
+fun write(fd, cs) { do Write(fd, cs) }
+
+sig read : (FileDescr) {Read:(FileDescr) -> Option(String) |_}-> Option(String)
+fun read(fd) { do Read(fd) }
+
+sig link : (String, String) {Link:(String, String) -> () |_}-> ()
+fun link(src, dest) { do Link(src, dest) }
+
+sig unlink : (String) {Unlink:(String) -> () |_}-> ()
+fun unlink(fname) { do Unlink(fname) }
+
+sig injectState : (() { |e}~> a) -> () {Get:s,Put:(s) -> () |e}~> a
+fun injectState(f) { (f : (() {Get:s,Put:(s) -> () |e}~> a) <- (() { |e}~> a)) }
+
+sig fileIO : (Comp(a, { Close:(FileDescr) -> ()
+                      , Create:(String) -> FileDescr
+                      , Read:(FileDescr) -> Option(String)
+                      , Open:(String) -> Option(FileDescr)
+                      , Write:(FileDescr, String) -> () |e}))
+              {Close{_},Create{_},Open{_},Read{_},Write{_},Get:FileSystem,Put:(FileSystem) -> () |e}~> a
+fun fileIO(m) {
+  handle(injectState(m)()) {
+    case Return(x) -> x
+    case Close(_, resume) ->
+      resume(())
+    case Create(fname, resume) ->
+      var (fd, fsys) = fcreate(fname, get());
+      put(fsys); resume(fd)
+    case Read(fd, resume) ->
+      resume(fread(fd, get()))
+    case Open(fname, resume) ->
+      var (fd, fsys) = fopen(fname, get());
+      put(fsys); resume(fd)
+    case Write(fd, cs, resume) ->
+      var fsys = fwrite(fd, cs, get());
+      put(fsys); resume(())
   }
 }
