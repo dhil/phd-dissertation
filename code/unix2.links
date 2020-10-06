@@ -442,6 +442,59 @@ fun init(fsys, main) {
 }
 
 ###
+### Stream redirection
+###
+sig >> : (Comp(a, { Create: (String) -> FileDescr
+                  , Open: (String) {}-> Option (FileDescr)
+                  , Write:(FileDescr, String) -> () |e}), String)
+             { Create:(String) -> FileDescr
+             , Open:(String) -> Option (FileDescr)
+             , Write:(FileDescr, String) -> ()      |e}~> ()
+op f >> fname {
+  var fd = create(fname);
+  handle(f()) {
+    case Return(_) -> ()
+    case Write(_, cs, resume) ->
+      resume(write(fd, cs))
+  }
+}
+
+sig >>> : (Comp(a, { Create: (String) -> FileDescr
+                   , Open: (String)   -> Option (FileDescr)
+                   , Write:(FileDescr, String) -> () |e}), String)
+             { Create:(String) -> FileDescr
+             , Open:(String) -> Option (FileDescr)
+             , Write:(FileDescr, String) -> ()      |e}~> ()
+op f >>> fname {
+  var fd = switch (open'(fname)) {
+      case None -> create(fname)
+      case Some(fd) -> fd
+  };
+  handle(f()) {
+    case Return(_) -> ()
+    case Write(_, cs, resume) ->
+      resume(write(fd, cs))
+  }
+}
+
+fun example6() {
+  if (fork()) {
+    su(Alice);
+    var fd = create("ritchie.txt");
+    fun(){echo("UNIX is basically a simple operating system, ")} >> "ritchie.txt";
+    fun(){echo("but you have to be a genius to understand the simplicity.")} >>> "ritchie.txt"
+  } else {
+    su(Bob);
+    var hamlet = "hamlet";
+    fun(){echo("To be, or not to be, that is the question:\n")}    >> hamlet;
+    fun(){echo("Whether 'tis nobler in the mind to suffer\n")}    >>> hamlet;
+    fun(){echo("The slings and arrows of outrageous fortune,\n")} >>> hamlet;
+    fun(){echo("Or to take arms against a sea of troubles\n")}    >>> hamlet;
+    fun(){echo("And by opposing end them.")}                      >>> hamlet
+  }
+}
+
+###
 ### TCP threeway handshake
 ###
 
