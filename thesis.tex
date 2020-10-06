@@ -54,7 +54,7 @@
 \usepackage{tikz}
 \usetikzlibrary{fit,calc,trees,positioning,arrows,chains,shapes.geometric,%
     decorations.pathreplacing,decorations.pathmorphing,shapes,%
-    matrix,shapes.symbols,intersections}
+    matrix,shapes.symbols,intersections,tikzmark}
 
 \usepackage[customcolors,shade]{hf-tikz}  % Shaded backgrounds.
 \hfsetfillcolor{gray!40}
@@ -2011,18 +2011,18 @@ and demonstrate how we can use the power of (deep) effect handlers to
 implement a tiny operating system that supports multiple users,
 time-sharing, and file i/o.
 %
-The operating system will be a variation of UNIX~\cite{RitchieT74},
+The operating system will be a variation of \UNIX{}~\cite{RitchieT74},
 which we will call \OSname{}.
 %
 To make the task tractable we will occasionally jump some hops and
 make some simplifying assumptions, nevertheless the resulting
-implementation will capture the essence of a UNIX-like operating
+implementation will capture the essence of a \UNIX{}-like operating
 system.
 %
 The implementation will be composed of several small modular effect
 handlers, that each handles a particular set of system commands. In
 this respect, we will truly realise \OSname{} in the spirit of the
-UNIX philosophy~\cite[Section~1.6]{Raymond03}.  The implementation of
+\UNIX{} philosophy~\cite[Section~1.6]{Raymond03}.  The implementation of
 the operating system will showcase several computational effects in
 action including \emph{dynamic binding}, \emph{nondeterminism}, and
 \emph{state}.
@@ -2030,22 +2030,22 @@ action including \emph{dynamic binding}, \emph{nondeterminism}, and
 \subsection{Basic i/o}
 \label{sec:tiny-unix-bio}
 
-The file system is a cornerstone of UNIX as the notion of \emph{file}
-in UNIX provides a unified abstraction for storing text, interprocess
+The file system is a cornerstone of \UNIX{} as the notion of \emph{file}
+in \UNIX{} provides a unified abstraction for storing text, interprocess
 communication, and access to devices such as terminals, printers,
 network, etc.
 %
 Initially, we shall take a rather basic view of the file system. In
 fact, our initial system will only contain a single file, and
 moreover, the system will only support writing operations. This system
-hardly qualifies as a UNIX file system. Nevertheless, it serves a
+hardly qualifies as a \UNIX{} file system. Nevertheless, it serves a
 crucial role for development of \OSname{}, because it provides the
 only means for us to be able to observe the effects of processes.
 %
 We defer development of a more advanced file system to
 Section~\ref{sec:tiny-unix-io}.
 
-Much like UNIX we shall model a file as a list of characters, that is
+Much like \UNIX{} we shall model a file as a list of characters, that is
 $\UFile \defas \List~\Char$. For convenience we will use the same
 model for strings, $\String \defas \List~\Char$, such that we can use
 string literal notation to denote the $\strlit{contents of a file}$.
@@ -2164,7 +2164,7 @@ We can now write some contents to the file and observe the effects.
 \subsection{Dynamic binding: user-specific environments}
 \label{sec:tiny-unix-env}
 
-In UNIX an environment maps keys to string-values. A key-value pair is
+In \UNIX{} an environment maps keys to string-values. A key-value pair is
 referred to as an \emph{environment variable}. Each user gets their
 own environment with their own set of environment variables. Some
 environment variable names are common to all environments, but their
@@ -2245,7 +2245,7 @@ an arbitrary number of variables. This can be done by parameterising
 the $\Ask$ operation by some name representation (e.g. a string),
 which the environment handler can use to index into a list of string
 values. In case the name is unbound the environment handler can
-embrace UNIX's laissez-faire attitude and resume with the empty
+embrace \UNIX{}'s laissez-faire attitude and resume with the empty
 string.
 
 \paragraph{Session management}
@@ -2369,6 +2369,59 @@ string.
 \subsection{State: file i/o}
 \label{sec:tiny-unix-io}
 
+\begin{figure}
+  \centering
+  \begin{tabular}[t]{| l |}
+    \hline
+    \multicolumn{1}{| c |}{\textbf{Directory}} \\
+    \hline
+    \strlit{hamlet}\tikzmark{hamlet}\\
+    \hline
+    \strlit{ritchie.txt}\\
+    \hline
+    \multicolumn{1}{| c |}{$\cdots$}\\
+    \hline
+    \strlit{act3}\\
+    \hline
+    \multicolumn{1}{| c |}{$\cdots$}\\
+    \hline
+    \strlit{stdout}\\
+    \hline
+  \end{tabular}
+  \hspace{1.5cm}
+  \begin{tabular}[t]{| c |}
+    \hline
+    \multicolumn{1}{| c |}{\textbf{I-List}} \\
+    \hline
+    2\\
+    \hline
+    1\tikzmark{hamletino}\\
+    \hline
+    \multicolumn{1}{| c |}{$\cdots$}\\
+    \hline
+    1\\
+    \hline
+  \end{tabular}
+  \hspace{1.5cm}
+  \begin{tabular}[t]{| l |}
+    \hline
+    \multicolumn{1}{| c |}{\textbf{Data region}} \\
+    \hline
+    \strlit{UNIX is basically...}\\
+    \hline
+    \tikzmark{hamletdr}\strlit{To be, or not to be...}\\
+    \hline
+    \multicolumn{1}{| c |}{$\cdots$}\\
+    \hline
+    \strlit{}\\
+    \hline
+  \end{tabular}
+  \tikz[remember picture,overlay]\draw[->,thick] ([xshift=1.3cm,yshift=0.1cm]pic cs:hamlet) -- ([xshift=-0.85cm,yshift=0.1cm]pic cs:hamletino) node[] {};
+  \tikz[remember picture,overlay]\draw[->,thick] ([xshift=0.62cm,yshift=0.1cm]pic cs:hamletino) -- ([xshift=-0.23cm,yshift=0.1cm]pic cs:hamletdr) node[] {};
+  \caption{\UNIX{} directory, i-list, and data region mappings}\label{fig:unix-mappings}
+\end{figure}
+
+
 \[
   \State~\alpha \defas \{\Get:\UnitType \opto \alpha;\Put:\alpha \opto \UnitType\}
 \]
@@ -2401,6 +2454,25 @@ string.
         \ea
   \el
 \]
+
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[node distance=4cm,auto,>=stealth']
+    \node[] (server) {\bfseries Bob (server)};
+    \node[left = of server] (client) {\bfseries Alice (client)};
+    \node[below of=server, node distance=5cm] (server_ground) {};
+    \node[below of=client, node distance=5cm] (client_ground) {};
+    %
+    \draw (client) -- (client_ground);
+    \draw (server) -- (server_ground);
+    \draw[->] ($(client)!0.25!(client_ground)$) -- node[rotate=-6,above,scale=0.7,midway]{SYN 42} ($(server)!0.40!(server_ground)$);
+    \draw[<-] ($(client)!0.56!(client_ground)$) -- node[rotate=6,above,scale=0.7,midway]{SYN 84;ACK 43} ($(server)!0.41!(server_ground)$);
+    \draw[->] ($(client)!0.57!(client_ground)$) -- node[rotate=-6,above,scale=0.7,midway]{ACK 44} ($(server)!0.72!(server_ground)$);
+  \end{tikzpicture}
+  \caption{Sequence diagram for the TCP handshake example.}\label{fig:tcp-handshake}
+\end{figure}
+
+\paragraph{TCP threeway handshake}
 
 % The existing literature already contain an extensive amount of
 % introductory examples of programming with (deep) effect
