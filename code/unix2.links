@@ -35,6 +35,15 @@ fun remove(k, kvs) {
   }
 }
 
+sig has : (a, [(a, b)]) ~> Bool
+fun has(k, kvs) {
+  switch (kvs) {
+    case [] -> false
+    case (k', _) :: kvs' ->
+      k == k' || has(k, kvs')
+  }
+}
+
 sig fromSome : (Option(a)) ~> a
 fun fromSome(x) {
   switch (x) {
@@ -268,18 +277,43 @@ typename DataRegion = [(Int, File)];   # Loc -> File
 typename FileSystem = (dir:Directory,dregion:DataRegion,inodes:IList
                                     ,lnext:Int         ,inext:Int    );
 
+sig fsys0 : FileSystem
+var fsys0 = (dir = [("stdout", 0)], inodes = [(0, (loc=0, lno=1))], dregion = [(0, "")], lnext = 1, inext = 1);
+
+sig fopen : (String, FileSystem) ~> (Option(Int), FileSystem)
+fun fopen(fname, fsys) { (lookup(fname, fsys.dir), fsys) }
+
+sig ftruncate : (Int, FileSystem) ~> FileSystem
+fun ftruncate(ino, fsys) {
+  var inode = fromSome(lookup(ino, fsys.inodes));
+  var dregion = modify(inode.loc, "", fsys.dregion);
+  (fsys with =dregion)
+}
 
 sig fcreate : (String, FileSystem) ~> (Int, FileSystem)
 fun fcreate(fname, fsys) {
-  var loc = fsys.lnext;
-  var dregion = (loc, "") :: fsys.dregion;
+  if (has(fname, fsys.dir)) {
+    var (ino, fsys) = fopen(fname, fsys);
+    var ino = fromSome(ino);
+    (ino, ftruncate(ino, fsys))
+  } else {
+    var loc = fsys.lnext;
+    var dregion = (loc, "") :: fsys.dregion;
 
-  var ino   = fsys.inext;
-  var inode = (loc=loc,lno=1);
-  var inodes = (ino, inode) :: fsys.inodes;
+    var ino   = fsys.inext;
+    var inode = (loc=loc,lno=1);
+    var inodes = (ino, inode) :: fsys.inodes;
 
-  var dir = (fname, ino) :: fsys.dir;
-  (ino, (=dir, =dregion, =inodes, lnext=loc+1, inext=ino+1))
+    var dir = (fname, ino) :: fsys.dir;
+    (ino, (=dir, =dregion, =inodes, lnext=loc+1, inext=ino+1))
+  }
+}
+
+sig ftruncate : (Int, FileSystem) ~> FileSystem
+fun ftruncate(ino, fsys) {
+  var inode = fromSome(lookup(ino, fsys.inodes));
+  var dregion = modify(inode.loc, "", fsys.dregion);
+  (fsys with =dregion)
 }
 
 sig fopen : (String, FileSystem) ~> (Option(Int), FileSystem)
@@ -293,7 +327,7 @@ fun fwrite(ino, cs, fsys) {
   var inode = fromSome(lookup(ino, fsys.inodes));
   var file = fromSome(lookup(inode.loc, fsys.dregion));
   var file' = file ^^ cs;
-  (fsys with dregion = modify(inode.loc, file, fsys.dregion))
+  (fsys with dregion = modify(inode.loc, file', fsys.dregion))
 }
 
 sig fread : (Int, FileSystem) ~> Option(String)
@@ -337,8 +371,14 @@ fun funlink(fname, fsys) {
   }
 }
 
+sig create : (String) {Create:(String) -> FileDescr |_}-> FileDescr
+fun create(fname) { do Create(fname) }
+
+sig truncate : (FileDescr) {Truncate:(FileDescr) -> () |_}-> ()
+fun truncate(fd) { do Truncate(fd) }
+
 sig open' : (String) {Open:(String) -> Option(FileDescr) |_}-> Option(FileDescr)
-fun open'(filename) { do Open(filename) }
+fun open'(fname) { do Open(fname) }
 
 sig close : (FileDescr) {Close:(FileDescr) -> () |_}-> ()
 fun close(fd) { do Close(fd) }
@@ -362,8 +402,9 @@ sig fileIO : (Comp(a, { Close:(FileDescr) -> ()
                       , Create:(String) -> FileDescr
                       , Read:(FileDescr) -> Option(String)
                       , Open:(String) -> Option(FileDescr)
+                      , Truncate:(FileDescr) -> ()
                       , Write:(FileDescr, String) -> () |e}))
-              {Close{_},Create{_},Open{_},Read{_},Write{_},Get:FileSystem,Put:(FileSystem) -> () |e}~> a
+              {Close{_},Create{_},Read{_},Open{_},Truncate{_},Write{_},Get:FileSystem,Put:(FileSystem) -> () |e}~> a
 fun fileIO(m) {
   handle(injectState(m)()) {
     case Return(x) -> x
@@ -377,8 +418,121 @@ fun fileIO(m) {
     case Open(fname, resume) ->
       var (fd, fsys) = fopen(fname, get());
       put(fsys); resume(fd)
+    case Truncate(fd, resume) ->
+      var fsys = ftruncate(fd, get());
+      put(fsys); resume(())
     case Write(fd, cs, resume) ->
       var fsys = fwrite(fd, cs, get());
       put(fsys); resume(())
+  }
+}
+
+fun init(fsys, main) {
+  runState(fsys, fun() {
+    fileIO(fun() {
+      timeshare(fun() {
+        sessionmgr(Root, fun() {
+          status(fun() {
+            if(fork()) exit(0) else main()
+          })
+        })
+      })
+    })
+  })
+}
+
+###
+### TCP threeway handshake
+###
+
+sig strsplit : (Char, String) ~> [String]
+fun strsplit(c, str) {
+  fun loop(c, str, i, j) {
+    if (i >= strlen(str)) [strsub(str, j, i - j)]
+    else if (charAt(str, i) == c)
+      strsub(str, j, i - j) :: loop(c, str, i+1, i+1)
+    else
+      loop(c,str, i+1, j)
+  }
+  loop(c, str, 0, 0)
+}
+
+sig read1 : (FileDescr) {Read:(FileDescr) -> Option(String) |e}-> Option(String)
+fun read1(fd) {
+  switch (read(fd)) {
+    case Some("") -> None
+    case x    -> x
+  }
+}
+
+sig truncread : (FileDescr) {Read:(FileDescr) -> Option(String),Truncate:(FileDescr) -> () |_}-> Option(String)
+fun truncread(fd) {
+  var cs = read1(fd);
+  truncate(fd); cs
+}
+
+sig synced : (Comp(Option(a), {Interrupt:() |e})) {Interrupt:() |e}~> a
+fun synced(f) {
+  switch (f()) {
+    case None -> interrupt(); synced(f)
+    case Some(x)  -> x
+  }
+}
+
+sig fail : () {Fail:Zero |_}-> a
+fun fail() { switch(do Fail) {} }
+
+fun tcpclient(seq, inp, out) {
+  write(out, "SYN " ^^ intToString(seq));
+  var resp = synced(fun() { truncread(inp) });
+  var [syn, ack] = strsplit(';', resp);
+  var seqn = stringToInt(strsub(syn, 4, strlen(syn) - 4));
+  var ackn = stringToInt(strsub(ack, 4, strlen(ack) - 4));
+  if (ackn <> seq + 1) fail()
+  else write(out, "ACK " ^^ intToString(seqn + 1))
+}
+
+fun tcpserver(seq, inp, out) {
+  var req = synced(fun() { truncread(inp) });
+  var reqn = stringToInt(strsub(req, 4, strlen(req) - 4));
+  var resp = "SYN " ^^ intToString(seq) ^^ ";ACK " ^^ intToString(reqn + 1);
+  write(out, resp);
+  var resp' = synced(fun() { truncread(inp) });
+  var ackn = stringToInt(strsub(resp', 4, strlen(resp') - 4));
+  if (ackn <> seq + 1) fail()
+  else ()
+}
+
+fun performTCP(tcpf, seq, inp, out) {
+  var fd = create(whoami() ^^ ".log");
+  handle(tcpf(seq, inp, out)) {
+    case Return(_) -> write(fd, "Handshake completed.")
+    case Fail(_) -> write(fd, "Handshake failed.")
+   }
+}
+
+fun tcphandshake() {
+  var (cfd, sfd) = (create("client.sock"), create("server.sock"));
+  if (fork()) {
+    su(Alice);
+    performTCP(tcpclient, 42, cfd, sfd)
+  } else {
+    su(Bob);
+    performTCP(tcpserver, 84, sfd, cfd)
+  }
+}
+
+fun tcphandshakeFail() {
+  var (cfd, sfd) = (create("client.sock"), create("server.sock"));
+  if (fork()) {
+    su(Alice);
+    handle(performTCP(tcpclient, 42, cfd, sfd)) {
+      case Write(fd, cs, resume) ->
+        resume(if (strsub(cs, 0, 3) == "ACK") write(fd, "ACK 0")
+               else write(fd, cs))
+    }
+  } else {
+    su(Bob);
+    performTCP(tcpserver, 84, sfd, cfd)
   }
 }
