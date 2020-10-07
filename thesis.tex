@@ -2224,10 +2224,10 @@ For example, an environment may contain the environment variable
 An environment variable can be viewed as an instance of dynamic
 binding. The idea of dynamic binding as a binding form in programming
 dates back as far as the original implementation of
-Lisp~\cite{McCarthy60}, and still finds uses in successors such as
-Emacs Lisp~\cite{LewisLSG20}. It is well-known that dynamic binding
-can be encoded as a computational effect by using delimited
-control~\cite{KiselyovSS06}.
+Lisp~\cite{McCarthy60}, and still remains an integral feature in
+successors such as Emacs Lisp~\cite{LewisLSG20}. It is well-known that
+dynamic binding can be encoded as a computational effect by using
+delimited control~\cite{KiselyovSS06}.
 %
 Unsurprisingly, we will use this insight to simulate user-specific
 environments using effect handlers.
@@ -2296,23 +2296,54 @@ It is not difficult to extend this basic environment model to support
 an arbitrary number of variables. This can be done by parameterising
 the $\Ask$ operation by some name representation (e.g. a string),
 which the environment handler can use to index into a list of string
-values. In case the name is unbound the environment handler can
-embrace \UNIX{}'s laissez-faire attitude and resume with the empty
-string.
+values. In case the name is unbound the environment, the handler can
+embrace the laissez-faire attitude of \UNIX{} and resume with the
+empty string.
 
-\paragraph{Session management}
+\paragraph{User session management}
+%
+It is somewhat pointless to have multiple user-specific environments,
+if the system does not support some mechanism for user session
+handling, such as signing in as a different user.
+%
+In \UNIX{} the command \emph{substitute user} (su) enables the invoker
+to impersonate another user account, provided the invoker has
+sufficient privileges.
+%
+We will implement su as an operation $\Su : \User \opto \UnitType$
+which is parameterised by the user to be impersonated.
+%
+To model the security aspects of su, we will use the weakest possible
+security model: unconditional trust. Put differently, we will not
+bother with security at all to keep things relatively simple.
+%
+Consequently, anyone can impersonate anyone else.
+
+The session signature consists of two operations, $\Ask$, which we
+used above, and $\Su$, for switching user.
 %
 \[
   \EnvE \defas \{\Ask : \UnitType \opto \String;\Su : \User \opto \UnitType\}
 \]
-
+%
+As usual, we define a small wrapper around invocations of $\Su$.
+%
 \[
   \bl
     \su : \User \to \UnitType \eff \{\Su : \User \opto \UnitType\}\\
     \su~user \defas \Do\;\Su~user
   \el
 \]
+%
 
+The intended operational behaviour of an invocation of $\Su~user$ is
+to load the environment belonging to $user$ and continue the
+continuation under this environment.
+%
+We can achieve this behaviour by defining a handler for $\Su$ that
+invokes the provided resumption under a fresh instance of the
+$\environment$ handler.
+%
 \[
   \bl
     \sessionmgr : \Record{\User; \UnitType \to \alpha \eff \EnvE} \to \alpha\\
@@ -2327,7 +2358,26 @@ string.
          \ea
   \el
 \]
+%
+The function $\sessionmgr$ manages a user session. It takes two
+arguments: the initial user ($user$) and the computation ($m$) to run
+in the current session. An initial instance of $\environment$ is
+installed with $user$ as argument. The computation argument is a
+handler for $\Su$ enclosing the computation $m$. The $\Su$-case
+installs a new instance of $\environment$, which is the environment
+belonging to $user'$, and runs the resumption $resume$ under this
+instance.
+%
+The new instance of $\env$ shadows the initial instance, and therefore
+it will intercept and handle any subsequent invocations of $\Ask$
+arising from running the resumption. A subsequent invocation of $\Su$
+will install another environment instance, which will shadow both the
+previously installed instance and the initial instance.
+%
 
+To make this concrete, let us plug together the all components of our
+system we have defined thus far.
+%
 \[
   \ba{@{~}l@{~}l}
     &\bl
@@ -2343,6 +2393,25 @@ string.
    \reducesto^+& \Record{0;\strlit{alice bob root}} : \Record{\Int;\UFile}
  \ea
 \]
+%
+The session manager ($\sessionmgr$) is installed in between the basic
+IO handler ($\basicIO$) and the process status handler
+($\status$). The initial user is $\Root$, and thus the initial
+environment is the environment that belongs to the root user. Main
+computation signs in as $\Alice$ and writes the result of the system
+call $\whoami$ to the global file, and then repeats these steps for
+$\Bob$ and $\Root$.
+%
+Ultimately, the computation terminates successfully (as indicated by
+$0$ in the first component of the result) with global file containing
+the three user names.
+%
+
+The above example demonstrates that we now have the basic building
+blocks to build a multi-user system.
+%
+\dhil{Remark on the concrete layering of handlers.}
+
 \subsection{Nondeterminism: time sharing}
 \label{sec:tiny-unix-time}
 
