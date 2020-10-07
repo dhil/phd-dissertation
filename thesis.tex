@@ -2057,11 +2057,11 @@ operation $\Write$ for writing a list of characters to the file.
   \BIO \defas \{\Write : \Record{\UFD;\String} \opto \UnitType\}
 \]
 %
-The operation is parameterised by a file descriptor ($\UFD$) and a
-character. We will leave the file descriptor type abstract until
+The operation is parameterised by an $\UFD$ and a character
+sequence. We will leave the $\UFD$ type abstract until
 Section~\ref{sec:tiny-unix-io}, however, we will assume the existence
 of a term $\stdout : \UFD$ such that we perform invocations of
-$\Putc$.
+$\Write$.
 %
 Let us define a suitable handler for this operation.
 %
