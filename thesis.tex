@@ -22,11 +22,11 @@
 \DeclareCaptionFormat{underlinedfigure}{#1#2#3\hrulefill}
 \captionsetup[figure]{format=underlinedfigure}
 \usepackage[T1]{fontenc}      % Fixes issues with accented characters
-\usepackage[scaled=0.85]{beramono}
 %\usepackage{libertine}
 %\usepackage{lmodern}
 %\usepackage{palatino}
 % \usepackage{newpxtext,newpxmath}
+\usepackage[scaled=0.85]{beramono}
 \usepackage[activate=true,
     final,
     tracking=true,
@@ -2204,24 +2204,36 @@ The (delimited) continuation of $\exit~1$ is effectively dead code.
 \subsection{Dynamic binding: user-specific environments}
 \label{sec:tiny-unix-env}
 
-In \UNIX{} an environment maps keys to string-values. A key-value pair is
-referred to as an \emph{environment variable}. Each user gets their
-own environment with their own set of environment variables. Some
-environment variable names are common to all environments, but their
-valuation may depend on the particular user session. For example, the
-environment variable \texttt{USER} is bound to the (string) name of
-the user; the result of querying the environment for the value of
-\texttt{USER} depends on which user session it is executed under.
+When a process is run in \UNIX{}, the operating system makes available
+to the process a collection of name-value pairs called the
+\emph{environment}.
 %
-\dhil{The value of an environment variable may also change during execution.}
-
-An environment variable is an instance of dynamic binding. The idea of
-dynamic binding as a programming notion dates back as far as the
-original implementation of Lisp~\cite{McCarthy60}.
+The name of a name-value pair is known as an \emph{environment
+  variable}.
 %
-We will use dynamic binding to implement user-specific environments.
+During execution the process may perform a system call to ask the
+operating system for the value of some environment variable.
+%
+The value of environment variables may change throughout process
+execution, moreover, the value of some environment variables may vary
+according to which user asks the environment.
+%
+For example, an environment may contain the environment variable
+\texttt{USER} that is bound to the name of the inquiring user.
 
-For simplicity we will fix the users to be root, Alice, and Bob.
+An environment variable can be viewed as an instance of dynamic
+binding. The idea of dynamic binding as a binding form in programming
+dates back as far as the original implementation of
+Lisp~\cite{McCarthy60}, and still finds uses in successors such as
+Emacs Lisp~\cite{LewisLSG20}. It is well-known that dynamic binding
+can be encoded as a computational effect by using delimited
+control~\cite{KiselyovSS06}.
+%
+Unsurprisingly, we will use this insight to simulate user-specific
+environments using effect handlers.
+
+For simplicity we fix the users of the operating system to be root,
+Alice, and Bob.
 %
 \[
   \User \defas [\Alice;\Bob;\Root]
