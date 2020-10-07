@@ -2347,13 +2347,13 @@ $\environment$ handler.
 \[
   \bl
     \sessionmgr : \Record{\User; \UnitType \to \alpha \eff \EnvE} \to \alpha\\
-    \sessionmgr~\Record{user;m} \defas
-      \environment\,\langle{}user;(\lambda\Unit.
+    \sessionmgr\,\Record{user;m} \defas
+      \environment\langle{}user;(\lambda\Unit.
          \ba[t]{@{}l}
            \Handle\;m\,\Unit\;\With\\
              ~\ba{@{~}l@{~}c@{~}l}
                 \Return\;res &\mapsto& res\\
-                \OpCase{\Su}{user'}{resume} &\mapsto& \environment\,\Record{user';resume})\rangle
+                \OpCase{\Su}{user'}{resume} &\mapsto& \environment\Record{user';resume})\rangle
               \ea
          \ea
   \el
