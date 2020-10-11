@@ -2457,7 +2457,7 @@ process, whilst its clone is referred to as the child process.
 Following an invocation of fork, the parent process is provided with a
 nonzero identifier for the child process and the child process is
 provided with the zero identifier. This enables processes to determine
-their respective roles in the parent-child relationship, e.g.
+their respective role in the parent-child relationship, e.g.
 %
 \[
   \bl
@@ -2469,9 +2469,9 @@ their respective roles in the parent-child relationship, e.g.
 \]
 %
 In our system, we can model fork as an effectful operation, that
-returns a boolean to indicate the process role; where by convention we
-will interpret the return value $\True$ to mean that the process
-assumes the role of parent.
+returns a boolean to indicate the process role; by convention we will
+interpret the return value $\True$ to mean that the process assumes
+the role of parent.
 %
 \[
   \bl
@@ -2484,13 +2484,14 @@ In \UNIX{} the parent process \emph{continues} execution after the
 fork point, and the child process \emph{begins} its execution after
 the fork point.
 %
-Thus, operationally, we may understand fork as returning twice. We can
-implement this behaviour by invoking the resumption arising from an
-invocation of $\Fork$ twice: first with $\True$ to continue the parent
-process, and subsequently with $\False$ to continue the child process
-(or the other way around if we feel inclined).
+Thus, operationally, we may understand fork as returning twice to its
+invocation site. We can implement this behaviour by invoking the
+resumption arising from an invocation of $\Fork$ twice: first with
+$\True$ to continue the parent process, and subsequently with $\False$
+to start the child process (or the other way around if we feel
+inclined).
 %
-The following handler realises this behaviour.
+The following handler implements this behaviour.
 %
 \[
   \bl
