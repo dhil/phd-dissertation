@@ -4,7 +4,7 @@
 @MastersThesis{Hillerstrom15,
     author     =     {Daniel Hillerström},
     title      =     {Handlers for Algebraic Effects in {Links}},
-    school     =     {School of Informatics, the University of Edinburgh},
+    school     =     {School of Informatics, The University of Edinburgh},
     address    =     {Scotland},
     month      =     aug,
     year       =     2015
@@ -14,7 +14,7 @@
 @MastersThesis{Hillerstrom16,
     author     =     {Daniel Hillerström},
     title      =     {Compilation of Effect Handlers and their Applications in Concurrency},
-    school     =     {School of Informatics, the University of Edinburgh},
+    school     =     {School of Informatics, The University of Edinburgh},
     address    =     {Scotland},
     optmonth      =     aug,
     year       =     2016,
@@ -73,7 +73,7 @@
 
 # Links compiler + Multicore OCaml
 @Misc{HillerstromLS16,
-  author = {Daniel Hillerström and Sam Lindley and KC Sivaramakrishnan},
+  author = {Daniel Hillerström and Sam Lindley and {KC} Sivaramakrishnan},
   title  = {Compiling {Links} Effect Handlers to the {OCaml} Backend},
   year   = {2016},
   optmonth  = sep,
@@ -81,6 +81,25 @@
 }
 
 # Core references on handlers
+@phdthesis{Pretnar10,
+  author    = {Matija Pretnar},
+  title     = {Logic and handling of algebraic effects},
+  school    = {The University of Edinburgh, {UK}},
+  year      = {2010}
+}
+
+@inproceedings{PlotkinP09,
+  author    = {Gordon D. Plotkin and
+               Matija Pretnar},
+  title     = {Handlers of Algebraic Effects},
+  booktitle = {{ESOP}},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {5502},
+  pages     = {80--94},
+  publisher = {Springer},
+  year      = {2009}
+}
+
 @article{PlotkinP13,
   author    = {Gordon D. Plotkin and
                Matija Pretnar},
@@ -189,6 +208,49 @@
   volume    = {29},
   pages     = {e15},
   year      = {2019}
+}
+
+@article{HillerstromLL20,
+  author    = {Daniel Hillerstr{\"{o}}m and
+               Sam Lindley and
+               John Longley},
+  title     = {Effects for Efficiency: Asymptotic Speedup with First-Class Control},
+  journal   = {Proc. {ACM} Program. Lang.},
+  volume    = {4},
+  number    = {{ICFP}},
+  pages     = {100:1--100:29},
+  year      = {2020}
+}
+
+@phdthesis{McLaughlin20,
+  author    = {Craig McLaughlin},
+  title     = {Relational Reasoning for Effects and Handlers},
+  school    = {The University of Edinburgh, {UK}},
+  year      = {2020}
+}
+
+@phdthesis{Fowler19,
+  author    = {Simon Fowler},
+  title     = {Typed concurrent functional programming with channels, actors and sessions},
+  school    = {The University of Edinburgh, {UK}},
+  year      = {2019}
+}
+
+@phdthesis{Kammar14,
+  author    = {Ohad Kammar},
+  title     = {Algebraic theory of type-and-effect systems},
+  school    = {The University of Edinburgh, {UK}},
+  year      = {2014}
+}
+
+@inproceedings{KammarP12,
+  author    = {Ohad Kammar and
+               Gordon D. Plotkin},
+  title     = {Algebraic foundations for effect-dependent optimisations},
+  booktitle = {{POPL}},
+  pages     = {349--360},
+  publisher = {{ACM}},
+  year      = {2012}
 }
 
 # Eff
@@ -615,7 +677,7 @@
 }
 
 @Misc{KiselyovS16,
-  author = {Oleg Kiselyov and KC Sivaramakrishnan},
+  author = {Oleg Kiselyov and {KC} Sivaramakrishnan},
   title  = {Eff directly in {OCaml}},
   year   = {2016},
   optmonth  = sep,
@@ -681,12 +743,12 @@
 
 
 
-% CPS for effect handlers
+# CPS for effect handlers
 @inproceedings{HillerstromLAS17,
   author    = {Daniel Hillerstr{\"{o}}m and
                Sam Lindley and
                Robert Atkey and
-               K. C. Sivaramakrishnan},
+               {KC} Sivaramakrishnan},
   title     = {Continuation Passing Style for Effect Handlers},
   booktitle = {{FSCD}},
   series    = {LIPIcs},
@@ -696,7 +758,30 @@
   year      = {2017}
 }
 
-% CEK
+@inproceedings{HillerstromL18,
+  author    = {Daniel Hillerstr{\"{o}}m and
+               Sam Lindley},
+  title     = {Shallow Effect Handlers},
+  booktitle = {{APLAS}},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {11275},
+  pages     = {415--435},
+  publisher = {Springer},
+  year      = {2018}
+}
+
+@article{HillerstromLA20,
+  author    = {Daniel Hillerstr{\"{o}}m and
+               Sam Lindley and
+               Robert Atkey},
+  title     = {Effect handlers via generalised continuations},
+  journal   = {J. Funct. Program.},
+  volume    = {30},
+  pages     = {e5},
+  year      = {2020}
+}
+
+# CEK
 @InProceedings{FelleisenF86,
   title={Control Operators, the {SECD}-machine, and the $\lambda$-Calculus},
   author={Felleisen, Matthias and Friedman, Daniel P.},
@@ -721,7 +806,7 @@
   year      = {2018}
 }
 
-% explicit effect subtyping
+# explicit effect subtyping
 @inproceedings{SalehKPS18,
   author    = {Amr Hany Saleh and
                Georgios Karachalias and
@@ -1028,4 +1113,44 @@
   year   = 2020,
   publisher = {Free Software Foundation},
   address = {Boston, MA, USA}
+}
+
+# Expressiveness
+@inproceedings{CartwrightF92,
+  author    = {Robert Cartwright and
+               Matthias Felleisen},
+  title     = {Observable Sequentiality and Full Abstraction},
+  booktitle = {{POPL}},
+  pages     = {328--342},
+  publisher = {{ACM} Press},
+  year      = {1992}
+}
+
+@book{LongleyN15,
+  author    = {John Longley and
+               Dag Normann},
+  title     = {Higher-Order Computability},
+  series    = {Theory and Applications of Computability},
+  publisher = {Springer},
+  year      = {2015}
+}
+
+@inproceedings{Longley08,
+  author    = {John Longley},
+  title     = {Interpreting Localized Computational Effects Using Operators of Higher
+               Type},
+  booktitle = {CiE},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {5028},
+  pages     = {389--402},
+  publisher = {Springer},
+  year      = {2008}
+}
+
+@misc{LongleyW08,
+  author    = {John Longley and Nicholas Wolverson},
+  title     = {Eriskay: a programming language based on game semantics},
+  month     = apr,
+  year      = 2008,
+  howpublished = {Presented at {GaLoP III}}
 }

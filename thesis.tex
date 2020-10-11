@@ -8,6 +8,8 @@
 \usepackage[breaklinks]{hyperref} % Interactive PDF
 \usepackage{url}
 \usepackage[sort&compress,square,numbers]{natbib}    % Bibliography
+\usepackage{bibentry}         % Print bibliography entries inline.
+\nobibliography*              % use the bibliographic data from the standard BibTeX setup.
 \usepackage{breakurl}
 \usepackage{amsmath}          % Mathematics library
 \usepackage{amssymb}          % Provides math fonts
@@ -181,6 +183,19 @@
   contained herein is my own except where explicitly stated otherwise
   in the text, and that this work has not been submitted for any other
   degree or professional qualification except as specified.
+
+  The following previously published work of mine features prominently
+  within this dissertation.  Each chapter details the relevant
+  relations to my previous work.
+  %
+  \begin{itemize}
+    \item \bibentry{HillerstromL16}
+    \item \bibentry{HillerstromLAS17}
+    \item \bibentry{HillerstromL18}
+    \item \bibentry{HillerstromLA20}
+    \item \bibentry{HillerstromLL20}
+  \end{itemize}
+  %
 \end{declaration}
 
 %% Finally, a dedication (this is optional -- uncomment the following line if
@@ -221,6 +236,13 @@ giving control to programmers, safer microkernels, everything as a
 library.
 
 \section{Why first-class control matters}
+
+\subsection{Flavours of control}
+\paragraph{Undelimited control}
+\paragraph{Delimited control}
+\paragraph{Composable control}
+
+\subsection{Why effect handlers}
 
 \section{Thesis outline}
 Thesis outline\dots
@@ -1995,7 +2017,7 @@ getting stuck on an unhandled operation.
   $\typ{\Gamma}{M' : C}$.
 \end{theorem}
 
-\section{Deep handlers in action: \OSname}
+\section{\OSname{} in 50 lines of code or less}
 \label{sec:deep-handlers-in-action}
 
 A systems software engineering reading of effect handlers may be to
@@ -2447,7 +2469,9 @@ their respective roles in the parent-child relationship, e.g.
 \]
 %
 In our system, we can model fork as an effectful operation, that
-returns a boolean to indicate the process role.
+returns a boolean to indicate the process role; where by convention we
+will interpret the return value $\True$ to mean that the process
+assumes the role of parent.
 %
 \[
   \bl
@@ -2455,9 +2479,6 @@ returns a boolean to indicate the process role.
     \fork~\Unit \defas \Do\;\Fork~\Unit
   \el
 \]
-%
-By convention we will interpret the return value $\True$ to mean that
-the process is a parent.
 %
 In \UNIX{} the parent process \emph{continues} execution after the
 fork point, and the child process \emph{begins} its execution after
@@ -2961,17 +2982,12 @@ The following handler realises this behaviour.
   bar
 \end{example}
 
-\section{Flavours of control}
-\subsection{Undelimited control}
-\subsection{Delimited control}
-\subsection{Composable control}
-
-\chapter{N-ary handlers}
-\label{ch:multi-handlers}
+% \chapter{N-ary handlers}
+% \label{ch:multi-handlers}
 
 % \section{Syntax and Static Semantics}
 % \section{Dynamic Semantics}
-\section{Unifying deep and shallow handlers}
+% \section{Unifying deep and shallow handlers}
 
 \part{Implementation}
 
