@@ -2780,11 +2780,11 @@ invocation of $\Interrupt$ along side $\Write$.
   \el
 \]
 %
-The effect row must necessarily mention the $\Interrupt$ operation. As
-a consequence this approach is not backwards compatible, since the
-original definition of $\echo$ can be used in a context that prohibits
-occurrences of $\Interrupt$. Clearly, this alternative definition
-cannot be applied in such a context.
+In addition to $\Write$ the effect row must now necessarily mention
+the $\Interrupt$ operation. As a consequence this approach is not
+backwards compatible, since the original definition of $\echo$ can be
+used in a context that prohibits occurrences of $\Interrupt$. Clearly,
+this alternative definition cannot be applied in such a context.
 
 \subsection{State: file i/o}
 \label{sec:tiny-unix-io}
