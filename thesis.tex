@@ -1663,7 +1663,7 @@ The term `pure' is heavily overloaded in the programming literature.
 %   back to 2016 when Richard Eisenberg asked me about how we do effect
 %   inference in Links.}
 
-\chapter{Unary handlers}
+\chapter{Programming with control via effect handlers}
 \label{ch:unary-handlers}
 %
 In this chapter we study various flavours of unary effect
@@ -2507,7 +2507,66 @@ The following handler implements this behaviour.
   \el
 \]
 %
-\dhil{This is an instance of non-blind backtracking}
+The $\Return$-case returns a singleton list containing a result of
+running $m$.
+%
+The $\Fork$-case invokes the provided resumption $resume$ twice. Each
+invocation of $resume$ effectively copies $m$ and runs each copy to
+completion. Each copy returns through the $\Return$-case, hence each
+invocation of $resume$ returns a list of the possible results obtained
+by interpreting $\Fork$ first as $\True$ and subsequently as
+$\False$. The results are joined by list concatenation ($\concat$).
+%
+Thus the handler returns a list of all the possible results of $m$.
+%
+In fact, this handler is exactly the handler for nondeterministic
+choice, and it satisfies the standard semi-lattice
+equations~\cite{PlotkinP09,PlotkinP13}.
+% \dhil{This is an instance of non-blind backtracking~\cite{FriedmanHK84}}
+%
+\[
+  \ba{@{~}l@{~}l}
+    &\bl
+    \basicIO\,(\lambda\Unit.\\
+         \quad\nondet\,(\lambda\Unit.\\
+           \quad\quad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
+             \quad\quad\quad\status\,(\lambda\Unit.\\
+            \quad\quad\quad\quad\ba[t]{@{}l}
+              \If\;\fork~\Unit\;\Then\\
+              \quad\bl
+                 \su~\Alice;\\
+                 \echo~\strlit{UNIX is basically a simple operating system,\nl};\\
+                 \echo~\strlit{but you have to be a genius }\\
+                 \echo~\strlit{to understand the simplicity.\nl}
+               \el\\
+              \Else\\
+              \quad\bl
+                \su~\Bob;\\
+                \echo~\strlit{To be, or not to be, that is the question:\nl};\\
+                \echo~\strlit{Whether 'tis nobler in the mind to suffer\nl};\\
+                \echo~\strlit{The slings and arrows of outrageous fortune,\nl};\\
+                \echo~\strlit{Or to take arms against a sea of troubles\nl};\\
+                \echo~\strlit{And by opposing end them.\nl} )}))
+               \el
+            \ea
+     \el \smallskip\\
+     \reducesto^+&
+     \Record{
+       \ba[t]{@{}l}
+         [0, 0];\\
+         \texttt{"}\ba[t]{@{}l}
+           \texttt{UNIX is basically a simple operating system,}\\
+           \texttt{but you have to be a genius to understand the simplicity.}\\
+           \texttt{To be, or not to be, that is the question:}\\
+           \texttt{Whether 'tis nobler in the mind to suffer}\\
+           \texttt{The slings and arrows of outrageous fortune,}\\
+           \texttt{Or to take arms against a sea of troubles}\\
+           \texttt{And by opposing end them."}} : \Record{\List~\Int; \UFile}
+         \ea
+       \ea
+  \ea
+\]
+%
 %
 \[
   \bl
@@ -2521,7 +2580,7 @@ The following handler implements this behaviour.
   \Pstate~\alpha~\varepsilon \defas \forall \theta.
      \ba[t]{@{}l@{}l}
        [&\Done:\alpha;\\
-        &\Suspended:\UnitType \to \Pstate~\alpha~\varepsilon \eff \{\Interrupt:\theta';\varepsilon\} ]
+        &\Suspended:\UnitType \to \Pstate~\alpha~\varepsilon \eff \{\Interrupt:\theta;\varepsilon\} ]
      \ea
 \]
 %
