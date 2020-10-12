@@ -2740,10 +2740,51 @@ under the $\reifyP$ handler. The $\runNext$ actually starts the
 computation, when it runs the computation under the $\nondet$ handler.
 %
 
-It remains to inject invocations of $\Interrupt$ to cause computation
-to be interleaved.
+The question remains how to inject invocations of $\Interrupt$ such
+that computation gets interleaved.
 
 \paragraph{Interruption via interception}
+%
+To implement process preemption modern-day operating systems typically
+to rely on the underlying hardware to asynchronously generate some
+kind of interruption signals. These signals can be caught by the
+operating system's process scheduler, which can then decide to which
+processes to suspend and continue.
+%
+If our core calculi had an integrated notion of asynchrony and effects
+along the lines of \citeauthor{AhmanP20}'s core calculus
+$\lambda_{\text{\ae}}$~\cite{AhmanP20}, then we could possibly treat
+interruption signals as asynchronous effectful operations, which can
+occur spontaneously and be handled by some user-definable
+handler~\cite{DolanEHMSW17}.
+%
+
+In the absence of asynchronous effects we have to inject synchronous
+interruptions ourselves.
+%
+One extreme approach is to trust the user to perform invocations of
+$\Interrupt$ periodically.
+%
+Another approach is to bundle $\Interrupt$ with invocations of other
+operations. For example, we can insert an instance of $\Interrupt$ in
+some of the wrapper functions for operation invocations that we have
+defined so conscientiously thus far. The problem with this approach is
+that it requires a change of type signatures. To exemplify this
+problem consider type of the $\echo$ function if we were to bundle an
+invocation of $\Interrupt$ along side $\Write$.
+%
+\[
+  \bl
+    \echo' : \String \to \UnitType \eff \{\Interrupt : \UnitType \opto \UnitType;\Write : \Record{\UFD;\String} \opto \UnitType\}\\
+    \echo'~cs \defas \Do\;\Interrupt~\Unit;\,\Do\;\Write\,\Record{\stdout;cs}
+  \el
+\]
+%
+The effect row must necessarily mention the $\Interrupt$ operation. As
+a consequence this approach is not backwards compatible, since the
+original definition of $\echo$ can be used in a context that prohibits
+occurrences of $\Interrupt$. Clearly, this alternative definition
+cannot be applied in such a context.
 
 \subsection{State: file i/o}
 \label{sec:tiny-unix-io}
