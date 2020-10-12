@@ -28,7 +28,7 @@
 %\usepackage{lmodern}
 %\usepackage{palatino}
 % \usepackage{newpxtext,newpxmath}
-\usepackage[scaled=0.85]{beramono}
+\usepackage[scaled=0.80]{beramono}
 \usepackage[activate=true,
     final,
     tracking=true,
@@ -2523,50 +2523,93 @@ In fact, this handler is exactly the handler for nondeterministic
 choice, and it satisfies the standard semi-lattice
 equations~\cite{PlotkinP09,PlotkinP13}.
 % \dhil{This is an instance of non-blind backtracking~\cite{FriedmanHK84}}
+
+Let us consider $\nondet$ together with the previously defined
+handlers. But first, let us define two computations.
+%
+\[
+  \bl
+    \quoteRitchie,\;\quoteHamlet : \UnitType \to \UnitType \eff \{\Write: \Record{\UFD;\String} \opto \UnitType\} \smallskip\\
+    \quoteRitchie\,\Unit \defas
+      \ba[t]{@{~}l}
+        \echo~\strlit{UNIX is basically };\\
+        \echo~\strlit{a simple operating system, };\\
+        \echo~\strlit{but };\\
+        \echo~\texttt{"}
+          \ba[t]{@{}l}
+             \texttt{you have to be a genius }\\
+             \texttt{to understand the simplicity.\nl{}"}
+          \ea
+      \ea \smallskip\\
+    \quoteHamlet\,\Unit \defas
+      \ba[t]{@{}l}
+        \echo~\strlit{To be, or not to be, };\\
+        \echo~\strlit{that is the question:\nl};\\
+        \echo~\strlit{Whether 'tis nobler in the mind to suffer\nl}
+      \ea
+  \el
+\]
+%
+The computation $\quoteRitchie$ writes a quote by Dennis Ritchie to
+the file, whilst the computation $\quoteHamlet$ writes a few lines of
+William Shakespeare's \emph{The Tragedy of Hamlet, Prince of Denmark},
+Act III, Scene I~\cite{Shakespeare6416} to the file.
+%
+Using $\nondet$ and $\fork$ together with the previously defined
+infrastructure, we can fork the initial process such that we run can
+both of the above computations concurrently.
 %
 \[
   \ba{@{~}l@{~}l}
     &\bl
     \basicIO\,(\lambda\Unit.\\
-         \quad\nondet\,(\lambda\Unit.\\
-           \quad\quad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
-             \quad\quad\quad\status\,(\lambda\Unit.\\
-            \quad\quad\quad\quad\ba[t]{@{}l}
-              \If\;\fork~\Unit\;\Then\\
-              \quad\bl
-                 \su~\Alice;\\
-                 \echo~\strlit{UNIX is basically a simple operating system,\nl};\\
-                 \echo~\strlit{but you have to be a genius }\\
-                 \echo~\strlit{to understand the simplicity.\nl}
-               \el\\
-              \Else\\
-              \quad\bl
-                \su~\Bob;\\
-                \echo~\strlit{To be, or not to be, that is the question:\nl};\\
-                \echo~\strlit{Whether 'tis nobler in the mind to suffer\nl};\\
-                \echo~\strlit{The slings and arrows of outrageous fortune,\nl};\\
-                \echo~\strlit{Or to take arms against a sea of troubles\nl};\\
-                \echo~\strlit{And by opposing end them.\nl} )}))
-               \el
-            \ea
+         \qquad\nondet\,(\lambda\Unit.\\
+           \qquad\qquad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
+             \qquad\qquad\qquad\status\,(\lambda\Unit.
+                 \ba[t]{@{}l}
+                   \If\;\fork~\Unit\;\Then\;
+                       \su~\Alice;\,
+                       \quoteRitchie~\Unit\\
+                   \Else\;
+                       \su~\Bob;\,
+                       \quoteHamlet~\Unit)}))
+                 \ea
      \el \smallskip\\
      \reducesto^+&
      \Record{
        \ba[t]{@{}l}
-         [0, 0];\\
+         [0, 0];
          \texttt{"}\ba[t]{@{}l}
-           \texttt{UNIX is basically a simple operating system,}\\
-           \texttt{but you have to be a genius to understand the simplicity.}\\
-           \texttt{To be, or not to be, that is the question:}\\
-           \texttt{Whether 'tis nobler in the mind to suffer}\\
-           \texttt{The slings and arrows of outrageous fortune,}\\
-           \texttt{Or to take arms against a sea of troubles}\\
-           \texttt{And by opposing end them."}} : \Record{\List~\Int; \UFile}
+           \texttt{UNIX is basically a simple operating system, but }\\
+           \texttt{you have to be a genius to understand the simplicity.\nl}\\
+           \texttt{To be, or not to be, that is the question:\nl}\\
+           \texttt{Whether 'tis nobler in the mind to suffer\nl"}} : \Record{\List~\Int; \UFile}
          \ea
        \ea
   \ea
 \]
 %
+The computation running under the $\status$ handler immediately
+performs an invocation of fork, causing $\nondet$ to explore both the
+$\Then$-branch and the $\Else$-branch. In the former, $\Alice$ signs
+in and quotes Ritchie, whilst in the latter Bob signs in and quotes a
+Hamlet.
+%
+Looking at the output there is supposedly no interleaving of
+computation, since the individual writes have not been
+interleaved. From the stack of handlers, we \emph{know} that there has
+been no interleaving of computation, because no handler in the stack
+handles interleaving. Thus, our system only supports time sharing in
+the extreme sense: we know from the $\nondet$ handler that every
+effect of the parent process will be performed and handled before the
+child process gets to run. In order to be able to share time properly
+amongst processes, we must be able to interrupt them.
+
+\paragraph{Interleaving computation}
+%
+We need an operation for interruptions and corresponding handler to
+handle interrupts in order for the system to support interleaving of
+processes.
 %
 \[
   \bl
@@ -2575,6 +2618,19 @@ equations~\cite{PlotkinP09,PlotkinP13}.
   \el
 \]
 %
+The intended behaviour of an invocation of $\Interrupt$ is to suspend
+the invoking computation in order to yield time for another
+computation to run.
+%
+We can achieve this behaviour by reifying the process state. For the
+purpose of interleaving processes via interruptions it suffices to
+view a process as being in either of two states: 1) it is done, that
+is it has run to completion, or 2) it is paused, meaning it has
+yielded to provide room for another process to run.
+%
+We can model the state using a recursive variant type parameterised by
+some return value $\alpha$ and a set of effects $\varepsilon$ that the
+process may perform.
 %
 \[
   \Pstate~\alpha~\varepsilon \defas \forall \theta.
@@ -2584,11 +2640,20 @@ equations~\cite{PlotkinP09,PlotkinP13}.
      \ea
 \]
 %
+The $\Done$-tag simply carries the return value of type $\alpha$. The
+$\Suspended$-tag carries a suspended computation, which returns
+another instance of $\Pstate$, and may or may not perform any further
+invocations of $\Interrupt$. Note that, the presence variable $\theta$
+in the effect row is universally quantified in the type alias
+definition. The reason for this particular definition is that the type
+of a value carried by $\Suspended$ is precisely the type of a
+resumption originating from a handler that handles only the operation
+$\Interrupt$ such as the following handler.
 %
 \[
   \bl
-    \slice : (\UnitType \to \alpha \eff \{\Interrupt:\UnitType \opto \UnitType;\varepsilon\}) \to \Pstate~\alpha~\varepsilon\\
-    \slice~m \defas
+    \reifyP : (\UnitType \to \alpha \eff \{\Interrupt: \UnitType \opto \UnitType;\varepsilon\}) \to \Pstate~\alpha~\varepsilon\\
+    \reifyP~m \defas
          \ba[t]{@{}l}
            \Handle\;m\,\Unit\;\With\\
              ~\ba{@{~}l@{~}c@{~}l}
@@ -2599,6 +2664,36 @@ equations~\cite{PlotkinP09,PlotkinP13}.
   \el
 \]
 %
+This handler tags and returns values with $\Done$. It also tags and
+returns the resumption provided by the $\Interrupt$-case with
+$\Suspended$. If we compose this handler with the nondeterminism
+handler, then we obtain a term with the following type.
+%
+\[
+  \nondet\,(\lambda\Unit.\reifyP~m) : \List~(\Pstate~\alpha~\{\Fork: \UnitType \opto \Bool;\varepsilon\})
+\]
+%
+for some $m : \UnitType \to \{\Proc;\varepsilon\}$ where
+$\Proc \defas \{\Fork: \UnitType \opto \Bool;\Interrupt: \UnitType
+\opto \UnitType\}$.
+%
+The composition yields a list of process states, some of which may be
+in suspended state. In particular, the suspended computations may have
+unhandled instances of $\Fork$ as signified by it being present in the
+effect row. The reason for this is that in the above composition when
+$\reifyP$ produces a $\Suspended$-tagged resumption, it immediately
+returns through the $\Return$-case of $\nondet$, meaning that the
+resumption escapes the $\nondet$. Recall that a resumption is a
+delimited continuation that captures the extent from the operation
+invocation up to and including the nearest enclosing suitable
+handler. In this particular instance, it means that the $\nondet$
+handler is part of the extent.
+%
+We ultimately want to return just a list of $\alpha$s to ensure every
+process has run to completion. To achieve this, we define an auxiliary
+function which accepts as list of process states as input and
+recursively runs any suspended computations under the $\nondet$
+handler.
 %
 \[
   \bl
@@ -2615,13 +2710,40 @@ equations~\cite{PlotkinP09,PlotkinP13}.
   \el
 \]
 %
+The function $\runNext$ inspects each process in the input list $ps$
+to see whether it done or paused. It translates a $\Done$-tagged value
+into a singleton list, whereas if it is a $\Suspended$-tagged
+computation, then the computation is run under the $\nondet$ handler
+to in order to handle invocations of $\Fork$, and $\runNext$ is
+recursively applied to the result.
+%
+The function
+$\concatMap : (\alpha \to \List~\beta) \to \List~\alpha \to
+\List~\beta$ maps a function that produces a list of $\beta$s from an
+$\alpha$ over a list of $\alpha$s, thus producing a list of list of
+$\beta$s. The resulting list is flatten by using list concatenation to
+combine the list members.
+%
+Using the above machinery, we can define a function which adds
+time-sharing capabilities to the system.
 %
 \[
   \bl
-     \timeshare : (\UnitType \to \alpha \eff \{\Fork:\UnitType \opto \Bool;\Interrupt:\UnitType \opto \UnitType;\epsilon\}) \to (\List~\alpha) \eff \epsilon\\
-     \timeshare~m \defas \runNext\,[\Suspended\,(\lambda\Unit.\slice~m)]
+     \timeshare : (\UnitType \to \alpha \eff \Proc) \to \List~\alpha\\
+     \timeshare~m \defas \runNext\,[\Suspended\,(\lambda\Unit.\reifyP~m)]
   \el
 \]
+%
+The function $\timeshare$ handles the invocations of $\Fork$ and
+$\Interrupt$ in some computation $m$ by starting it in suspended state
+under the $\reifyP$ handler. The $\runNext$ actually starts the
+computation, when it runs the computation under the $\nondet$ handler.
+%
+
+It remains to inject invocations of $\Interrupt$ to cause computation
+to be interleaved.
+
+\paragraph{Interruption via interception}
 
 \subsection{State: file i/o}
 \label{sec:tiny-unix-io}
