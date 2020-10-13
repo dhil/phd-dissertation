@@ -201,7 +201,8 @@
 %% Finally, a dedication (this is optional -- uncomment the following line if
 %% you want one).
 % \dedication{To my mummy.}
-\dedication{\emph{To be or to do}}
+% \dedication{\emph{To be or to do}}
+\dedication{\emph{Bara du sätter gränserna}}
 
 % \begin{preface}
 % A preface will possibly appear here\dots
@@ -2745,18 +2746,18 @@ that computation gets interleaved.
 
 \paragraph{Interruption via interception}
 %
-To implement process preemption modern-day operating systems typically
-to rely on the underlying hardware to asynchronously generate some
-kind of interruption signals. These signals can be caught by the
-operating system's process scheduler, which can then decide to which
-processes to suspend and continue.
+To implement process preemption operating systems typically to rely on
+the underlying hardware to asynchronously generate some kind of
+interruption signals. These signals can be caught by the operating
+system's process scheduler, which can then decide to which processes
+to suspend and continue.
 %
 If our core calculi had an integrated notion of asynchrony and effects
 along the lines of \citeauthor{AhmanP20}'s core calculus
 $\lambda_{\text{\ae}}$~\cite{AhmanP20}, then we could possibly treat
 interruption signals as asynchronous effectful operations, which can
-occur spontaneously and be handled by some user-definable
-handler~\cite{DolanEHMSW17}.
+occur spontaneously and, as suggested by \citet{DolanEHMSW17}, be
+handled by a user-definable handler.
 %
 
 In the absence of asynchronous effects we have to inject synchronous
@@ -2765,7 +2766,10 @@ interruptions ourselves.
 One extreme approach is to trust the user to perform invocations of
 $\Interrupt$ periodically.
 %
-Another approach is to bundle $\Interrupt$ with invocations of other
+Another approach is based on the fact that every effect (except for
+divergence) occurs via some operation invocation, and every-so-often
+the user is likely to perform computational effect, thus the basic
+idea is to bundle $\Interrupt$ with invocations of other
 operations. For example, we can insert an instance of $\Interrupt$ in
 some of the wrapper functions for operation invocations that we have
 defined so conscientiously thus far. The problem with this approach is
