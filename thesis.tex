@@ -2691,39 +2691,44 @@ handler. In this particular instance, it means that the $\nondet$
 handler is part of the extent.
 %
 We ultimately want to return just a list of $\alpha$s to ensure every
-process has run to completion. To achieve this, we define an auxiliary
-function which accepts as list of process states as input and
-recursively runs any suspended computations under the $\nondet$
-handler.
+process has run to completion. To achieve this, we need a function
+that keeps track of the state of every process, and in particular it
+must run each $\Suspended$-tagged computation under the $\nondet$
+handler to produce another list of process state, which must be
+handled recursively.
 %
 \[
   \bl
-    \runNext : \List~(\Pstate~\alpha~\{\Fork:\Bool;\varepsilon\}) \to \List~\alpha \eff \varepsilon\\
-    \runNext~ps \defas
-        \concatMap\,(\lambda p.
-               \ba[t]{@{}l}
-                  \Case\;p\;\{
-                    \ba[t]{@{}l@{~}c@{~}l}
-                       \Done~res         &\mapsto& [res]\\
-                       \Suspended~m &\mapsto& \runNext\,(\nondet~m) \})\,ps
-                    \ea
-                \ea
+    \schedule : \List~(\Pstate~\alpha~\{\Fork:\Bool;\varepsilon\}) \to \List~\alpha \eff \varepsilon\\
+    \schedule~ps \defas
+       \ba[t]{@{}l}
+         \Let\;run \revto
+             \Rec\;sched\,\Record{ps;done}.\\
+              \qquad\Case\;ps\;\{
+                  \ba[t]{@{}r@{~}c@{~}l}
+                       \nil                  &\mapsto& done\\
+                       (\Done~res) \cons ps' &\mapsto& sched\,\Record{ps';res \cons done}\\
+                       (\Suspended~m) \cons ps' &\mapsto& sched\,\Record{ps' \concat (\nondet~m);\, done} \}
+           \ea\\
+           \In\;run\,\Record{ps;\nil}
+       \ea
   \el
 \]
 %
-The function $\runNext$ inspects each process in the input list $ps$
-to see whether it done or paused. It translates a $\Done$-tagged value
-into a singleton list, whereas if it is a $\Suspended$-tagged
-computation, then the computation is run under the $\nondet$ handler
-to in order to handle invocations of $\Fork$, and $\runNext$ is
-recursively applied to the result.
-%
-The function
-$\concatMap : (\alpha \to \List~\beta) \to \List~\alpha \to
-\List~\beta$ maps a function that produces a list of $\beta$s from an
-$\alpha$ over a list of $\alpha$s, thus producing a list of list of
-$\beta$s. The resulting list is flatten by using list concatenation to
-combine the list members.
+The function $\schedule$ implements a process scheduler. It takes as
+input a list of process states, where $\Suspended$-tagged computations
+may perform the $\Fork$ operation. Locally it defines a recursive
+function $sched$ which carries a list of active processes $ps$ and the
+results of completed processes $done$. The function inspects the
+process list $ps$ to test whether it is empty or nonempty. If it is
+empty it returns the list of results $done$. Otherwise, if the head is
+$\Done$-tagged value, then the function is recursively invoked with
+tail of processes $ps'$ and the list $done$ augmented with the value
+$res$. If the head is a $\Suspended$-tagged computation $m$, then
+$sched$ is recursively invoked with the process list $ps'$
+concatenated with the result of running $m$ under the $\nondet$
+handler.
+
 %
 Using the above machinery, we can define a function which adds
 time-sharing capabilities to the system.
@@ -2731,13 +2736,13 @@ time-sharing capabilities to the system.
 \[
   \bl
      \timeshare : (\UnitType \to \alpha \eff \Proc) \to \List~\alpha\\
-     \timeshare~m \defas \runNext\,[\Suspended\,(\lambda\Unit.\reifyP~m)]
+     \timeshare~m \defas \schedule\,[\Suspended\,(\lambda\Unit.\reifyP~m)]
   \el
 \]
 %
 The function $\timeshare$ handles the invocations of $\Fork$ and
 $\Interrupt$ in some computation $m$ by starting it in suspended state
-under the $\reifyP$ handler. The $\runNext$ actually starts the
+under the $\reifyP$ handler. The $\schedule$ actually starts the
 computation, when it runs the computation under the $\nondet$ handler.
 %
 
@@ -2780,7 +2785,7 @@ invocation of $\Interrupt$ along side $\Write$.
 \[
   \bl
     \echo' : \String \to \UnitType \eff \{\Interrupt : \UnitType \opto \UnitType;\Write : \Record{\UFD;\String} \opto \UnitType\}\\
-    \echo'~cs \defas \Do\;\Interrupt~\Unit;\,\Do\;\Write\,\Record{\stdout;cs}
+    \echo'~cs \defas \Do\;\Interrupt\,\Unit;\,\Do\;\Write\,\Record{\stdout;cs}
   \el
 \]
 %
@@ -2789,6 +2794,79 @@ the $\Interrupt$ operation. As a consequence this approach is not
 backwards compatible, since the original definition of $\echo$ can be
 used in a context that prohibits occurrences of $\Interrupt$. Clearly,
 this alternative definition cannot be applied in such a context.
+
+There is backwards-compatible way to bundle the two operations
+together. We can implement a handler that \emph{intercepts}
+invocations of $\Write$ and handles them by performing an interrupt
+and, crucially, reperforming the intercepted write operation.
+%
+\[
+  \bl
+  \dec{interruptWrite} :
+    \ba[t]{@{~}l@{~}l}
+       &(\UnitType \to \alpha \eff \{\Interrupt : \UnitType \opto \UnitType;\Write : \Record{\UFD;\String} \opto \UnitType\})\\
+    \to& \alpha \eff \{\Interrupt : \UnitType \opto \UnitType;\Write : \Record{\UFD;\String} \opto \UnitType\}
+    \ea\\
+  \dec{interruptWrite}~m \defas
+    \ba[t]{@{~}l}
+      \Handle\;m~\Unit\;\With\\
+        ~\ba{@{~}l@{~}c@{~}l}
+           \Return\;res &\mapsto& res\\
+           \OpCase{\Write}{\Record{fd;cs}}{resume} &\mapsto&
+              \ba[t]{@{}l}
+                \interrupt\,\Unit;\\
+                resume\,(\Do\;\Write~\Record{fd;cs})
+              \ea
+         \ea
+    \ea
+  \el
+\]
+%
+This handler is not `self-contained' as the other handlers we have
+defined previously. It gives in some sense a `partial' interpretation
+of $\Write$ as it leaves open the semantics of $\Interrupt$ and
+$\Write$, i.e. this handler must be run in a suitable context of other
+handlers.
+
+Let us plug this handler into the previous example to see what
+happens.
+%
+\[
+  \ba{@{~}l@{~}l}
+    &\bl
+    \basicIO\,(\lambda\Unit.\\
+         \qquad\timeshare\,(\lambda\Unit.\\
+         \qquad\qquad\dec{interruptWrite}\,(\lambda\Unit.\\
+         \qquad\qquad\qquad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
+         \qquad\qquad\qquad\qquad\status\,(\lambda\Unit.
+                 \ba[t]{@{}l}
+                   \If\;\fork~\Unit\;\Then\;
+                       \su~\Alice;\,
+                       \quoteRitchie~\Unit\\
+                   \Else\;
+                       \su~\Bob;\,
+                       \quoteHamlet~\Unit)})))
+                 \ea
+     \el \smallskip\\
+     \reducesto^+&
+     \bl
+      \Record{
+       \ba[t]{@{}l}
+         [0, 0];
+         \texttt{"}\ba[t]{@{}l}
+         \texttt{UNIX is basically To be, or not to be,\nl{}}\\
+         \texttt{a simple operating system, that is the question:\nl{}}\\
+         \texttt{but Whether 'tis nobler in the mind to suffer\nl{}}\\
+         \texttt{you have to be a genius to understand the simplicity.\nl{}"}}
+         \ea
+       \ea\\
+       : \Record{\List~\Int; \UFile}
+     \el
+  \ea
+\]
+%
+Evidently, each write operation has been interleaved, resulting in a
+mishmash poetry of Shakespeare and \UNIX{}.
 
 \subsection{State: file i/o}
 \label{sec:tiny-unix-io}
