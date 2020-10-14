@@ -2391,11 +2391,11 @@ installs a new instance of $\environment$, which is the environment
 belonging to $user'$, and runs the resumption $resume$ under this
 instance.
 %
-The new instance of $\env$ shadows the initial instance, and therefore
-it will intercept and handle any subsequent invocations of $\Ask$
-arising from running the resumption. A subsequent invocation of $\Su$
-will install another environment instance, which will shadow both the
-previously installed instance and the initial instance.
+The new instance of $\environment$ shadows the initial instance, and
+therefore it will intercept and handle any subsequent invocations of
+$\Ask$ arising from running the resumption. A subsequent invocation of
+$\Su$ will install another environment instance, which will shadow
+both the previously installed instance and the initial instance.
 %
 
 To make this concrete, let us plug together the all components of our
