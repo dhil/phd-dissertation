@@ -2759,10 +2759,10 @@ to suspend and continue.
 %
 If our core calculi had an integrated notion of asynchrony and effects
 along the lines of \citeauthor{AhmanP20}'s core calculus
-$\lambda_{\text{\ae}}$~\cite{AhmanP20}, then we could possibly treat
-interruption signals as asynchronous effectful operations, which can
-occur spontaneously and, as suggested by \citet{DolanEHMSW17}, be
-handled by a user-definable handler.
+$\lambda_{\text{\ae}}$~\cite{AhmanP20}, then we could potentially
+treat interruption signals as asynchronous effectful operations, which
+can occur spontaneously and, as suggested by \citet{DolanEHMSW17} and
+realised by \citet{Poulson20}, be handled by a user-definable handler.
 %
 
 In the absence of asynchronous effects we have to inject synchronous
@@ -2867,9 +2867,129 @@ happens.
 %
 Evidently, each write operation has been interleaved, resulting in a
 mishmash poetry of Shakespeare and \UNIX{}.
+%
+To some this may be a shambolic treatment of classical arts, whilst to
+others this may be a modern contemporaneous treatment. As the saying
+goes: art is in the eye of the beholder.
 
 \subsection{State: file i/o}
 \label{sec:tiny-unix-io}
+
+Thus far the system supports limited I/O, abnormal process
+termination, multiple user sessions, and multi-tasking via concurrent
+processes. With the notable exception of I/O the system models the
+core features of a practical operating system. The current I/O model
+provides an incomplete file system consisting of a single write-only
+file.
+%
+In this section we will complete the file system by implementing a
+\UNIX{}-like file system that supports file creation, opening,
+truncation, read and write operations, and file linking.
+%
+
+To implement a file system we will need to use state. State can
+readily be implemented with an effect handler~\cite{KammarLO13}.
+%
+It is a deliberate choice to leave state for last, because once you
+have state it is tempting to use it excessively --- to the extent it
+becomes platitudinous.
+%
+As demonstrated in the previous sections, it is possible to achieve
+many things that have a stateful flavour without explicit state by
+harnessing the implicit state provided by the program stack.
+
+In the following subsection, I will provide an interface for stateful
+operations and their implementation in terms of a handler. The
+stateful operations will be put to use in the subsequent subsection to
+implement a basic sequential file system.
+
+\subsubsection{Handling state}
+
+The interface for accessing and updating a state cell consists of two
+operations.
+%
+\[
+  \State~\beta \defas \{\Get:\UnitType \opto \beta;\Put:\beta \opto \UnitType\}
+\]
+%
+The intended operational behaviour of $\Get$ operation is to read the
+value of type $\beta$ of the state cell, whilst the $\Put$ operation
+is intended to replace the current value held by the state cell with
+another value of type $\beta$. As per usual business, the following
+functions abstract the invocation of the operations.
+%
+\[
+  \ba{@{~}l@{\quad\qquad\quad}c@{~}l}
+    \Uget : \UnitType \to \beta \eff \{\Get:\UnitType \opto \beta\}
+    & &
+    \Uput : \UnitType \to \beta \eff \{\Put:\beta \opto \UnitType\}\\
+    \Uget~\Unit \defas \Do\;\Get~\Unit
+    & &
+    \Uput~st \defas \Do\;\Put~st
+  \el
+\]
+%
+The following handler interprets the operations.
+%
+\[
+  \bl
+    \runState : \Record{\beta;\UnitType \to \alpha \eff \State~\beta} \to \Record{\alpha;\beta}\\
+    \runState~\Record{st_0;m} \defas
+        \ba[t]{@{}l}
+           \Let\;run \revto
+              \ba[t]{@{}l}
+                \Handle\;m\,\Unit\;\With\\
+                 ~\ba{@{~}l@{~}c@{~}l}
+                   \Return\;res      &\mapsto& \lambda st.\Record{res;st}\\
+                   \OpCase{\Get}{\Unit}{resume} &\mapsto& \lambda st.resume~st~st\\
+                   \OpCase{\Put}{st'}{resume}   &\mapsto& \lambda st.resume~\Unit~st'
+                  \ea
+              \ea\\
+           \In\;run~st_0
+        \ea
+  \el
+\]
+%
+The $\runState$ handler provides a generic way to interpret any
+stateful computation. It takes as its first parameter the initial
+value of the state cell. The second parameter is a potentially
+stateful computation. Ultimately, the handler returns the value of the
+input computation along with the current value of the state cell.
+
+This formulation of state handling is analogous to the standard
+monadic implementation of state handling~\citep{Wadler95}. In the
+context of handlers, the implementation uses a technique known as
+\emph{parameter-passing}~\citep{PlotkinP09,Pretnar15}.
+%
+Each case returns a state-accepting function.
+%
+The $\Return$-case returns a function that produces a pair consisting
+of return value of $m$ and the final state $st$.
+%
+The $\Get$-case returns a function that applies the resumption
+$resume$ to the current state $st$. Recall that return type of a
+resumption is the same as its handler's return type, so since the
+handler returns a function, it follows that
+$resume : \beta \to \beta \to \Record{\alpha, \beta}$. In other words,
+the invocation of $resume$ produces another state-accepting
+function. This function arises from the next activation of the handler
+either by way of a subsequent operation invocation in $m$ or the
+completion of $m$ to invoke the $\Return$-case. Since $\Get$ does not
+modify the value of the state cell it passes $st$ unmodified to the
+next handler activation.
+%
+The $\Put$-case discards the current state value $st$ and replaces it
+by the value $st'$.
+
+Operationally, evaluation of the sub-computation $m$ gets suspended
+when it either invokes an operation or returns a value upon which the
+corresponding clause in the handler definition returns a state
+accepting function. This function gets bound to $run$ which is
+subsequently applied to the initial state $init$, thereby continuing
+evaluation of the stateful fragment of $m$.
+
+
+\subsubsection{Basic sequential file system}
 
 \begin{figure}
   \centering
@@ -2932,39 +3052,6 @@ mishmash poetry of Shakespeare and \UNIX{}.
   \caption{\UNIX{} directory, i-list, and data region mappings.}\label{fig:unix-mappings}
 \end{figure}
 
-
-\[
-  \State~\alpha \defas \{\Get:\UnitType \opto \alpha;\Put:\alpha \opto \UnitType\}
-\]
-
-\[
-  \bl
-    \Uget : \UnitType \to \alpha \eff \{\Get:\UnitType \opto \alpha\}\\
-    \Uget~\Unit \defas \Do\;\Get~\Unit \medskip\\
-
-    \Uput : \UnitType \to \alpha \eff \{\Put:\alpha \opto \Unit\}\\
-    \Uput~st \defas \Do\;\Put~st
-  \el
-\]
-
-\[
-  \bl
-    \runState : \Record{\beta;\UnitType \to \alpha \eff \State~\beta} \to \Record{\alpha;\beta}\\
-    \runState~\Record{st_0;m} \defas
-        \ba[t]{@{}l}
-           \Let\;f \revto
-              \ba[t]{@{}l}
-                \Handle\;m\,\Unit\;\With\\
-                 ~\ba{@{~}l@{~}c@{~}l}
-                   \Return\;res      &\mapsto& \lambda st.\Record{res;st}\\
-                   \OpCase{\Get}{\Unit}{resume} &\mapsto& \lambda st.resume~st~st\\
-                   \OpCase{\Put}{st'}{resume}   &\mapsto& \lambda st.resume~\Unit~st'
-                  \ea
-              \ea\\
-           \In\; f\,st_0
-        \ea
-  \el
-\]
 
 \begin{figure}
   \centering
