@@ -2877,14 +2877,13 @@ goes: art is in the eye of the beholder.
 
 Thus far the system supports limited I/O, abnormal process
 termination, multiple user sessions, and multi-tasking via concurrent
-processes. With the notable exception of I/O the system models the
-core features of a practical operating system. The current I/O model
-provides an incomplete file system consisting of a single write-only
-file.
+processes. At this stage we have most of core features in place. We
+still have to complete the I/O model. The current I/O model provides
+an incomplete file system consisting of a single write-only file.
 %
-In this section we will complete the file system by implementing a
-\UNIX{}-like file system that supports file creation, opening,
-truncation, read and write operations, and file linking.
+In this section we will implement a \UNIX{}-like file system that
+supports file creation, opening, truncation, read and write
+operations, and file linking.
 %
 
 To implement a file system we will need to use state. State can
@@ -2978,19 +2977,26 @@ completion of $m$ to invoke the $\Return$-case. Since $\Get$ does not
 modify the value of the state cell it passes $st$ unmodified to the
 next handler activation.
 %
-The $\Put$-case discards the current state value $st$ and replaces it
-by the value $st'$.
+In the $\Put$-case the resumption must also produce a state-accepting
+function of the same type, however, the type of the resumption is
+slightly different
+$resume : \UnitType \to \beta \to \Record{\alpha, \beta}$. The unit
+type is the expected return type of $\Put$. The state-accepting
+function arising from $resume~\Unit$ is supplied with the new state
+value $st'$. This application effectively discards the current state
+value $st$.
 
-Operationally, evaluation of the sub-computation $m$ gets suspended
-when it either invokes an operation or returns a value upon which the
-corresponding clause in the handler definition returns a state
-accepting function. This function gets bound to $run$ which is
-subsequently applied to the initial state $init$, thereby continuing
-evaluation of the stateful fragment of $m$.
+The first operation invocation in $m$, or if it completes without
+invoking $\Get$ or $\Put$, the handler returns a function that accepts
+the initial state. The function gets bound to $run$ which is
+subsequently applied to the provided initial state $st_0$ which causes
+evaluation of the stateful fragment of $m$ to continue.
+%
+\dhil{Discuss briefly local vs global state~\cite{PauwelsSM19}}
 
 
 \subsubsection{Basic sequential file system}
-
+%
 \begin{figure}
   \centering
   \begin{tabular}[t]{| l |}
@@ -3039,15 +3045,15 @@ evaluation of the stateful fragment of $m$.
     \hline
   \end{tabular}
   %% Hamlet arrows.
-  \tikz[remember picture,overlay]\draw[->,thick,out=30,in=160] ([xshift=1.3cm,yshift=0.1cm]pic cs:hamlet) to ([xshift=-0.85cm,yshift=0.1cm]pic cs:hamletino) node[] {};
+  \tikz[remember picture,overlay]\draw[->,thick,out=30,in=160] ([xshift=1.23cm,yshift=0.1cm]pic cs:hamlet) to ([xshift=-0.85cm,yshift=0.1cm]pic cs:hamletino) node[] {};
   \tikz[remember picture,overlay]\draw[->,thick,out=30,in=180] ([xshift=0.62cm,yshift=0.1cm]pic cs:hamletino) to ([xshift=-0.23cm,yshift=0.1cm]pic cs:hamletdr) node[] {};
   %% Ritchie arrows.
   \tikz[remember picture,overlay]\draw[->,thick,out=-30,in=180] ([xshift=0.22cm,yshift=0.1cm]pic cs:ritchie) to ([xshift=-0.85cm,yshift=0.1cm]pic cs:ritchieino) node[] {};
   \tikz[remember picture,overlay]\draw[->,thick,out=30,in=180] ([xshift=0.62cm,yshift=0.1cm]pic cs:ritchieino) to ([xshift=-0.23cm,yshift=0.1cm]pic cs:ritchiedr) node[] {};
   %% Act3 arrow.
-  \tikz[remember picture,overlay]\draw[->,thick,out=10,in=210] ([xshift=1.73cm,yshift=0.1cm]pic cs:act3) to ([xshift=-0.85cm,yshift=-0.5mm]pic cs:hamletino) node[] {};
+  \tikz[remember picture,overlay]\draw[->,thick,out=10,in=210] ([xshift=1.64cm,yshift=0.1cm]pic cs:act3) to ([xshift=-0.85cm,yshift=-0.5mm]pic cs:hamletino) node[] {};
   %% Stdout arrows.
-  \tikz[remember picture,overlay]\draw[->,thick,out=30,in=180] ([xshift=1.3cm,yshift=0.1cm]pic cs:stdout) to ([xshift=-0.85cm,yshift=0.1cm]pic cs:stdoutino) node[] {};
+  \tikz[remember picture,overlay]\draw[->,thick,out=30,in=180] ([xshift=1.23cm,yshift=0.1cm]pic cs:stdout) to ([xshift=-0.85cm,yshift=0.1cm]pic cs:stdoutino) node[] {};
   \tikz[remember picture,overlay]\draw[->,thick,out=30,in=180] ([xshift=0.62cm,yshift=0.1cm]pic cs:stdoutino) to ([xshift=-0.23cm,yshift=0.1cm]pic cs:stdoutdr) node[] {};
   \caption{\UNIX{} directory, i-list, and data region mappings.}\label{fig:unix-mappings}
 \end{figure}
@@ -3347,12 +3353,17 @@ evaluation of the stateful fragment of $m$.
 \section{Parameterised handlers}
 \label{sec:unary-parameterised-handlers}
 
+\subsection{Syntax and static semantics}
+\subsection{Dynamic semantics}
+
+\subsection{Lightweight concurrency}
+
 \begin{example}[Green threads]
   \dhil{Example: Lightweight threads}
 \end{example}
 
-\section{Default handlers}
-\label{sec:unary-default-handlers}
+% \section{Default handlers}
+% \label{sec:unary-default-handlers}
 
 \section{Shallow handlers}
 \label{sec:unary-shallow-handlers}
@@ -3360,14 +3371,10 @@ evaluation of the stateful fragment of $m$.
 \subsection{Syntax and static semantics}
 \subsection{Dynamic semantics}
 
-\subsection{Shallow handlers in action}
-
-\begin{example}[State handling]
-  foo
-\end{example}
+\subsection{\UNIX{}-style pipes}
 
 \begin{example}[Inversion of control]
-  asd
+  foo
 \end{example}
 
 \begin{example}[Communicating pipes]
