@@ -277,6 +277,16 @@ qualifier deceive you) --- the two books complement each other nicely.
 \section{Relations and functions}
 \label{sec:functions}
 
+Relations and functions feature prominently in the design and
+understanding of the static and dynamic properties of programming
+languages. The interested reader is likely to already be familiar with
+the basic concepts of relations and functions, although this section
+briefly introduces the concepts, its purpose is to introduce the
+notation that I am using pervasively throughout this dissertation.
+%
+
+I assume familiarity with basic set theory.
+
 \begin{definition}
   The Cartesian product of two sets $A$ and $B$, written $A \times B$,
   is the set of all ordered pairs $(a, b)$, where $a$ is drawn from
@@ -332,10 +342,11 @@ $R^n$, is defined inductively.
   R^0 \defas \emptyset, \quad\qquad R^1 \defas R, \quad\qquad R^{1 + n} \defas R \circ R^n.
 \]
 %
-Homogeneous relations play a prominent role in the design and
-operational understanding of programming languages. There are two
-particular properties and associated closure operations of homogeneous
-relations that reoccur throughout this dissertation.
+Homogeneous relations play a prominent role in the operational
+understanding of programming languages as they are used to give
+meaning to program reductions. There are two particular properties and
+associated closure operations of homogeneous relations that reoccur
+throughout this dissertation.
 %
 \begin{definition}
   A homogeneous relation $R \subseteq A \times A$ is said to be
@@ -351,23 +362,27 @@ relations that reoccur throughout this dissertation.
 \begin{definition}[Closure operations]
   Let $R \subseteq A \times A$ denote a homogeneous relation. The
   reflexive closure $R^{=}$ of $R$ is the smallest reflexive relation
-  over $A$ containing $R$, i.e.
+  over $A$ containing $R$
   %
   \[
-    R^{=} \defas \{ (a, a) \mid a \in A \} \cup R
+    R^{=} \defas \{ (a, a) \mid a \in A \} \cup R.
   \]
   %
   The transitive closure $R^+$ of $R$ is the smallest transitive
-  relation over $A$ containing $R$, i.e.
+  relation over $A$ containing $R$
   %
   \[
-    R^+ \defas \displaystyle\bigcup_{n \in \N} R^n
+    R^+ \defas \displaystyle\bigcup_{n \in \N} R^n.
   \]
-
+  %
+  The reflexive and transitive closure $R^\ast$ of $R$ is the smallest
+  reflexive and transitive relation over $A$ containing $R$
+  %
+  \[
+    R^\ast \defas (R^+)^{=}.
+  \]
 \end{definition}
 %
-The reflexive and transitive closure $R^\ast$ of $R$ is defined as
-$R^\ast \defas (R^+)^{=}$.
 
 \begin{definition}
   A relation $R \subseteq A \times B$ is functional and serial if it
@@ -395,11 +410,16 @@ We use these properties to define partial and total functions.
   $f \subseteq A \times B$.
 \end{definition}
 %
-A total function is also simply called a `function'.
+A total function is also simply called a `function'. Throughout this
+dissertation the terms (partial) mapping and (partial) function are
+used interchangeably.
 %
+
 For a function $f : A \to B$ (or partial function $f : A \pto B$) we
-write $f(a) = b$ to mean $(a, b) \in f$, and say that $f$ returns $b$
-when applied to $a$.
+write $f(a) = b$ to mean $(a, b) \in f$, and say that $f$ applied to
+$a$ returns $b$. The notation $f(a)$ means the application of $f$ to
+$a$, and we say that $f(a)$ is defined whenever $f(a) = b$ for some
+$b$.
 %
 The domain of a function is a set, $\dom(-)$, consisting of all the
 elements for which it is defined. Thus the domain of a total function
