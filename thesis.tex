@@ -416,7 +416,7 @@ is that of \emph{image}. The image of a total or partial function $f$,
 written $\dec{Im}(f)$, is the set of values that it can return, i.e.
 %
 \[
-    \dec{Im}(f) \defas \{\, f(a) \mid a \in \dom(f) \}
+    \dec{Im}(f) \defas \{\, f(a) \mid a \in \dom(f) \}.
 \]
 
 
@@ -430,6 +430,12 @@ written $\dec{Im}(f)$, is the set of values that it can return, i.e.
   If a function $f$ is both injective and surjective, then it is said
   to be a bijective.
 \end{definition}
+%
+An injective function guarantees that each element in its image is
+uniquely determined by some element of its domain.
+%
+A surjective function guarantees that its domain covers the codomain,
+meaning that the codomain and image coincide.
 %
 A partial function $f$ is injective, surjective, and bijective
 whenever the function $f' : \dom(f) \to \dec{cod}(f)$, obtained by
