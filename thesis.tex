@@ -92,12 +92,12 @@
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
 \newtheorem{definition}[theorem]{Definition}
 % Example environment.
 \makeatletter
 \def\@endtheorem{\hfill$\blacksquare$\endtrivlist\@endpefalse} % inserts a black square at the end.
 \makeatother
-\theoremstyle{definition}
 \newtheorem{example}{Example}[chapter]
 
 %%
@@ -470,7 +470,14 @@ respectively.
 \begin{definition}[Algebra]\label{def:algebra}
 \end{definition}
 
-\section{Programming languages}
+\section{Algebraic effects and their handlers}
+\label{sec:algebraic-effects}
+
+See \citeauthor{Bauer18}'s tutorial~\cite{Bauer18} for an excellent
+thorough account of the mathematics underpinning algebraic effects and
+handlers.
+
+\section{Typed programming languages}
 \label{sec:pls}
 %
 \dhil{Definition of (typed) programming language, conservative extension, macro-expressiveness}
