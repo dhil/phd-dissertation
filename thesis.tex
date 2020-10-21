@@ -254,6 +254,199 @@ Explain conventions\dots
 \part{Background}
 \label{p:background}
 
+\chapter{Mathematical preliminaries}
+\label{ch:maths-prep}
+
+Only a modest amount of mathematical proficiency should be necessary
+to be able to wholly digest this dissertation.
+%
+This chapter introduces some key mathematical concepts that will
+either be used directly or indirectly throughout this dissertation.
+%
+
+I assume familiarity with basic programming language theory including
+structural operational semantics~\cite{Plotkin04a} and System F type
+theory~\cite{Girard72}. For a practical introduction to programming
+language theory I recommend consulting \citeauthor{Pierce02}'s
+excellent book \emph{Types and Programming
+  Languages}~\cite{Pierce02}. For the more theoretical inclined I
+recommend \citeauthor{Harper16}'s book \emph{Practical Foundations for
+  Programming Languages}~\cite{Harper16} (do not let the ``practical''
+qualifier deceive you) --- the two books complement each other nicely.
+
+\section{Relations and functions}
+\label{sec:functions}
+
+\begin{definition}
+  The Cartesian product of two sets $A$ and $B$, written $A \times B$,
+  is the set of all ordered pairs $(a, b)$, where $a$ is drawn from
+  $A$ and $b$ is drawn from $B$, i.e.
+  %
+  \[
+    A \times B \defas \{ (a, b) \mid a \in A, b \in B \}
+  \]
+  %
+\end{definition}
+%
+Since the Cartesian product is itself a set, we can take the Cartesian
+product of it with another set, e.g. $A \times B \times C$. However,
+this raises the question in which order the product operator
+($\times$) is applied. In this dissertation the product operator is
+taken to be right associative, meaning
+$A \times B \times C = A \times (B \times C)$.
+%
+\dhil{Define tuples (and ordered pairs)?}
+%
+% To make the notation more compact for the special case of $n$-fold
+% product of some set $A$ with itself we write
+% $A^n \defas A \underbrace{\times \cdots \times}_{n \text{ times}} A$.
+%
+
+
+\begin{definition}
+  A relation $R$ is a subset of the Cartesian product of two sets $A$
+  and $B$, i.e. $R \subseteq A \times B$.
+  %
+  An element $a \in A$ is related to an element $b \in B$ if
+  $(a, b) \in R$, sometimes written using infix notation $a\,R\,b$.
+  %
+  If $A = B$ then $R$ is said to be a homogeneous relation.
+\end{definition}
+%
+
+\begin{definition}
+  For any two relations $R \subseteq A \times B$ and
+  $S \subseteq B \times C$ their composition is defined as follows.
+  %
+  \[
+    S \circ R \defas \{ (a,c) \mid (a,b) \in R, (b, c) \in S \}
+  \]
+\end{definition}
+
+The composition operator ($\circ$) is associative, meaning
+$(T \circ S) \circ R = T \circ (S \circ R)$.
+%
+For $n \in \N$ the $n$th relational power of a relation $R$, written
+$R^n$, is defined inductively.
+\[
+  R^0 \defas \emptyset, \quad\qquad R^1 \defas R, \quad\qquad R^{1 + n} \defas R \circ R^n.
+\]
+%
+Reflexive and transitive relations and their closures feature
+prominently in the dynamic semantics of programming languages.
+%
+\begin{definition}
+  A homogeneous relation $R \subseteq A \times A$ is said to be
+  reflexive and transitive if its satisfies the following criteria,
+  respectively.
+  \begin{itemize}
+    \item Reflexive: $\forall a \in A$ it holds that $a\,R\,a$.
+    \item Transitive: $\forall a,b,c \in A$ if $a\,R\,b$ and $b\,R\,c$
+      then $a\,R\,c$.
+  \end{itemize}
+\end{definition}
+
+\begin{definition}[Closure operations]
+  Let $R \subseteq A \times A$ denote a homogeneous relation. The
+  reflexive closure $R^{=}$ of $R$ is the smallest reflexive relation
+  over $A$ containing $R$, i.e.
+  %
+  \[
+    R^{=} \defas \{ (a, a) \mid a \in A \} \cup R
+  \]
+  %
+  The transitive closure $R^+$ of $R$ is the smallest transitive
+  relation over $A$ containing $R$, i.e.
+  %
+  \[
+    R^+ \defas \displaystyle\bigcup_{n \in \N} R^n
+  \]
+
+\end{definition}
+%
+The reflexive and transitive closure $R^\ast$ of $R$ is defined as
+$R^\ast \defas (R^+)^{=}$.
+
+\begin{definition}
+  A relation $R \subseteq A \times B$ is functional and serial if it
+  satisfies the following criteria, respectively.
+  %
+  \begin{itemize}
+    \item Functional: $\forall a \in A, b,b' \in B$ if  $a\,R\,b$ and $a\,R\,b'$ then $b = b'$.
+    \item Serial: $\forall a \in A,\exists b \in B$ such that
+      $a\,R\,b$.
+  \end{itemize}
+\end{definition}
+%
+The functional property guarantees that every $a \in A$ is at most
+related to one $b \in B$. Note this does not mean that every $a$
+\emph{is} related to some $b$. The serial property guarantees that
+every $a \in A$ is related to one or more elements in $B$.
+%
+We use these properties to define partial and total functions.
+%
+\begin{definition}
+  A partial function $f : A \pto B$ is a functional relation
+  $f \subseteq A \times B$.
+  %
+  A total function $f : A \to B$ is a functional and serial relation
+  $f \subseteq A \times B$.
+\end{definition}
+%
+A total function is also simply called a `function'.
+%
+For a function $f : A \to B$ (or partial function $f : A \pto B$) we
+write $f(a) = b$ to mean $(a, b) \in f$, and say that $f$ returns $b$
+when applied to $a$.
+%
+The domain of a function is a set, $\dom(-)$, consisting of all the
+elements for which it is defined. Thus the domain of a total function
+is its domain of definition, e.g. $\dom(f : A \to B) = A$.
+%
+For a partial function $f$ its domain is a proper subset of the domain
+of definition.
+%
+\[
+  \dom(f : A \pto B) \defas \{ a \mid a \in A,\, f(a) \text{ is defined} \} \subset A.
+\]
+%
+The codomain of a total function $f : A \to B$ (or partial function
+$f : A \pto B$) is $B$, written $\dec{cod}(f) = B$. A related notion
+is that of \emph{image}. The image of a total or partial function $f$,
+written $\dec{Im}(f)$, is the set of values that it can return, i.e.
+%
+\[
+    \dec{Im}(f) \defas \{\, f(a) \mid a \in \dom(f) \}
+\]
+
+
+\begin{definition}
+  A function $f : A \to B$ is injective and surjective if it satisfies
+  the following criteria, respectively.
+  \begin{itemize}
+    \item Injective: $\forall a,a' \in A$ if $f(a) = f(a')$ then $a = a'$.
+    \item Surjective: $\forall b \in B,\exists a \in A$ such that $f(a) = b$.
+  \end{itemize}
+  If a function $f$ is both injective and surjective, then it is said
+  to be a bijective.
+\end{definition}
+%
+A partial function $f : A \pto B$ is injective, surjective, and
+bijective whenever the function $f' : \dom(A) \to B$ obtained by
+restricting $f$ to its domain is injective, surjective, and bijective
+respectively.
+
+\section{Universal algebra}
+\label{sec:universal-algebra}
+
+\begin{definition}[Algebra]\label{def:algebra}
+\end{definition}
+
+\section{Programming languages}
+\label{sec:pls}
+%
+\dhil{Definition of (typed) programming language, conservative extension, macro-expressiveness}
+
 \chapter{The state of effectful programming}
 \label{ch:related-work}
 
