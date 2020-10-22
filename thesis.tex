@@ -412,7 +412,7 @@ We use these properties to define partial and total functions.
 %
 A total function is also simply called a `function'. Throughout this
 dissertation the terms (partial) mapping and (partial) function are
-used interchangeably.
+synonymous.
 %
 
 For a function $f : A \to B$ (or partial function $f : A \pto B$) we
@@ -467,7 +467,14 @@ respectively.
 \section{Universal algebra}
 \label{sec:universal-algebra}
 
-\begin{definition}[Algebra]\label{def:algebra}
+Universal algebra studies \emph{algebraic theories}.
+
+\begin{definition}[Operations]
+  
+\end{definition}
+
+\begin{definition}[Algebraic theory]\label{def:algebra}
+  
 \end{definition}
 
 \section{Algebraic effects and their handlers}
@@ -492,14 +499,31 @@ handlers.
   Moggi's work gives a precise characterisation of what's \emph{not}
   an effect}
 
-\chapter{Continuations}
+\chapter{Control operators}
 \label{ch:continuations}
+
+Undelimited control: Landin's J~\cite{Landin98}, Reynolds'
+escape~\cite{Reynolds98a}, Scheme75's catch~\cite{SussmanS75}, callcc
+is a procedural variation of catch. It was invented in
+1982~\cite{Abelson91}.
+
+Delimited control: Common Lisp resumable exceptions (condition
+system)~\cite{Steele90}, prompt/control~\cite{Felleisen88},
+shift/reset~\cite{DanvyF90}, catchcont~\cite{LongleyW08}, effect
+handlers~\cite{PlotkinP09}.
+
+Backtracking: Amb~\cite{McCarthy63}.
+
+Coroutines~\cite{DahlDH72} as introduced by Simula
+67~\cite{DahlMN68}. The notion of coroutines was coined by Melvin
+Conway, who used coroutines as a code idiom in assembly
+programs~\cite{Knuth97}.
 
 \section{Zoo of control operators}
 Describe how effect handlers fit amongst shift/reset, prompt/control,
 callcc, J, catchcont, etc.
 
-\section{Implementation strategies}
+\section{Ad-hoc implementation strategies}
 
 
 \part{Design}
