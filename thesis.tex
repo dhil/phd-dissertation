@@ -4378,12 +4378,8 @@ approximate the body of the resumption up to administrative reduction.
 \section{Parameterised handlers}
 \label{sec:unary-parameterised-handlers}
 
-In Section~\ref{sec:state} we informally presented parameterised
-handlers as a useful idiom for handling stateful computations. We now
-consider parameterised handlers as a primitive in $\HCalc$, and show
-how to extend the CPS and abstract machine implementations to support
-them. We also show that parameterised handlers can always be simulated
-by deep handlers.
+Parameterised handlers are a useful idiom for handling stateful
+computations.
 
 \subsection{Syntax and static semantics}
 %
@@ -4427,7 +4423,7 @@ the parameter $q$.
     {{\bl
        C = A \eff \{(\ell_i : A_i \to B_i)_i; R\} \\
        D = B \eff \{(\ell_i : P)_i;           R\} \\
-       H = \{\Return\;x \mapsto M\} \uplus \{ \ell_i\;p_i\;r_i \mapsto N_i \}_i
+       H = \{\Return\;x \mapsto M\} \uplus \{ \OpCase{\ell_i}{p_i}{r_i} \mapsto N_i \}_i
        \el}\\\\
        \typ{\Delta;\Gamma, q : A', x : A}{M : D}\\\\
        [\typ{\Delta;\Gamma,q : A', p_i : A_i, r_i : B_i \to D}{N_i : D}]_i
@@ -4459,7 +4455,7 @@ $\semlab{Op^\param}$.
   &\ParamHandle \; \EC[\Do \; \ell \; V] \; \With \; (q.~H)(W)\\
   \reducesto&
   N[V/p,W/q,\lambda \Record{y;q'}.\Handle \; \EC[\Return \; y] \; \With \; (q.~H)(q')/r]\\
-  & \text{ where } \ell \notin BL(\EC) \text{ and } \hell = \{ \ell \; p \; r \mapsto N \}
+  & \text{ where } \ell \notin BL(\EC) \text{ and } \hell = \{ \OpCase{\ell}{p}{r} \mapsto N \}
 \ea
 \]
 %
