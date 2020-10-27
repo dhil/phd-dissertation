@@ -3132,9 +3132,9 @@ happens.
 Evidently, each write operation has been interleaved, resulting in a
 mishmash poetry of Shakespeare and \UNIX{}.
 %
-To some this may be a shambolic treatment of classical arts, whilst to
-others this may be a modern contemporaneous treatment. As the saying
-goes: art is in the eye of the beholder.
+% To some this may be a shambolic treatment of classical arts, whilst to
+% others this may be a modern contemporaneous treatment. As the saying
+% goes: art is in the eye of the beholder.
 
 \subsection{State: file i/o}
 \label{sec:tiny-unix-io}
@@ -3423,13 +3423,116 @@ system.
 \]
 %
 Initially the file system contains a single, empty file with the name
-$\texttt{stdout}$.
+$\texttt{stdout}$. Next we will implement the basic operations on the
+file system separately.
 
 \paragraph{File reading and writing}
 %
+Let us begin by giving a semantics to file reading and writing. We
+need an abstract operation for each file operation.
+%
+\[
+  \dec{FileRW} \defas \{\URead : \Int \opto \Option~\String;\UWrite : \Record{\Int;\String} \opto \UnitType\}
+\]
+%
+The operation $\URead$ is parameterised by an i-node number
+(i.e. index into the i-list) and possibly returns the contents of the
+file pointed to by the i-node. The operation may fail if it is
+provided with a stale i-node number. Thus the option type is used to
+signal failure or success to the caller.
+%
+The $\UWrite$ operation is parameterised by an i-node number and some
+strings to be appended onto the file pointed to by the i-node. The
+operation returns unit, and thus the operation does not signal to its
+caller whether it failed or succeed.
+%
+Before we implement a handler for the operations, we will implement
+primitive read and write operations that operate directly on the file
+system. We will use the primitive operations to implement the
+semantics for $\URead$ and $\UWrite$. To implement the primitive the
+operations we will need two basic functions on association lists. I
+will only their signatures here.
+%
 \[
   \bl
-    \fileRW : (\UnitType \to \alpha \eff \{\URead : \Int \opto \Option\,\String;\UWrite : \Record{\Int;\String} \opto \UnitType\}) \to \alpha \eff \{\State~\FileSystem\}\\
+    \lookup : \Record{\alpha;\List\,\Record{\alpha;\beta}} \to \beta \eff \{\Fail : \UnitType \opto \Zero\} \smallskip\\
+    \modify : \Record{\alpha;\beta;\List\,\Record{\alpha;\beta}} \to \Record{\alpha;\beta}
+  \el
+\]
+%
+Given a key of type $\alpha$ the $\lookup$ function returns the
+corresponding value of type $\beta$ in the given association list. If
+the key does not exists, then the function invokes the $\Fail$
+operation to signal failure.
+%
+The $\modify$ function takes a key and a value. If the key exists in
+the provided association list, then it replaces the value bound by the
+key with the provided value.
+%
+Using these functions we can implement the primitive read and write
+operations.
+%
+\[
+  \bl
+    \fread : \Record{\Int;\FileSystem} \to \String \eff \{\Fail : \UnitType \opto \Zero\}\\
+    \fread\,\Record{ino;fs} \defas
+      \ba[t]{@{}l}
+        \Let\;inode \revto \lookup\,\Record{ino; fs.ilist}\;\In\\
+        \lookup\,\Record{inode.loc; fs.dreg}
+      \el
+  \el
+\]
+%
+The function $\fread$ takes as input the i-node number for the file to
+be read and a file system. First it looks up the i-node structure in
+the i-list, and then it uses the location in the i-node to look up the
+file contents in the data region. Since $\fread$ performs no exception
+handling it will fail if either look up fails. The implementation of
+the primitive write operation is similar.
+%
+\[
+  \bl
+    \fwrite : \Record{\Int;\String;\FileSystem} \to \FileSystem \eff \{\Fail : \UnitType \opto \Zero\}\\
+    \fwrite\,\Record{ino;cs;fs} \defas
+      \ba[t]{@{}l}
+        \Let\;inode \revto \lookup\,\Record{ino; fs.ilist}\;\In\\
+        \Let\;file \revto \lookup\,\Record{inode.loc; fs.dreg}\;\In\\
+        \Record{\,fs\;\keyw{with}\;dreg = \modify\,\Record{inode.loc;file \concat cs;fs}}
+      \el
+  \el
+\]
+%
+The first two lines grab hold of the file, whilst the last line
+updates the data region in file system by appending the string $cs$
+onto the file.
+%
+Before we can implement the handler, we need an exception handling
+mechanism. The following exception handler interprets $\Fail$ as some
+default value.
+%
+\[
+    \bl
+      \faild : \Record{\alpha;\UnitType \to \alpha \eff \{\Fail : \UnitType \opto \Zero\}} \to \alpha\\
+      \faild\,\Record{default;m} \defas
+        \ba[t]{@{~}l}
+          \Handle\;m~\Unit\;\With\\
+           ~\ba{@{~}l@{~}c@{~}l}
+              \Return\;x &\mapsto& x\\
+              \OpCase{\Fail}{\Unit}{\_} &\mapsto& default
+            \ea
+        \ea
+    \el
+\]
+%
+The $\Fail$-case is simply the default value, whilst the
+$\Return$-case is the identity.
+%
+Now we can use all the above pieces to implement a handler for the
+$\URead$ and $\UWrite$ operations.
+%
+\[
+  \bl
+    \fileRW : (\UnitType \to \alpha \eff \dec{FileRW}) \to \alpha \eff \State~\FileSystem\\
     \fileRW~m \defas
         \ba[t]{@{}l}
            \Handle\;m\,\Unit\;\With\\
@@ -3445,7 +3548,7 @@ $\texttt{stdout}$.
                      \ba[t]{@{}l}
                         \faild~\Record{\Unit; \lambda \Unit.\\
                           \quad\bl
-                            \Let\;fs \revto \fwrite\,\Record{ino;cs;\Uget~\Unit}\\
+                            \Let\;fs \revto \fwrite\,\Record{ino;cs;\Uget\,\Unit}\\
                             \In\;\Uput~fs};\,resume\,\Unit
                           \el
                      \ea
@@ -3453,12 +3556,29 @@ $\texttt{stdout}$.
          \ea
   \el
 \]
+%
+The $\URead$-case uses the $\fread$ function to implement reading a
+file. The file system state is retrieved using the state operation
+$\Uget$. The possible failure of $\fread$ is dealt with by the
+$\faild$ handler by interpreting failure as $\None$.
+%
+The $\UWrite$-case makes use of the $\fwrite$ function to implement
+writing to a file. Again the file system state is retrieved using
+$\Uget$. The $\Uput$ operation is used to update the file system state
+with the state produced by the successful invocation of
+$\fwrite$. Failure is interpreted as unit, meaning that from the
+caller perspective the operation fails silently.
 
-\paragraph{File allocation}
+\paragraph{File creation and opening}
+%
+\dhil{TODO}
+\[
+  \dec{FileCO} \defas \{\UCreate : \String \opto \Int; \UOpen : \String \opto \Option~\Int\}
+\]
 %
 \[
   \bl
-    \fileAlloc : (\UnitType \to \alpha \eff \{\UCreate : \String \opto \Int\}) \to \alpha \eff \{\State~\FileSystem\}\\
+    \fileAlloc : (\UnitType \to \alpha \eff \dec{FileCO}) \to \alpha \eff \State~\FileSystem\\
     \fileAlloc~m \defas
         \ba[t]{@{}l}
            \Handle\;m\,\Unit\;\With\\
@@ -3472,17 +3592,52 @@ $\texttt{stdout}$.
                          \In\;\Uput~fs;\,ino}
                        \el\\
                      \In\; resume\,ino
-                  \el
+                   \el\\
+                 \OpCase{\UOpen}{fname}{resume} &\mapsto&
+                   \ba[t]{@{}l}
+                      \Let\; ino \revto \faild~\Record{\None; \lambda \Unit.\\
+                        \quad\Some\,(\fopen\,\Record{fname;\Uget\,\Unit})}\\
+                      \In\;resume\,ino
+                   \ea
                \ea
          \ea
   \el
 \]
+%
+There is no file close operation in \fsname{}, because it would be a no-op.
 
-\paragraph{Stream redirection}
+\paragraph{File linking and unlinking}
+\dhil{Maybe axe\dots} \medskip\\
+
+The composition of $\fileRW$ and $\fileAlloc$ give a semantics to file
+i/o.
 %
 \[
   \bl
-    \redirect : \Record{\UnitType \to \alpha \eff \{\Write : \Record{\Int;\String} \opto \UnitType\}; \String} \to \alpha \eff \{\UCreate : \String \opto \Int;\Write : \Record{\Int;\String}\}\\
+    \fileIO : (\UnitType \to \alpha \eff \{\dec{FileCO},\dec{FileRW}\}) \to \alpha \eff \State~\FileSystem \\
+    \fileIO~m \defas \dec{fileCO}\,(\lambda\Unit. \dec{fileRW}\,m)
+  \el
+\]
+%
+The two handlers may as well be implemented as a single monolithic
+handler, since they implement different operations, return the same
+value, and make use of the same state cell. In practice a monolithic
+handler may have better performance. However, a sufficient clever
+compiler would be able to use the fusion technique of \citet{WuS15} to
+fuse the two handlers into one, and thus allow modular composition
+without remorse.
+
+\paragraph{Stream redirection}
+%
+\dhil{TODO}
+%
+\[
+  \bl
+  \redirect :
+     \bl
+       \Record{\UnitType \to \alpha \eff \{\Write : \Record{\Int;\String} \opto \UnitType\}; \String}\\
+       \to \alpha \eff \{\UCreate : \String \opto \Int;\Write : \Record{\Int;\String} \opto \UnitType\}
+     \el\\
     m~\redirect~fname \defas
         \ba[t]{@{}l}
           \Let\;ino \revto \Ucreate~fname\;\In\\
@@ -3495,10 +3650,85 @@ $\texttt{stdout}$.
   \el
 \]
 %
+\medskip\\
+% ([0, 0, 0],
+%  (dir = [("hamlet", 2), ("ritchie.txt", 1), ("stdout", 0)],
+%   dregion = [(2, "To be, or not to be,
+% that is the question:
+% Whether 'tis nobler in the mind to suffer
+% "),
+%              (1, "UNIX is basically a simple operating system, but you have to be a genius to understand the simplicity.
+% "), (
+%              0, "")],
+%   inext = 3,
+%   inodes = [(2, (lno = 1, loc = 2)), (1, (lno = 1, loc = 1)), (0, (lno = 1, loc = 0))],
+%   lnext = 3)) : ([Int], FileSystem)
+% links> init(fsys0, example7);
+% ([0, 0, 0],
+%  (dir = [("hamlet", 2), ("ritchie.txt", 1), ("stdout", 0)],
+%   dregion = [(2, "To be, or not to be,
+% that is the question:
+% Whether 'tis nobler in the mind to suffer
+% "),
+%              (1, "UNIX is basically a simple operating system, but you have to be a genius to understand the simplicity.
+% "), (
+%              0, "")],
+%   inext = 3,
+%   inodes = [(2, (lno = 1, loc = 2)), (1, (lno = 1, loc = 1)), (0, (lno = 1, loc = 0))],
+%   lnext = 3)) : ([Int], FileSystem)
 
-\paragraph{File linking and unlinking}
-\dhil{Maybe axe\dots}
-
+We can now plug everything together.
+%
+\[
+  \ba{@{~}l@{~}l}
+    &\bl
+    \runState\,\Record{\dec{fs}_0;\fileIO\,(\lambda\Unit.\\
+         \qquad\timeshare\,(\lambda\Unit.\\
+         \qquad\qquad\dec{interruptWrite}\,(\lambda\Unit.\\
+         \qquad\qquad\qquad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
+         \qquad\qquad\qquad\qquad\status\,(\lambda\Unit.
+                 \ba[t]{@{}l}
+                   \If\;\fork~\Unit\;\Then\;
+                       \su~\Alice;\,
+                       \quoteRitchie~\redirect~\strlit{ritchie.txt}\\
+                   \Else\;
+                       \su~\Bob;\,
+                       \quoteHamlet~\redirect~\strlit{hamlet})})))}
+                 \ea
+     \el \smallskip\\
+     \reducesto^+&
+     \bl
+      \Record{
+       \ba[t]{@{}l}
+       [0, 0];\\
+       \Record{
+         \ba[t]{@{}l}
+           dir=[\Record{\strlit{hamlet};2},
+                \Record{\strlit{ritchie.txt};1},
+                \Record{\strlit{stdout};0}];\\
+           ilist=[\Record{2;\Record{lno=1;loc=2}},
+                  \Record{1;\Record{lno=1;loc=1}},
+                  \Record{0;\Record{lno=1;loc=0}}];\\
+           dreg=[
+             \ba[t]{@{}l}
+               \Record{2;
+                 \ba[t]{@{}l@{}l}
+                   \texttt{"}&\texttt{To be, or not to be,\nl{}that is the question:\nl{}}\\
+                             &\texttt{Whether 'tis nobler in the mind to suffer\nl{}}};
+                 \ea\\
+               \Record{1;
+                 \ba[t]{@{}l@{}l}
+                   \texttt{"}&\texttt{UNIX is basically a simple operating system, }\\
+                             &\texttt{but you have to be a genius to understand the simplicity.\nl{}}};
+                 \ea\\
+               \Record{0; \strlit{}}]}}
+           \ea
+         \ea
+       \ea\\
+       : \Record{\List~\Int; \FileSystem}
+     \el
+  \ea
+\]
 % \begin{figure}[t]
 %   \centering
 %   \begin{tikzpicture}[node distance=4cm,auto,>=stealth']
@@ -3904,10 +4134,10 @@ extension of the following equations to all terms.
          \dstrans{N_\ell} \}_{\ell \in \mathcal{L}}
 \end{equations}
 
-\paragraph{Example} We illustrate the translation $\dstrans{-}$ on the
-EXAMPLE handler from Section~\ref{sec:strategies} (recall that the
-variable $m$ is bound to the input computation). The example here is
-reproduced in ANF notation.
+% \paragraph{Example} We illustrate the translation $\dstrans{-}$ on the
+% EXAMPLE handler from Section~\ref{sec:strategies} (recall that the
+% variable $m$ is bound to the input computation). The example here is
+% reproduced in ANF notation.
 % \[
 %  \ba{@{~}l@{~}l@{}l}
 %   &\mathcal{S}&\left\llbracket
@@ -4014,45 +4244,45 @@ of thunks. The first forwards all operations, acting as the identity
 on computations. The second interprets a single operation before
 reverting to forwarding.
 
-\paragraph{Example} We demonstrate the translation $\sdtrans{-}$ on
-the $\Pipe$ handler from Section~\ref{sec:shallow-handlers-tutorial}
-(recall that the variables $c$ and $p$ are bound to the consumer and
-producer functions respectively). The example is reproduced in ANF
-notation.
-%
-\[
-  \ba{@{~}l@{~}l@{}l}
-  &\mathcal{D}&\left\llbracket
-    \ba[m]{@{~}l}
-       \ShallowHandle\; c\,\Unit \;\With\; \\
-       \quad
-        \ba[m]{@{}l@{~}c@{~}l@{}}
-           \Return~x &\mapsto& \Return\; x \\
-           \Await~\Unit~resume  &\mapsto& \Copipe\; \Record{resume; p} \\
-        \ea \\
-      \ea\right\rrbracket = \\
-    &
-    &\ba[t]{@{~}l}
-    \Let\; z \revto
-       \ba[t]{@{~}l}
-          \Handle\; c~\Unit \; \With\\
-          \quad \ba[m]{@{~}l}
-             \ba[m]{@{~}l@{~}l}
-                \Return~x      &\mapsto \Return\; \Record{\lambda\Unit. \Return\; x; \lambda\Unit. \Return\;x}\\
-                \Await~\Unit~resume &\mapsto
-             \ea\\
-               \qquad\ba[t]{@{~}l}
-                \Let\;r \revto \lambda x.\Let\; z \revto resume~x\;
-                                         \In\; \Let\; \Record{f; g} = z \;\In\; f~\Unit\; \In\\
-                \Return\;\Record{\lambda \Unit. \Let\; x \revto \Do\; \ell~p \;\In\; r~x;
-                                 \lambda\Unit.\sdtrans{\Copipe}\Record{r; p}}
-             \ea
-            \ea
-      \ea\\
-    \In\;\Let\;\Record{f; g} = z\; \In\; g~\Unit
-    \ea
-  \ea
-\]
+% \paragraph{Example} We demonstrate the translation $\sdtrans{-}$ on
+% the $\Pipe$ handler from Section~\ref{sec:shallow-handlers-tutorial}
+% (recall that the variables $c$ and $p$ are bound to the consumer and
+% producer functions respectively). The example is reproduced in ANF
+% notation.
+% %
+% \[
+%   \ba{@{~}l@{~}l@{}l}
+%   &\mathcal{D}&\left\llbracket
+%     \ba[m]{@{~}l}
+%        \ShallowHandle\; c\,\Unit \;\With\; \\
+%        \quad
+%         \ba[m]{@{}l@{~}c@{~}l@{}}
+%            \Return~x &\mapsto& \Return\; x \\
+%            \Await~\Unit~resume  &\mapsto& \Copipe\; \Record{resume; p} \\
+%         \ea \\
+%       \ea\right\rrbracket = \\
+%     &
+%     &\ba[t]{@{~}l}
+%     \Let\; z \revto
+%        \ba[t]{@{~}l}
+%           \Handle\; c~\Unit \; \With\\
+%           \quad \ba[m]{@{~}l}
+%              \ba[m]{@{~}l@{~}l}
+%                 \Return~x      &\mapsto \Return\; \Record{\lambda\Unit. \Return\; x; \lambda\Unit. \Return\;x}\\
+%                 \Await~\Unit~resume &\mapsto
+%              \ea\\
+%                \qquad\ba[t]{@{~}l}
+%                 \Let\;r \revto \lambda x.\Let\; z \revto resume~x\;
+%                                          \In\; \Let\; \Record{f; g} = z \;\In\; f~\Unit\; \In\\
+%                 \Return\;\Record{\lambda \Unit. \Let\; x \revto \Do\; \ell~p \;\In\; r~x;
+%                                  \lambda\Unit.\sdtrans{\Copipe}\Record{r; p}}
+%              \ea
+%             \ea
+%       \ea\\
+%     \In\;\Let\;\Record{f; g} = z\; \In\; g~\Unit
+%     \ea
+%   \ea
+% \]
 %
 
 \begin{theorem}
