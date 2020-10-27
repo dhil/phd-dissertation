@@ -113,6 +113,7 @@
 % \title{Programming Computable Effectful Functions}
 % \title{Handling Effectful Computations}
 \title{Foundations for Programming and Implementing Effect Handlers}
+%\title{Foundations for Programming with Control via Effect Handlers}
 \author{Daniel Hillerström}
 
 %% If the year of submission is not the current year, uncomment this line and
@@ -3321,66 +3322,178 @@ evaluation of the stateful fragment of $m$ to continue.
   \caption{\UNIX{} directory, i-list, and data region mappings.}\label{fig:unix-mappings}
 \end{figure}
 %
-A file system provide an abstraction over primary storage in a
-computer system. This abstraction facilities allocation, deletion,
-storage, and access of files.
+A file system provide an abstraction over storage media in a computer
+system by organising the storage space into a collection of files.
+This abstraction facilities typical file operations: allocation,
+deletion, reading, and writing.
 %
-A typical \UNIX{} file system is hierarchical and
-distinguishes between ordinary files, directories, and special
-files~\cite{RitchieT74}. To simplify matters, our file system will be
-entirely flat and only contain ordinary files. Although, the system
-can readily be extended to be hierarchical, it comes at the expense of
+\UNIX{} dogmatises the notion of file to the point where
+\emph{everything is a file}.  A typical \UNIX{}-style file system
+differentiates between ordinary files, directory files, and special
+files~\cite{RitchieT74}. An ordinary file is a sequence of
+characters. A directory file is a container for all kinds of files. A
+special file is an interface for interacting with an i/o device.
+
+We will implement a \emph{basic sequential file system}, which we dub
+\fsname{}.
+%
+It will be basic in the sense that it models the bare minimum to pass
+as a file system, that is we will implement support for the four basic
+operations: file allocation, file deletion, file reading, and file
+writing.
+%
+The system will support sequential read and write operations. This
+means every file is read in order from its first character to its
+character, and every file is written to by appending the new content.
+%
+\fsname{} will only contain ordinary files, and as a result
+the file hierarchy will be entirely flat. Although, the system can
+readily be extended to be hierarchical, it comes at the expense of
 extra complexity, that blurs rather than illuminates the model.
+
+\paragraph{Directory, i-list, and data region}
 %
-An ordinary file is a sequence of characters, or a simply a string in
-our setting.
+The core of \fsname{} comprises three structures to manage interaction
+with files.
+\begin{enumerate}
+  \item The \emph{directory} is a collection of human-readable names for
+  files. In general, a file may have multiple names. Each name is
+  stored along with a pointer into the i-list.
+  \item The \emph{i-list} is a collection of i-nodes. Each i-node
+  contains the meta-data for a file along with a pointer into the data
+  region.
+  \item The \emph{data region} contains the actual file contents.
+\end{enumerate}
 %
-
-
-Figure~\ref{fig:unix-mappings} depicts some example mappings from the
-directory into the i-list, and from there into the data region.
-
-Mathematically, the mapping from i-list to the data region is a
-partial bijection.
-
+Figure~\ref{fig:unix-mappings} depicts an example with the three
+structures and a mapping between them.
+%
+The only file meta-data tracked by \fsname{} is the number of names
+for a file.
+%
+The three structures and their mappings can be implemented using
+association lists. Although, a better practical choice may be a
+functional map or functional array~\cite{Okasaki99}, association lists
+have the advantage of having a simple, straightforward implementation.
 %
 \[
   \ba{@{~}l@{\qquad}c@{~}l}
-    \dec{Directory} \defas \List~\Record{\String;\Int} &&%
-    \dec{DataRegion} \defas \List~\Record{\Int;\UFile} \smallskip\\
-    \dec{INode} \defas \Record{loc:\Int;lno:\Int}  &&%
-    \dec{IList} \defas \List~\Record{\Int;\dec{INode}}
+    \Directory \defas \List~\Record{\String;\Int} &&%
+    \DataRegion \defas \List~\Record{\Int;\UFile} \smallskip\\
+    \INode \defas \Record{lno:\Int;loc:\Int}  &&%
+    \IList \defas \List~\Record{\Int;\INode}
   \ea
 \]
 %
+Mathematically, we may think the type $\dec{Directory}$ as denoting a
+partial function $\C^\ast \pto \Z$, where $\C$ is a suitable
+alphabet. The function produces an index into the i-list.
+%
+Similarly, the type $\dec{IList}$ denotes a partial function
+$\Z \pto \Z \times \Z$, where the codomain is the denotation of
+$\dec{INode}$. The first component of the pair is the number of names
+linked to the i-node, and as such $\Z$ is really an overapproximation
+as an i-node cannot have a negative number of names. The second
+component is an index into the data region.
+%
+The denotation of the type $\dec{DataRegion}$ is another partial
+function $\Z \pto \C^\ast$.
+
+We define the type of the file system to be a record of the three
+association lists along with two counters for the next available index
+into the data region and i-list, respectively.
+%
 \[
-  \dec{FileSystem} \defas \Record{
+  \FileSystem \defas \Record{
     \ba[t]{@{}l}
-      dir:\dec{Directory},ilist:\dec{IList},dreg:\dec{DataRegion},\\
-      dnext:\Int,inext:\Int}
+      dir:\Directory;ilist:\IList;dreg:\DataRegion;\\
+      dnext:\Int;inext:\Int}
     \ea
 \]
+%
+We can then give an implementation of the initial state of the file
+system.
+%
+\[
+  \dec{fs}_0 \defas \Record{
+    \ba[t]{@{}l}
+      dir=[\Record{\strlit{stdout};0}];ilist=[\Record{0;\Record{lno=1;loc=0}}];dreg=[\Record{0;\strlit{}}];\\
+      dnext=1;inext=1}
+    \ea
+\]
+%
+Initially the file system contains a single, empty file with the name
+$\texttt{stdout}$.
 
+\paragraph{File reading and writing}
+%
+\[
+  \bl
+    \fileRW : (\UnitType \to \alpha \eff \{\URead : \Int \opto \Option\,\String;\UWrite : \Record{\Int;\String} \opto \Unit\}) \to \alpha \eff \{\State~\FileSystem\}\\
+    \fileRW~m \defas
+        \ba[t]{@{}l}
+           \Handle\;m\,\Unit\;\With\\
+             ~\ba{@{~}l@{~}c@{~}l}
+                 \Return\;res      &\mapsto& res\\
+                 \OpCase{\URead}{ino}{resume} &\mapsto&
+                   \bl
+                     \Let\;cs\revto \optionalise\,(\lambda\Unit.\fread\,\Record{ino;\Uget\,\Unit})\\
+                     \In\;resume\,cs
+                   \el\\
+                 \OpCase{\UWrite}{\Record{ino;cs}}{resume} &\mapsto&
+                     \ba[t]{@{}l}
+                        \faild~\Record{\Unit; \lambda \Unit.\\
+                          \quad\bl
+                            \Let\;fs \revto \fwrite\,\Record{ino;cs;\Uget~\Unit}\\
+                            \In\;\Uput~fs};\,resume\,\Unit
+                          \el
+                     \ea
+               \ea
+         \ea
+  \el
+\]
 
+\paragraph{File allocation}
+%
+\[
+  \bl
+    \fileAlloc : (\UnitType \to \alpha \eff \{\UCreate : \String \opto \Int\}) \to \alpha \eff \{\State~\FileSystem\}\\
+    \fileAlloc~m \defas
+        \ba[t]{@{}l}
+           \Handle\;m\,\Unit\;\With\\
+             ~\ba{@{~}l@{~}c@{~}l}
+                 \Return\;res      &\mapsto& res\\
+                 \OpCase{\UCreate}{fname}{resume} &\mapsto&
+                   \bl
+                     \Let\;ino \revto \faild\,\Record{-1; \lambda\Unit.\\
+                       \quad\bl
+                         \Let\;\Record{ino;fs} = \fcreate\,\Record{\,fname;\Uget\,\Unit}\\
+                         \In\;\Uput~fs;\,ino};\,resume\,ino
+                       \el
+                  \el
+               \ea
+         \ea
+  \el
+\]
 
-\begin{figure}[t]
-  \centering
-  \begin{tikzpicture}[node distance=4cm,auto,>=stealth']
-    \node[] (server) {\bfseries Bob (server)};
-    \node[left = of server] (client) {\bfseries Alice (client)};
-    \node[below of=server, node distance=5cm] (server_ground) {};
-    \node[below of=client, node distance=5cm] (client_ground) {};
-    %
-    \draw (client) -- (client_ground);
-    \draw (server) -- (server_ground);
-    \draw[->,thick] ($(client)!0.25!(client_ground)$) -- node[rotate=-6,above,scale=0.7,midway]{SYN 42} ($(server)!0.40!(server_ground)$);
-    \draw[<-,thick] ($(client)!0.56!(client_ground)$) -- node[rotate=6,above,scale=0.7,midway]{SYN 84;ACK 43} ($(server)!0.41!(server_ground)$);
-    \draw[->,thick] ($(client)!0.57!(client_ground)$) -- node[rotate=-6,above,scale=0.7,midway]{ACK 85} ($(server)!0.72!(server_ground)$);
-  \end{tikzpicture}
-  \caption{Sequence diagram for the TCP handshake example.}\label{fig:tcp-handshake}
-\end{figure}
+% \begin{figure}[t]
+%   \centering
+%   \begin{tikzpicture}[node distance=4cm,auto,>=stealth']
+%     \node[] (server) {\bfseries Bob (server)};
+%     \node[left = of server] (client) {\bfseries Alice (client)};
+%     \node[below of=server, node distance=5cm] (server_ground) {};
+%     \node[below of=client, node distance=5cm] (client_ground) {};
+%     %
+%     \draw (client) -- (client_ground);
+%     \draw (server) -- (server_ground);
+%     \draw[->,thick] ($(client)!0.25!(client_ground)$) -- node[rotate=-6,above,scale=0.7,midway]{SYN 42} ($(server)!0.40!(server_ground)$);
+%     \draw[<-,thick] ($(client)!0.56!(client_ground)$) -- node[rotate=6,above,scale=0.7,midway]{SYN 84;ACK 43} ($(server)!0.41!(server_ground)$);
+%     \draw[->,thick] ($(client)!0.57!(client_ground)$) -- node[rotate=-6,above,scale=0.7,midway]{ACK 85} ($(server)!0.72!(server_ground)$);
+%   \end{tikzpicture}
+%   \caption{Sequence diagram for the TCP handshake example.}\label{fig:tcp-handshake}
+% \end{figure}
 
-\paragraph{TCP threeway handshake}
+% \paragraph{TCP threeway handshake}
 
 % The existing literature already contain an extensive amount of
 % introductory examples of programming with (deep) effect
@@ -3661,6 +3774,68 @@ partial bijection.
 \subsection{Dynamic semantics}
 
 \subsection{\UNIX{}-style pipes}
+\label{sec:pipes}
+
+With shallow handlers we define a demand-driven Unix pipeline operator
+as follows.
+%
+\[
+    \ba{@{}c@{}}
+    \ba{@{}r@{~}c@{~}l@{}l@{~}c@{~}l@{}}
+    \Pipe   &:& \Record{\UnitType \to \alpha ! \{ \Yield : \beta \opto \UnitType; \varepsilon \}, &\UnitType \to \alpha!\{ \Await : \UnitType \opto \beta; \varepsilon \}}          &\to& \alpha!\{\varepsilon\} \\
+    \Copipe &:& \Record{\beta \to \alpha!\{ \Await : \UnitType \opto \beta; \varepsilon\},    &\UnitType \to \alpha!\{ \Yield : \beta \opto \UnitType; \varepsilon\}} &\to& \alpha!\{\varepsilon\} \\
+    \ea \medskip \\
+    \ba{@{}l@{\hspace{-0em}}@{\hspace{-2mm}}l@{}}
+    \ba[t]{@{}l@{}}
+    \Pipe\, \Record{p; c} \defas \\
+    \quad
+        \bl
+        \ShallowHandle\; c\,\Unit \;\With\; \\
+        \quad
+        \ba[m]{@{}l@{~}c@{~}l@{}}
+           \Return~x &\mapsto& x \\
+           \Await~\Unit~resume  &\mapsto& \Copipe\,\Record{resume; p} \\
+        \ea \\
+        \el
+    \ea &
+    \ba[t]{@{}l@{}}
+    \Copipe\, \Record{c; p} \defas \\
+        \quad
+        \bl
+        \ShallowHandle\; p\,\Unit \;\With\; \\
+        \quad
+        \ba[m]{@{}l@{~}c@{~}l@{}}
+          \Return~x &\mapsto& x \\
+          \Yield~s~resume &\mapsto& \Pipe\,\Record{resume; \lambda \Unit. c\, s} \\
+        \ea \\
+        \el \\
+   \ea \\
+   \ea \\
+   \ea
+\]
+%
+A pipe takes two suspended computations, a producer $p$ and a consumer
+$c$.
+%
+Each of the computations returns a value of type $\alpha$.
+%
+The producer can perform the $\Yield$ operation, which yields a value
+of type $\beta$ and the consumer can perform the $\Await$ operation,
+which correspondingly awaits a value of type $\beta$.
+%
+The shallow handler $\Pipe$ runs the consumer first. If the consumer
+terminates with a value, then the $\Return$ clause is executed and
+returns that value as is. If the consumer performs the $\Await$
+operation, then the $\Copipe$ handler is invoked with the resumption
+of the consumer ($resume$) and the producer ($p$) as arguments.
+
+The $\Copipe$ function runs the producer to get a value to feed to the
+waiting consumer.
+% The arguments are swapped and the consumer component
+% now expects a value.
+If the producer performs the $\Yield$ operation, then $\Pipe$ is
+invoked with the resumption of the producer along with a thunk that
+applies the consumer's resumption to the yielded value.
 
 \begin{example}[Inversion of control]
   foo
@@ -3678,7 +3853,7 @@ can simulate deep handlers up to congruence, and that deep handlers
 can simulate shallow handlers up to administrative reductions. The
 latter construction generalises the example of pipes implemented using
 deep handlers that we gave in
-Section~\ref{sec:shallow-handlers-tutorial}.
+Section~\ref{sec:pipes}.
 %
 
 \subsection{Deep as shallow}
