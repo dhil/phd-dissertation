@@ -3429,7 +3429,7 @@ $\texttt{stdout}$.
 %
 \[
   \bl
-    \fileRW : (\UnitType \to \alpha \eff \{\URead : \Int \opto \Option\,\String;\UWrite : \Record{\Int;\String} \opto \Unit\}) \to \alpha \eff \{\State~\FileSystem\}\\
+    \fileRW : (\UnitType \to \alpha \eff \{\URead : \Int \opto \Option\,\String;\UWrite : \Record{\Int;\String} \opto \UnitType\}) \to \alpha \eff \{\State~\FileSystem\}\\
     \fileRW~m \defas
         \ba[t]{@{}l}
            \Handle\;m\,\Unit\;\With\\
@@ -3437,7 +3437,8 @@ $\texttt{stdout}$.
                  \Return\;res      &\mapsto& res\\
                  \OpCase{\URead}{ino}{resume} &\mapsto&
                    \bl
-                     \Let\;cs\revto \optionalise\,(\lambda\Unit.\fread\,\Record{ino;\Uget\,\Unit})\\
+                   \Let\;cs\revto \faild\,\Record{\None;\lambda\Unit.\\
+                     \quad\Some\,(\fread\,\Record{ino;\Uget\,\Unit})}\\
                      \In\;resume\,cs
                    \el\\
                  \OpCase{\UWrite}{\Record{ino;cs}}{resume} &\mapsto&
@@ -3468,13 +3469,35 @@ $\texttt{stdout}$.
                      \Let\;ino \revto \faild\,\Record{-1; \lambda\Unit.\\
                        \quad\bl
                          \Let\;\Record{ino;fs} = \fcreate\,\Record{\,fname;\Uget\,\Unit}\\
-                         \In\;\Uput~fs;\,ino};\,resume\,ino
-                       \el
+                         \In\;\Uput~fs;\,ino}
+                       \el\\
+                     \In\; resume\,ino
                   \el
                \ea
          \ea
   \el
 \]
+
+\paragraph{Stream redirection}
+%
+\[
+  \bl
+    \redirect : \Record{\UnitType \to \alpha \eff \{\Write : \Record{\Int;\String} \opto \UnitType\}; \String} \to \alpha \eff \{\UCreate : \String \opto \Int;\Write : \Record{\Int;\String}\}\\
+    m~\redirect~fname \defas
+        \ba[t]{@{}l}
+          \Let\;ino \revto \Ucreate~fname\;\In\\
+          \Handle\;m\,\Unit\;\With\\
+             ~\ba{@{~}l@{~}c@{~}l}
+                 \Return\;res      &\mapsto& res\\
+                 \OpCase{\Write}{\Record{\_;cs}}{resume} &\mapsto& resume\,(\Do\;\Write\,\Record{ino;cs})
+               \ea
+         \ea
+  \el
+\]
+%
+
+\paragraph{File linking and unlinking}
+\dhil{Maybe axe\dots}
 
 % \begin{figure}[t]
 %   \centering

@@ -545,15 +545,13 @@ fun init(fsys, main) {
 ### Stream redirection
 ###
 sig >> : (Comp(a, { Create: (String) -> FileDescr
-                  , Open: (String) {}-> Option (FileDescr)
                   , Write:(FileDescr, String) -> () |e}), String)
              { Create:(String) -> FileDescr
-             , Open:(String) -> Option (FileDescr)
-             , Write:(FileDescr, String) -> ()      |e}~> ()
+             , Write:(FileDescr, String) -> ()      |e}~> a
 op f >> fname {
   var fd = create(fname);
   handle(f()) {
-    case Return(_) -> ()
+    case Return(x) -> x
     case Write(_, cs, resume) ->
       resume(write(fd, cs))
   }
