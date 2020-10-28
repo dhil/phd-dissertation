@@ -500,7 +500,7 @@ handlers.
   Moggi's work gives a precise characterisation of what's \emph{not}
   an effect}
 
-\chapter{Control operators}
+\chapter{Controlling continuations}
 \label{ch:continuations}
 
 Undelimited control: Landin's J~\cite{Landin98}, Reynolds'
@@ -522,7 +522,24 @@ F~\cite{FelleisenFDM87,Felleisen88}, control/prompt~\cite{SitaramF90},
 shift/reset~\cite{DanvyF89,DanvyF90}, fcontrol~\cite{Sitaram93},
 catchcont~\cite{LongleyW08}, effect handlers~\cite{PlotkinP09}.
 
-Continuation marks?
+
+\section{Notions of continuations}
+
+Escape continuations, undelimited continuations, delimited
+continuations, composable continuations.
+
+\section{First-Class control operators}
+Describe how effect handlers fit amongst shift/reset, prompt/control,
+callcc, J, catchcont, etc.
+
+\subsection{Escape operators}
+
+\subsection{Undelimited operators}
+
+\subsection{Delimited operators}
+
+\section{Second-Class control operators}
+Coroutines, async/await, generators/iterators, amb.
 
 Backtracking: Amb~\cite{McCarthy63}.
 
@@ -531,12 +548,8 @@ Coroutines~\cite{DahlDH72} as introduced by Simula
 Conway, who used coroutines as a code idiom in assembly
 programs~\cite{Knuth97}.
 
-\section{Zoo of control operators}
-Describe how effect handlers fit amongst shift/reset, prompt/control,
-callcc, J, catchcont, etc.
-
-\section{Ad-hoc implementation strategies}
-
+\section{Implementation strategies}
+Continuation marks. CPS. Stack inspection.
 
 \part{Design}
 
@@ -1979,12 +1992,12 @@ without the recursion operator. We elect to do so to understand
 exactly which primitive effects deep handlers bring into our resulting
 calculus.
 %
-Deep handlers are defined as folds (catamorphisms) over computation
-trees, meaning they provide a uniform semantics to the handled
-operations of a given computation. In contrast, shallow handlers are
-defined as case-splits over computation trees, and thus, allow a
-nonuniform semantics to be given to operations. We will discuss this
-last point in greater detail in
+Deep handlers~\cite{PlotkinP09,Pretnar10} are defined as folds
+(catamorphisms) over computation trees, meaning they provide a uniform
+semantics to the handled operations of a given computation. In
+contrast, shallow handlers are defined as case-splits over computation
+trees, and thus, allow a nonuniform semantics to be given to
+operations. We will discuss this last point in greater detail in
 Section~\ref{sec:unary-shallow-handlers}.
 
 
@@ -2905,6 +2918,8 @@ process may perform.
      \ea
 \]
 %
+\dhil{Cite resumption monad}
+%
 The $\Done$-tag simply carries the return value of type $\alpha$. The
 $\Suspended$-tag carries a suspended computation, which returns
 another instance of $\Pstate$, and may or may not perform any further
@@ -3364,6 +3379,8 @@ with files.
   region.
   \item The \emph{data region} contains the actual file contents.
 \end{enumerate}
+%
+\dhil{Motivate i-nodes, etc. Real UNIX file system use those structures. Admit simplification: no file handles; no resource leakage}
 %
 Figure~\ref{fig:unix-mappings} depicts an example with the three
 structures and a mapping between them.
@@ -4488,6 +4505,19 @@ into the return case body $N$ for their respective binders.
 % \section{Syntax and Static Semantics}
 % \section{Dynamic Semantics}
 % \section{Unifying deep and shallow handlers}
+
+\section{Related work}
+\label{sec:unix-related-work}
+
+\subsection{Interleaving computation}
+
+\paragraph{The resumption monad} \citet{Milner75},
+\citet{Plotkin76}, \citet{Moggi90}, \citet{Papaspyrou01}, \citet{Harrison06}, \citet{AtkeyJ15}
+
+\paragraph{Continuation-based interleaving} \citet{HaynesF84} \citet{GanzFW99}
+
+\subsection{Effect-driven concurrency}
+\citet{BauerP15}, \citet{DolanWSYM15}, \citet{Hillerstrom16}, \citet{DolanEHMSW17}, \citet{Convent17}, \citet{Poulson20}
 
 \part{Implementation}
 
