@@ -488,9 +488,9 @@ handlers.
 \section{Typed programming languages}
 \label{sec:pls}
 %
-\dhil{Definition of (typed) programming language, conservative extension, macro-expressiveness}
+\dhil{Definition of (typed) programming language, conservative extension, macro-expressiveness~\cite{Felleisen90,Felleisen91}}
 
-\chapter{The state of effectful programming}
+\chapter{State of effectful programming}
 \label{ch:related-work}
 
 \section{Type and effect systems}
@@ -502,13 +502,156 @@ handlers.
 
 \chapter{Controlling continuations}
 \label{ch:continuations}
+% The significance of continuations in the programming languages
+% literature is inescapable as continuations have found widespread use .
+%
 
-Undelimited control: Landin's J~\cite{Landin98}, Reynolds'
-escape~\cite{Reynolds98a}, Scheme75's catch~\cite{SussmanS75} ---
-which was based the less expressive MacLisp catch~\cite{Moon74},
-callcc is a procedural variation of catch. It was invented in
-1982~\cite{AbelsonHAKBOBPCRFRHSHW85}.
+A continuation is an abstract data structure that captures the
+remainder of the computation from some given point in the computation.
+%
+The exact nature of the data structure and the precise point at which
+the remainder of the computation is captured depends largely on the
+exact notion of continuation under consideration.
+%
+It can be difficult to navigate the existing literature on
+continuations as sometimes the terminologies for different notions of
+continuations are overloaded or even conflated.
+%
+As there exist several notions of continuations, there exist several
+mechanisms for programmatic manipulation of continuations. These
+mechanisms are known as control operators.
+%
+A substantial amount of existing literature has been devoted to
+understand how to program with individual control operators, and to a
+lesser extent how the various operators compare.
 
+The purpose of this chapter is to provide a contemporary and
+unambiguous characterisation of the notions of continuations in
+literature. This characterisation is used to classify and discuss a
+wide range of control operators from the literature.
+
+% Undelimited control: Landin's J~\cite{Landin98}, Reynolds'
+% escape~\cite{Reynolds98a}, Scheme75's catch~\cite{SussmanS75} ---
+% which was based the less expressive MacLisp catch~\cite{Moon74},
+% callcc is a procedural variation of catch. It was invented in
+% 1982~\cite{AbelsonHAKBOBPCRFRHSHW85}.
+
+\section{Notions of continuations}
+
+% \citeauthor{Reynolds93} has written a historical account of the
+% various early discoveries of continuations~\cite{Reynolds93}.
+
+In the literature the term ``continuation'' is often accompanied by a
+qualifier such as full~\cite{JohnsonD88}, partial~\cite{JohnsonD88},
+abortive, escape, undelimited, delimited, composable, or functional.
+%
+Some of these qualifiers are synonyms, and hence redundant, e.g. the
+terms ``full'' and ``undelimited'' refer to the same notion of
+continuation, likewise the terms ``partial'' and ``delimited'' mean
+the same thing, the notions of ``abortive'' and ``escape'' are
+interchangeable too, and ``composable'' and ``functional'' also refer
+to the same notion.
+%
+
+Thus the peloton of distinct continuation notions can be pruned to
+``undelimited'', ``delimited'', ``abortive'', and ``composable''.
+%
+The first two notions concern the introduction of continuations, that
+is how continuations are captured. Dually, the latter two notions
+concern the elimination of continuations, that is how continuations
+interact with the enclosing context.
+%
+Consequently, it is not meaningful to contrast, say, ``undelimited''
+with ``abortive'' continuations, because they are orthogonal notions.
+%
+A common confusion in the literature is to conflate ``undelimited''
+continuations with ``abortive'' continuations.
+% Similarly, often times ``composable'' is taken to imply ``delimited''.
+However, it is perfectly possible to conceive of a continuation that
+is undelimited but not abortive.
+%
+% An educated guess as to why this confusion occurs in the literature
+% may be that it is due to the introduction
+
+To make each notion of continuation concrete I will present its
+characteristic reduction rule. To facilitate this presentation I will
+make use of an abstract control operator $\CC$ to perform an abstract
+capture of continuations, i.e. informally $C\,k.M$ is to be understood
+as a syntactic construct that captures the continuation and reifies it
+as a function which it binds to $k$ in the computation $M$. The
+precise extent of the capture will be given by the characteristic
+reduction rule. I will also make use of an abstract control delimiter
+$\Delim{-}$. The term $\Delim{M}$ encloses the computation $M$ in a
+syntactically identifiable marker. For the intent and purposes of this
+presentation enclosing a value in a delimiter is an idempotent
+operation, i.e.  $\Delim{V} \reducesto V$. I will write $\EC$ to
+denote an evaluation context~\cite{Felleisen87}.
+
+\paragraph{Undelimited continuation}
+%
+\[
+  \EC[\CC\,k.M] \reducesto \EC[M[(\lambda x.\EC[x])/k]]
+\]
+%
+\begin{derivation}
+  & 3 * (\CC\,k. 2 + k\,(k\,1))\\
+  \reducesto& \reason{captures the context $k = 3 * [~]$}\\
+  & 3 * (2 + k\,(k~1))[(\lambda x. 3 * x)/k]\\
+  =& \reason{substitution}\\
+  & 3 * (2 + (\lambda x. 3 * x)((\lambda x. 3 * x)\,1))\\
+  \reducesto& \reason{$\beta$-reduction}\\
+  & 3 * (2 + (\lambda x. 3 * x)(3 * 1))\\
+  \reducesto& \reason{$\beta$-reduction}\\
+  & 3 * (2 + (\lambda x. 3 * x)\,3)\\
+  \reducesto^4& \reason{$\beta$-reductions}\\
+  & 33
+\end{derivation}
+
+\paragraph{Delimited continuation}
+%
+\[
+  \Delim{\EC[\CC\,k.M]} \reducesto \Delim{M[(\lambda x.\Delim{\EC[x]})/k]}
+\]
+%
+\[
+  \Delim{\EC[\CC\,k.M]} \reducesto M[(\lambda x.\Delim{\EC[x]})/k]
+\]
+
+\paragraph{Abortive continuation} An abortive continuation discards the current context.Like delimited continuations, an
+abortive continuation is accompanied by a delimiter. The
+characteristic property of an abortive continuation is that it
+discards its invocation context up to its enclosing delimiter.
+%
+\[
+  \EC[k\,V] \reducesto V, \quad \text{where } k = (\lambda x. \keyw{abort}\;x). 
+\]
+%
+Consequently, composing an abortive continuation with itself is
+meaningless, e.g. in $k (k\,V)$ the innermost application erases the
+outermost application.
+
+\paragraph{Composable continuation} The defining characteristic of a
+composable continuation is that it composes the captured context with
+current context, i.e.
+%
+\[
+  \EC[k\,V] \reducesto \EC[\EC'[V]], \quad \text{where } k = (\lambda x. \EC'[x])
+\]
+
+Escape continuations, undelimited continuations, delimited
+continuations, composable continuations.
+
+Downward and upward use of continuations.
+
+\section{First-Class control operators}
+Describe how effect handlers fit amongst shift/reset, prompt/control,
+callcc, J, catchcont, etc.
+
+\subsection{Abortive operators}
+
+\subsection{Undelimited operators}
+
+\subsection{Delimited operators}
 Delimited control: Control delimiters form the basis for delimited
 control. \citeauthor{Felleisen88} introduced control delimiters in
 1988, although allusions to control delimiters were made a year
@@ -523,21 +666,6 @@ shift/reset~\cite{DanvyF89,DanvyF90}, splitter~\cite{QueinnecS91},
 fcontrol~\cite{Sitaram93}, catchcont~\cite{LongleyW08}, effect
 handlers~\cite{PlotkinP09}.
 
-
-\section{Notions of continuations}
-
-Escape continuations, undelimited continuations, delimited
-continuations, composable continuations.
-
-\section{First-Class control operators}
-Describe how effect handlers fit amongst shift/reset, prompt/control,
-callcc, J, catchcont, etc.
-
-\subsection{Escape operators}
-
-\subsection{Undelimited operators}
-
-\subsection{Delimited operators}
 Comparison of various delimited control
 operators~\cite{Shan04}. Simulation of delimited control using
 undelimited control~\cite{Filinski94}
@@ -550,7 +678,8 @@ Backtracking: Amb~\cite{McCarthy63}.
 Coroutines~\cite{DahlDH72} as introduced by Simula
 67~\cite{DahlMN68}. The notion of coroutines was coined by Melvin
 Conway, who used coroutines as a code idiom in assembly
-programs~\cite{Knuth97}.
+programs~\cite{Knuth97}. Canonical reference for implementing
+coroutines with call/cc~\cite{HaynesFW86}.
 
 \section{Implementation strategies}
 Continuation marks. CPS. Stack inspection.
@@ -7202,16 +7331,16 @@ If $\typc{}{M : A}{E}$ and $M \reducesto^+ N \not\reducesto$, then $M
 
 
 \part{Expressiveness}
-\chapter{Computability, complexity, and expressivness}
-\label{ch:expressiveness}
-\section{Notions of expressiveness}
-Felleisen's macro-expressiveness, Longley's type-respecting
-expressiveness, Kammar's typability-preserving expressiveness.
+% \chapter{Computability, complexity, and expressivness}
+% \label{ch:expressiveness}
+% \section{Notions of expressiveness}
+% Felleisen's macro-expressiveness, Longley's type-respecting
+% expressiveness, Kammar's typability-preserving expressiveness.
 
-\section{Interdefinability of deep and shallow Handlers}
-\section{Encoding parameterised handlers}
+% \section{Interdefinability of deep and shallow Handlers}
+% \section{Encoding parameterised handlers}
 
-\chapter{The asymptotic power of control}
+\chapter{Asymptotic speedup with first-class control}
 \label{ch:handlers-efficiency}
 Describe the methodology\dots
 \section{Generic search}
@@ -7229,7 +7358,7 @@ Describe the methodology\dots
 \subsection{No shortcuts}
 \subsection{No sharing}
 
-\chapter{Robustness of the asymptotic power of control}
+\chapter{Speeding up programs in ML-like programming languages}
 \section{Mutable state}
 \section{Exception handling}
 \section{Effect system}
