@@ -647,10 +647,65 @@ Downward and upward use of continuations.
 Describe how effect handlers fit amongst shift/reset, prompt/control,
 callcc, J, catchcont, etc.
 
+\begin{table}
+  \centering
+  \begin{tabular}{| l | l | l | l |}
+    \hline
+    \multicolumn{1}{| l |}{\textbf{Name}} & \multicolumn{1}{l |}{\textbf{Extent}} & \multicolumn{1}{l |}{\textbf{Behaviour}} & \multicolumn{1}{l |}{\textbf{Canonical reference}}\\
+    \hline
+    call/cc  & Undelimited & Abortive & \citet{AbelsonHAKBOBPCRFRHSHW85} \\
+    \hline
+    call/cc* & Undelimited & Composable & \citet{Flatt20} \\
+    \hline
+    catch               & Delimited & Abortive & \citet{SussmanS75} \\
+    \hline
+    catchcont           & Delimited & Composable & \citet{Longley09}\\
+    \hline
+    cupto               & Delimited & Composable & \citet{GunterRR95}\\
+    \hline
+    control/prompt      & Delimited & Composable & \citet{Felleisen88}\\
+    \hline
+    effect handlers     & Delimited & Composable & \citet{PlotkinP09,PlotkinP13} \\
+    \hline
+    escape              & Delimited & Abortive & \citet{Reynolds98a}\\
+    \hline
+    fcontrol            & Delimited & Composable & \citet{Sitaram93} \\
+    \hline
+    shift/reset         & Delimited & Composable & \citet{DanvyF90}\\
+    \hline
+    spawn               & Delimited & Composable & \citet{HiebDA94}\\
+    \hline
+    splitter            & Delimited & Abortive, composable & \citet{QueinnecS91}\\
+    \hline
+  \end{tabular}
+  \caption{Classification of first-class sequential control operators.}\label{tbl:classify-ctrl}
+\end{table}
+
 \subsection{Abortive operators}
 
+\paragraph{Sussman and Steele's catch}
+
+\paragraph{Reynolds' escape}
+
 \subsection{Undelimited operators}
+
+\paragraph{Landin's J operator}
+
+\paragraph{Call-with-current-continuation}
+%
+\begin{reductions}
+  \slab{Capture} &  \EC[\Callcc~k.M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
+  \slab{Invoke}  &  \EC[\Throw~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
+\end{reductions}
+%
+
+\paragraph{Call-with-composable-continuation}
 call-with-composable-continuation (MzScheme 360, November 2006).
+%
+\begin{reductions}
+  \slab{Capture} &  \EC[\Callcc^\ast~k.M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
+  \slab{Invoke}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC[\EC'[V]]
+\end{reductions}
 
 \subsection{Delimited operators}
 Delimited control: Control delimiters form the basis for delimited
@@ -670,6 +725,68 @@ handlers~\cite{PlotkinP09}.
 Comparison of various delimited control
 operators~\cite{Shan04}. Simulation of delimited control using
 undelimited control~\cite{Filinski94}
+
+%\paragraph{Felleisen's F and prompt}
+
+\paragraph{Control/prompt}
+
+\paragraph{Cupto}
+
+\paragraph{Effect handlers}
+%
+\begin{reductions}
+  \slab{Value}    & \Handle\; V \;\With\;H   &\reducesto& M[V/x], \text{ where } \{\Return\;x \mapsto M\} \in H\\
+  \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\cont_{\Record{\EC;H}}/k],\\
+  \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
+  \slab{Invoke}   & \Continue~\cont_{\Record{\EC;H}}~V &\reducesto& \Handle\;\EC[V]\;\With\;H\\
+\end{reductions}
+%
+\begin{reductions}
+  \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\cont_{\EC}/k],\\
+  \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
+  \slab{Invoke}   & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]\\
+\end{reductions}
+%
+
+\paragraph{Sitaram's fcontrol}
+
+\paragraph{Longley's catch-with-continue}
+%
+\begin{mathpar}
+  \inferrule*
+    {\typ{\Gamma, f : A \to B}{M : C \times D} \\ \Ground\;C}
+    {\typ{\Gamma}{\Catchcont\;f.~M : C \times ((A \to B) \to D) + (A \times (B \to (A \to B) \to C \times D))}}
+\end{mathpar}
+%
+\begin{reductions}
+  \slab{Value} &
+     \Catchcont \; f . \Record{V;W} &\reducesto& \Inl\; \Record{V;\lambda\,f. W}\\
+  \slab{Capture} &
+     \Catchcont \; f .~\EC[\,f\,V]   &\reducesto& \Inr\; \Record{V; \cont_{\Record{\EC;f}}}\\
+  \slab{Invoke} & \Continue~\cont_{\Record{\EC;\,f}}~x &\reducesto& \lambda\, f.\EC[x]
+\end{reductions}
+
+\paragraph{Shift/reset}
+%
+\begin{reductions}
+  \slab{Value}    & \reset{V}               &\reducesto& V\\
+  \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& \reset{M[\cont_{\reset{\EC}}/k]}\\
+  % \slab{Invoke}   & \reset{\EC[\Continue~\cont_{\reset{\EC'}}~V]} &\reducesto& \reset{\EC[\reset{\EC'[V]}]}\\
+  \slab{Invoke}   & \Continue~\cont_{\reset{\EC}}~V &\reducesto& \reset{\EC[V]}\\
+\end{reductions}
+%
+
+%
+\begin{reductions}
+  % \slab{Value}    & \reset{V}               &\reducesto& V\\
+  \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& M[\cont_{\reset{\EC}}/k]\\
+  % \slab{Invoke}   & \Continue~\cont_{\reset{\EC}}~V &\reducesto& \reset{\EC[V]}\\
+\end{reductions}
+%
+
+\paragraph{Splitter}
+
+\paragraph{Spawn/controller}
 
 \section{Second-Class control operators}
 Coroutines, async/await, generators/iterators, amb.
