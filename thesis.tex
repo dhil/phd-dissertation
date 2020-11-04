@@ -671,6 +671,8 @@ callcc, J, catchcont, etc.
     \hline
     fcontrol            & Delimited & Composable & \citet{Sitaram93} \\
     \hline
+    J                   & Undelimited & Abortive & \citet{Landin98}\\
+    \hline
     shift/reset         & Delimited & Composable & \citet{DanvyF90}\\
     \hline
     spawn               & Delimited & Composable & \citet{HiebDA94}\\
@@ -695,7 +697,7 @@ callcc, J, catchcont, etc.
 %
 \begin{reductions}
   \slab{Capture} &  \EC[\Callcc~k.M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
-  \slab{Invoke}  &  \EC[\Throw~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
+  \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
 \end{reductions}
 %
 
@@ -704,7 +706,8 @@ call-with-composable-continuation (MzScheme 360, November 2006).
 %
 \begin{reductions}
   \slab{Capture} &  \EC[\Callcc^\ast~k.M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
-  \slab{Invoke}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC[\EC'[V]]
+  % \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC[\EC'[V]]
+  \slab{Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
 \end{reductions}
 
 \subsection{Delimited operators}
@@ -729,8 +732,19 @@ undelimited control~\cite{Filinski94}
 %\paragraph{Felleisen's F and prompt}
 
 \paragraph{Control/prompt}
+%
+\begin{reductions}
+  \slab{Value} &
+     \Prompt~V &\reducesto& V\\
+  \slab{Capture} &
+     \Prompt~\EC[\Control~k.M] &\reducesto& \Prompt~M[\cont_{\EC}/k], \text{ where $\EC$ contains no \Prompt}\\
+  \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
+\end{reductions}
+
 
 \paragraph{Cupto}
+%
+
 
 \paragraph{Effect handlers}
 %
@@ -738,41 +752,50 @@ undelimited control~\cite{Filinski94}
   \slab{Value}    & \Handle\; V \;\With\;H   &\reducesto& M[V/x], \text{ where } \{\Return\;x \mapsto M\} \in H\\
   \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\cont_{\Record{\EC;H}}/k],\\
   \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
-  \slab{Invoke}   & \Continue~\cont_{\Record{\EC;H}}~V &\reducesto& \Handle\;\EC[V]\;\With\;H\\
+  \slab{Resume}   & \Continue~\cont_{\Record{\EC;H}}~V &\reducesto& \Handle\;\EC[V]\;\With\;H\\
 \end{reductions}
 %
 \begin{reductions}
   \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\cont_{\EC}/k],\\
   \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
-  \slab{Invoke}   & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]\\
+  \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]\\
 \end{reductions}
 %
 
 \paragraph{Sitaram's fcontrol}
+%
+\begin{reductions}
+  \slab{Value} &
+     \fprompt~V.W &\reducesto& W\\
+  \slab{Capture} &
+     \fprompt~V.\EC[\fcontrol~W] &\reducesto& V~W~\cont_{\EC}, \text{ where $\EC$ contains no \fprompt}\\
+  \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
+\end{reductions}
+%
 
 \paragraph{Longley's catch-with-continue}
 %
 \begin{mathpar}
   \inferrule*
     {\typ{\Gamma, f : A \to B}{M : C \times D} \\ \Ground\;C}
-    {\typ{\Gamma}{\Catchcont\;f.~M : C \times ((A \to B) \to D) + (A \times (B \to (A \to B) \to C \times D))}}
+    {\typ{\Gamma}{\Catchcont\;f.M : C \times ((A \to B) \to D) + (A \times (B \to (A \to B) \to C \times D))}}
 \end{mathpar}
 %
 \begin{reductions}
   \slab{Value} &
      \Catchcont \; f . \Record{V;W} &\reducesto& \Inl\; \Record{V;\lambda\,f. W}\\
   \slab{Capture} &
-     \Catchcont \; f .~\EC[\,f\,V]   &\reducesto& \Inr\; \Record{V; \cont_{\Record{\EC;f}}}\\
-  \slab{Invoke} & \Continue~\cont_{\Record{\EC;\,f}}~x &\reducesto& \lambda\, f.\EC[x]
+     \Catchcont \; f .\EC[\,f\,V]   &\reducesto& \Inr\; \Record{V; \cont_{\Record{\EC;\,f}}}\\
+  \slab{Resume} & \Continue~\cont_{\Record{\EC;\,f}}~V &\reducesto& \lambda f.\EC[V]
 \end{reductions}
 
 \paragraph{Shift/reset}
 %
 \begin{reductions}
   \slab{Value}    & \reset{V}               &\reducesto& V\\
-  \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& \reset{M[\cont_{\reset{\EC}}/k]}\\
-  % \slab{Invoke}   & \reset{\EC[\Continue~\cont_{\reset{\EC'}}~V]} &\reducesto& \reset{\EC[\reset{\EC'[V]}]}\\
-  \slab{Invoke}   & \Continue~\cont_{\reset{\EC}}~V &\reducesto& \reset{\EC[V]}\\
+  \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& \reset{M[\cont_{\reset{\EC}}/k]}, \text { where $\EC$ contains no $\reset{-}$}\\
+  % \slab{Resume}   & \reset{\EC[\Continue~\cont_{\reset{\EC'}}~V]} &\reducesto& \reset{\EC[\reset{\EC'[V]}]}\\
+  \slab{Resume}   & \Continue~\cont_{\reset{\EC}}~V &\reducesto& \reset{\EC[V]}\\
 \end{reductions}
 %
 
@@ -780,11 +803,19 @@ undelimited control~\cite{Filinski94}
 \begin{reductions}
   % \slab{Value}    & \reset{V}               &\reducesto& V\\
   \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& M[\cont_{\reset{\EC}}/k]\\
-  % \slab{Invoke}   & \Continue~\cont_{\reset{\EC}}~V &\reducesto& \reset{\EC[V]}\\
+  % \slab{Resume}   & \Continue~\cont_{\reset{\EC}}~V &\reducesto& \reset{\EC[V]}\\
 \end{reductions}
 %
 
 \paragraph{Splitter}
+\begin{reductions}
+  \slab{Value} &
+     \splitter~f.V &\reducesto& V\\
+  \slab{Capture} &
+     \splitter~f.\EC[\fcontrol~V]~f &\reducesto& f~V~\cont_{\EC}, \text{ where $\EC$ contains no \fprompt}\\
+  \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
+\end{reductions}
+
 
 \paragraph{Spawn/controller}
 
