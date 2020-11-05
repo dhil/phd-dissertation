@@ -62,6 +62,12 @@
 \hfsetfillcolor{gray!40}
 \hfsetbordercolor{gray!40}
 
+% Multi-row configuration
+\usepackage{makecell,multirow}
+\newcommand{\tablistcommand}{             % eliminates vertical space before and after itemize
+                             \leavevmode\par\vspace{-\baselineskip}}
+\newcolumntype{P}[1]{p{#1-2\tabcolsep-\arrayrulewidth}}
+
 % Cancelling
 \newif\ifCancelX
 \tikzset{X/.code={\CancelXtrue}}
@@ -643,7 +649,7 @@ continuations, composable continuations.
 
 Downward and upward use of continuations.
 
-\section{First-Class control operators}
+\section{First-class control operators}
 Describe how effect handlers fit amongst shift/reset, prompt/control,
 callcc, J, catchcont, etc.
 
@@ -657,7 +663,7 @@ callcc, J, catchcont, etc.
     \hline
     call/cc* & Undelimited & Composable & \citet{Flatt20} \\
     \hline
-    catch               & Delimited & Abortive & \citet{SussmanS75} \\
+    catch               & Undelimited & Abortive & \citet{SussmanS75} \\
     \hline
     catchcont           & Delimited & Composable & \citet{Longley09}\\
     \hline
@@ -667,7 +673,7 @@ callcc, J, catchcont, etc.
     \hline
     effect handlers     & Delimited & Composable & \citet{PlotkinP09,PlotkinP13} \\
     \hline
-    escape              & Delimited & Abortive & \citet{Reynolds98a}\\
+    escape              & Undelimited & Abortive & \citet{Reynolds98a}\\
     \hline
     fcontrol            & Delimited & Composable & \citet{Sitaram93} \\
     \hline
@@ -683,20 +689,37 @@ callcc, J, catchcont, etc.
   \caption{Classification of first-class sequential control operators.}\label{tbl:classify-ctrl}
 \end{table}
 
-\subsection{Abortive operators}
-
-\paragraph{Sussman and Steele's catch}
-
-\paragraph{Reynolds' escape}
-
 \subsection{Undelimited operators}
 
 \paragraph{Landin's J operator}
+%
+\begin{reductions}
+  \slab{Marking}   & \EC[(\lambda x.M)~V] &\reducesto& \EC[\lambda^{\EC}.M[V/x]], \text{where $\EC$ contains no other $\lambda$}\\
+  \slab{Return}   & \lambda^{\EC}.V   &\reducesto& V\\
+  \slab{Capture}  & \lambda^{\EC}.\EC'[\J\,x.M] &\reducesto& \EC'[\cont_{\Record{\EC;x.M}}/k]\\
+  \slab{Resume}   & \EC[\Continue~\cont_{\Record{\EC';x.M}}~V]  &\reducesto& \EC'[M[V/x]]
+\end{reductions}
+%
+
+\paragraph{Sussman and Steele's catch}
+%
+\begin{reductions}
+  \slab{Capture} &  \EC[\Catch~k.M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
+  \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
+\end{reductions}
+%
+\paragraph{Reynolds' escape}
+%
+\begin{reductions}
+  \slab{Capture} &  \EC[\Escape\;k\;\In\;M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
+  \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
+\end{reductions}
+%
 
 \paragraph{Call-with-current-continuation}
 %
 \begin{reductions}
-  \slab{Capture} &  \EC[\Callcc~k.M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
+  \slab{Capture} &  \EC[\Callcc~V] &\reducesto& \EC[V~\cont_{\EC}]\\
   \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
 \end{reductions}
 %
@@ -705,7 +728,7 @@ callcc, J, catchcont, etc.
 call-with-composable-continuation (MzScheme 360, November 2006).
 %
 \begin{reductions}
-  \slab{Capture} &  \EC[\Callcc^\ast~k.M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
+  \slab{Capture} &  \EC[\Callcc^\ast~V] &\reducesto& \EC[V~\cont_{\EC}]\\
   % \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC[\EC'[V]]
   \slab{Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
 \end{reductions}
@@ -809,17 +832,16 @@ undelimited control~\cite{Filinski94}
 
 \paragraph{Splitter}
 \begin{reductions}
-  \slab{Value} &
-     \splitter~f.V &\reducesto& V\\
+  \slab{Throw}   & \splitter~f~g.\EC[\,f~V] &\reducesto& V~\Unit\\
   \slab{Capture} &
-     \splitter~f.\EC[\fcontrol~V]~f &\reducesto& f~V~\cont_{\EC}, \text{ where $\EC$ contains no \fprompt}\\
-  \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
+     \splitter~f~g.\EC[g~V] &\reducesto& V~\cont_{\EC} \\
+  \slab{Resume}  & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
 
 
 \paragraph{Spawn/controller}
 
-\section{Second-Class control operators}
+\section{Second-class control operators}
 Coroutines, async/await, generators/iterators, amb.
 
 Backtracking: Amb~\cite{McCarthy63}.
@@ -830,8 +852,42 @@ Conway, who used coroutines as a code idiom in assembly
 programs~\cite{Knuth97}. Canonical reference for implementing
 coroutines with call/cc~\cite{HaynesFW86}.
 
-\section{Implementation strategies}
-Continuation marks. CPS. Stack inspection.
+\section{Implementation strategies for first-class control}
+Table~\ref{tbl:ctrl-operators-impls} lists some programming languages
+with support for first-class control operators and their
+implementation strategies.
+
+\begin{table}
+  \centering
+  \begin{tabular}{| l | >{\raggedright}p{4.5cm} | l |}
+    \hline
+    \multicolumn{1}{|c|}{\textbf{Language}} & \multicolumn{1}{c |}{\textbf{Control operators}} & \multicolumn{1}{c|}{\textbf{Implementation strategies}}\\
+    \hline
+    Links    & Effect handlers, escape & CEK machine, CPS\\
+    \hline
+    MLton    & callcc & Stack copying\\
+    \hline
+    Multicore OCaml  & Effect handlers & Segmented stacks\\
+    \hline
+    Racket & callcc, callcc$^{\ast}$, fcontrol, prompt/control, shift/reset, splitter, spawn & Continuation marks\\
+    \hline
+    Rhino JavaScript      & A variation of J  & Interpreter \\
+    \hline
+    SML/NJ                & callcc       & CPS\\
+    \hline
+  \end{tabular}
+  \caption{Some languages and  their implementation strategies for first-class control.}\label{tbl:ctrl-operators-impls}
+\end{table}
+
+\paragraph{Continuation marks}
+
+\paragraph{Continuation passing style}
+
+\paragraph{Interpreter}
+
+\paragraph{Segmented stacks}
+
+\paragraph{Stack copying}
 
 \part{Design}
 
@@ -4796,7 +4852,8 @@ into the return case body $N$ for their respective binders.
 \paragraph{The resumption monad} \citet{Milner75},
 \citet{Plotkin76}, \citet{Moggi90}, \citet{Papaspyrou01}, \citet{Harrison06}, \citet{AtkeyJ15}
 
-\paragraph{Continuation-based interleaving} \citet{Wand80} \citet{HaynesF84} \citet{GanzFW99} \citet{HiebD90}
+\paragraph{Continuation-based interleaving}
+First implementation of `threads' is due to \citet{Burstall69}. \citet{Wand80} \citet{HaynesF84} \citet{GanzFW99} \citet{HiebD90}
 
 \subsection{Effect-driven concurrency}
 \citet{BauerP15}, \citet{DolanWSYM15}, \citet{Hillerstrom16}, \citet{DolanEHMSW17}, \citet{Convent17}, \citet{Poulson20}
