@@ -657,7 +657,7 @@ callcc, J, catchcont, etc.
   \centering
   \begin{tabular}{| l | l | l | l |}
     \hline
-    \multicolumn{1}{| l |}{\textbf{Name}} & \multicolumn{1}{l |}{\textbf{Extent}} & \multicolumn{1}{l |}{\textbf{Behaviour}} & \multicolumn{1}{l |}{\textbf{Canonical reference}}\\
+    \multicolumn{1}{| l |}{\textbf{Name}} & \multicolumn{1}{l |}{\textbf{Extent}} & \multicolumn{1}{l |}{\textbf{Continuation behaviour}} & \multicolumn{1}{l |}{\textbf{Canonical reference}}\\
     \hline
     \FelleisenC & Undelimited & Abortive & \citet{FelleisenF86} \\
     \hline
@@ -697,6 +697,20 @@ callcc, J, catchcont, etc.
 
 \paragraph{Landin's J operator}
 %
+\begin{mathpar}
+  \inferrule*
+    {\typ{\Gamma,x:A;B \cons \Delta}{M : B}}
+    {\typ{\Gamma;\Delta}{\lambda x.M : A \to B}}
+
+  \inferrule*
+    {\typ{\Gamma;B \cons \Delta}{\lambda x. M : A \to B}}
+    {\typ{\Gamma;B \cons \Delta}{\J\,(\lambda x.M) : \Cont\,\Record{A;B}}}
+
+  \inferrule*
+    {\typ{\Gamma;\Delta}{V : A} \\ \typ{\Gamma;\Delta}{W : \Cont\,\Record{A;B}}}
+    {\typ{\Gamma;\Delta}{\Continue~W~V : B}}
+\end{mathpar}
+%
 \begin{reductions}
   \slab{Dump}   & \EC[(\lambda x.M)~V] &\reducesto& \EC[\mathcal{D}[M[V/x]]]\\
   \slab{Capture}   & \EC[\mathcal{D}[\J\,(\lambda x.M)]] &\reducesto& \EC[\mathcal{D}[\cont_{\Record{\EC;\lambda x.M}}]]\\
@@ -706,12 +720,32 @@ callcc, J, catchcont, etc.
 
 \paragraph{Sussman and Steele's catch}
 %
+\begin{mathpar}
+  \inferrule*
+    {\typ{\Gamma,k : \Cont\,\Record{A;\Zero}}{M : A}}
+    {\typ{\Gamma}{\Catch~k.M : A}}
+
+  \inferrule*
+    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
+    {\typ{\Gamma}{\Continue~W~V : \Zero}}
+\end{mathpar}
+%
 \begin{reductions}
   \slab{Capture} &  \EC[\Catch~k.M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
   \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
 \end{reductions}
 %
 \paragraph{Reynolds' escape}
+%
+\begin{mathpar}
+  \inferrule*
+    {\typ{\Gamma,k : \Cont\,\Record{A;\Zero}}{M : A}}
+    {\typ{\Gamma}{\Escape\;k\;\In\;M : A}}
+
+  \inferrule*
+    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
+    {\typ{\Gamma}{\Continue~W~V : \Zero}}
+\end{mathpar}
 %
 \begin{reductions}
   \slab{Capture} &  \EC[\Escape\;k\;\In\;M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
@@ -721,6 +755,16 @@ callcc, J, catchcont, etc.
 
 \paragraph{Call-with-current-continuation}
 %
+\begin{mathpar}
+  \inferrule*
+    {~}
+    {\typ{\Gamma}{\Callcc : (\Cont\,\Record{A;\Zero} \to A) \to A}}
+
+  \inferrule*
+    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
+    {\typ{\Gamma}{\Continue~W~V : \Zero}}
+\end{mathpar}
+%
 \begin{reductions}
   \slab{Capture} &  \EC[\Callcc~V] &\reducesto& \EC[V~\cont_{\EC}]\\
   \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
@@ -729,6 +773,16 @@ callcc, J, catchcont, etc.
 
 \paragraph{Call-with-composable-continuation}
 call-with-composable-continuation (MzScheme 360, November 2006).
+%
+\begin{mathpar}
+  \inferrule*
+    {~}
+    {\typ{\Gamma}{\Callcc^\ast : (\Cont\,\Record{A;A} \to A) \to A}}
+
+  \inferrule*
+    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;A}}}
+    {\typ{\Gamma}{\Continue~W~V : A}}
+\end{mathpar}
 %
 \begin{reductions}
   \slab{Capture} &  \EC[\Callcc^\ast~V] &\reducesto& \EC[V~\cont_{\EC}]\\
@@ -749,10 +803,30 @@ Contrast this result with
 
 \paragraph{Felleisen's \FelleisenC{} and \FelleisenF{}}
 %
+\begin{mathpar}
+  \inferrule*
+    {~}
+    {\typ{\Gamma}{\FelleisenC : (\Cont\,\Record{A;\Zero} \to B) \to A}}
+
+  \inferrule*
+    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
+    {\typ{\Gamma}{\Continue~W~V : \Zero}}
+\end{mathpar}
+%
 \begin{reductions}
   \slab{Capture} &  \EC[\FelleisenC\,V] &\reducesto& V~\cont_{\EC}\\
-  \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC[V]
+  \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
 \end{reductions}
+%
+\begin{mathpar}
+  \inferrule*
+    {~}
+    {\typ{\Gamma}{\FelleisenF : (\Cont\,\Record{A;B} \to B) \to B}}
+
+  \inferrule*
+    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
+    {\typ{\Gamma}{\Continue~W~V : B}}
+\end{mathpar}
 %
 \begin{reductions}
   \slab{Capture} &  \EC[\FelleisenF\,V] &\reducesto& V~\cont_{\EC}\\
@@ -793,7 +867,15 @@ undelimited control~\cite{Filinski94}
 
 \paragraph{Cupto}
 %
-
+\begin{reductions}
+  \slab{Value} &
+     \Set\; p \;\In\; V, \rho &\reducesto& V, \rho\\
+  \slab{New-prompt} &
+     \newPrompt, \rho &\reducesto& p, \rho \uplus \{p\}\\
+  \slab{Capture} &
+     \Set\; p \;\In\; \EC[\Cupto~p~k.M], \rho &\reducesto& M[\cont_{\EC}/k], \rho\\
+  \slab{Resume} & \Continue~\cont_{\EC}~V, \rho &\reducesto& \EC[V], \rho
+\end{reductions}
 
 \paragraph{Effect handlers}
 %
