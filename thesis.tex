@@ -698,10 +698,9 @@ callcc, J, catchcont, etc.
 \paragraph{Landin's J operator}
 %
 \begin{reductions}
-  \slab{Marking}   & \EC[(\lambda x.M)~V] &\reducesto& \EC[\lambda^{\EC}.M[V/x]], \text{where $\EC$ contains no other $\lambda$}\\
-  \slab{Return}   & \lambda^{\EC}.V   &\reducesto& V\\
-  \slab{Capture}  & \lambda^{\EC}.\EC'[\J\,x.M] &\reducesto& \EC'[\cont_{\Record{\EC;x.M}}/k]\\
-  \slab{Resume}   & \EC[\Continue~\cont_{\Record{\EC';x.M}}~V]  &\reducesto& \EC'[M[V/x]]
+  \slab{Dump}   & \EC[(\lambda x.M)~V] &\reducesto& \EC[\mathcal{D}[M[V/x]]]\\
+  \slab{Capture}   & \EC[\mathcal{D}[\J\,(\lambda x.M)]] &\reducesto& \EC[\mathcal{D}[\cont_{\Record{\EC;\lambda x.M}}]]\\
+  \slab{Resume}    & \EC[\Continue~\cont_{\Record{\EC';\lambda x.M}}~V]  &\reducesto& \EC'[(\lambda x.M)~V]
 \end{reductions}
 %
 
