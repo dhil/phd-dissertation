@@ -659,6 +659,8 @@ callcc, J, catchcont, etc.
     \hline
     \multicolumn{1}{| l |}{\textbf{Name}} & \multicolumn{1}{l |}{\textbf{Extent}} & \multicolumn{1}{l |}{\textbf{Behaviour}} & \multicolumn{1}{l |}{\textbf{Canonical reference}}\\
     \hline
+    \FelleisenC & Undelimited & Abortive & \citet{FelleisenF86} \\
+    \hline
     call/cc  & Undelimited & Abortive & \citet{AbelsonHAKBOBPCRFRHSHW85} \\
     \hline
     call/cc* & Undelimited & Composable & \citet{Flatt20} \\
@@ -674,6 +676,8 @@ callcc, J, catchcont, etc.
     effect handlers     & Delimited & Composable & \citet{PlotkinP09,PlotkinP13} \\
     \hline
     escape              & Undelimited & Abortive & \citet{Reynolds98a}\\
+    \hline
+    \FelleisenF         & Undelimited & Composable & \citet{FelleisenFDM87}\\
     \hline
     fcontrol            & Delimited & Composable & \citet{Sitaram93} \\
     \hline
@@ -730,6 +734,29 @@ call-with-composable-continuation (MzScheme 360, November 2006).
 \begin{reductions}
   \slab{Capture} &  \EC[\Callcc^\ast~V] &\reducesto& \EC[V~\cont_{\EC}]\\
   % \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC[\EC'[V]]
+  \slab{Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
+\end{reductions}
+
+%
+\[
+  1 + \Callcc^\ast\,(\lambda k. k\,(k\,0)) \reducesto 3
+\]
+%
+Contrast this result with
+%
+\[
+  1 + \Callcc\,(\lambda k. k\,(k\,0)) \reducesto 1
+\]
+
+\paragraph{Felleisen's \FelleisenC{} and \FelleisenF{}}
+%
+\begin{reductions}
+  \slab{Capture} &  \EC[\FelleisenC\,V] &\reducesto& V~\cont_{\EC}\\
+  \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC[V]
+\end{reductions}
+%
+\begin{reductions}
+  \slab{Capture} &  \EC[\FelleisenF\,V] &\reducesto& V~\cont_{\EC}\\
   \slab{Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
 \end{reductions}
 
