@@ -695,29 +695,6 @@ callcc, J, catchcont, etc.
 
 \subsection{Undelimited operators}
 
-\paragraph{Landin's J operator}
-%
-\begin{mathpar}
-  \inferrule*
-    {\typ{\Gamma,x:A;B \cons \Delta}{M : B}}
-    {\typ{\Gamma;\Delta}{\lambda x.M : A \to B}}
-
-  \inferrule*
-    {\typ{\Gamma;B \cons \Delta}{\lambda x. M : A \to B}}
-    {\typ{\Gamma;B \cons \Delta}{\J\,(\lambda x.M) : \Cont\,\Record{A;B}}}
-
-  \inferrule*
-    {\typ{\Gamma;\Delta}{V : A} \\ \typ{\Gamma;\Delta}{W : \Cont\,\Record{A;B}}}
-    {\typ{\Gamma;\Delta}{\Continue~W~V : B}}
-\end{mathpar}
-%
-\begin{reductions}
-  \slab{Dump}   & \EC[(\lambda x.M)~V] &\reducesto& \EC[\mathcal{D}[M[V/x]]]\\
-  \slab{Capture}   & \EC[\mathcal{D}[\J\,(\lambda x.M)]] &\reducesto& \EC[\mathcal{D}[\cont_{\Record{\EC;\lambda x.M}}]]\\
-  \slab{Resume}    & \EC[\Continue~\cont_{\Record{\EC';\lambda x.M}}~V]  &\reducesto& \EC'[(\lambda x.M)~V]
-\end{reductions}
-%
-
 \paragraph{Sussman and Steele's catch}
 %
 \begin{mathpar}
@@ -833,6 +810,97 @@ Contrast this result with
   \slab{Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
 \end{reductions}
 
+\paragraph{Landin's J operator}
+%
+The J operator was introduced by Peter Landin in 1965 (making it the
+world's \emph{first} first-class control operator) as a means for
+translating jumps and labels in Algol~60 into applicative
+expressions~\cite{Landin65,Landin65a,Landin98}.
+%
+The operator extends the syntactic category of computations with a new
+form.
+%
+\[
+  M,N \in \CompCat ::= \cdots \mid \J\,W
+\]
+%
+The J operator is quite different to the operators mentioned above in
+that the captured continuation is \emph{not} the current continuation,
+but rather, the continuation of the caller.
+%
+To this effect, the continuation object produced by a $\J$ application
+may be thought of as a first-class variation of the return statement
+commonly found in statement-oriented languages. Since it is a
+first-class object it can be passed to another function, meaning that
+any function can endow other functions with the ability to return from
+it, e.g.
+%
+\[
+  \dec{f} \defas \lambda g. \Let\;return \revto \J\,(\lambda x.x) \;\In\; g~return;~\True
+\]
+%
+If the function $g$ does not invoke its argument, then $\dec{f}$
+returns $\True$, e.g.
+\[
+  \dec{f}~(\lambda return.\False) \reducesto^+ \True
+\]
+%
+However, if $g$ does apply its argument, then the value provided to
+the application becomes the return value of $\dec{f}$, e.g.
+%
+\[
+  \dec{f}~(\lambda return.return~\False) \reducesto^+ \False
+\]
+%
+The function argument provided to $\J$ can intuitively be thought of
+as the expression attached to a return statement in a
+statement-oriented language.
+%
+
+Clearly, the return type of a continuation produced by an $\J$
+application must be the same as the caller of $\J$. Therefore to track
+the caller type we make use of an additional ordered context
+$\Delta$. This context is extended by the typing rule for
+$\lambda$-abstraction, and its contents are used by the typing rule
+for $\J$-applications.
+%
+\begin{mathpar}
+  \inferrule*
+    {\typ{\Gamma,x:A;B \cons \Delta}{M : B}}
+    {\typ{\Gamma;\Delta}{\lambda x.M : A \to B}}
+
+  \inferrule*
+    {\typ{\Gamma;B \cons \Delta}{W : A \to B}}
+    {\typ{\Gamma;B \cons \Delta}{\J\,W : \Cont\,\Record{A;B}}}
+
+  \inferrule*
+    {\typ{\Gamma;\Delta}{V : A} \\ \typ{\Gamma;\Delta}{W : \Cont\,\Record{A;B}}}
+    {\typ{\Gamma;\Delta}{\Continue~W~V : B}}
+\end{mathpar}
+%
+Any meaningful applications of $\J$ must appear under a
+$\lambda$-abstraction, because the application captures its caller's
+continuation. In order to capture the caller's continuation we
+annotate the evaluation contexts for ordinary applications.
+%
+\begin{reductions}
+  \slab{Annotate}   & \EC[(\lambda x.M)\,V] &\reducesto& \EC_\lambda[M[V/x]]\\
+  \slab{Capture}   & \EC_{\lambda}[\mathcal{D}[\J\,W]] &\reducesto& \EC_{\lambda}[\mathcal{D}[\cont_{\Record{\EC_{\lambda};W}}]]\\
+  \slab{Resume}    & \EC[\Continue~\cont_{\Record{\EC';W}}\,V]  &\reducesto& \EC'[W\,V]
+\end{reductions}
+%
+$\slab{Capture}$ rule only applies if the application of $\J$ takes
+place in annotated evaluation context. The continuation object
+produced by a $\J$ application encompasses the caller's continuation
+$\EC_\lambda$ and the value argument $W$.
+%
+This continuation object may be invoked in \emph{any} context. An
+invocation discards the current continuation $\EC$ and installs $\EC'$
+instead with the $\J$-argument $W$ applied to the value $V$.
+\[
+  \Callcc \defas \lambda f. f\,(\J\,(\lambda x.x))
+\]
+
 \subsection{Delimited operators}
 Delimited control: Control delimiters form the basis for delimited
 control. \citeauthor{Felleisen88} introduced control delimiters in
@@ -916,8 +984,8 @@ undelimited control~\cite{Filinski94}
   \slab{Value} &
      \Catchcont \; f . \Record{V;W} &\reducesto& \Inl\; \Record{V;\lambda\,f. W}\\
   \slab{Capture} &
-     \Catchcont \; f .\EC[\,f\,V]   &\reducesto& \Inr\; \Record{V; \cont_{\Record{\EC;\,f}}}\\
-  \slab{Resume} & \Continue~\cont_{\Record{\EC;\,f}}~V &\reducesto& \lambda f.\EC[V]
+     \Catchcont \; f .\EC[\,f\,V]   &\reducesto& \Inr\; \Record{V; \lambda x. \lambda f. \Continue~\cont_{\EC}~x}\\
+  \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
 
 \paragraph{Shift/reset}
@@ -959,6 +1027,8 @@ Coroutines~\cite{DahlDH72} as introduced by Simula
 Conway, who used coroutines as a code idiom in assembly
 programs~\cite{Knuth97}. Canonical reference for implementing
 coroutines with call/cc~\cite{HaynesFW86}.
+
+\section{Constraining control}
 
 \section{Implementation strategies for first-class control}
 Table~\ref{tbl:ctrl-operators-impls} lists some programming languages
