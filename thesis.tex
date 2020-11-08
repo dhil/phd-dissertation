@@ -629,7 +629,7 @@ characteristic property of an abortive continuation is that it
 discards its invocation context up to its enclosing delimiter.
 %
 \[
-  \EC[k\,V] \reducesto V, \quad \text{where } k = (\lambda x. \keyw{abort}\;x). 
+  \EC[k\,V] \reducesto V, \quad \text{where } k = (\lambda x. \keyw{abort}\;x).
 \]
 %
 Consequently, composing an abortive continuation with itself is
@@ -650,8 +650,8 @@ continuations, composable continuations.
 Downward and upward use of continuations.
 
 \section{First-class control operators}
-Describe how effect handlers fit amongst shift/reset, prompt/control,
-callcc, J, catchcont, etc.
+Table~\ref{tbl:classify-ctrl} provides a classification of a
+non-exhaustive list of first-class control operators.
 
 \begin{table}
   \centering
@@ -694,25 +694,23 @@ callcc, J, catchcont, etc.
 \end{table}
 
 \subsection{Undelimited operators}
+%
+The J operator was unveiled by Peter Landin in 1965~\cite{Landin98},
+making it the \emph{first} first-class control operator. A while after
+John \citeauthor{Reynolds98a} invented the escape operator which was
+influenced by the J operator~\cite{Reynolds98a}. Then came
+\citeauthor{SussmanS75}'s catch operator, and thereafter callcc
+appeared. Later another batch of control operators based on callcc
+appeared. However, common for all of the early operators is that their
+captured continuations have undelimited extent and exhibit abortive
+behaviour. Moreover, save for Landin's J operator they all capture the
+current continuation. Interestingly the three operators escape, catch,
+and callcc turned out to be essentially the same operator.
 
-\paragraph{Sussman and Steele's catch}
-%
-\begin{mathpar}
-  \inferrule*
-    {\typ{\Gamma,k : \Cont\,\Record{A;\Zero}}{M : A}}
-    {\typ{\Gamma}{\Catch~k.M : A}}
-
-  \inferrule*
-    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
-    {\typ{\Gamma}{\Continue~W~V : \Zero}}
-\end{mathpar}
-%
-\begin{reductions}
-  \slab{Capture} &  \EC[\Catch~k.M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
-  \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
-\end{reductions}
-%
-\paragraph{Reynolds' escape}
+\paragraph{Reynolds' escape} The escape operator was introduced by
+\citeauthor{Reynolds98a} in 1972~\cite{Reynolds98a} to make
+statement-oriented control mechanisms such as jumps and labels
+programmable in an expression-oriented language.
 %
 \begin{mathpar}
   \inferrule*
@@ -726,6 +724,32 @@ callcc, J, catchcont, etc.
 %
 \begin{reductions}
   \slab{Capture} &  \EC[\Escape\;k\;\In\;M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
+  \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
+\end{reductions}
+%
+
+\paragraph{Sussman and Steele's catch}
+%
+The catch operator was introduced into the programming language Scheme
+by \citeauthor{SussmanS75} in 1975 as a mechanism for performing
+non-local exits~\cite{SussmanS75}.
+%
+\[
+  M,N ::= \cdots \mid \Catch~k.M
+\]
+%
+\begin{mathpar}
+  \inferrule*
+    {\typ{\Gamma,k : \Cont\,\Record{A;\Zero}}{M : A}}
+    {\typ{\Gamma}{\Catch~k.M : A}}
+
+  \inferrule*
+    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
+    {\typ{\Gamma}{\Continue~W~V : \Zero}}
+\end{mathpar}
+%
+\begin{reductions}
+  \slab{Capture} &  \EC[\Catch~k.M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
   \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
 \end{reductions}
 %
@@ -814,8 +838,25 @@ Contrast this result with
 %
 The J operator was introduced by Peter Landin in 1965 (making it the
 world's \emph{first} first-class control operator) as a means for
-translating jumps and labels in Algol~60 into applicative
-expressions~\cite{Landin65,Landin65a,Landin98}.
+translating jumps and labels in the statement-oriented language
+\Algol{} into an expression-oriented
+language~\cite{Landin65,Landin65a,Landin98}. Landin used the J
+operator to account for the meaning of \Algol{} labels.
+%
+The following example due to \citet{DanvyM08} provides a flavour of
+the correspondence between labels and J.
+%
+\[
+  \ba{@{}l@{~}l}
+    &\sembr{\keyw{begin}\;s_1;\;\keyw{goto}\;L;\;L:\,s_2\;\keyw{end}}\\
+    =& \lambda\Unit.\Let\;L \revto \J\,\sembr{s_2}\;\In\;\Let\;\Unit \revto \sembr{s_1}\,\Unit\;\In\;L\,\Unit
+  \ea
+\]
+%
+Here $\sembr{-}$ denotes the translation of statements. In the image,
+the label $L$ manifests as an application of $\J$ and the
+$\keyw{goto}$ manifests as an application of continuation captured by
+$\J$.
 %
 The operator extends the syntactic category of computations with a new
 form.
@@ -824,9 +865,10 @@ form.
   M,N \in \CompCat ::= \cdots \mid \J\,W
 \]
 %
-The J operator is quite different to the operators mentioned above in
-that the captured continuation is \emph{not} the current continuation,
-but rather, the continuation of the caller.
+The previous example hints at the fact that the J operator is quite
+different to the previously considered undelimited control operators
+in that the captured continuation is \emph{not} the current
+continuation, but rather, the continuation of the caller.
 %
 To this effect, the continuation object produced by a $\J$ application
 may be thought of as a first-class variation of the return statement
@@ -897,6 +939,9 @@ $\EC_\lambda$ and the value argument $W$.
 This continuation object may be invoked in \emph{any} context. An
 invocation discards the current continuation $\EC$ and installs $\EC'$
 instead with the $\J$-argument $W$ applied to the value $V$.
+
+Let us end by remarking that the J operator is expressive enough to
+encode a familiar control operator like $\Callcc$.
 \[
   \Callcc \defas \lambda f. f\,(\J\,(\lambda x.x))
 \]
@@ -1017,7 +1062,7 @@ undelimited control~\cite{Filinski94}
 
 \paragraph{Spawn/controller}
 
-\section{Second-class control operators}
+\subsection{Second-class control operators}
 Coroutines, async/await, generators/iterators, amb.
 
 Backtracking: Amb~\cite{McCarthy63}.
@@ -1028,7 +1073,10 @@ Conway, who used coroutines as a code idiom in assembly
 programs~\cite{Knuth97}. Canonical reference for implementing
 coroutines with call/cc~\cite{HaynesFW86}.
 
-\section{Constraining control}
+\section{Constraining continuations}
+For example callec is a variation of callcc where the continuation
+only can be invoked during the dynamic extent of
+callec~\cite{Flatt20}.
 
 \section{Implementation strategies for first-class control}
 Table~\ref{tbl:ctrl-operators-impls} lists some programming languages
