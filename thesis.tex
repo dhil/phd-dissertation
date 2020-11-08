@@ -542,6 +542,26 @@ wide range of control operators from the literature.
 % callcc is a procedural variation of catch. It was invented in
 % 1982~\cite{AbelsonHAKBOBPCRFRHSHW85}.
 
+A full formal comparison of the control operators is out of scope of
+this chapter. The literature contains comparisons of various control
+operators along various dimensions, e.g.
+%
+\citet{Thielecke02} studies a handful of operators via double
+barrelled continuation passing style. \citet{ForsterKLP19} compare the
+relative expressiveness of untyped and simply-typed variations of
+effect handlers, shift/reset, and monadic reflection by means of
+whether they are macro-expressible. Their work demonstrates that in an
+untyped setting each operator is macro-expressible, but in most cases
+the macro-translations do not preserve typeability, for instance the
+simple type structure is insufficient to type the image of
+macro-translation between effect handlers and shift/reset.
+%
+However, \citet{PirogPS19} show that with a polymorphic type system
+the translation preserve typeability.
+%
+\citet{Shan04} shows that dynamic delimited control and static
+delimited control is macro-expressible in an untyped setting.
+
 \section{Notions of continuations}
 
 % \citeauthor{Reynolds93} has written a historical account of the
@@ -712,6 +732,46 @@ and callcc turned out to be essentially the same operator.
 statement-oriented control mechanisms such as jumps and labels
 programmable in an expression-oriented language.
 %
+The operator introduces a new computation form.
+%
+\[
+  M, N \in \CompCat ::= \cdots \mid \Escape\;k\;\In\;M
+\]
+%
+The variable $k$ is called the \emph{escape variable} and it is bound
+in $M$. The escape variable exposes the current continuation of the
+$\Escape$-expression to the programmer. The captured continuation is
+abortive, thus an invocation of the escape variable in the body $M$
+has the effect of performing a non-local exit.
+%
+
+In terms of jumps and labels the $\Escape$-expression can be
+understood as corresponding to a kind of label and an application of
+the escape variable $k$ can be understood as corresponding to a jump
+to the label.
+
+\citeauthor{Reynolds98a}' original treatise of escape was untyped, and
+as such, the escape variable could escape its captor, e.g.
+%
+\[
+  \Let\;k \revto (\Escape\;k\;\In\;k)\;\In\; N
+\]
+%
+Here the current continuation, $N$, gets bound to $k$ in the
+$\Escape$-expression, which returns $k$ as-is, and thus becomes
+available for use within $N$. \citeauthor{Reynolds98a} recognised the
+power of this idiom and noted that it could be used to implement
+coroutines and backtracking~\cite{Reynolds98a}.
+%
+In our simply-typed setting it is not possible for the continuation to
+propagate outside its binding $\Escape$-expression as it would require
+the addition of either recursive types or some other escape hatch like
+mutable reference cells.
+%
+
+The typing of $\Escape$ and $\Continue$ reflects that the captured
+continuation is abortive.
+%
 \begin{mathpar}
   \inferrule*
     {\typ{\Gamma,k : \Cont\,\Record{A;\Zero}}{M : A}}
@@ -722,11 +782,23 @@ programmable in an expression-oriented language.
     {\typ{\Gamma}{\Continue~W~V : \Zero}}
 \end{mathpar}
 %
+The return type of the continuation object can be taken as a telltale
+sign that an invocation of this object never returns, since there are
+no inhabitants of the empty type.
+%
+An invocation of the continuation discards the invocation context and
+plugs the argument into the captured context.
+%
 \begin{reductions}
   \slab{Capture} &  \EC[\Escape\;k\;\In\;M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
   \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
 \end{reductions}
 %
+The \slab{Capture} rule leaves the context intact such that if the
+body $M$ does not invoke $k$ then whatever value $M$ reduces is
+plugged into the context. The \slab{Resume} discards the current
+context $\EC$ and installs the captured context $\EC'$ with the
+argument $V$ plugged in.
 
 \paragraph{Sussman and Steele's catch}
 %
@@ -852,7 +924,7 @@ the correspondence between labels and J.
 \[
   \ba{@{}l@{~}l}
     &\sembr{\keyw{begin}\;s_1;\;\keyw{goto}\;L;\;L:\,s_2\;\keyw{end}}\\
-    =& \lambda\Unit.\Let\;L \revto \J\,\sembr{s_2}\;\In\;\Let\;\Unit \revto \sembr{s_1}\,\Unit\;\In\;L\,\Unit
+    =& \lambda\Unit.\Let\;L \revto \J\,\sembr{s_2}\;\In\;\Let\;\Unit \revto \sembr{s_1}\,\Unit\;\In\;\Continue~L\,\Unit
   \ea
 \]
 %
@@ -894,7 +966,7 @@ However, if $g$ does apply its argument, then the value provided to
 the application becomes the return value of $\dec{f}$, e.g.
 %
 \[
-  \dec{f}~(\lambda return.return~\False) \reducesto^+ \False
+  \dec{f}~(\lambda return.\Continue~return~\False) \reducesto^+ \False
 \]
 %
 The function argument provided to $\J$ can intuitively be thought of
@@ -945,9 +1017,12 @@ instead with the $\J$-argument $W$ applied to the value $V$.
 
 Let us end by remarking that the J operator is expressive enough to
 encode a familiar control operator like $\Callcc$.
+%
 \[
   \Callcc \defas \lambda f. f\,(\J\,(\lambda x.x))
 \]
+%
+
 
 \subsection{Delimited operators}
 Delimited control: Control delimiters form the basis for delimited
