@@ -1088,21 +1088,39 @@ implementation strategies.
 
 \begin{table}
   \centering
-  \begin{tabular}{| l | >{\raggedright}p{4.5cm} | l |}
+  \begin{tabular}{| l | >{\raggedright}p{4.3cm} | l |}
     \hline
     \multicolumn{1}{|c|}{\textbf{Language}} & \multicolumn{1}{c |}{\textbf{Control operators}} & \multicolumn{1}{c|}{\textbf{Implementation strategies}}\\
+    \hline
+    Eff      & Effect handlers & Virtual machine, interpreter \\
+    \hline
+    Effekt   & Lexical effect handlers & ??\\
+    \hline
+    Frank    & N-ary effect handlers & Abstract machine \\
+    \hline
+    Gauche   & callcc, shift/reset & Virtual machine \\
+    \hline
+    Helium   & Effect handlers & CEK machine \\
+    \hline
+    Koka     & Effect handlers & Continuation monad\\
     \hline
     Links    & Effect handlers, escape & CEK machine, CPS\\
     \hline
     MLton    & callcc & Stack copying\\
     \hline
-    Multicore OCaml  & Effect handlers & Segmented stacks\\
+    Multicore OCaml  & Affine effect handlers & Segmented stacks\\
     \hline
-    Racket & callcc, callcc$^{\ast}$, fcontrol, prompt/control, shift/reset, splitter, spawn & Continuation marks\\
+    OchaCaml & shift/reset & Virtual machine\\
     \hline
-    Rhino JavaScript      & A variation of J  & Interpreter \\
+    Racket & callcc, callcc$^{\ast}$, cupto, fcontrol, prompt/control, shift/reset, splitter, spawn & Continuation marks\\
     \hline
-    SML/NJ                & callcc       & CPS\\
+    Rhino JavaScript      & JI                & Interpreter \\
+    \hline
+    Scala                 & shift/reset       & CPS\\
+    \hline
+    SML/NJ                & callcc            & CPS\\
+    \hline
+    Wasm/k                & prompt/control    & ?? \\
     \hline
   \end{tabular}
   \caption{Some languages and  their implementation strategies for first-class control.}\label{tbl:ctrl-operators-impls}
