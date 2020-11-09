@@ -802,13 +802,21 @@ argument $V$ plugged in.
 
 \paragraph{Sussman and Steele's catch}
 %
-The catch operator was introduced into the programming language Scheme
-by \citeauthor{SussmanS75} in 1975 as a mechanism for performing
-non-local exits~\cite{SussmanS75}.
+The catch operator originated in Lisp as an exception handling
+construct. It had a companion throw operation, which would unwind the
+evaluation stack until it was caught by an instance of catch. In 1975
+\citeauthor{SussmanS75} implemented a more powerful variation of the
+catch operator in Scheme~\cite{SussmanS75}. Their catch operator would
+disperse of the throw operation and instead provide the programmer
+with access to the current continuation. Thus it is same as
+\citeauthor{Reynolds98a}' escape operator.
 %
 \[
   M,N ::= \cdots \mid \Catch~k.M
 \]
+%
+Although, their syntax differ, their static and dynamic semantics are
+the same.
 %
 \begin{mathpar}
   \inferrule*
@@ -825,8 +833,8 @@ non-local exits~\cite{SussmanS75}.
   \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
 \end{reductions}
 %
-As an aside it is worth mentioning that \citet{CartwrightF92} used a
-variation of $\Catch$ to show that programs can use control operators
+As an aside it is worth to mention that \citet{CartwrightF92} used a
+variation of $\Catch$ to show that control operators enable programs
 to observe the order of evaluation.
 
 \paragraph{Call-with-current-continuation}
