@@ -499,12 +499,17 @@ handlers.
 \chapter{State of effectful programming}
 \label{ch:related-work}
 
-\section{Type and effect systems}
-\section{Monadic programming}
+% \section{Type and effect systems}
+% \section{Monadic programming}
+\section{Golden age of impurity}
+\section{Monadic enlightenment}
 \dhil{Moggi's seminal work applies the notion of monads to effectful
   programming by modelling effects as monads. More importantly,
   Moggi's work gives a precise characterisation of what's \emph{not}
   an effect}
+\section{Direct-style revolution}
+
+\subsection{Monadic reflection: best of both worlds}
 
 \chapter{Controlling continuations}
 \label{ch:continuations}
@@ -681,9 +686,9 @@ non-exhaustive list of first-class control operators.
     \hline
     C        & Undelimited & Abortive & \citet{FelleisenF86} \\
     \hline
-    call/cc  & Undelimited & Abortive & \citet{AbelsonHAKBOBPCRFRHSHW85} \\
+    callcc   & Undelimited & Abortive & \citet{AbelsonHAKBOBPCRFRHSHW85} \\
     \hline
-    call/cc* & Undelimited & Composable & \citet{Flatt20} \\
+    \textCallcomc{} & Undelimited & Composable & \citet{Flatt20} \\
     \hline
     catch               & Undelimited & Abortive & \citet{SussmanS75} \\
     \hline
@@ -852,9 +857,13 @@ categories of values.
   V,W \in \ValCat ::= \cdots \mid \Callcc
 \]
 %
-The value $\Callcc$ is essentially a hard-wired function name. The
-typing rule for $\Callcc$ makes it clear that it is a particular
-higher-order function.
+The value $\Callcc$ is essentially a hard-wired function name. Being a
+value means that the operator itself is a first-class entity which
+entails it can be passed to functions, returned from functions, and
+stored in data structures.
+%
+The typing rule for $\Callcc$ testifies to the fact that it is a
+particular higher-order function.
 %
 \begin{mathpar}
   \inferrule*
@@ -877,19 +886,49 @@ that then becomes the result of $\Callcc$-application.
 \end{reductions}
 %
 From the dynamic semantics it is evident that $\Callcc$ is a
-syntax-free alternative to $\Catch$, i.e.
+syntax-free alternative to $\Catch$ (although, it is treated as a
+special value form here; in actual implementation it suffices to
+recognise the object name of $\Callcc$). They are trivially
+macro-expressible.
+%
+\begin{equations}
+  \sembr{\Catch~k.M} &=& \Callcc\,(\lambda k.\sembr{M})\\
+  \sembr{\Callcc}    &=& \lambda f. \Catch~k.f\,k
+\end{equations}
+
+\paragraph{Call-with-composable-continuation} A variation of callcc is
+call-with-composable-continuation, or as I call it \textCallcomc{}.
+%
+As the name suggests the captured continuation is composable rather
+than abortive.
+%
+According to the history log of Racket it appeared in November 2006
+(Racket was then known as MzScheme, version 360)~\cite{Flatt20}. The
+history log classifies it as a delimited control operator. Truth to be
+told nowadays in Racket virtually all control operators are delimited,
+even callcc, because they are parameterised by an optional prompt
+tag. If the programmer does not supply a prompt tag at invocation time
+then the optional parameter assume the actual value of the top-level
+prompt, effectively making the extent of the captured continuation
+undelimited.
+%
+In other words its default mode of operation is undelimited, hence the
+justification for categorising it as such.
+%
+
+Like $\Callcc$ this operator is a value.
 %
 \[
-  \sembr{\Catch~k.M} = \Callcc\,(\lambda k.M)
+  V,W \in \ValCat ::= \cdots \mid \Callcomc
 \]
-
-\paragraph{Call-with-composable-continuation}
-call-with-composable-continuation (MzScheme 360, November 2006).
+%
+Unlike $\Callcc$ the continuation returns, which the typing rule for
+$\Callcomc$ reflects.
 %
 \begin{mathpar}
   \inferrule*
     {~}
-    {\typ{\Gamma}{\Callcc^\ast : (\Cont\,\Record{A;A} \to A) \to A}}
+    {\typ{\Gamma}{\Callcomc : (\Cont\,\Record{A;A} \to A) \to A}}
 
   \inferrule*
     {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;A}}}
@@ -897,20 +936,20 @@ call-with-composable-continuation (MzScheme 360, November 2006).
 \end{mathpar}
 %
 \begin{reductions}
-  \slab{Capture} &  \EC[\Callcc^\ast~V] &\reducesto& \EC[V~\cont_{\EC}]\\
+  \slab{Capture} &  \EC[\Callcomc~V] &\reducesto& \EC[V~\cont_{\EC}]\\
   % \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC[\EC'[V]]
   \slab{Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
 \end{reductions}
 
 %
 \[
-  1 + \Callcc^\ast\,(\lambda k. k\,(k\,0)) \reducesto 3
+  1 + \Callcomc\,(\lambda k. \Continue~k~(\Continue~k~0)) \reducesto 3
 \]
 %
 Contrast this result with
 %
 \[
-  1 + \Callcc\,(\lambda k. k\,(k\,0)) \reducesto 1
+  1 + \Callcc\,(\lambda k. \Continue~k~(\Continue~k~0)) \reducesto 1
 \]
 
 \paragraph{Felleisen's \FelleisenC{} and \FelleisenF{}}
@@ -969,11 +1008,11 @@ the label $L$ manifests as an application of $\J$ and the
 $\keyw{goto}$ manifests as an application of continuation captured by
 $\J$.
 %
-The operator extends the syntactic category of computations with a new
+The operator extends the syntactic category of values with a new
 form.
 %
 \[
-  M,N \in \CompCat ::= \cdots \mid \J\,W
+  V,W \in \ValCat ::= \cdots \mid \J
 \]
 %
 The previous example hints at the fact that the J operator is quite
@@ -981,12 +1020,12 @@ different to the previously considered undelimited control operators
 in that the captured continuation is \emph{not} the current
 continuation, but rather, the continuation of the caller.
 %
-To this effect, the continuation object produced by a $\J$ application
-may be thought of as a first-class variation of the return statement
-commonly found in statement-oriented languages. Since it is a
-first-class object it can be passed to another function, meaning that
-any function can endow other functions with the ability to return from
-it, e.g.
+To this effect, the continuation object produced by an application of
+$\J$ may be thought of as a first-class variation of the return
+statement commonly found in statement-oriented languages. Since it is
+a first-class object it can be passed to another function, meaning
+that any function can endow other functions with the ability to return
+from it, e.g.
 %
 \[
   \dec{f} \defas \lambda g. \Let\;return \revto \J\,(\lambda x.x) \;\In\; g~return;~\True
@@ -1010,7 +1049,7 @@ as the expression attached to a return statement in a
 statement-oriented language.
 %
 
-Clearly, the return type of a continuation produced by an $\J$
+Clearly, the return type of a continuation object produced by an $\J$
 application must be the same as the caller of $\J$. Therefore to track
 the caller type we make use of an additional ordered context
 $\Delta$. This context is extended by the typing rule for
@@ -1023,8 +1062,8 @@ for $\J$-applications.
     {\typ{\Gamma;\Delta}{\lambda x.M : A \to B}}
 
   \inferrule*
-    {\typ{\Gamma;B \cons \Delta}{W : A \to B}}
-    {\typ{\Gamma;B \cons \Delta}{\J\,W : \Cont\,\Record{A;B}}}
+    {~}
+    {\typ{\Gamma;B \cons \Delta}{\J : (A \to B) \to \Cont\,\Record{A;B}}}
 
   \inferrule*
     {\typ{\Gamma;\Delta}{V : A} \\ \typ{\Gamma;\Delta}{W : \Cont\,\Record{A;B}}}
@@ -1099,7 +1138,7 @@ The operator control is a rebranding of Felleisen's F operator.
 \begin{reductions}
   \slab{Value} &
      \Set\; p \;\In\; V, \rho &\reducesto& V, \rho\\
-  \slab{New-prompt} &
+  \slab{New\textrm{-}prompt} &
      \newPrompt, \rho &\reducesto& p, \rho \uplus \{p\}\\
   \slab{Capture} &
      \Set\; p \;\In\; \EC[\Cupto~p~k.M], \rho &\reducesto& M[\cont_{\EC}/k], \rho\\
