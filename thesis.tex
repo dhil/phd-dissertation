@@ -679,7 +679,7 @@ non-exhaustive list of first-class control operators.
     \hline
     \multicolumn{1}{| l |}{\textbf{Name}} & \multicolumn{1}{l |}{\textbf{Extent}} & \multicolumn{1}{l |}{\textbf{Continuation behaviour}} & \multicolumn{1}{l |}{\textbf{Canonical reference}}\\
     \hline
-    \FelleisenC & Undelimited & Abortive & \citet{FelleisenF86} \\
+    C        & Undelimited & Abortive & \citet{FelleisenF86} \\
     \hline
     call/cc  & Undelimited & Abortive & \citet{AbelsonHAKBOBPCRFRHSHW85} \\
     \hline
@@ -697,7 +697,7 @@ non-exhaustive list of first-class control operators.
     \hline
     escape              & Undelimited & Abortive & \citet{Reynolds98a}\\
     \hline
-    \FelleisenF         & Undelimited & Composable & \citet{FelleisenFDM87}\\
+    F                   & Undelimited & Composable & \citet{FelleisenFDM87}\\
     \hline
     fcontrol            & Delimited & Composable & \citet{Sitaram93} \\
     \hline
@@ -837,7 +837,24 @@ As an aside it is worth to mention that \citet{CartwrightF92} used a
 variation of $\Catch$ to show that control operators enable programs
 to observe the order of evaluation.
 
-\paragraph{Call-with-current-continuation}
+\paragraph{Call-with-current-continuation} In 1982 the Scheme
+implementors observed that they could dispense of the special syntax
+for $\Catch$ in favour of a higher-order function that would apply its
+argument to the current continuation, and thus callcc was born (callcc
+is short for
+call-with-current-continuation)~\cite{AbelsonHAKBOBPCRFRHSHW85}.
+%
+
+Unlike the previous operators, callcc augments the syntactic
+categories of values.
+%
+\[
+  V,W \in \ValCat ::= \cdots \mid \Callcc
+\]
+%
+The value $\Callcc$ is essentially a hard-wired function name. The
+typing rule for $\Callcc$ makes it clear that it is a particular
+higher-order function.
 %
 \begin{mathpar}
   \inferrule*
@@ -849,11 +866,22 @@ to observe the order of evaluation.
     {\typ{\Gamma}{\Continue~W~V : \Zero}}
 \end{mathpar}
 %
+An invocation of $\Callcc$ returns a value of type $A$. This value can
+be produced in one of two ways, either the function argument returns
+normally or it applies the provided continuation object to a value
+that then becomes the result of $\Callcc$-application.
+%
 \begin{reductions}
   \slab{Capture} &  \EC[\Callcc~V] &\reducesto& \EC[V~\cont_{\EC}]\\
   \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
 \end{reductions}
 %
+From the dynamic semantics it is evident that $\Callcc$ is a
+syntax-free alternative to $\Catch$, i.e.
+%
+\[
+  \sembr{\Catch~k.M} = \Callcc\,(\lambda k.M)
+\]
 
 \paragraph{Call-with-composable-continuation}
 call-with-composable-continuation (MzScheme 360, November 2006).
@@ -1014,8 +1042,8 @@ annotate the evaluation contexts for ordinary applications.
   \slab{Resume}    & \EC[\Continue~\cont_{\Record{\EC';W}}\,V]  &\reducesto& \EC'[W\,V]
 \end{reductions}
 %
-$\slab{Capture}$ rule only applies if the application of $\J$ takes
-place in annotated evaluation context. The continuation object
+The $\slab{Capture}$ rule only applies if the application of $\J$
+takes place in annotated evaluation context. The continuation object
 produced by a $\J$ application encompasses the caller's continuation
 $\EC_\lambda$ and the value argument $W$.
 %
@@ -1054,6 +1082,8 @@ undelimited control~\cite{Filinski94}
 %\paragraph{Felleisen's F and prompt}
 
 \paragraph{Control/prompt}
+%
+The operator control is a rebranding of Felleisen's F operator.
 %
 \begin{reductions}
   \slab{Value} &
@@ -1123,9 +1153,9 @@ undelimited control~\cite{Filinski94}
 %
 \begin{reductions}
   \slab{Value}    & \reset{V}               &\reducesto& V\\
-  \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& \reset{M[\cont_{\reset{\EC}}/k]}, \text { where $\EC$ contains no $\reset{-}$}\\
+  \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& \reset{M[\cont_{\EC}/k]}, \text { where $\EC$ contains no $\reset{-}$}\\
   % \slab{Resume}   & \reset{\EC[\Continue~\cont_{\reset{\EC'}}~V]} &\reducesto& \reset{\EC[\reset{\EC'[V]}]}\\
-  \slab{Resume}   & \Continue~\cont_{\reset{\EC}}~V &\reducesto& \reset{\EC[V]}\\
+  \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \reset{\EC[V]}\\
 \end{reductions}
 %
 
@@ -1139,9 +1169,9 @@ undelimited control~\cite{Filinski94}
 
 \paragraph{Splitter}
 \begin{reductions}
-  \slab{Throw}   & \splitter~f~g.\EC[\,f~V] &\reducesto& V~\Unit\\
+  \slab{Throw}   & \splitter~throw~callpc.\EC[\,throw~V] &\reducesto& V~\Unit\\
   \slab{Capture} &
-     \splitter~f~g.\EC[g~V] &\reducesto& V~\cont_{\EC} \\
+     \splitter~throw~callpc.\EC[callpc~V] &\reducesto& V~\cont_{\EC} \\
   \slab{Resume}  & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
 

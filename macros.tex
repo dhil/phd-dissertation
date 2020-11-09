@@ -150,7 +150,7 @@
 %%
 %% Labels
 %%
-\newcommand{\slab}[1]{\textrm{#1}}
+\newcommand{\slab}[1]{\ensuremath{\mathsf{#1}}}
 \newcommand{\rulelabel}[2]{\ensuremath{\mathsf{#1\textrm{-}#2}}}
 \newcommand{\klab}[1]{\rulelabel{K}{#1}}
 \newcommand{\semlab}[1]{\rulelabel{S}{#1}}
@@ -440,8 +440,8 @@
 \newcommand{\fprompt}{\%}
 \newcommand{\splitter}{\keyw{splitter}}
 \newcommand{\J}{\keyw{J}}
-\newcommand{\FelleisenC}{\ensuremath{\mathcal{C}}}
-\newcommand{\FelleisenF}{\ensuremath{\mathcal{F}}}
+\newcommand{\FelleisenC}{\ensuremath{\keyw{C}}}
+\newcommand{\FelleisenF}{\ensuremath{\keyw{F}}}
 \newcommand{\cont}{\keyw{cont}}
 \newcommand{\Cont}{\dec{Cont}}
 \newcommand{\Algol}{Algol~60}
