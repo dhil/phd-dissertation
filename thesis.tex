@@ -829,8 +829,8 @@ the same.
     {\typ{\Gamma}{\Catch~k.M : A}}
 
   \inferrule*
-    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
-    {\typ{\Gamma}{\Continue~W~V : \Zero}}
+    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
+    {\typ{\Gamma}{\Continue~W~V : B}}
 \end{mathpar}
 %
 \begin{reductions}
@@ -871,8 +871,8 @@ particular higher-order function.
     {\typ{\Gamma}{\Callcc : (\Cont\,\Record{A;\Zero} \to A) \to A}}
 
   \inferrule*
-    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
-    {\typ{\Gamma}{\Continue~W~V : \Zero}}
+    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
+    {\typ{\Gamma}{\Continue~W~V : B}}
 \end{mathpar}
 %
 An invocation of $\Callcc$ returns a value of type $A$. This value can
@@ -931,8 +931,8 @@ $\Callcomc$ reflects.
     {\typ{\Gamma}{\Callcomc : (\Cont\,\Record{A;A} \to A) \to A}}
 
   \inferrule*
-    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;A}}}
-    {\typ{\Gamma}{\Continue~W~V : A}}
+    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
+    {\typ{\Gamma}{\Continue~W~V : B}}
 \end{mathpar}
 %
 Both the domain and codomain of the continuation are the same as the
@@ -950,7 +950,8 @@ The effect of continuation invocation can be understood locally as it
 does not erase the global evaluation context, but rather composes with
 it.
 %
-To make this more tangible consider the following example reduction sequence.
+To make this more tangible consider the following example reduction
+sequence.
 %
 \begin{derivation}
              &1 + \Callcomc\,(\lambda k. \Continue~k~(\Continue~k~0))\\
@@ -963,6 +964,12 @@ To make this more tangible consider the following example reduction sequence.
 \reducesto^+ & \reason{\slab{Resume} with $\EC[1]$}\\
              &1 + 2 \reducesto 3
 \end{derivation}
+%
+The operator reifies the current evaluation context as a continuation
+object and passes it to the function argument. The evaluation context
+is left in place. As a result an invocation of the continuation object
+has the effect of duplicating the context. In this particular example
+the context has been duplicated twice to produce the result $3$.
 %
 Contrast this result with the result obtained by using $\Callcc$.
 %
@@ -1001,37 +1008,48 @@ the base calculus nor $\Callcomc$ has the ability to discard an
 evaluation context.
 
 
-\paragraph{Felleisen's \FelleisenC{} and \FelleisenF{}}
+\paragraph{\FelleisenC{} and \FelleisenF{}}
+%
+The C operator is a variation of callcc, where capture mechanism
+aborts the current continuation after capture. It was introduced by
+\citeauthor{FelleisenFKD86} in two papers in
+1986~\cite{FelleisenF86,FelleisenFKD86}. The year after
+\citet{FelleisenFDM87} introduced the F operator which is a variation
+of C, where the captured continuation is composable.
+%
+\[
+  V,W \in \ValCat ::= \cdots \mid \FelleisenC \mid \FelleisenF
+\]
 %
 \begin{mathpar}
   \inferrule*
     {~}
-    {\typ{\Gamma}{\FelleisenC : (\Cont\,\Record{A;\Zero} \to B) \to A}}
+    {\typ{\Gamma}{\FelleisenC : (\Cont\,\Record{A;\Zero} \to A) \to A}}
 
-  \inferrule*
-    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
-    {\typ{\Gamma}{\Continue~W~V : \Zero}}
-\end{mathpar}
-%
-\begin{reductions}
-  \slab{Capture} &  \EC[\FelleisenC\,V] &\reducesto& V~\cont_{\EC}\\
-  \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
-\end{reductions}
-%
-\begin{mathpar}
   \inferrule*
     {~}
-    {\typ{\Gamma}{\FelleisenF : (\Cont\,\Record{A;B} \to B) \to B}}
-
-  \inferrule*
-    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
-    {\typ{\Gamma}{\Continue~W~V : B}}
+    {\typ{\Gamma}{\FelleisenF : (\Cont\,\Record{A;A} \to A) \to A}}
 \end{mathpar}
 %
 \begin{reductions}
-  \slab{Capture} &  \EC[\FelleisenF\,V] &\reducesto& V~\cont_{\EC}\\
-  \slab{Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
+  \slab{C\textrm{-}Capture} &  \EC[\FelleisenC\,V] &\reducesto& V~\cont_{\EC}\\
+  \slab{C\textrm{-}Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V] \medskip\\
+  \slab{F\textrm{-}Capture} &  \EC[\FelleisenF\,V] &\reducesto& V~\cont_{\EC}\\
+  \slab{F\textrm{-}Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
 \end{reductions}
+%
+Their capture rules are identical.
+%
+Whilst the static semantics of $\FelleisenF$ are similar to that of
+$\Callcomc$, their dynamic semantics differ. The former has the power
+to discard the current continuation upon capture built in.
+%
+\citet{FelleisenFDM87} show that $\FelleisenF$ can simulate
+$\FelleisenC$.
+%
+\[
+  \sembr{\FelleisenC} \defas \lambda m.\FelleisenF\,(\lambda k. m\,(\lambda v.\FelleisenF\,(\lambda\_.\Continue~k~v)))
+\]
 
 \paragraph{Landin's J operator}
 %
@@ -1177,7 +1195,7 @@ The operator control is a rebranding of Felleisen's F operator.
   \slab{Value} &
      \Prompt~V &\reducesto& V\\
   \slab{Capture} &
-     \Prompt~\EC[\Control~k.M] &\reducesto& \Prompt~M[\cont_{\EC}/k], \text{ where $\EC$ contains no \Prompt}\\
+     \Prompt~\EC[\Control~V] &\reducesto& \Prompt~(V~\cont_{\EC}), \text{ where $\EC$ contains no \Prompt}\\
   \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
 
