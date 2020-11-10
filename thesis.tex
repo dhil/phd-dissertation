@@ -892,8 +892,8 @@ recognise the object name of $\Callcc$). They are trivially
 macro-expressible.
 %
 \begin{equations}
-  \sembr{\Catch~k.M} &=& \Callcc\,(\lambda k.\sembr{M})\\
-  \sembr{\Callcc}    &=& \lambda f. \Catch~k.f\,k
+  \sembr{\Catch~k.M} &\defas& \Callcc\,(\lambda k.\sembr{M})\\
+  \sembr{\Callcc}    &\defas& \lambda f. \Catch~k.f\,k
 \end{equations}
 
 \paragraph{Call-with-composable-continuation} A variation of callcc is
@@ -922,7 +922,7 @@ Like $\Callcc$ this operator is a value.
   V,W \in \ValCat ::= \cdots \mid \Callcomc
 \]
 %
-Unlike $\Callcc$ the continuation returns, which the typing rule for
+Unlike $\Callcc$, the continuation returns, which the typing rule for
 $\Callcomc$ reflects.
 %
 \begin{mathpar}
@@ -935,22 +935,71 @@ $\Callcomc$ reflects.
     {\typ{\Gamma}{\Continue~W~V : A}}
 \end{mathpar}
 %
+Both the domain and codomain of the continuation are the same as the
+body type of function argument. The capture rule for $\Callcomc$ is
+identical to the rule for $\Callcomc$, but the resume rule is
+different.
+%
 \begin{reductions}
   \slab{Capture} &  \EC[\Callcomc~V] &\reducesto& \EC[V~\cont_{\EC}]\\
   % \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC[\EC'[V]]
   \slab{Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
 \end{reductions}
+%
+The effect of continuation invocation can be understood locally as it
+does not erase the global evaluation context, but rather composes with
+it.
+%
+To make this more tangible consider the following example reduction sequence.
+%
+\begin{derivation}
+             &1 + \Callcomc\,(\lambda k. \Continue~k~(\Continue~k~0))\\
+\reducesto^+ & \reason{\slab{Capture} $\EC = 1 + [~]$}\\
+%              &1 + ((\lambda k. \Continue~k~(\Continue~k~0))\,\cont_\EC)\\
+% \reducesto   & \reason{$\beta$-reduction}\\
+             &1 + (\Continue~\cont_\EC~(\Continue~\cont_\EC~0))\\
+\reducesto^+ & \reason{\slab{Resume} with $\EC[0]$}\\
+             &1 + (\Continue~\cont_\EC~1)\\
+\reducesto^+ & \reason{\slab{Resume} with $\EC[1]$}\\
+             &1 + 2 \reducesto 3
+\end{derivation}
+%
+Contrast this result with the result obtained by using $\Callcc$.
+%
+\begin{derivation}
+             &1 + \Callcc\,(\lambda k. \Absurd\;\Continue~k~(\Absurd\;\Continue~k~0))\\
+\reducesto^+ & \reason{\slab{Capture} $\EC = 1 + [~]$}\\
+%              &1 + ((\lambda k. \Continue~k~(\Continue~k~0))\,\cont_\EC)\\
+% \reducesto   & \reason{$\beta$-reduction}\\
+             &1 + (\Absurd\;\Continue~\cont_\EC~(\Absurd\;\Continue~\cont_\EC~0))\\
+\reducesto   & \reason{\slab{Resume} with $\EC[0]$}\\
+             &1\\
+\end{derivation}
+%
+The second invocation of $\cont_\EC$ never enters evaluation position,
+because the first invocation discards the entire evaluation context.
+%
+Our particular choice of syntax and static semantics already makes it
+immediately obvious that $\Callcc$ cannot be directly substituted for
+$\Callcomc$, and vice versa, in a way that preserves operational
+behaviour. % The continuations captured by the two operators behave
+% differently.
 
+An interesting question is whether $\Callcc$ and $\Callcomc$ are
+interdefinable. Presently, the literature does not seem to answer to
+this question. I conjecture that the operators exhibit essential
+differences, meaning they cannot encode each other.
 %
-\[
-  1 + \Callcomc\,(\lambda k. \Continue~k~(\Continue~k~0)) \reducesto 3
-\]
+The intuition behind this conjecture is that for any encoding of
+$\Callcomc$ in terms of $\Callcc$ must be able to preserve the current
+evaluation context, e.g. using a state cell akin to how
+\citet{Filinski94} encodes composable continuations using abortive
+continuations and state.
 %
-Contrast this result with
-%
-\[
-  1 + \Callcc\,(\lambda k. \Continue~k~(\Continue~k~0)) \reducesto 1
-\]
+The other way around also appears to be impossible, because neither
+the base calculus nor $\Callcomc$ has the ability to discard an
+evaluation context.
+
 
 \paragraph{Felleisen's \FelleisenC{} and \FelleisenF{}}
 %
@@ -998,12 +1047,12 @@ the correspondence between labels and J.
 %
 \[
   \ba{@{}l@{~}l}
-    &\sembr{\keyw{begin}\;s_1;\;\keyw{goto}\;L;\;L:\,s_2\;\keyw{end}}\\
-    =& \lambda\Unit.\Let\;L \revto \J\,\sembr{s_2}\;\In\;\Let\;\Unit \revto \sembr{s_1}\,\Unit\;\In\;\Continue~L\,\Unit
+    &\mathcal{S}\sembr{\keyw{begin}\;s_1;\;\keyw{goto}\;L;\;L:\,s_2\;\keyw{end}}\\
+    =& \lambda\Unit.\Let\;L \revto \J\,\mathcal{S}\sembr{s_2}\;\In\;\Let\;\Unit \revto \mathcal{S}\sembr{s_1}\,\Unit\;\In\;\Continue~L\,\Unit
   \ea
 \]
 %
-Here $\sembr{-}$ denotes the translation of statements. In the image,
+Here $\mathcal{S}\sembr{-}$ denotes the translation of statements. In the image,
 the label $L$ manifests as an application of $\J$ and the
 $\keyw{goto}$ manifests as an application of continuation captured by
 $\J$.
@@ -1094,7 +1143,7 @@ Let us end by remarking that the J operator is expressive enough to
 encode a familiar control operator like $\Callcc$.
 %
 \[
-  \Callcc \defas \lambda f. f\,(\J\,(\lambda x.x))
+  \sembr{\Callcc} \defas \lambda f. f\,(\J\,(\lambda x.x))
 \]
 %
 
