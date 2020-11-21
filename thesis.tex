@@ -1085,7 +1085,9 @@ form.
 The previous example hints at the fact that the J operator is quite
 different to the previously considered undelimited control operators
 in that the captured continuation is \emph{not} the current
-continuation, but rather, the continuation of the caller.
+continuation, but rather, the continuation of statically enclosing
+$\lambda$-abstraction. In other words, $\J$ provides access to the
+continuation of its the caller.
 %
 To this effect, the continuation object produced by an application of
 $\J$ may be thought of as a first-class variation of the return
@@ -1111,30 +1113,33 @@ the application becomes the return value of $\dec{f}$, e.g.
   \dec{f}~(\lambda return.\Continue~return~\False) \reducesto^+ \False
 \]
 %
-The function argument provided to $\J$ can intuitively be thought of
-as the expression attached to a return statement in a
-statement-oriented language.
+The function argument gets post-composed with the continuation of the
+calling context.
 %
+The particular application $\J\,(\lambda x.x)$ is so idiomatic that it
+has its own name: $\JI$, where $\keyw{I}$ is the identity function.
 
 Clearly, the return type of a continuation object produced by an $\J$
-application must be the same as the caller of $\J$. Therefore to track
-the caller type we make use of an additional ordered context
-$\Delta$. This context is extended by the typing rule for
-$\lambda$-abstraction, and its contents are used by the typing rule
-for $\J$-applications.
+application must be the same as the caller of $\J$. Thus to type $\J$
+we must track the type of calling context. Formally, we track the type
+of the context by extending the typing judgement relation with an
+additional singleton context $\Delta$. This context is modified by the
+typing rule for $\lambda$-abstraction and used by the typing rule for
+$\J$-applications. This is similar to type checking of return
+statements in statement-oriented programming languages.
 %
 \begin{mathpar}
   \inferrule*
-    {\typ{\Gamma,x:A;B \cons \Delta}{M : B}}
+    {\typ{\Gamma,x:A;B}{M : B}}
     {\typ{\Gamma;\Delta}{\lambda x.M : A \to B}}
 
   \inferrule*
     {~}
-    {\typ{\Gamma;B \cons \Delta}{\J : (A \to B) \to \Cont\,\Record{A;B}}}
+    {\typ{\Gamma;B}{\J : (A \to B) \to \Cont\,\Record{A;B}}}
 
-  \inferrule*
-    {\typ{\Gamma;\Delta}{V : A} \\ \typ{\Gamma;\Delta}{W : \Cont\,\Record{A;B}}}
-    {\typ{\Gamma;\Delta}{\Continue~W~V : B}}
+  % \inferrule*
+  %   {\typ{\Gamma;\Delta}{V : A} \\ \typ{\Gamma;\Delta}{W : \Cont\,\Record{A;B}}}
+  %   {\typ{\Gamma;\Delta}{\Continue~W~V : B}}
 \end{mathpar}
 %
 Any meaningful applications of $\J$ must appear under a
@@ -1149,22 +1154,47 @@ annotate the evaluation contexts for ordinary applications.
 \end{reductions}
 %
 The $\slab{Capture}$ rule only applies if the application of $\J$
-takes place in annotated evaluation context. The continuation object
-produced by a $\J$ application encompasses the caller's continuation
-$\EC_\lambda$ and the value argument $W$.
+takes place inside an annotated evaluation context. The continuation
+object produced by a $\J$ application encompasses the caller's
+continuation $\EC_\lambda$ and the value argument $W$.
 %
 This continuation object may be invoked in \emph{any} context. An
 invocation discards the current continuation $\EC$ and installs $\EC'$
 instead with the $\J$-argument $W$ applied to the value $V$.
 
-Let us end by remarking that the J operator is expressive enough to
-encode a familiar control operator like $\Callcc$.
+\citeauthor{Landin98} and \citeauthor{Thielecke02} noticed that $\J$
+can be recovered from the special form
+$\JI$~\cite{Thielecke02}. Taking $\JI$ to be a primitive, we can
+translate $\J$ to a language with $\JI$ as follows.
 %
 \[
-  \sembr{\Callcc} \defas \lambda f. f\,(\J\,(\lambda x.x))
+  \sembr{\J} \defas (\lambda k.\lambda f.\lambda x.\Continue\;k\,(f\,x))\,(\JI)
 \]
 %
+Strictly speaking in our setting this encoding is not faithful,
+because we do not treat continuations as first-class functions,
+meaning the types are not going to match up. An application of the
+left hand side returns a continuation object, whereas an application
+of the right hand side returns a continuation function.
 
+Let us end by remarking that the J operator is expressive enough to
+encode a familiar control operator like $\Callcc$~\cite{Thielecke98}.
+%
+\[
+  \sembr{\Callcc} \defas \lambda f. f\,\JI
+\]
+%
+\citet{Felleisen87b} has shown that the J operator can be
+syntactically embedded using callcc.
+%
+% \[
+%   \sembr{\lambda x.M} \defas \lambda x.\Callcc\,(\lambda k.\sembr{M}[\J \mapsto \lambda f. k\,f])
+% \]
+% \[
+%   \sembr{\J} \defas \lambda k.\Callcc\,(\lambda d.\Continue~k~(\lambda x.\lambda 
+% \]
+% %
+% \dhil{The types do not match up.}
 
 \subsection{Delimited operators}
 Delimited control: Control delimiters form the basis for delimited
