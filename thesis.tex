@@ -15,6 +15,7 @@
 \usepackage{amssymb}          % Provides math fonts
 \usepackage{amsthm}           % Provides \newtheorem, \theoremstyle, etc.
 \usepackage{mathtools}
+\usepackage{bm}
 \usepackage{pkgs/mathpartir}  % Inference rules
 \usepackage{pkgs/mathwidth}
 \usepackage{stmaryrd}         % semantic brackets
@@ -511,7 +512,7 @@ handlers.
 
 \subsection{Monadic reflection: best of both worlds}
 
-\chapter{Controlling continuations}
+\chapter{Continuations}
 \label{ch:continuations}
 % The significance of continuations in the programming languages
 % literature is inescapable as continuations have found widespread use .
@@ -567,7 +568,7 @@ the translation preserve typeability.
 \citet{Shan04} shows that dynamic delimited control and static
 delimited control is macro-expressible in an untyped setting.
 
-\section{Notions of continuations}
+\section{Classifying continuations}
 
 % \citeauthor{Reynolds93} has written a historical account of the
 % various early discoveries of continuations~\cite{Reynolds93}.
@@ -674,7 +675,7 @@ continuations, composable continuations.
 
 Downward and upward use of continuations.
 
-\section{First-class control operators}
+\section{Controlling continuations}
 Table~\ref{tbl:classify-ctrl} provides a classification of a
 non-exhaustive list of first-class control operators.
 
@@ -1016,11 +1017,16 @@ aborts the current continuation after capture. It was introduced by
 1986~\cite{FelleisenF86,FelleisenFKD86}. The year after
 \citet{FelleisenFDM87} introduced the F operator which is a variation
 of C, where the captured continuation is composable.
+
+Both operators are values.
 %
 \[
   V,W \in \ValCat ::= \cdots \mid \FelleisenC \mid \FelleisenF
 \]
 %
+The static semantics of $\FelleisenC$ are the same as $\Callcc$,
+whilst the static semantics of $\FelleisenF$ are the same as
+$\Callcomc$.
 \begin{mathpar}
   \inferrule*
     {~}
@@ -1031,6 +1037,8 @@ of C, where the captured continuation is composable.
     {\typ{\Gamma}{\FelleisenF : (\Cont\,\Record{A;A} \to A) \to A}}
 \end{mathpar}
 %
+The dynamic semantics of $\FelleisenC$ and $\FelleisenF$ also differ.
+%
 \begin{reductions}
   \slab{C\textrm{-}Capture} &  \EC[\FelleisenC\,V] &\reducesto& V~\cont_{\EC}\\
   \slab{C\textrm{-}Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V] \medskip\\
@@ -1038,18 +1046,25 @@ of C, where the captured continuation is composable.
   \slab{F\textrm{-}Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
 \end{reductions}
 %
-Their capture rules are identical.
+Their capture rules are identical. Both operators abort the current
+continuation upon capture. This is what set $\FelleisenF$ apart from
+the other composable control operator $\Callcomc$.
 %
-Whilst the static semantics of $\FelleisenF$ are similar to that of
-$\Callcomc$, their dynamic semantics differ. The former has the power
-to discard the current continuation upon capture built in.
-%
+The resume rules of $\FelleisenC$ and $\FelleisenF$ show the
+difference between the two operators. The $\FelleisenC$ operator
+aborts the current continuation and reinstall the then-current
+continuation just like $\Callcc$, whereas the resumption of a
+continuation captured by $\FelleisenF$ composes the current
+continuation with the then-current continuation.
+
 \citet{FelleisenFDM87} show that $\FelleisenF$ can simulate
 $\FelleisenC$.
 %
 \[
   \sembr{\FelleisenC} \defas \lambda m.\FelleisenF\,(\lambda k. m\,(\lambda v.\FelleisenF\,(\lambda\_.\Continue~k~v)))
 \]
+%
+\citet{FelleisenFDM87} also postulate that $\FelleisenC$ cannot express $\FelleisenF$.
 
 \paragraph{Landin's J operator}
 %
@@ -1153,6 +1168,8 @@ annotate the evaluation contexts for ordinary applications.
   \slab{Resume}    & \EC[\Continue~\cont_{\Record{\EC';W}}\,V]  &\reducesto& \EC'[W\,V]
 \end{reductions}
 %
+\dhil{The continuation object should have time $\Cont\,\Record{A;\Zero}$}
+%
 The $\slab{Capture}$ rule only applies if the application of $\J$
 takes place inside an annotated evaluation context. The continuation
 object produced by a $\J$ application encompasses the caller's
@@ -1187,39 +1204,111 @@ encode a familiar control operator like $\Callcc$~\cite{Thielecke98}.
 \citet{Felleisen87b} has shown that the J operator can be
 syntactically embedded using callcc.
 %
-% \[
-%   \sembr{\lambda x.M} \defas \lambda x.\Callcc\,(\lambda k.\sembr{M}[\J \mapsto \lambda f. k\,f])
-% \]
-% \[
-%   \sembr{\J} \defas \lambda k.\Callcc\,(\lambda d.\Continue~k~(\lambda x.\lambda 
-% \]
+\[
+  \sembr{\lambda x.M} \defas \lambda x.\Callcc\,(\lambda k.\sembr{M}[\J \mapsto \lambda f.\lambda y. \Continue~k~(f\,y)])
+\]
 % %
-% \dhil{The types do not match up.}
+\dhil{I am sort of torn between whether to treat continuations as
+  first-class functions\dots}
 
 \subsection{Delimited operators}
-Delimited control: Control delimiters form the basis for delimited
-control. \citeauthor{Felleisen88} introduced control delimiters in
-1988, although allusions to control delimiters were made a year
-earlier by \citet{FelleisenFDM87} and in \citeauthor{Felleisen87}'s
-PhD dissertation~\cite{Felleisen87}. The basic idea was teased even
-earlier in \citeauthor{Talcott85}'s teased the idea of control
-delimiters in her PhD dissertation~\cite{Talcott85}.
 %
-Common Lisp resumable exceptions (condition system)~\cite{Steele90},
-F~\cite{FelleisenFDM87,Felleisen88}, control/prompt~\cite{SitaramF90},
-shift/reset~\cite{DanvyF89,DanvyF90}, splitter~\cite{QueinnecS91},
-fcontrol~\cite{Sitaram93}, catchcont~\cite{LongleyW08}, effect
-handlers~\cite{PlotkinP09}.
-
-Comparison of various delimited control
-operators~\cite{Shan04}. Simulation of delimited control using
-undelimited control~\cite{Filinski94}
-
-%\paragraph{Felleisen's F and prompt}
-
-\paragraph{Control/prompt}
+A delimited control operator captures only a designated segment of the
+evaluation stack. Typically, a delimited control operator is a pair
+consisting of a \emph{delimiter} and \emph{capture operation}. The
+delimiter delimits the extent of the continuation captured by the
+capture operation.
 %
-The operator control is a rebranding of Felleisen's F operator.
+The first delimited control operator was introduced by
+\citet{Felleisen88} with prompt and control, where prompt is the
+delimiter and control is the capture operation. Shortly after
+\citet{DanvyF89} introduced their shift and reset as an alternative
+capture operation and delimiter, respectively. Since then a whole
+variety of delimited control operators have been invented.
+
+% Delimited control: Control delimiters form the basis for delimited
+% control. \citeauthor{Felleisen88} introduced control delimiters in
+% 1988, although allusions to control delimiters were made a year
+% earlier by \citet{FelleisenFDM87} and in \citeauthor{Felleisen87}'s
+% PhD dissertation~\cite{Felleisen87}. The basic idea was teased even
+% earlier in \citeauthor{Talcott85}'s teased the idea of control
+% delimiters in her PhD dissertation~\cite{Talcott85}.
+% %
+% Common Lisp resumable exceptions (condition system)~\cite{Steele90},
+% F~\cite{FelleisenFDM87,Felleisen88}, control/prompt~\cite{SitaramF90},
+% shift/reset~\cite{DanvyF89,DanvyF90}, splitter~\cite{QueinnecS91},
+% fcontrol~\cite{Sitaram93}, catchcont~\cite{LongleyW08}, effect
+% handlers~\cite{PlotkinP09}.
+
+% Comparison of various delimited control
+% operators~\cite{Shan04}. Simulation of delimited control using
+% undelimited control~\cite{Filinski94}
+
+\paragraph{\citeauthor{Felleisen88}'s control and prompt}
+%
+Control and prompt were introduced by \citeauthor{Felleisen88} in
+1988~\cite{Felleisen88}.  The capture operation `control' is a
+rebranding of the F operator. Although, the name `control' was first
+introduced a little later by \citet{SitaramF90}.  A prompt acts as a
+control-flow barrier that delimits different parts of a program,
+enabling programmers to manipulate and reason about control locally in
+different parts of a program. The name `prompt' is intended to draw
+connections to shell prompts, and how they act as barriers between the
+user and operating system.
+%
+
+A prompt is a computation form, whilst control is a value.
+%
+\begin{syntax}
+    &V,W \in \ValCat  &::=& \cdots \mid \Control\\
+    &M,W \in \CompCat &::=& \cdots \mid \Prompt~M
+\end{syntax}
+%
+A prompt is written using the sharp ($\Prompt$) symbol. An application
+of $\Control$ reifies the current continuation up to the nearest,
+dynamically determined, enclosing $\Prompt$.
+%
+The prompt remains in place after the reification, and thus any
+subsequent application of $\Control$ will be delimited by the same
+prompt.
+%
+\citeauthor{Felleisen88}'s original treatment of control and prompt
+was untyped. Typing them, particularly using a simple type system,
+affect their expressivity, because the type of the continuation object
+produced by $\Control$ must be compatible with the type of its nearest
+enclosing prompt -- this type is often called the \emph{answer} type
+(this terminology is adopted from typed continuation passing style
+transforms, where the codomain of every function is transformed to
+yield the type of whatever answer the entire program
+yields~\cite{MeyerW85}).
+%
+\dhil{Give intuition for why soundness requires the answer type to be fixed.}
+%
+
+In the static semantics we extend the typing judgement relation to
+contain an up front fixed answer type $A$.
+%
+\begin{mathpar}
+  \inferrule*
+    {\typ{\Gamma;A}{M : A}}
+    {\typ{\Gamma;A}{\Prompt~M : A}}
+
+  \inferrule*
+    {~}
+    {\typ{\Gamma;A}{\Control : (\Cont\,\Record{A;A} \to A) \to A}}
+\end{mathpar}
+%
+A prompt has the same type as its computation constituent, which in
+turn must have the same type as fixed answer type.
+%
+Similarly, the type of $\Control$ is governed by the fixed answer
+type. Discarding the answer type reveals that $\Control$ has the same
+typing judgement as $\FelleisenF$.
+%
+
+The dynamic semantics for control and prompt consist of three rules:
+1) to handle return through a prompt, 2) continuation capture, and 3)
+continuation invocation.
 %
 \begin{reductions}
   \slab{Value} &
@@ -1228,7 +1317,23 @@ The operator control is a rebranding of Felleisen's F operator.
      \Prompt~\EC[\Control~V] &\reducesto& \Prompt~(V~\cont_{\EC}), \text{ where $\EC$ contains no \Prompt}\\
   \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
+%
+The \slab{Value} rule accounts for the case when the computation
+constituent of $\Prompt$ has been reduced to a value, in which case
+the prompt is removed and the value is returned.
+%
+The \slab{Capture} rule states that an application of $\Control$
+captures the current continuation up to the nearest enclosing
+prompt. The current continuation (up to the nearest prompt) is also
+aborted. If we erase $\Prompt$ from the rule, then it is clear that
+$\Control$ has the same dynamic behaviour as $\FelleisenF$.
+%
+It is evident from the \slab{Resume} rule that control and prompt are
+an instance of a dynamic control operator, because resuming the
+continuation object produced by $\Control$ does not insert a new
+prompt.
 
+\dhil{Multi-prompts: more liberal typing, no interference}
 
 \paragraph{Cupto}
 %
@@ -1242,50 +1347,7 @@ The operator control is a rebranding of Felleisen's F operator.
   \slab{Resume} & \Continue~\cont_{\EC}~V, \rho &\reducesto& \EC[V], \rho
 \end{reductions}
 
-\paragraph{Effect handlers}
-%
-\begin{reductions}
-  \slab{Value}    & \Handle\; V \;\With\;H   &\reducesto& M[V/x], \text{ where } \{\Return\;x \mapsto M\} \in H\\
-  \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\cont_{\Record{\EC;H}}/k],\\
-  \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
-  \slab{Resume}   & \Continue~\cont_{\Record{\EC;H}}~V &\reducesto& \Handle\;\EC[V]\;\With\;H\\
-\end{reductions}
-%
-\begin{reductions}
-  \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\cont_{\EC}/k],\\
-  \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
-  \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]\\
-\end{reductions}
-%
-
-\paragraph{Sitaram's fcontrol}
-%
-\begin{reductions}
-  \slab{Value} &
-     \fprompt~V.W &\reducesto& W\\
-  \slab{Capture} &
-     \fprompt~V.\EC[\fcontrol~W] &\reducesto& V~W~\cont_{\EC}, \text{ where $\EC$ contains no \fprompt}\\
-  \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
-\end{reductions}
-%
-
-\paragraph{Longley's catch-with-continue}
-%
-\begin{mathpar}
-  \inferrule*
-    {\typ{\Gamma, f : A \to B}{M : C \times D} \\ \Ground\;C}
-    {\typ{\Gamma}{\Catchcont\;f.M : C \times ((A \to B) \to D) + (A \times (B \to (A \to B) \to C \times D))}}
-\end{mathpar}
-%
-\begin{reductions}
-  \slab{Value} &
-     \Catchcont \; f . \Record{V;W} &\reducesto& \Inl\; \Record{V;\lambda\,f. W}\\
-  \slab{Capture} &
-     \Catchcont \; f .\EC[\,f\,V]   &\reducesto& \Inr\; \Record{V; \lambda x. \lambda f. \Continue~\cont_{\EC}~x}\\
-  \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
-\end{reductions}
-
-\paragraph{Shift/reset}
+\paragraph{\citeauthor{DanvyF90}'s shift and reset}
 %
 \begin{reductions}
   \slab{Value}    & \reset{V}               &\reducesto& V\\
@@ -1303,16 +1365,96 @@ The operator control is a rebranding of Felleisen's F operator.
 \end{reductions}
 %
 
-\paragraph{Splitter}
+\paragraph{\citeauthor{PlotkinP09}'s effect handlers}
+%
 \begin{reductions}
-  \slab{Throw}   & \splitter~throw~callpc.\EC[\,throw~V] &\reducesto& V~\Unit\\
+  \slab{Value}    & \Handle\; V \;\With\;H   &\reducesto& M[V/x], \text{ where } \{\Return\;x \mapsto M\} \in H\\
+  \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\cont_{\Record{\EC;H}}/k],\\
+  \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
+  \slab{Resume}   & \Continue~\cont_{\Record{\EC;H}}~V &\reducesto& \Handle\;\EC[V]\;\With\;H\\
+\end{reductions}
+%
+\begin{reductions}
+  \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\cont_{\EC}/k],\\
+  \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
+  \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]\\
+\end{reductions}
+%
+
+Deep handlers can be used to simulate shift and reset.
+%
+\begin{equations}
+  \sembr{\shift} &\defas& \lambda f. \Do\;\shift~f\\
+  \sembr{\reset{M}} &\defas&
+              \ba[t]{@{~}l}\Handle\;m\,\Unit\;\With\\
+                  ~\ba{@{~}l@{~}c@{~}l}
+                      \Return\;x &\mapsto& x\\
+                      \OpCase{\dec{Shift}}{f}{k} &\mapsto& f\,(\lambda x. \Continue~k~x)
+                   \ea
+              \ea
+\end{equations}
+%
+
+Shallow handlers can be used to simulate prompt and control.
+%
+\begin{equations}
+  \sembr{\Control} &\defas& \lambda f. \Do\;\dec{Control}~f\\
+  \sembr{\Prompt~M} &\defas&
+     \bl
+       prompt\,(\lambda\Unit.M)\\
+       \textbf{where}\;
+         \bl
+            prompt~m \defas
+              \ba[t]{@{~}l}\ShallowHandle\;m\,\Unit\;\With\\
+                  ~\ba{@{~}l@{~}c@{~}l}
+                      \Return\;x &\mapsto& x\\
+                      \OpCase{\dec{Control}}{f}{k} &\mapsto& prompt\,(\lambda\Unit.f\,(\lambda x. \Continue~k~x))
+                   \ea
+              \ea
+          \el
+      \el
+\end{equations}
+%
+%Recursive types are required to type the image of this translation
+
+\paragraph{\citeauthor{Sitaram93}'s fcontrol}
+%
+\begin{reductions}
+  \slab{Value} &
+     \fprompt~V.W &\reducesto& W\\
   \slab{Capture} &
-     \splitter~throw~callpc.\EC[callpc~V] &\reducesto& V~\cont_{\EC} \\
+     \fprompt~V.\EC[\fcontrol~W] &\reducesto& V~W~\cont_{\EC}, \text{ where $\EC$ contains no \fprompt}\\
+  \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
+\end{reductions}
+%
+
+\paragraph{\citeauthor{Longley09}'s catch-with-continue}
+%
+\begin{mathpar}
+  \inferrule*
+    {\typ{\Gamma, f : A \to B}{M : C \times D} \\ \Ground\;C}
+    {\typ{\Gamma}{\Catchcont\;f.M : C \times ((A \to B) \to D) + (A \times (B \to (A \to B) \to C \times D))}}
+\end{mathpar}
+%
+\begin{reductions}
+  \slab{Value} &
+     \Catchcont \; f . \Record{V;W} &\reducesto& \Inl\; \Record{V;\lambda\,f. W}\\
+  \slab{Capture} &
+     \Catchcont \; f .\EC[\,f\,V]   &\reducesto& \Inr\; \Record{V; \lambda x. \lambda f. \Continue~\cont_{\EC}~x}\\
+  \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
+\end{reductions}
+
+\paragraph{\citeauthor{QueinnecS91}'s splitter}
+\begin{reductions}
+  \slab{Throw}   & \splitter~throw~calldc.\EC[\,throw~V] &\reducesto& V~\Unit\\
+  \slab{Capture} &
+     \splitter~throw~calldc.\EC[calldc~V] &\reducesto& V~\cont_{\EC} \\
   \slab{Resume}  & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
 
 
-\paragraph{Spawn/controller}
+\paragraph{Spawn}
+\dhil{TODO}
 
 \subsection{Second-class control operators}
 Coroutines, async/await, generators/iterators, amb.

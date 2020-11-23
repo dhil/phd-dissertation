@@ -437,7 +437,11 @@
 \newcommand{\Prompt}{\#}
 \newcommand{\Escape}{\keyw{escape}}
 \newcommand{\shift}{\ensuremath{\mathcal{S}}}
-\newcommand{\reset}[1]{\ensuremath{\langle #1 \rangle}}
+\def\sigh#1{%
+\pmb{\left\langle\vphantom{#1}\right.}%
+#1%
+\pmb{\left.\vphantom{#1}\right\rangle}}
+\newcommand{\reset}[1]{\pmb{\langle} #1 \pmb{\rangle}}
 \newcommand{\fcontrol}{\keyw{fcontrol}}
 \newcommand{\fprompt}{\%}
 \newcommand{\splitter}{\keyw{splitter}}
