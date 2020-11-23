@@ -1341,9 +1341,57 @@ $\Control$ has the same dynamic behaviour as $\FelleisenF$.
 %
 It is evident from the \slab{Resume} rule that control and prompt are
 an instance of a dynamic control operator, because resuming the
-continuation object produced by $\Control$ does not insert a new
+continuation object produced by $\Control$ does not install a new
 prompt.
 
+To illustrate $\Prompt$ and $\Control$ in action, let us consider a
+few simple examples.
+%
+\begin{derivation}
+  & 1 + \Prompt~2 + \Control\,(\lambda k.\Continue~k~(\Continue~k~0))\\
+  \reducesto^+& \reason{Capture $\EC = 2 + [\,]$}\\
+  & 1 + \Prompt~(\lambda k.\Continue~k~(\Continue~k~0))\,\cont_{2 + [\,]}\\
+  \reducesto  & \reason{$\beta$-reduction}\\
+  & 1 + \Prompt~\Continue~\cont_{2+[\,]}~(\Continue~\cont_{2 + [\,]}~0)\\
+  \reducesto & \reason{Resume with 0}\\
+  & 1 + \Prompt~\Continue~\cont_{2+[\,]}~(2 + 0)\\
+  \reducesto^+ & \reason{Resume with 2}\\
+  & 1 + \Prompt~2 + 2\\
+  \reducesto^+ & \reason{\slab{Value} rule}\\
+  & 1 + 4 \reducesto 5
+\end{derivation}
+%
+The continuation captured by the application of $\Control$ is
+oblivious to the continuation $1 + [\,]$ of $\Prompt$. Since the
+captured continuation is composable it returns to its call site. The
+first invocation of $k$ returns the value 2, which is provided as the
+argument to the second invocation of $k$, resulting in the value
+$4$. The prompt gets eliminated after its computation constituent has
+been fully reduced. Technically, the prompt is eliminated by applying
+the continuation of $\Prompt$ with the value $4$.
+
+Let us consider a slight variation of the previous example.
+%
+\begin{derivation}
+  & 1 + \Prompt~2 + \Control\,(\lambda k.\Continue~k~0) + \Control\,(\lambda k'. 0)\\
+  \reducesto^+& \reason{Capture $\EC = 2 + [\,] + \Control\,(\lambda k'.0)$}\\
+  & 1 + \Prompt~\Continue~\cont_{\EC}~0\\
+  \reducesto & \reason{Resume with 0}\\
+  & 1 + \Prompt~2 + 0 + \Control\,(\lambda k'. 0)\\
+  \reducesto^+ & \reason{Capture $\EC' = 2 + [\,]$}\\
+  & 1 + \Prompt~0 \\
+  \reducesto & \reason{\slab{Value} rule}\\
+  & 1 + 0 \reducesto 1
+\end{derivation}
+%
+The continuation captured by the first application of $\Control$
+contains another application of $\Control$. The application of the
+continuation immediate reinstates the captured context filling the
+hole left by the first instance of $\Control$ with the value $0$. The
+second application of $\Control$ captures the remainder of the
+computation of to $\Prompt$. However, the captured context gets
+discarded, because the continuation $k'$ is never invoked.
+%
 \dhil{Multi-prompts: more liberal typing, no interference}
 
 \paragraph{Cupto}
