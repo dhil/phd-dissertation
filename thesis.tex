@@ -721,17 +721,28 @@ non-exhaustive list of first-class control operators.
 
 \subsection{Undelimited operators}
 %
-The J operator was unveiled by Peter Landin in 1965~\cite{Landin98},
-making it the \emph{first} first-class control operator. A while after
-John \citeauthor{Reynolds98a} invented the escape operator which was
-influenced by the J operator~\cite{Reynolds98a}. Then came
-\citeauthor{SussmanS75}'s catch operator, and thereafter callcc
-appeared. Later another batch of control operators based on callcc
-appeared. However, common for all of the early operators is that their
-captured continuations have undelimited extent and exhibit abortive
-behaviour. Moreover, save for Landin's J operator they all capture the
-current continuation. Interestingly the three operators escape, catch,
-and callcc turned out to be essentially the same operator.
+The early inventions of undelimited control operators were driven by
+the desire to provide a `functional' equivalent of jumps as provided
+by the infamous goto in imperative programming.
+%
+
+In 1965 Peter \citeauthor{Landin65} unveiled \emph{first} first-class
+control operator: the J
+operator~\cite{Landin65,Landin65a,Landin98}. Later in 1972 influenced
+by \citeauthor{Landin65}'s J operator John \citeauthor{Reynolds98a}
+designed the escape operator~\cite{Reynolds98a}. Influenced by escape,
+\citeauthor{SussmanS75} designed, implemented, and standardised the
+catch operator in Scheme in 1975. A while thereafter the perhaps most
+famous undelimited control operator appeared: callcc. It initially
+designed in 1982 and was standardised in 1985 as a core feature of
+Scheme. Later another batch of control operators based on callcc
+appeared. A common characteristic of the early control operators is
+that their capture mechanisms were abortive and their captured
+continuations were abortive, save for one, namely,
+\citeauthor{Felleisen88}'s F operator. Later a non-abortive and
+composable variant of callcc appeared. Moreover, every operator,
+except for \citeauthor{Landin98}'s J operator, capture the current
+continuation.
 
 \paragraph{Reynolds' escape} The escape operator was introduced by
 \citeauthor{Reynolds98a} in 1972~\cite{Reynolds98a} to make
@@ -783,9 +794,9 @@ continuation is abortive.
     {\typ{\Gamma,k : \Cont\,\Record{A;\Zero}}{M : A}}
     {\typ{\Gamma}{\Escape\;k\;\In\;M : A}}
 
-  \inferrule*
-    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
-    {\typ{\Gamma}{\Continue~W~V : \Zero}}
+  % \inferrule*
+  %   {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
+  %   {\typ{\Gamma}{\Continue~W~V : \Zero}}
 \end{mathpar}
 %
 The return type of the continuation object can be taken as a telltale
@@ -829,9 +840,9 @@ the same.
     {\typ{\Gamma,k : \Cont\,\Record{A;\Zero}}{M : A}}
     {\typ{\Gamma}{\Catch~k.M : A}}
 
-  \inferrule*
-    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
-    {\typ{\Gamma}{\Continue~W~V : B}}
+  % \inferrule*
+  %   {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
+  %   {\typ{\Gamma}{\Continue~W~V : B}}
 \end{mathpar}
 %
 \begin{reductions}
@@ -871,9 +882,9 @@ particular higher-order function.
     {~}
     {\typ{\Gamma}{\Callcc : (\Cont\,\Record{A;\Zero} \to A) \to A}}
 
-  \inferrule*
-    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
-    {\typ{\Gamma}{\Continue~W~V : B}}
+  % \inferrule*
+  %   {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
+  %   {\typ{\Gamma}{\Continue~W~V : B}}
 \end{mathpar}
 %
 An invocation of $\Callcc$ returns a value of type $A$. This value can
