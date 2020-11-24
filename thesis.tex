@@ -568,6 +568,42 @@ the translation preserve typeability.
 \citet{Shan04} shows that dynamic delimited control and static
 delimited control is macro-expressible in an untyped setting.
 
+\paragraph{A language for understanding control}
+%
+To look at control we will a simply typed fine-grain call-by-value
+calculus. The calculus is essentially the same as the one used in
+Chapter~\ref{ch:handlers-efficiency}, except that here we will have an
+explicit invocation form for continuations. Although, in practice most
+systems disguise continuations as first-class functions, but for a
+theoretical examination it is convenient to treat them specially such
+that continuation invocation is a separate reduction rule from
+ordinary function application. Figure~\ref{fig:pcf-lang-control}
+depicts the syntax of types and terms in the calculus.
+%
+\begin{figure}
+  \centering
+\begin{syntax}
+  \slab{Types}        & A,B &::=& \UnitType \mid \Zero \mid A \to B \mid A + B \mid A \times B \mid \Cont\,\Record{A;B} \smallskip\\
+  \slab{Values}       & V,W &::=& x \mid \lambda x^A.M \mid V + W \mid \Record{V;W} \mid \Unit \mid \cont_\EC\\
+  \slab{Computations} & M,N &::=& \Return\;V \mid \Let\;x \revto M \;\In\;N \mid \Let \Record{x;y} = V \;\In\; N \\
+                       &     &\mid& \Absurd^A\;V \mid V\,W \mid \Continue~V~W \smallskip\\
+  \slab{Evaluation\textrm{ }contexts} & \EC &::=& [\,] \mid \Let\;x \revto \EC \;\In\;N
+\end{syntax}
+\caption{Types and term syntax}\label{fig:pcf-lang-control}
+\end{figure}
+%
+The types are the standard simple types with the addition of the empty
+type $\Zero$ and the continuation object type $\Cont\,\Record{A;B}$,
+which is parameterised by an argument type and a result type,
+respectively. The static semantics is standard as well, except for the
+continuation invocation primitive $\Continue$.
+%
+\begin{mathpar}
+    \inferrule*
+    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
+    {\typ{\Gamma}{\Continue~W~V : B}}
+\end{mathpar}
+
 \section{Classifying continuations}
 
 % \citeauthor{Reynolds93} has written a historical account of the
@@ -678,7 +714,7 @@ Downward and upward use of continuations.
 \section{Controlling continuations}
 Table~\ref{tbl:classify-ctrl} provides a classification of a
 non-exhaustive list of first-class control operators.
-
+%
 \begin{table}
   \centering
   \begin{tabular}{| l | l | l | l |}
@@ -718,8 +754,9 @@ non-exhaustive list of first-class control operators.
   \end{tabular}
   \caption{Classification of first-class sequential control operators.}\label{tbl:classify-ctrl}
 \end{table}
+%
 
-\subsection{Undelimited operators}
+\subsection{Undelimited control operators}
 %
 The early inventions of undelimited control operators were driven by
 the desire to provide a `functional' equivalent of jumps as provided
@@ -744,7 +781,7 @@ composable variant of callcc appeared. Moreover, every operator,
 except for \citeauthor{Landin98}'s J operator, capture the current
 continuation.
 
-\paragraph{Reynolds' escape} The escape operator was introduced by
+\paragraph{\citeauthor{Reynolds98a}' escape} The escape operator was introduced by
 \citeauthor{Reynolds98a} in 1972~\cite{Reynolds98a} to make
 statement-oriented control mechanisms such as jumps and labels
 programmable in an expression-oriented language.
@@ -817,7 +854,7 @@ plugged into the context. The \slab{Resume} discards the current
 context $\EC$ and installs the captured context $\EC'$ with the
 argument $V$ plugged in.
 
-\paragraph{Sussman and Steele's catch}
+\paragraph{\citeauthor{SussmanS75}'s catch}
 %
 The catch operator originated in Lisp as an exception handling
 construct. It had a companion throw operation, which would unwind the
@@ -1022,14 +1059,16 @@ evaluation context.
 
 \paragraph{\FelleisenC{} and \FelleisenF{}}
 %
-The C operator is a variation of callcc, where capture mechanism
-aborts the current continuation after capture. It was introduced by
-\citeauthor{FelleisenFKD86} in two papers in
-1986~\cite{FelleisenF86,FelleisenFKD86}. The year after
+The C operator is a variation of callcc that provides control over the
+whole continuation as it aborts the current continuation after
+capture, whereas callcc implicitly invokes the current continuation on
+the value of its argument. The C operator was introduced by
+\citeauthor{FelleisenFKD86} in two papers during
+1986~\cite{FelleisenF86,FelleisenFKD86}. The following year,
 \citet{FelleisenFDM87} introduced the F operator which is a variation
-of C, where the captured continuation is composable.
+of C, whose captured continuation is composable.
 
-Both operators are values.
+In our framework both operators are value forms.
 %
 \[
   V,W \in \ValCat ::= \cdots \mid \FelleisenC \mid \FelleisenF
@@ -1077,7 +1116,7 @@ $\FelleisenC$.
 %
 \citet{FelleisenFDM87} also postulate that $\FelleisenC$ cannot express $\FelleisenF$.
 
-\paragraph{Landin's J operator}
+\paragraph{\citeauthor{Landin98}'s J operator}
 %
 The J operator was introduced by Peter Landin in 1965 (making it the
 world's \emph{first} first-class control operator) as a means for
@@ -1222,20 +1261,105 @@ syntactically embedded using callcc.
 \dhil{I am sort of torn between whether to treat continuations as
   first-class functions\dots}
 
-\subsection{Delimited operators}
+\subsection{Delimited control operators}
 %
-A delimited control operator captures only a designated segment of the
-evaluation stack. Typically, a delimited control operator is a pair
-consisting of a \emph{delimiter} and \emph{capture operation}. The
-delimiter delimits the extent of the continuation captured by the
-capture operation.
+The main problem with undelimited control is that it is the
+programmatic embodiment of the proverb \emph{all or nothing} in the
+sense that an undelimited continuation always represent the entire
+residual program from its point of capture. With undelimited control
+there is no middle that allows some segments of the evaluation context
+to be reified.
 %
-The first delimited control operator was introduced by
-\citet{Felleisen88} with prompt and control, where prompt is the
-delimiter and control is the capture operation. Shortly after
-\citet{DanvyF89} introduced their shift and reset as an alternative
-capture operation and delimiter, respectively. Since then a whole
-variety of delimited control operators have been invented.
+Delimited control rectifies this problem by associating each control
+operator with a control delimiter such that designated segments of the
+evaluation context can be captured individually without interfering
+with the context beyond the delimiter. This provides a powerful and
+modular programmatic tool that enables programmers to isolate the
+control flow of specific parts of their programs, and thus enables
+local reasoning about the behaviour of control infused program
+segments.
+%
+One may argue that delimited control to an extent is more first-class
+than undelimited control, because it provides fine-grain control over
+the evaluation context.
+%
+Essentially, delimited control adds the excluded middle: \emph{all,
+  some, or nothing}.
+
+In 1988 \citeauthor{Felleisen88} introduced the first control
+delimiter known as `prompt', as a companion to the composable control
+operator F (alias control)~\cite{Felleisen88}.
+%
+In \citeauthor{Felleisen88}'s line of work that led to the invention
+of prompt was driven by a dynamic understanding of composable
+continuations in terms of algebraic manipulation of continuations in
+the control string of abstract machines. In context of abstract
+machines a continuation is defined as a sequence of frames, whose end
+is marked by a prompt, and the composition of continuations is defined
+as concatenation of their
+sequences~\cite{Felleisen87,FelleisenF86,FelleisenWFD88}.
+%
+This understanding of composable continuations ultimately led to the
+control phenomenon known as \emph{dynamic delimited control}.
+
+The following year, \citet{DanvyF89} introduced an alternative pair of
+operators known as `shift' and `reset'. Their line of work were driven
+by a static understanding of composable continuations in terms of
+continuation passing style~\cite{DanvyF89,DanvyF90,DanvyF92}.
+%
+In this context a continuation is a compositional function in the
+sense of \citeauthor{StracheyW74}'s denotational continuation
+semantics~\cite{StracheyW74,StracheyW00}.
+%
+Their understanding of composable continuations ultimately led to the
+control phenomenon known as \emph{static delimited control}.
+
+
+% \citeauthor{Felleisen88}'s line of work
+% that led to the invention of prompt was driven by motivation to
+% provide a modular basis for programming with composable continuations,
+% or `functional' jumps, which represent a shift in focus from abortive
+% continuations, or `imperative' jumps, which had motivated undelimited
+% control.
+%
+
+
+% The early inventions of delimited operators were driven by a desire to
+% provide a modular and compositional basis for implementing various
+% control phenomena such as exceptions, coroutines,
+% engines~\cite{HaynesF84}, etc.
+% %
+% Whilst \citet{FriedmanH85} were arguing that undelimited control must be
+% constrained, because the integrity of control phenomena embedded using
+% undelimited is easily destroyed control are brittle and interact
+% poorly with the environment.
+
+% observed that control abstractions implemented in
+% terms of unrestricted undelimited control, as provided by callcc, is
+% brittle and inappropriate use can easily destroy the integrity of the
+% embedded abstractions. They suggested to impose several ad-hoc, and
+% rather complicated, restrictions on callcc and its continuations to
+% make them modular.
+% %
+
+% \citeauthor{Felleisen88} wanted to develop a principled mechanism for
+% capturing and composing continuations. The initial ideas towards
+% delimited control were developed in \citeauthor{Felleisen87}'s PhD
+% dissertation~\cite{Felleisen87} and related
+% papers~\cite{FelleisenF86,FelleisenFDM87} with the design of the
+% operator F.
+% % A delimited control operator captures only a designated segment of the
+% % evaluation stack. Typically, a delimited control operator is a pair
+% % consisting of a \emph{delimiter} and \emph{capture operation}. The
+% % delimiter delimits the extent of the continuation captured by the
+% % capture operation.
+% %
+% The first delimited control operator was introduced by
+% \citet{Felleisen88} with prompt and control, where prompt is the
+% delimiter and control is the capture operation. Shortly after
+% \citet{DanvyF89} introduced their shift and reset as an alternative
+% capture operation and delimiter, respectively. Since then a whole
+% variety of delimited control operators have been invented.
 
 % Delimited control: Control delimiters form the basis for delimited
 % control. \citeauthor{Felleisen88} introduced control delimiters in
@@ -1258,7 +1382,7 @@ variety of delimited control operators have been invented.
 \paragraph{\citeauthor{Felleisen88}'s control and prompt}
 %
 Control and prompt were introduced by \citeauthor{Felleisen88} in
-1988~\cite{Felleisen88}.  The capture operation `control' is a
+1988~\cite{Felleisen88}.  The control operator `control' is a
 rebranding of the F operator. Although, the name `control' was first
 introduced a little later by \citet{SitaramF90}.  A prompt acts as a
 control-flow barrier that delimits different parts of a program,
@@ -1318,7 +1442,7 @@ typing judgement as $\FelleisenF$.
 %
 
 The dynamic semantics for control and prompt consist of three rules:
-1) to handle return through a prompt, 2) continuation capture, and 3)
+1) handle return through a prompt, 2) continuation capture, and 3)
 continuation invocation.
 %
 \begin{reductions}
@@ -1364,11 +1488,11 @@ few simple examples.
 The continuation captured by the application of $\Control$ is
 oblivious to the continuation $1 + [\,]$ of $\Prompt$. Since the
 captured continuation is composable it returns to its call site. The
-first invocation of $k$ returns the value 2, which is provided as the
-argument to the second invocation of $k$, resulting in the value
-$4$. The prompt gets eliminated after its computation constituent has
-been fully reduced. Technically, the prompt is eliminated by applying
-the continuation of $\Prompt$ with the value $4$.
+first invocation of the continuation $k$ returns the value 2, which is
+provided as the argument to the second invocation of $k$, resulting in
+the value $4$. The prompt $\Prompt$ gets eliminated when the
+computation constituent of $\Prompt$ has been reduced to the value
+$4$, which is (implicitly) supplied to the continuation of $\Prompt$.
 
 Let us consider a slight variation of the previous example.
 %
@@ -1417,11 +1541,11 @@ discarded, because the continuation $k'$ is never invoked.
 %
 
 %
-\begin{reductions}
-  % \slab{Value}    & \reset{V}               &\reducesto& V\\
-  \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& M[\cont_{\reset{\EC}}/k]\\
-  % \slab{Resume}   & \Continue~\cont_{\reset{\EC}}~V &\reducesto& \reset{\EC[V]}\\
-\end{reductions}
+% \begin{reductions}
+%   % \slab{Value}    & \reset{V}               &\reducesto& V\\
+%   \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& M[\cont_{\reset{\EC}}/k]\\
+%   % \slab{Resume}   & \Continue~\cont_{\reset{\EC}}~V &\reducesto& \reset{\EC[V]}\\
+% \end{reductions}
 %
 
 \paragraph{\citeauthor{PlotkinP09}'s effect handlers}
@@ -1562,7 +1686,7 @@ implementation strategies.
     \hline
     OchaCaml & shift/reset & Virtual machine\\
     \hline
-    Racket & callcc, callcc$^{\ast}$, cupto, fcontrol, prompt/control, shift/reset, splitter, spawn & Continuation marks\\
+    Racket & callcc, callcc$^{\ast}$, cupto, fcontrol, control/prompt, shift/reset, splitter, spawn & Continuation marks\\
     \hline
     Rhino JavaScript      & JI                & Interpreter \\
     \hline
@@ -1570,7 +1694,7 @@ implementation strategies.
     \hline
     SML/NJ                & callcc            & CPS\\
     \hline
-    Wasm/k                & prompt/control    & ?? \\
+    Wasm/k                & control/prompt    & ?? \\
     \hline
   \end{tabular}
   \caption{Some languages and  their implementation strategies for first-class control.}\label{tbl:ctrl-operators-impls}
