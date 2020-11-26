@@ -1266,9 +1266,9 @@ syntactically embedded using callcc.
 The main problem with undelimited control is that it is the
 programmatic embodiment of the proverb \emph{all or nothing} in the
 sense that an undelimited continuation always represent the entire
-residual program from its point of capture. With undelimited control
-there is no middle that allows some segments of the evaluation context
-to be reified.
+residual program from its point of capture. In its basic form
+undelimited control does not offer the flexibility to reify only some
+segments of the evaluation context.
 %
 Delimited control rectifies this problem by associating each control
 operator with a control delimiter such that designated segments of the
@@ -1280,86 +1280,59 @@ local reasoning about the behaviour of control infused program
 segments.
 %
 One may argue that delimited control to an extent is more first-class
-than undelimited control, because it provides fine-grain control over
-the evaluation context.
+than undelimited control, because, in contrast to undelimited control,
+it provides more fine-grain control over the evaluation context.
 %
-Essentially, delimited control adds the excluded middle: \emph{all,
-  some, or nothing}.
+% Essentially, delimited control adds the excluded middle: \emph{all,
+%   some, or nothing}.
 
 In 1988 \citeauthor{Felleisen88} introduced the first control
 delimiter known as `prompt', as a companion to the composable control
 operator F (alias control)~\cite{Felleisen88}.
 %
-In \citeauthor{Felleisen88}'s line of work that led to the invention
-of prompt was driven by a dynamic understanding of composable
-continuations in terms of algebraic manipulation of continuations in
-the control string of abstract machines. In context of abstract
-machines a continuation is defined as a sequence of frames, whose end
-is marked by a prompt, and the composition of continuations is defined
-as concatenation of their
+\citeauthor{Felleisen88}'s line of work was driven by a dynamic
+interpretation of composable continuations in terms of algebraic
+manipulation of control component of abstract machines.  In the
+context of abstract machines, a continuation is defined as a sequence
+of frames, whose end is denoted by a prompt, and continuation
+composition is concatenation of their
 sequences~\cite{Felleisen87,FelleisenF86,FelleisenWFD88}.
 %
-This understanding of composable continuations ultimately led to the
-control phenomenon known as \emph{dynamic delimited control}.
+The natural outcome of this interpretation is the control phenomenon
+known as \emph{dynamic delimited control}, where a control operator is
+dynamically bound by a prompt. An application of a control operator
+causes the machine to scour through control component to locate the
+corresponding prompt.
 
 The following year, \citet{DanvyF89} introduced an alternative pair of
-operators known as `shift' and `reset'. Their line of work were driven
-by a static understanding of composable continuations in terms of
-continuation passing style~\cite{DanvyF89,DanvyF90,DanvyF92}.
+operators known as `shift' and `reset', where `shift' is the control
+operator and `reset' is the control delimiter. Their line of work were
+driven by a static interpretation of composable continuations in terms
+of algebraic manipulation of continuations arising from hierarchical
+continuation passing style (CPS) transformations. In ordinary CPS a
+continuation is represented as a function, which is abortive rather
+than composable, because every function application appear in tail
+position.
 %
-In this context a continuation is a compositional function in the
-sense of \citeauthor{StracheyW74}'s denotational continuation
-semantics~\cite{StracheyW74,StracheyW00}.
+The operators `shift' and `reset' were introduced as a programmatic
+way to manipulate and compose continuations. Algebraically `shift'
+corresponds to the composition operation for continuation functions,
+whereas `reset' corresponds to the identity
+element~\cite{DanvyF89,DanvyF90,DanvyF92}.
 %
-Their understanding of composable continuations ultimately led to the
-control phenomenon known as \emph{static delimited control}.
-
-
-% \citeauthor{Felleisen88}'s line of work
-% that led to the invention of prompt was driven by motivation to
-% provide a modular basis for programming with composable continuations,
-% or `functional' jumps, which represent a shift in focus from abortive
-% continuations, or `imperative' jumps, which had motivated undelimited
-% control.
+Technically, the operators operate on a meta layer, which is obtained
+by CPS transforming the image again. An indefinite amount of meta
+layers can be obtained by iterating the CPS transformation on its
+image, leading to a whole hierarchy of CPS.
 %
+This interpretation in terms of functions naturally leads to the
+control phenomenon known as \emph{static delimited control}, the
+context abstracted by a control operator is statically determined.
+%
+\dhil{Consider dropping the blurb about hierarchy/meta layers.}
 
-
-% The early inventions of delimited operators were driven by a desire to
-% provide a modular and compositional basis for implementing various
-% control phenomena such as exceptions, coroutines,
-% engines~\cite{HaynesF84}, etc.
-% %
-% Whilst \citet{FriedmanH85} were arguing that undelimited control must be
-% constrained, because the integrity of control phenomena embedded using
-% undelimited is easily destroyed control are brittle and interact
-% poorly with the environment.
-
-% observed that control abstractions implemented in
-% terms of unrestricted undelimited control, as provided by callcc, is
-% brittle and inappropriate use can easily destroy the integrity of the
-% embedded abstractions. They suggested to impose several ad-hoc, and
-% rather complicated, restrictions on callcc and its continuations to
-% make them modular.
-% %
-
-% \citeauthor{Felleisen88} wanted to develop a principled mechanism for
-% capturing and composing continuations. The initial ideas towards
-% delimited control were developed in \citeauthor{Felleisen87}'s PhD
-% dissertation~\cite{Felleisen87} and related
-% papers~\cite{FelleisenF86,FelleisenFDM87} with the design of the
-% operator F.
-% % A delimited control operator captures only a designated segment of the
-% % evaluation stack. Typically, a delimited control operator is a pair
-% % consisting of a \emph{delimiter} and \emph{capture operation}. The
-% % delimiter delimits the extent of the continuation captured by the
-% % capture operation.
-% %
-% The first delimited control operator was introduced by
-% \citet{Felleisen88} with prompt and control, where prompt is the
-% delimiter and control is the capture operation. Shortly after
-% \citet{DanvyF89} introduced their shift and reset as an alternative
-% capture operation and delimiter, respectively. Since then a whole
-% variety of delimited control operators have been invented.
+Later a whole variety of alternative delimited control operators has
+appeared.
 
 % Delimited control: Control delimiters form the basis for delimited
 % control. \citeauthor{Felleisen88} introduced control delimiters in
