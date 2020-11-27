@@ -1299,37 +1299,57 @@ composition is concatenation of their
 sequences~\cite{Felleisen87,FelleisenF86,FelleisenWFD88}.
 %
 The natural outcome of this interpretation is the control phenomenon
-known as \emph{dynamic delimited control}, where a control operator is
-dynamically bound by a prompt. An application of a control operator
-causes the machine to scour through control component to locate the
-corresponding prompt.
+known as \emph{dynamic delimited control}, where the control operator
+is dynamically bound by its delimiter. An application of a control
+operator causes the machine to scour through control component to
+locate the corresponding delimiter.
 
 The following year, \citet{DanvyF89} introduced an alternative pair of
 operators known as `shift' and `reset', where `shift' is the control
 operator and `reset' is the control delimiter. Their line of work were
 driven by a static interpretation of composable continuations in terms
-of algebraic manipulation of continuations arising from hierarchical
-continuation passing style (CPS) transformations. In ordinary CPS a
-continuation is represented as a function, which is abortive rather
-than composable, because every function application appear in tail
-position.
+of continuation passing style (CPS). In ordinary CPS a continuation is
+represented as a function, however, there is no notion of composition,
+because every function call must appear in tail position. The `shift'
+operator enables composition of continuation functions as it provides
+a means for abstracting over control contexts. Technically, this works
+by iterating the CPS transform twice on the source program, where
+`shift' provides access to continuations that arise from the second
+transformation. The `reset' operator acts as the identity for
+continuation functions, which effectively delimits the extent of
+`shift' as in terms of CPS the identity function denotes the top-level
+continuation.
 %
-The operators `shift' and `reset' were introduced as a programmatic
-way to manipulate and compose continuations. Algebraically `shift'
-corresponds to the composition operation for continuation functions,
-whereas `reset' corresponds to the identity
-element~\cite{DanvyF89,DanvyF90,DanvyF92}.
-%
-Technically, the operators operate on a meta layer, which is obtained
-by CPS transforming the image again. An indefinite amount of meta
-layers can be obtained by iterating the CPS transformation on its
-image, leading to a whole hierarchy of CPS.
-%
-This interpretation in terms of functions naturally leads to the
-control phenomenon known as \emph{static delimited control}, the
-context abstracted by a control operator is statically determined.
-%
-\dhil{Consider dropping the blurb about hierarchy/meta layers.}
+This interpretation of composable continuations as functions naturally
+leads to the control phenomenon known as \emph{static delimited
+  control}, where the control operator is statically bound by its
+delimiter.
+
+
+
+% The following year, \citet{DanvyF89} introduced an alternative pair of
+% operators known as `shift' and `reset', where `shift' is the control
+% operator and `reset' is the control delimiter. Their line of work were
+% driven by a static interpretation of composable continuations in terms
+% of algebraic manipulation of continuations arising from hierarchical
+% continuation passing style (CPS) transformations. In ordinary CPS a
+% continuation is represented as a function, which is abortive rather
+% than composable, because every function application appear in tail
+% position.
+% %
+% The operators `shift' and `reset' were introduced as a programmatic
+% way to manipulate and compose continuations. Algebraically `shift'
+% corresponds to the composition operation for continuation functions,
+% whereas `reset' corresponds to the identity
+% element~\cite{DanvyF89,DanvyF90,DanvyF92}.
+% %
+% Technically, the operators operate on a meta layer, which is obtained
+% by CPS transforming the image again. An indefinite amount of meta
+% layers can be obtained by iterating the CPS transformation on its
+% image, leading to a whole hierarchy of CPS.
+% %
+% %
+% \dhil{Consider dropping the blurb about hierarchy/meta layers.}
 
 Later a whole variety of alternative delimited control operators has
 appeared.
