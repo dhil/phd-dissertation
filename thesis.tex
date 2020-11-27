@@ -1644,6 +1644,43 @@ and state~\cite{Filinski94}.
 % \end{reductions}
 %
 
+\paragraph{\citeauthor{QueinnecS91}'s splitter}
+\begin{reductions}
+  \slab{Throw}   & \splitter~throw~calldc.\EC[\,throw~V] &\reducesto& V~\Unit\\
+  \slab{Capture} &
+     \splitter~throw~calldc.\EC[calldc~V] &\reducesto& V~\cont_{\EC} \\
+  \slab{Resume}  & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
+\end{reductions}
+
+
+\paragraph{Spawn}
+\dhil{TODO: Canonical reference \citet{HiebDA94}}
+
+\paragraph{\citeauthor{Sitaram93}'s fcontrol} The control operator
+`fcontrol' was introduced by \citet{Sitaram93} in 1993. The fcontrol
+operator distinguishes itself from the previous control operators in
+that it supports handling of continuations. \citeauthor{Sitaram93}'s
+observation was that previous control operators had hardwired handling
+of continuations into the capture mechanism, e.g. callcc applies its
+argument with the captured continuation. The programmer has no control
+over whether to function argument should be run immediately or run at
+all. \citeauthor{Sitaram93}'s goal was decouple the continuation
+capturing mechanism from the continuation handling mechanism.
+%
+\begin{syntax}
+  & V, W &::=& \cdots \mid \fcontrol\\
+  & M, N &::=& \cdots \mid \fprompt~V.M
+\end{syntax}
+%
+\begin{reductions}
+  \slab{Value} &
+     \fprompt~V.W &\reducesto& W\\
+  \slab{Capture} &
+     \fprompt~V.\EC[\fcontrol~W] &\reducesto& V~W~\cont_{\EC}, \text{ where $\EC$ contains no \fprompt}\\
+  \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
+\end{reductions}
+%
+
 \paragraph{Cupto} The control operator cupto is a variation of
 control0/prompt0 designed to fit into the typed ML-family of
 languages. It was introduced by \citet{GunterRR95} in 1995. The name
@@ -1697,6 +1734,10 @@ The typing rule for $\Set$ uses the type embedded in the prompt to fix
 the type of the whole computation $N$. Similarly, the typing rule for
 $\Cupto$ uses the prompt type of its value argument to fix the answer
 type for the continuation $k$.
+
+The dynamic semantics is generative to accommodate generation of fresh
+prompts. Formally, the reduction relation is augmented with a store
+$\rho$ that tracks which prompt names have already been allocated.
 %
 \begin{reductions}
   \slab{Value} &
@@ -1704,11 +1745,23 @@ type for the continuation $k$.
   \slab{NewPrompt} &
      \newPrompt~\Unit, \rho &\reducesto& p, \rho \uplus \{p\}\\
   \slab{Capture} &
-     \Set\; p \;\In\; \EC[\Cupto~p~k.M], \rho &\reducesto& M[\qq{\cont_{\EC}}/k], \rho\\
+  \Set\; p \;\In\; \EC[\Cupto~p~k.M], \rho &\reducesto& M[\qq{\cont_{\EC}}/k], \rho,\\
+  \multicolumn{4}{l}{\hfill\text{where $p$ is not active in $\EC$}}\\
   \slab{Resume} & \Continue~\cont_{\EC}~V, \rho &\reducesto& \EC[V], \rho
 \end{reductions}
+%
+The $\slab{Value}$ rule is akin to value rules of shift/reset and
+control/prompt. The rule $\slab{NewPrompt}$ allocates a fresh prompt
+name $p$ and adds it to the store $\rho$. The $\slab{Capture}$ rule
+reifies and aborts the evaluation context up to the nearest enclosing
+active prompt $p$. After reification the prompt is removed and
+evaluation continues as $M$. The $\slab{Resume}$ rule reinstalls the
+captured context $\EC$ with the argument $V$ plugged in.
+%
+\dhil{Show some example of use\dots}
 
-\paragraph{\citeauthor{PlotkinP09}'s effect handlers}
+\paragraph{\citeauthor{PlotkinP09}'s effect handlers} Effect handlers
+were introduced by \citet{PlotkinP09} in 2009.
 %
 \begin{reductions}
   \slab{Value}    & \Handle\; V \;\With\;H   &\reducesto& M[V/x], \text{ where } \{\Return\;x \mapsto M\} \in H\\
@@ -1760,17 +1813,6 @@ Shallow handlers can be used to simulate prompt and control.
 %
 %Recursive types are required to type the image of this translation
 
-\paragraph{\citeauthor{Sitaram93}'s fcontrol}
-%
-\begin{reductions}
-  \slab{Value} &
-     \fprompt~V.W &\reducesto& W\\
-  \slab{Capture} &
-     \fprompt~V.\EC[\fcontrol~W] &\reducesto& V~W~\cont_{\EC}, \text{ where $\EC$ contains no \fprompt}\\
-  \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
-\end{reductions}
-%
-
 \paragraph{\citeauthor{Longley09}'s catch-with-continue}
 %
 \begin{mathpar}
@@ -1786,18 +1828,6 @@ Shallow handlers can be used to simulate prompt and control.
      \Catchcont \; f .\EC[\,f\,V]   &\reducesto& \Inr\; \Record{V; \lambda x. \lambda f. \Continue~\cont_{\EC}~x}\\
   \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
-
-\paragraph{\citeauthor{QueinnecS91}'s splitter}
-\begin{reductions}
-  \slab{Throw}   & \splitter~throw~calldc.\EC[\,throw~V] &\reducesto& V~\Unit\\
-  \slab{Capture} &
-     \splitter~throw~calldc.\EC[calldc~V] &\reducesto& V~\cont_{\EC} \\
-  \slab{Resume}  & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
-\end{reductions}
-
-
-\paragraph{Spawn}
-\dhil{TODO}
 
 \subsection{Second-class control operators}
 Coroutines, async/await, generators/iterators, amb.
