@@ -1634,9 +1634,9 @@ translation in Standard ML New Jersey~\cite{AppelM91}, using
 \citeauthor{Filinski94}'s encoding of shift/reset in terms of callcc
 and state~\cite{Filinski94}.
 %
-
 %
 \dhil{Maybe mention the implication is that control/prompt has CPS semantics.}
+\dhil{Mention shift0/reset0, dollar0\dots}
 % \begin{reductions}
 %   % \slab{Value}    & \reset{V}               &\reducesto& V\\
 %   \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& M[\cont_{\reset{\EC}}/k]\\
@@ -1644,15 +1644,67 @@ and state~\cite{Filinski94}.
 % \end{reductions}
 %
 
-\paragraph{Cupto}
+\paragraph{Cupto} The control operator cupto is a variation of
+control0/prompt0 designed to fit into the typed ML-family of
+languages. It was introduced by \citet{GunterRR95} in 1995. The name
+cupto is an abbreviation for ``control up to''~\cite{GunterRR95}.
+%
+The control operator comes with a set of companion constructs, and
+thus, augments the syntactic categories of types, values, and
+computations.
+%
+\begin{syntax}
+  & A,B  &::=& \cdots \mid \prompttype~A \smallskip\\
+  & V,W  &::=& \cdots \mid p \mid \newPrompt\\
+  & M,N  &::=& \cdots \mid \Set\;V\;\In\;N \mid \Cupto~V~k.M
+\end{syntax}
+%
+The type $\prompttype~A$ is the type of prompts. It is parameterised
+by an answer type $A$ for the prompt context. Prompts are first-class
+values, which we denote by $p$. The construct $\newPrompt$ is a
+special function symbol, which returns a fresh prompt. The computation
+form $\Set\;V\;\In\;N$ activates the prompt $V$ to delimit the dynamic
+extent of continuations captured inside $N$. The $\Cupto~V~k.M$
+computation binds $k$ to the continuation up to (the first instance
+of) the active prompt $V$ in the computation $M$.
+
+\citet{GunterRR95} gave a Hindley-Milner type
+system~\cite{Hindley69,Milner78} for $\Cupto$, since they were working
+in the context of ML languages. I do not reproduce the full system
+here, only the essential rules for the $\Cupto$ constructs.
+%
+\begin{mathpar}
+  \inferrule*
+  {~}
+  {\typ{\Gamma,p:\prompttype~A}{p : \prompttype~A}}
+
+  \inferrule*
+  {~}
+  {\typ{\Gamma}{\newPrompt} : \UnitType \to \prompttype~A}
+
+  \inferrule*
+  {\typ{\Gamma}{V : \prompttype~A} \\ \typ{\Gamma}{N : A}}
+  {\typ{\Gamma}{\Set\;V\;\In\;N : A}}
+
+  \inferrule*
+  {\typ{\Gamma}{V : \prompttype~B} \\ \typ{\Gamma,k : A \to B}{M : B}}
+  {\typ{\Gamma}{\Cupto\;V\;k.M : A}}
+\end{mathpar}
+%
+%val cupto : 'b prompt -> (('a -> 'b) -> 'b) -> 'a
+%
+The typing rule for $\Set$ uses the type embedded in the prompt to fix
+the type of the whole computation $N$. Similarly, the typing rule for
+$\Cupto$ uses the prompt type of its value argument to fix the answer
+type for the continuation $k$.
 %
 \begin{reductions}
   \slab{Value} &
      \Set\; p \;\In\; V, \rho &\reducesto& V, \rho\\
-  \slab{New\textrm{-}prompt} &
-     \newPrompt, \rho &\reducesto& p, \rho \uplus \{p\}\\
+  \slab{NewPrompt} &
+     \newPrompt~\Unit, \rho &\reducesto& p, \rho \uplus \{p\}\\
   \slab{Capture} &
-     \Set\; p \;\In\; \EC[\Cupto~p~k.M], \rho &\reducesto& M[\cont_{\EC}/k], \rho\\
+     \Set\; p \;\In\; \EC[\Cupto~p~k.M], \rho &\reducesto& M[\qq{\cont_{\EC}}/k], \rho\\
   \slab{Resume} & \Continue~\cont_{\EC}~V, \rho &\reducesto& \EC[V], \rho
 \end{reductions}
 
