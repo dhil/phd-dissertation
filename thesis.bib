@@ -1154,6 +1154,16 @@
 }
 
 # Structural Operational Semantics
+@techreport{Plotkin81,
+  author    = {Gordon D. Plotkin},
+  title     = {A structural approach to operational semantics},
+  number    = {FN-19},
+  school    = {Department of Computer Science, Aarhus University},
+  address   = {Aarhus, Denmark},
+  month     = sep,
+  year      = 1981
+}
+
 @article{Plotkin04a,
   author    = {Gordon D. Plotkin},
   title     = {A structural approach to operational semantics},
@@ -1161,9 +1171,9 @@
   volume    = {60-61},
   pages     = {17--139},
   year      = {2004},
-  timestamp = {Mon, 21 Feb 2005 12:50:35 +0100},
-  biburl    = {https://dblp.org/rec/bib/journals/jlp/Plotkin04a},
-  bibsource = {dblp computer science bibliography, https://dblp.org}
+  OPTtimestamp = {Mon, 21 Feb 2005 12:50:35 +0100},
+  OPTbiburl    = {https://dblp.org/rec/bib/journals/jlp/Plotkin04a},
+  OPTbibsource = {dblp computer science bibliography, https://dblp.org}
 }
 
 # Regular expressions
@@ -2012,4 +2022,166 @@
   number    = {1/2},
   pages     = {135--152},
   year      = {2000}
+}
+
+# CPS and abstract machine correspondences
+@inproceedings{DanvyN01,
+  author    = {Olivier Danvy and
+               Lasse R. Nielsen},
+  title     = {Defunctionalization at Work},
+  booktitle = {{PPDP}},
+  pages     = {162--174},
+  publisher = {{ACM}},
+  year      = {2001}
+}
+
+@inproceedings{AgerBDM03,
+  author    = {Mads Sig Ager and
+               Dariusz Biernacki and
+               Olivier Danvy and
+               Jan Midtgaard},
+  title     = {A functional correspondence between evaluators and abstract machines},
+  booktitle = {{PPDP}},
+  pages     = {8--19},
+  publisher = {{ACM}},
+  year      = {2003}
+}
+
+@inproceedings{Danvy04,
+  author    = {Olivier Danvy},
+  title     = {A Rational Deconstruction of Landin's {SECD} Machine},
+  booktitle = {{IFL}},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {3474},
+  pages     = {52--71},
+  publisher = {Springer},
+  year      = {2004}
+}
+
+@article{AgerDM04,
+  author    = {Mads Sig Ager and
+               Olivier Danvy and
+               Jan Midtgaard},
+  title     = {A functional correspondence between call-by-need evaluators and lazy
+               abstract machines},
+  journal   = {Inf. Process. Lett.},
+  volume    = {90},
+  number    = {5},
+  pages     = {223--232},
+  year      = {2004}
+}
+
+@inproceedings{Danvy04a,
+    author    = {Olivier Danvy},
+    title     = {On Evaluation Contexts, Continuations, and the Rest of Computation},
+    year      = {2004},
+    booktitle = {{CW}},
+    crossref  = {cw},
+}
+
+@techreport{cw,
+  author  =	 {Hayo Thielecke (Editor)},
+  title =	 {Proceedings of the Fourth {ACM} {SIGPLAN}
+                  Continuations Workshop {(CW'04)}},
+  number =	 {CSR-04-1},
+  institution =	 {School of Computer Science, University of
+                  Birmingham},
+  address =	 {Birmingham B15 2TT, United Kingdom},
+  year =	 2004,
+}
+
+@article{AgerDM05,
+  author    = {Mads Sig Ager and
+               Olivier Danvy and
+               Jan Midtgaard},
+  title     = {A functional correspondence between monadic evaluators and abstract
+               machines for languages with computational effects},
+  journal   = {Theor. Comput. Sci.},
+  volume    = {342},
+  number    = {1},
+  pages     = {149--172},
+  year      = {2005}
+}
+
+@article{DanvyM09,
+  author    = {Olivier Danvy and
+               Kevin Millikin},
+  title     = {Refunctionalization at work},
+  journal   = {Sci. Comput. Program.},
+  volume    = {74},
+  number    = {8},
+  pages     = {534--549},
+  year      = {2009}
+}
+
+# Answer type modification
+@article{Danvy98,
+  author    = {Olivier Danvy},
+  title     = {Functional Unparsing},
+  journal   = {J. Funct. Program.},
+  volume    = {8},
+  number    = {6},
+  pages     = {621--625},
+  year      = {1998}
+}
+
+@inproceedings{AsaiK07,
+  author    = {Kenichi Asai and
+               Yukiyoshi Kameyama},
+  title     = {Polymorphic Delimited Continuations},
+  booktitle = {{APLAS}},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {4807},
+  pages     = {239--254},
+  publisher = {Springer},
+  year      = {2007}
+}
+
+@inproceedings{KoboriKK16,
+  author    = {Ikuo Kobori and
+               Yukiyoshi Kameyama and
+               Oleg Kiselyov},
+  title     = {Answer-Type Modification without Tears: Prompt-Passing Style Translation
+               for Typed Delimited-Control Operators},
+  booktitle = {WoC},
+  series    = {{EPTCS}},
+  volume    = {212},
+  pages     = {36--52},
+  year      = {2015}
+}
+
+# Partial evaluation with control
+@inproceedings{LawallD94,
+  author    = {Julia L. Lawall and
+               Olivier Danvy},
+  title     = {Continuation-Based Partial Evaluation},
+  booktitle = {{LISP} and Functional Programming},
+  pages     = {227--238},
+  publisher = {{ACM}},
+  year      = {1994}
+}
+
+
+# Staging using control
+@article{KameyamaKS11,
+  author    = {Yukiyoshi Kameyama and
+               Oleg Kiselyov and
+               Chung{-}chieh Shan},
+  title     = {Shifting the stage - Staging with delimited control},
+  journal   = {J. Funct. Program.},
+  volume    = {21},
+  number    = {6},
+  pages     = {617--662},
+  year      = {2011}
+}
+
+@inproceedings{OishiK17,
+  author    = {Junpei Oishi and
+               Yukiyoshi Kameyama},
+  title     = {Staging with control: type-safe multi-stage programming with control
+               operators},
+  booktitle = {{GPCE}},
+  pages     = {29--40},
+  publisher = {{ACM}},
+  year      = {2017}
 }

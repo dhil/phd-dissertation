@@ -844,7 +844,7 @@ An invocation of the continuation discards the invocation context and
 plugs the argument into the captured context.
 %
 \begin{reductions}
-  \slab{Capture} &  \EC[\Escape\;k\;\In\;M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
+  \slab{Capture} &  \EC[\Escape\;k\;\In\;M] &\reducesto& \EC[M[\qq{\cont_{\EC}}/k]]\\
   \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
 \end{reductions}
 %
@@ -883,7 +883,7 @@ the same.
 \end{mathpar}
 %
 \begin{reductions}
-  \slab{Capture} &  \EC[\Catch~k.M] &\reducesto& \EC[M[\cont_{\EC}/k]]\\
+  \slab{Capture} &  \EC[\Catch~k.M] &\reducesto& \EC[M[\qq{\cont_{\EC}}/k]]\\
   \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
 \end{reductions}
 %
@@ -930,7 +930,7 @@ normally or it applies the provided continuation object to a value
 that then becomes the result of $\Callcc$-application.
 %
 \begin{reductions}
-  \slab{Capture} &  \EC[\Callcc~V] &\reducesto& \EC[V~\cont_{\EC}]\\
+  \slab{Capture} &  \EC[\Callcc~V] &\reducesto& \EC[V~\qq{\cont_{\EC}}]\\
   \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V]
 \end{reductions}
 %
@@ -990,7 +990,7 @@ identical to the rule for $\Callcomc$, but the resume rule is
 different.
 %
 \begin{reductions}
-  \slab{Capture} &  \EC[\Callcomc~V] &\reducesto& \EC[V~\cont_{\EC}]\\
+  \slab{Capture} &  \EC[\Callcomc~V] &\reducesto& \EC[V~\qq{\cont_{\EC}}]\\
   % \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC[\EC'[V]]
   \slab{Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
 \end{reductions}
@@ -1090,9 +1090,9 @@ $\Callcomc$.
 The dynamic semantics of $\FelleisenC$ and $\FelleisenF$ also differ.
 %
 \begin{reductions}
-  \slab{C\textrm{-}Capture} &  \EC[\FelleisenC\,V] &\reducesto& V~\cont_{\EC}\\
+  \slab{C\textrm{-}Capture} &  \EC[\FelleisenC\,V] &\reducesto& V~\qq{\cont_{\EC}}\\
   \slab{C\textrm{-}Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC'[V] \medskip\\
-  \slab{F\textrm{-}Capture} &  \EC[\FelleisenF\,V] &\reducesto& V~\cont_{\EC}\\
+  \slab{F\textrm{-}Capture} &  \EC[\FelleisenF\,V] &\reducesto& V~\qq{\cont_{\EC}}\\
   \slab{F\textrm{-}Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
 \end{reductions}
 %
@@ -1214,7 +1214,7 @@ annotate the evaluation contexts for ordinary applications.
 %
 \begin{reductions}
   \slab{Annotate}   & \EC[(\lambda x.M)\,V] &\reducesto& \EC_\lambda[M[V/x]]\\
-  \slab{Capture}   & \EC_{\lambda}[\mathcal{D}[\J\,W]] &\reducesto& \EC_{\lambda}[\mathcal{D}[\cont_{\Record{\EC_{\lambda};W}}]]\\
+  \slab{Capture}   & \EC_{\lambda}[\mathcal{D}[\J\,W]] &\reducesto& \EC_{\lambda}[\mathcal{D}[\qq{\cont_{\Record{\EC_{\lambda};W}}}]]\\
   \slab{Resume}    & \EC[\Continue~\cont_{\Record{\EC';W}}\,V]  &\reducesto& \EC'[W\,V]
 \end{reductions}
 %
@@ -1325,6 +1325,11 @@ leads to the control phenomenon known as \emph{static delimited
   control}, where the control operator is statically bound by its
 delimiter.
 
+The machine interpretation and continuation passing style
+interpretation of composable continuations were eventually connected
+through defunctionalisation and refunctionalisation in a line of work
+by \citeauthor{Danvy04a} and
+collaborators~\cite{DanvyN01,AgerBDM03,Danvy04,AgerDM04,Danvy04a,AgerDM05,DanvyM09}.
 
 
 % The following year, \citet{DanvyF89} introduced an alternative pair of
@@ -1351,8 +1356,8 @@ delimiter.
 % %
 % \dhil{Consider dropping the blurb about hierarchy/meta layers.}
 
-Later a whole variety of alternative delimited control operators has
-appeared.
+Since control/prompt and shift/reset a whole variety of alternative
+delimited control operators has appeared.
 
 % Delimited control: Control delimiters form the basis for delimited
 % control. \citeauthor{Felleisen88} introduced control delimiters in
@@ -1442,7 +1447,7 @@ continuation invocation.
   \slab{Value} &
      \Prompt~V &\reducesto& V\\
   \slab{Capture} &
-     \Prompt~\EC[\Control~V] &\reducesto& \Prompt~(V~\cont_{\EC}), \text{ where $\EC$ contains no \Prompt}\\
+     \Prompt~\EC[\Control~V] &\reducesto& \Prompt~(V~\qq{\cont_{\EC}}), \text{ where $\EC$ contains no \Prompt}\\
   \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
 %
@@ -1511,6 +1516,134 @@ discarded, because the continuation $k'$ is never invoked.
 %
 \dhil{Multi-prompts: more liberal typing, no interference}
 
+\paragraph{\citeauthor{DanvyF90}'s shift and reset} Shift and reset
+first appeared in a technical report by \citeauthor{DanvyF89} in
+1989. Although, perhaps the most widely known account of shift and
+reset appeared in \citeauthor{DanvyF90}'s treatise on abstracting
+control the following year~\cite{DanvyF90}.
+%
+Shift and reset differ from control and prompt in that the contexts
+abstracted by shift are statically scoped by reset.
+
+% As with control and prompt, in our setting, shift appears as a value,
+% whilst reset appear as a computation.
+In our setting both shift and reset appear as computation forms.
+%
+\begin{syntax}
+ % & V, W &::=& \cdots \mid \shift\\
+ & M, N &::=& \cdots \mid \shift\; k.M \mid \reset{M}
+\end{syntax}
+%
+The $\shift$ construct captures the continuation delimited by an
+enclosing $\reset{-}$ and binds it to $k$ in the computation $M$.
+
+\citeauthor{DanvyF89}'s original development of shift and reset stands
+out from the previous developments of control operators, as they
+presented a type system for shift and reset, whereas previous control
+operators were originally studied in untyped settings.
+%
+The standard inference-based approach to type
+checking~\cite{Plotkin81,Plotkin04a} is inadequate for type checking
+shift and reset, because shift may alter the \emph{answer type} of the
+expression (the terminology `answer type' is adopted from typed
+continuation passing style transforms, where the codomain of every
+function is transformed to yield the type of whatever answer the
+entire program yields~\cite{MeyerW85}).
+%
+To capture the potent power of shift in the type system they
+introduced the notion of \emph{answer type
+  modification}~\cite{DanvyF89}.
+%
+The addition of answer type modification changes type judgement to be
+a five place relation.
+%
+\[
+  \typ{\Gamma;B}{M : A; B'}
+\]
+%
+This would be read as: in a context $\Gamma$ where the original result
+type was $B$, the type of $M$ is $A$, and modifies the result type to
+$B'$. In this system the typing rule for $\shift$ is as follows.
+%
+\begin{mathpar}
+  \inferrule*
+    {\typ{\Gamma,k : A / C \to B / C;D}{M : D;B'}}
+    {\typ{\Gamma;B}{\shift\;k.M : A;B'}}
+\end{mathpar}
+%
+Here the function type constructor $-/- \to -/-$ has been endowed with
+the domain and codomain of the continuation. The left hand side of
+$\to$ contains the domain type of the function and the codomain of the
+continuation, respectively. The right hand side contains the domain of
+the continuation and the codomain of the function, respectively.
+
+Answer type modification is a powerful feature that can be used to
+type embedded languages, an illustrious application of this is
+\citeauthor{Danvy98}'s typed $\dec{printf}$~\cite{Danvy98}. A
+polymorphic extension of answer type modification has been
+investigated by \citet{AsaiK07}, whilst \citet{KoboriKK16}
+demonstrated how to translate from a source language with answer type
+modification into a system without using typed multi-prompts.
+
+Differences between shift/reset and control/prompt manifests in the
+dynamic semantics as well.
+%
+\begin{reductions}
+  \slab{Value}    & \reset{V}               &\reducesto& V\\
+  \slab{Capture}  & \reset{\EC[\shift\;k.M]} &\reducesto& \reset{M[\qq{\cont_{\EC}}/k]}, \text { where $\EC$ contains no $\reset{-}$}\\
+  % \slab{Resume}   & \reset{\EC[\Continue~\cont_{\reset{\EC'}}~V]} &\reducesto& \reset{\EC[\reset{\EC'[V]}]}\\
+  \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \reset{\EC[V]}\\
+\end{reductions}
+%
+The $\slab{Value}$ and $\slab{Capture}$ rules are the same as for
+control/prompt (modulo the syntactic differences). The static nature
+of shift/reset manifests operationally in the $\slab{Resume}$ rule,
+where the reinstalled context $\EC$ gets enclosed in a new reset. The
+extra reset has ramifications for the operational behaviour of
+subsequent occurrences of $\shift$ in $\EC$. To put this into
+perspective, let us revisit the second control/prompt example with
+shift/reset instead.
+%
+\begin{derivation}
+  & 1 + \reset{2 + (\shift\;k.3 + k\,0) + (\shift\;k'.0)}\\
+  \reducesto^+& \reason{Capture $\EC = 2 + [\,] + (\shift\;k.0)$}\\
+  & 1 + \reset{\Continue~\cont_{\EC}~0}\\
+  \reducesto & \reason{Resume with 0}\\
+  & 1 + \reset{3 + \reset{2 + 0 + (\shift\;k'. 0)}}\\
+  \reducesto^+ & \reason{Capture $\EC' = 2 + [\,]$}\\
+  & 1 + \reset{3 + \reset{0}} \\
+  \reducesto^+ & \reason{\slab{Value} rule}\\
+  & 1 + \reset{3} \reducesto^+ 4 \\
+\end{derivation}
+%
+Contrast this result with the result $1$ obtained when using
+control/prompt. In essence the insertion of a new reset after
+resumption has the effect of remembering the local context of the
+first continuation invocation.
+
+This difference naturally raises the question whether shift/reset and
+control/prompt are interdefinable or exhibit essential expressivity
+differences. This question was answered by \citet{Shan04}, who
+demonstrated that shift/reset and control/prompt are
+macro-expressible. The translations are too intricate to be reproduced
+here, however, it is worth noting that \citeauthor{Shan04} were
+working in the untyped setting of Scheme and the translation of
+control/prompt made use of recursive
+continuations. \citet{BiernackiDS05} typed and reimplemented this
+translation in Standard ML New Jersey~\cite{AppelM91}, using
+\citeauthor{Filinski94}'s encoding of shift/reset in terms of callcc
+and state~\cite{Filinski94}.
+%
+
+%
+\dhil{Maybe mention the implication is that control/prompt has CPS semantics.}
+% \begin{reductions}
+%   % \slab{Value}    & \reset{V}               &\reducesto& V\\
+%   \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& M[\cont_{\reset{\EC}}/k]\\
+%   % \slab{Resume}   & \Continue~\cont_{\reset{\EC}}~V &\reducesto& \reset{\EC[V]}\\
+% \end{reductions}
+%
+
 \paragraph{Cupto}
 %
 \begin{reductions}
@@ -1522,24 +1655,6 @@ discarded, because the continuation $k'$ is never invoked.
      \Set\; p \;\In\; \EC[\Cupto~p~k.M], \rho &\reducesto& M[\cont_{\EC}/k], \rho\\
   \slab{Resume} & \Continue~\cont_{\EC}~V, \rho &\reducesto& \EC[V], \rho
 \end{reductions}
-
-\paragraph{\citeauthor{DanvyF90}'s shift and reset}
-%
-\begin{reductions}
-  \slab{Value}    & \reset{V}               &\reducesto& V\\
-  \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& \reset{M[\cont_{\EC}/k]}, \text { where $\EC$ contains no $\reset{-}$}\\
-  % \slab{Resume}   & \reset{\EC[\Continue~\cont_{\reset{\EC'}}~V]} &\reducesto& \reset{\EC[\reset{\EC'[V]}]}\\
-  \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \reset{\EC[V]}\\
-\end{reductions}
-%
-
-%
-% \begin{reductions}
-%   % \slab{Value}    & \reset{V}               &\reducesto& V\\
-%   \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& M[\cont_{\reset{\EC}}/k]\\
-%   % \slab{Resume}   & \Continue~\cont_{\reset{\EC}}~V &\reducesto& \reset{\EC[V]}\\
-% \end{reductions}
-%
 
 \paragraph{\citeauthor{PlotkinP09}'s effect handlers}
 %
@@ -1642,6 +1757,11 @@ Coroutines~\cite{DahlDH72} as introduced by Simula
 Conway, who used coroutines as a code idiom in assembly
 programs~\cite{Knuth97}. Canonical reference for implementing
 coroutines with call/cc~\cite{HaynesFW86}.
+
+\section{Programming continuations}
+Blind vs non-blind backtracking. Engines. Web
+programming. Asynchronous
+programming. Coroutines. Meta-programming~\cite{LawallD94,KameyamaKS11,OishiK17,Yallop17}.
 
 \section{Constraining continuations}
 For example callec is a variation of callcc where the continuation
