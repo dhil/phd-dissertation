@@ -1657,29 +1657,50 @@ and state~\cite{Filinski94}.
 \dhil{TODO: Canonical reference \citet{HiebDA94}}
 
 \paragraph{\citeauthor{Sitaram93}'s fcontrol} The control operator
-`fcontrol' was introduced by \citet{Sitaram93} in 1993. The fcontrol
-operator distinguishes itself from the previous control operators in
-that it supports handling of continuations. \citeauthor{Sitaram93}'s
-observation was that previous control operators had hardwired handling
-of continuations into the capture mechanism, e.g. callcc applies its
-argument with the captured continuation. The programmer has no control
-over whether to function argument should be run immediately or run at
-all. \citeauthor{Sitaram93}'s goal was decouple the continuation
-capturing mechanism from the continuation handling mechanism.
+`fcontrol' was introduced by \citet{Sitaram93} in 1993. It is a
+refinement of control0/prompt0, and thus, it can be characterised as a
+dynamic delimited control operator. The main novelty of fcontrol is
+that is separate continuation handling from continuation capturing by
+providing the programmer with ability to attach a handler to the
+prompt. This handler is activated whenever a continuation is captured.
+%
+\citeauthor{Sitaram93}'s observation was that with previous control
+operators the capture and handling mechanisms are intertwined. For
+example, callcc applies its argument with the captured
+continuation. The programmer has no control over when the function
+argument should be run.
+
+The operator fcontrol is a value and prompt with handler is a
+computation.
 %
 \begin{syntax}
   & V, W &::=& \cdots \mid \fcontrol\\
   & M, N &::=& \cdots \mid \fprompt~V.M
 \end{syntax}
 %
+As with $\Callcc$, the value $\fcontrol$ may be regarded as a special
+unary function symbol. The value constituent of the prompt
+($\fprompt$) is the control handler. It is a binary function, that
+gets applied to the argument of $\fcontrol$ and the continuation up to
+the prompt.
+%
+The dynamic semantics elucidate this behaviour.
+%
 \begin{reductions}
   \slab{Value} &
      \fprompt~V.W &\reducesto& W\\
   \slab{Capture} &
-     \fprompt~V.\EC[\fcontrol~W] &\reducesto& V~W~\cont_{\EC}, \text{ where $\EC$ contains no \fprompt}\\
+     \fprompt~V.\EC[\fcontrol~W] &\reducesto& V~W~\qq{\cont_{\EC}}, \text{ where $\EC$ contains no \fprompt}\\
   \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
 %
+The $\slab{Value}$ is similar to the previous $\slab{Value}$
+rules. The interesting rule is the $\slab{Capture}$. When $\fcontrol$
+is applied to some value $W$ the enclosing context $\EC$ gets reified
+and aborted up to the nearest enclosing prompt, which invokes the
+handler $V$ with the argument $W$ and the continuation.
+%
+\dhil{Show an example\dots}
 
 \paragraph{Cupto} The control operator cupto is a variation of
 control0/prompt0 designed to fit into the typed ML-family of
