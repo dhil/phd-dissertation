@@ -1584,9 +1584,11 @@ Answer type modification is a powerful feature that can be used to
 type embedded languages, an illustrious application of this is
 \citeauthor{Danvy98}'s typed $\dec{printf}$~\cite{Danvy98}. A
 polymorphic extension of answer type modification has been
-investigated by \citet{AsaiK07}, whilst \citet{KoboriKK16}
-demonstrated how to translate from a source language with answer type
-modification into a system without using typed multi-prompts.
+investigated by \citet{AsaiK07}, \citet{KiselyovS07} developed a
+substructural type system with answer type modification, whilst
+\citet{KoboriKK16} demonstrated how to translate from a source
+language with answer type modification into a system without using
+typed multi-prompts.
 
 Differences between shift/reset and control/prompt manifests in the
 dynamic semantics as well.
@@ -1647,13 +1649,120 @@ and state~\cite{Filinski94}.
 % \end{reductions}
 %
 
-\paragraph{\citeauthor{QueinnecS91}'s splitter}
+\paragraph{\citeauthor{QueinnecS91}'s splitter} The `splitter' control
+operator reconciles abortive undelimited control and composable
+delimited control. It was introduced by \citet{QueinnecS91} in
+1991. The name `splitter' is derived from it operational behaviour, as
+an application of `splitter' marks evaluation context in order for to
+be split into two parts, where the subcontext inside the mark may be
+reified into a delimited continuation, and the outer context
+represents the rest of the computation. The operator supports two
+operations `calldc' and `abort' to control the splitting of evaluation
+contexts. The former reifies the context inside the mark as a
+delimited continuation function, whilst the latter has the effect of
+escaping to the context outside the mark.
+
+Splitter and the two operations abort and calldc are value forms.
+%
+\[
+  V,W ::= \cdots \mid \splitter \mid \abort \mid \calldc
+\]
+%
+In their treatise of splitter, \citeauthor{QueinnecS91} gave three
+different presentations of splitter. The presentation that I have
+opted for here is close to their second presentation, which is in
+terms of multi-prompt continuations. This variation of splitter admits
+a pleasant static semantics too. Thus, we further extend the syntactic
+categories with the machinery for first-class prompts.
+%
+\begin{syntax}
+  & A,B &::=& \cdots \mid \prompttype~A \smallskip\\
+  & V,W &::=& \cdots \mid p\\
+  & M,N &::=& \cdots \mid \Prompt_V~M
+\end{syntax}
+%
+The type $\prompttype~A$ classifies prompts whose answer type is
+$A$. Prompt names are first-class values and denoted by $p$. The
+computation $\Prompt_V~M$ denotes a computation $M$ delimited by a
+parameterised prompt, whose value parameter $V$ is supposed to be a
+prompt name.
+%
+The static semantics of $\splitter$, $\abort$, and $\calldc$ are as
+follows.
+%
+\begin{mathpar}
+  \inferrule*
+  {~}
+  {\typ{\Gamma}{\splitter : (\prompttype~A \to A) \to A}}
+
+  \inferrule*
+  {~}
+  {\typ{\Gamma}{\abort : \prompttype~A \times (\UnitType \to A) \to B}}
+
+  \inferrule*
+  {~}
+  {\typ{\Gamma}{\calldc : \prompttype~A \times ((B \to A) \to B) \to B}}
+\end{mathpar}
+%
+In this presentation, the operator and the two operations all amount
+to special higher-order function symbols. The argument to $\splitter$
+is parameterised by a prompt name. This name is injected by
+$\splitter$ upon application. The operations $\abort$ and $\calldc$
+both accept as their first argument the name of the delimiting
+prompt. The second argument of $\abort$ is a thunk, whilst the second
+argument of $\calldc$ is a higher-order function, which accepts a
+continuation as its argument.
+
+For the sake of completeness the prompt primitives are typed as
+follows.
+%
+\begin{mathpar}
+  \inferrule*
+  {~}
+  {\typ{\Gamma,p:\prompttype~A}{p : \prompttype~A}}
+
+  \inferrule*
+  {\typ{\Gamma}{V : \prompttype~A} \\ \typ{\Gamma}{M : A}}
+  {\typ{\Gamma}{\Prompt_V~M : A}}
+\end{mathpar}
+%
+The dynamic semantics of this presentation require a bit of
+generativity in order to generate fresh prompt names. Therefore the
+reduction relation is extended with an additional component to keep
+track of which prompt names have already been allocated.
+%
 \begin{reductions}
-  \slab{Throw}   & \splitter~throw~calldc.\EC[\,throw~V] &\reducesto& V~\Unit\\
-  \slab{Capture} &
-     \splitter~throw~calldc.\EC[calldc~V] &\reducesto& V~\cont_{\EC} \\
-  \slab{Resume}  & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
+  \slab{AppSplitter} & \splitter~V,\rho &\reducesto& \Prompt_p~V\,p,\rho \uplus \{p\}\\
+  \slab{Value}    & \Prompt_p~V,\rho &\reducesto& V,\rho\\
+  \slab{Abort}    & \Prompt_p~\EC[\abort~\Record{p;V}],\rho &\reducesto& V\,\Unit,\rho,\quad \text{where $\EC$ contains no $\Prompt_p$}\\
+  \slab{Capture}  & \Prompt_p~\EC[\calldc~V] &\reducesto& V~\qq{\cont_{\EC}},\rho\\
+  \slab{Resume}   & \Continue~\cont_{\EC}~V,\rho &\reducesto& \EC[V],\rho
 \end{reductions}
+%
+We see by the $\slab{AppSplitter}$ rule that an application of
+$\splitter$ generates a fresh named prompt, whose name is applied on
+the function argument.
+%
+The $\slab{Value}$ rule is completely standard.
+%
+The $\slab{Abort}$ rule show that an invocation of $\abort$ causes the
+current evaluation context $\EC$ up to and including the nearest
+enclosing prompt.
+%
+The next rule $\slab{Capture}$ show that $\calldc$ captures and aborts
+the context up to the nearest enclosing prompt. The captured context
+is applied on the function argument of $\calldc$. As part of the
+operation the prompt is removed. Thus, $\calldc$ behaves as a
+delimited variation of $\Callcc$.
+%
+\dhil{Show an example}
+% \begin{reductions}
+%   \slab{Value}   & \splitter~abort~calldc.V &\reducesto& V\\
+%   \slab{Throw}   & \splitter~abort~calldc.\EC[\,abort~V] &\reducesto& V~\Unit\\
+%   \slab{Capture} &
+%      \splitter~abort~calldc.\EC[calldc~V] &\reducesto& V~\qq{\cont_{\EC}} \\
+%   \slab{Resume}  & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
+% \end{reductions}
 
 
 \paragraph{Spawn}
