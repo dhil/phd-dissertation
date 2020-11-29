@@ -1653,14 +1653,15 @@ and state~\cite{Filinski94}.
 operator reconciles abortive undelimited control and composable
 delimited control. It was introduced by \citet{QueinnecS91} in
 1991. The name `splitter' is derived from it operational behaviour, as
-an application of `splitter' marks evaluation context in order for to
-be split into two parts, where the subcontext inside the mark may be
-reified into a delimited continuation, and the outer context
-represents the rest of the computation. The operator supports two
-operations `calldc' and `abort' to control the splitting of evaluation
-contexts. The former reifies the context inside the mark as a
-delimited continuation function, whilst the latter has the effect of
-escaping to the context outside the mark.
+an application of `splitter' marks evaluation context in order for it
+to be split into two parts, where the context outside the mark
+represents the rest of computation, and the context inside the mark
+may be reified into a delimited continuation. The operator supports
+two operations `abort' and `calldc' to control the splitting of
+evaluation contexts. The former has the effect of escaping to the
+outer context, whilst the latter reifies the inner context as a
+delimited continuation (the operation name is short for ``call with
+delimited continuation'').
 
 Splitter and the two operations abort and calldc are value forms.
 %
@@ -1752,8 +1753,15 @@ enclosing prompt.
 The next rule $\slab{Capture}$ show that $\calldc$ captures and aborts
 the context up to the nearest enclosing prompt. The captured context
 is applied on the function argument of $\calldc$. As part of the
-operation the prompt is removed. Thus, $\calldc$ behaves as a
-delimited variation of $\Callcc$.
+operation the prompt is removed. % Thus, $\calldc$ behaves as a
+% delimited variation of $\Callcc$.
+%
+
+It is clear by the prompt semantics that invocation of either $\abort$
+and $\calldc$ is only well-defined within the dynamic extent of
+$\splitter$. Since the prompt is eliminated after use of either
+operation subsequent operation invocations must be guarded by a new
+instance of $\splitter$.
 %
 \dhil{Show an example}
 % \begin{reductions}
@@ -1908,51 +1916,155 @@ captured context $\EC$ with the argument $V$ plugged in.
 %
 \dhil{Show some example of use\dots}
 
-\paragraph{\citeauthor{PlotkinP09}'s effect handlers} Effect handlers
-were introduced by \citet{PlotkinP09} in 2009.
+\paragraph{\citeauthor{PlotkinP09}'s effect handlers} In 2009,
+\citet{PlotkinP09} introduced handlers for \citeauthor{PlotkinP01}'s
+algebraic effects~\cite{PlotkinP01,PlotkinP03,PlotkinP13}. In contrast
+to the previous control operators, the mathematical foundations of
+handlers were not an afterthought, rather, their origin is deeply
+rooted in mathematics. Nevertheless, they turn out to provide a
+pragmatic interface for programming with control. Operationally,
+effect handlers can be viewed as a small extension to exception
+handlers, where exceptions are resumable. Effect handlers are similar
+to fcontrol in that handling of control happens at the delimiter and
+not at the point of control capture. Unlike fcontrol, the interface of
+effect handlers provide a mechanism for handling the return value of a
+computation similar to \citeauthor{BentonK01}'s exception handlers
+with success continuations~\cite{BentonK01}.
+
+Effect handler definitions occupy their own syntactic category.
+%
+\begin{syntax}
+  &A,B \in \ValTypeCat &::=& \cdots \mid A \Harrow B \smallskip\\
+  &H   \in \HandlerCat &::=&  \{ \Return \; x \mapsto M \}
+                        \mid \{ \OpCase{\ell}{p}{k} \mapsto N \} \uplus H\\
+\end{syntax}
+%
+A handler consists of a $\Return$-clause and zero or more operation
+clauses.
+%
+\begin{syntax}
+  &\Sigma \in \mathsf{Sig} &::=& \emptyset \mid \{ \ell : A \opto B \} \uplus \Sigma\\
+  &A,B,C,D \in \ValTypeCat &::=& \cdots \mid A \opto B \smallskip\\
+  &M,N \in \CompCat    &::=& \cdots \mid \Do\;\ell\,V \mid \Handle \; M \; \With \; H\\[1ex]
+\end{syntax}
+%
+\begin{mathpar}
+  \inferrule*
+  {
+    \typ{\Gamma}{M : C} \\
+    \typ{\Gamma}{H : C \Harrow D}
+  }
+  {\typ{\Gamma;\Sigma}{\Handle \; M \; \With\; H : D}}
+
+
+%\mprset{flushleft}
+  \inferrule*
+   {{\bl
+       % C = A \eff \{(\ell_i : A_i \opto B_i)_i; R\} \\
+       % D = B \eff \{(\ell_i : P_i)_i;           R\}\\
+       \{\ell_i : A_i \opto B_i\}_i \in \Sigma \\
+       H = \{\Return\;x \mapsto M\} \uplus \{ \OpCase{\ell_i}{p_i}{r_i} \mapsto N_i \}_i \\
+       \el}\\\\
+       \typ{\Gamma, x : A;\Sigma}{M : D}\\\\
+       [\typ{\Gamma,p_i : A_i, r_i : B_i \to D;\Sigma}{N_i : D}]_i
+    }
+    {\typ{\Gamma;\Sigma}{H : C \Harrow D}}
+\end{mathpar}
 %
 \begin{reductions}
   \slab{Value}    & \Handle\; V \;\With\;H   &\reducesto& M[V/x], \text{ where } \{\Return\;x \mapsto M\} \in H\\
-  \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\cont_{\Record{\EC;H}}/k],\\
+  \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\qq{\cont_{\Record{\EC;H}}}/k],\\
   \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
   \slab{Resume}   & \Continue~\cont_{\Record{\EC;H}}~V &\reducesto& \Handle\;\EC[V]\;\With\;H\\
 \end{reductions}
 %
+The \slab{Value} rule differs from previous operators as it is not
+just the identity. Instead the $\Return$-clause of the handler
+definition is applied to the return value of the computation.
+%
+The \slab{Capture} rule handles operation invocation by checking
+whether the handler $H$ handles the operation $\ell$, otherwise the
+operation implicitly passes through the term to the context outside
+the handler. This behaviour is similar to how exceptions pass through
+the context until a suitable handler has been found.
+%
+If $H$ handles $\ell$, then the context $\EC$ from the operation
+invocation up to and including the handler $H$ are reified as a
+continuation object, which gets bound in the corresponding clause for
+$\ell$ in $H$ along with the payload of $\ell$.
+%
+This form of effect handlers is known as \emph{deep} handlers. They
+are deep in the sense that they embody a structural recursion scheme
+akin to fold over computation trees induced by effectful
+operations. The recursion is evident from $\slab{Resume}$ rule, as
+continuation invocation causes the same handler to be reinstalled
+along with the captured context.
+%
+
+The alternative to deep handlers is known as \emph{shallow}
+handlers. They do not embody a particular recursion scheme, rather,
+they correspond to case splits to over computation trees.
+%
+To distinguish between applications of deep and shallow handlers, we
+will mark the latter with a dagger superscript, i.e.
+$\ShallowHandle\; - \;\With\;-$.
+%
+\begin{mathpar}
+%\mprset{flushleft}
+  \inferrule*
+   {{\bl
+       % C = A \eff \{(\ell_i : A_i \opto B_i)_i; R\} \\
+       % D = B \eff \{(\ell_i : P_i)_i;           R\}\\
+       \{\ell_i : A_i \opto B_i\}_i \in \Sigma \\
+       H = \{\Return\;x \mapsto M\} \uplus \{ \OpCase{\ell_i}{p_i}{r_i} \mapsto N_i \}_i \\
+       \el}\\\\
+       \typ{\Gamma, x : A;\Sigma}{M : D}\\\\
+       [\typ{\Gamma,p_i : A_i, r_i : B_i \to C;\Sigma}{N_i : D}]_i
+    }
+    {\typ{\Gamma;\Sigma}{H : C \Harrow D}}
+\end{mathpar}
+%
 \begin{reductions}
-  \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\cont_{\EC}/k],\\
+  \slab{Capture}  & \ShallowHandle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\qq{\cont_{\EC}}/k],\\
+  \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
+  \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]\\
+\end{reductions}
+%
+\begin{reductions}
+  \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\qq{\cont_{\EC}}/k],\\
   \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
   \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]\\
 \end{reductions}
 %
 
-Deep handlers can be used to simulate shift and reset.
+Deep handlers can be used to simulate shift0 and reset0.
 %
 \begin{equations}
-  \sembr{\shift} &\defas& \lambda f. \Do\;\shift~f\\
-  \sembr{\reset{M}} &\defas&
+  \sembr{\shiftz~k.M} &\defas& \Do\;\dec{Shift0}~(\lambda k.M)\\
+  \sembr{\resetz{M}} &\defas&
               \ba[t]{@{~}l}\Handle\;m\,\Unit\;\With\\
                   ~\ba{@{~}l@{~}c@{~}l}
                       \Return\;x &\mapsto& x\\
-                      \OpCase{\dec{Shift}}{f}{k} &\mapsto& f\,(\lambda x. \Continue~k~x)
+                      \OpCase{\dec{Shift0}}{f}{k} &\mapsto& f\,(\lambda x. \Continue~k~x)
                    \ea
               \ea
 \end{equations}
 %
 
-Shallow handlers can be used to simulate prompt and control.
+Shallow handlers can be used to simulate control0 and prompt0.
 %
 \begin{equations}
-  \sembr{\Control} &\defas& \lambda f. \Do\;\dec{Control}~f\\
-  \sembr{\Prompt~M} &\defas&
+  \sembr{\Controlz~k.M} &\defas& \Do\;\dec{Control0}~(\lambda k.M)\\
+  \sembr{\Promptz~M} &\defas&
      \bl
-       prompt\,(\lambda\Unit.M)\\
+       prompt0\,(\lambda\Unit.M)\\
        \textbf{where}\;
          \bl
-            prompt~m \defas
+            prompt0~m \defas
               \ba[t]{@{~}l}\ShallowHandle\;m\,\Unit\;\With\\
                   ~\ba{@{~}l@{~}c@{~}l}
                       \Return\;x &\mapsto& x\\
-                      \OpCase{\dec{Control}}{f}{k} &\mapsto& prompt\,(\lambda\Unit.f\,(\lambda x. \Continue~k~x))
+                      \OpCase{\dec{Control0}}{f}{k} &\mapsto& prompt0\,(\lambda\Unit.f\,(\lambda x. \Continue~k~x))
                    \ea
               \ea
           \el
