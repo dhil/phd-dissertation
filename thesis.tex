@@ -1055,7 +1055,10 @@ continuations and state.
 The other way around also appears to be impossible, because neither
 the base calculus nor $\Callcomc$ has the ability to discard an
 evaluation context.
-
+%
+\dhil{Remark that $\Callcomc$ was originally obtained by decomposing
+  $\fcontrol$ a continuation composing primitive and an abortive
+  primitive. Source: Matthew Flatt, comp.lang.scheme, May 2007}
 
 \paragraph{\FelleisenC{} and \FelleisenF{}}
 %
@@ -1658,17 +1661,20 @@ and state~\cite{Filinski94}.
 
 \paragraph{\citeauthor{Sitaram93}'s fcontrol} The control operator
 `fcontrol' was introduced by \citet{Sitaram93} in 1993. It is a
-refinement of control0/prompt0, and thus, it can be characterised as a
-dynamic delimited control operator. The main novelty of fcontrol is
-that is separate continuation handling from continuation capturing by
-providing the programmer with ability to attach a handler to the
-prompt. This handler is activated whenever a continuation is captured.
+refinement of control0/prompt0, and thus, it is a dynamic delimited
+control operator. The main novelty of fcontrol is that it shifts the
+handling of continuations from control capture operator to the control
+delimiter. The prompt interface for fcontrol lets the programmer
+attach a handler to it. This handler is activated whenever a
+continuation captured.
 %
 \citeauthor{Sitaram93}'s observation was that with previous control
-operators the capture and handling mechanisms are intertwined. For
-example, callcc applies its argument with the captured
-continuation. The programmer has no control over when the function
-argument should be run.
+operators the handling of control happens at continuation capture
+point, meaning that the control handling logic gets intertwined with
+application logic. The inspiration for the interface of fcontrol and
+its associated prompt came from exception handlers, where the handling
+of exceptions is separate from the invocation site of
+exceptions~\cite{Sitaram93}.
 
 The operator fcontrol is a value and prompt with handler is a
 computation.
@@ -1679,12 +1685,13 @@ computation.
 \end{syntax}
 %
 As with $\Callcc$, the value $\fcontrol$ may be regarded as a special
-unary function symbol. The value constituent of the prompt
-($\fprompt$) is the control handler. It is a binary function, that
-gets applied to the argument of $\fcontrol$ and the continuation up to
-the prompt.
+unary function symbol. The syntax $\fprompt$ denotes a prompt (in
+\citeauthor{Sitaram93}'s terminology it is called run). The value
+constituent of $\fprompt$ is the control handler. It is a binary
+function, that gets applied to the argument of $\fcontrol$ and the
+continuation up to the prompt.
 %
-The dynamic semantics elucidate this behaviour.
+The dynamic semantics elucidate this behaviour formally.
 %
 \begin{reductions}
   \slab{Value} &
@@ -1754,7 +1761,18 @@ here, only the essential rules for the $\Cupto$ constructs.
 The typing rule for $\Set$ uses the type embedded in the prompt to fix
 the type of the whole computation $N$. Similarly, the typing rule for
 $\Cupto$ uses the prompt type of its value argument to fix the answer
-type for the continuation $k$.
+type for the continuation $k$. The type of the $\Cupto$ expression is
+the same as the domain of the continuation, which at first glance may
+seem strange. The intuition is that $\Cupto$ behaves as a let binding
+for the continuation in the context of a $\Set$ expression, i.e.
+%
+\[
+  \bl
+    \Set\;p^{\prompttype~B}\;\In\;\EC[\Cupto\;p\;k^{A \to B}.M^B]^B\\
+    \reducesto \Let\;k \revto \lambda x^{A}.\EC[x]^B \;\In\;M^B
+  \el
+\]
+%
 
 The dynamic semantics is generative to accommodate generation of fresh
 prompts. Formally, the reduction relation is augmented with a store
