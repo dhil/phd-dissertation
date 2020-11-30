@@ -1393,54 +1393,64 @@ connections to shell prompts, and how they act as barriers between the
 user and operating system.
 %
 
-A prompt is a computation form, whilst control is a value.
+In this presentation both control and prompt appear as computation
+forms.
 %
 \begin{syntax}
-    &V,W \in \ValCat  &::=& \cdots \mid \Control\\
-    &M,W \in \CompCat &::=& \cdots \mid \Prompt~M
+     &M,W \in \CompCat &::=& \cdots \mid \Control~k.M \mid \Prompt~M
 \end{syntax}
 %
-A prompt is written using the sharp ($\Prompt$) symbol. An application
-of $\Control$ reifies the current continuation up to the nearest,
-dynamically determined, enclosing $\Prompt$.
+The $\Control~k.M$ expression reifies the context up to the nearest,
+dynamically determined, enclosing prompt and binds it to $k$ inside of
+$M$. A prompt is written using the sharp ($\Prompt$) symbol.
 %
 The prompt remains in place after the reification, and thus any
 subsequent application of $\Control$ will be delimited by the same
 prompt.
 %
-\citeauthor{Felleisen88}'s original treatment of control and prompt
-was untyped. Typing them, particularly using a simple type system,
-affect their expressivity, because the type of the continuation object
-produced by $\Control$ must be compatible with the type of its nearest
-enclosing prompt -- this type is often called the \emph{answer} type
-(this terminology is adopted from typed continuation passing style
-transforms, where the codomain of every function is transformed to
-yield the type of whatever answer the entire program
-yields~\cite{MeyerW85}).
-%
-\dhil{Give intuition for why soundness requires the answer type to be fixed.}
-%
 
-In the static semantics we extend the typing judgement relation to
-contain an up front fixed answer type $A$.
+The static semantics of control and prompt were absent in
+\citeauthor{Felleisen88}'s original treatment.
 %
-\begin{mathpar}
-  \inferrule*
-    {\typ{\Gamma;A}{M : A}}
-    {\typ{\Gamma;A}{\Prompt~M : A}}
+\dhil{Mention Yonezawa and Kameyama's type system.}
+%
+\citet{DybvigJS07} gave a typed embedding of multi-prompts in
+Haskell. In the multi-prompt setting the prompts are named and an
+instance of $\Control$ is indexed by the prompt name of its designated
+delimiter.
 
-  \inferrule*
-    {~}
-    {\typ{\Gamma;A}{\Control : (\Cont\,\Record{A;A} \to A) \to A}}
-\end{mathpar}
-%
-A prompt has the same type as its computation constituent, which in
-turn must have the same type as fixed answer type.
-%
-Similarly, the type of $\Control$ is governed by the fixed answer
-type. Discarding the answer type reveals that $\Control$ has the same
-typing judgement as $\FelleisenF$.
-%
+% Typing them, particularly using a simple type system,
+% affect their expressivity, because the type of the continuation object
+% produced by $\Control$ must be compatible with the type of its nearest
+% enclosing prompt -- this type is often called the \emph{answer} type
+% (this terminology is adopted from typed continuation passing style
+% transforms, where the codomain of every function is transformed to
+% yield the type of whatever answer the entire program
+% yields~\cite{MeyerW85}).
+% %
+% \dhil{Give intuition for why soundness requires the answer type to be fixed.}
+% %
+
+% In the static semantics we extend the typing judgement relation to
+% contain an up front fixed answer type $A$.
+% %
+% \begin{mathpar}
+%   \inferrule*
+%     {\typ{\Gamma;A}{M : A}}
+%     {\typ{\Gamma;A}{\Prompt~M : A}}
+
+%   \inferrule*
+%     {~}
+%     {\typ{\Gamma;A}{\Control : (\Cont\,\Record{A;A} \to A) \to A}}
+% \end{mathpar}
+% %
+% A prompt has the same type as its computation constituent, which in
+% turn must have the same type as fixed answer type.
+% %
+% Similarly, the type of $\Control$ is governed by the fixed answer
+% type. Discarding the answer type reveals that $\Control$ has the same
+% typing judgement as $\FelleisenF$.
+% %
 
 The dynamic semantics for control and prompt consist of three rules:
 1) handle return through a prompt, 2) continuation capture, and 3)
@@ -1450,7 +1460,7 @@ continuation invocation.
   \slab{Value} &
      \Prompt~V &\reducesto& V\\
   \slab{Capture} &
-     \Prompt~\EC[\Control~V] &\reducesto& \Prompt~(V~\qq{\cont_{\EC}}), \text{ where $\EC$ contains no \Prompt}\\
+     \Prompt~\EC[\Control~k.M] &\reducesto& \Prompt~M[\qq{\cont_{\EC}}/k], \text{ where $\EC$ contains no \Prompt}\\
   \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
 %
@@ -1473,13 +1483,11 @@ To illustrate $\Prompt$ and $\Control$ in action, let us consider a
 few simple examples.
 %
 \begin{derivation}
-  & 1 + \Prompt~2 + \Control\,(\lambda k.\Continue~k~(\Continue~k~0))\\
+  & 1 + \Prompt~2 + (\Control~k.\Continue~k~(\Continue~k~0))\\
   \reducesto^+& \reason{Capture $\EC = 2 + [\,]$}\\
-  & 1 + \Prompt~(\lambda k.\Continue~k~(\Continue~k~0))\,\cont_{2 + [\,]}\\
-  \reducesto  & \reason{$\beta$-reduction}\\
-  & 1 + \Prompt~\Continue~\cont_{2+[\,]}~(\Continue~\cont_{2 + [\,]}~0)\\
+  & 1 + \Prompt~\Continue~\cont_{\EC}~(\Continue~\cont_{\EC]}~0))\,\\
   \reducesto & \reason{Resume with 0}\\
-  & 1 + \Prompt~\Continue~\cont_{2+[\,]}~(2 + 0)\\
+  & 1 + \Prompt~\Continue~\cont_{\EC}~(2 + 0)\\
   \reducesto^+ & \reason{Resume with 2}\\
   & 1 + \Prompt~2 + 2\\
   \reducesto^+ & \reason{\slab{Value} rule}\\
@@ -1498,11 +1506,11 @@ $4$, which is (implicitly) supplied to the continuation of $\Prompt$.
 Let us consider a slight variation of the previous example.
 %
 \begin{derivation}
-  & 1 + \Prompt~2 + \Control\,(\lambda k.\Continue~k~0) + \Control\,(\lambda k'. 0)\\
-  \reducesto^+& \reason{Capture $\EC = 2 + [\,] + \Control\,(\lambda k'.0)$}\\
+  & 1 + \Prompt~2 + (\Control~k.\Continue~k~0) + (\Control~k'. 0)\\
+  \reducesto^+& \reason{Capture $\EC = 2 + [\,] + (\Control~k'.0)$}\\
   & 1 + \Prompt~\Continue~\cont_{\EC}~0\\
   \reducesto & \reason{Resume with 0}\\
-  & 1 + \Prompt~2 + 0 + \Control\,(\lambda k'. 0)\\
+  & 1 + \Prompt~2 + 0 + (\Control~k'. 0)\\
   \reducesto^+ & \reason{Capture $\EC' = 2 + [\,]$}\\
   & 1 + \Prompt~0 \\
   \reducesto & \reason{\slab{Value} rule}\\
@@ -2101,9 +2109,20 @@ programs~\cite{Knuth97}. Canonical reference for implementing
 coroutines with call/cc~\cite{HaynesFW86}.
 
 \section{Programming continuations}
-Blind vs non-blind backtracking. Engines. Web
-programming. Asynchronous
-programming. Coroutines. Meta-programming~\cite{LawallD94,KameyamaKS11,OishiK17,Yallop17}.
+%Blind vs non-blind backtracking. Engines. Web
+% programming. Asynchronous
+% programming. Coroutines.
+
+Amongst the first uses of continuations were modelling of unrestricted
+jumps, such as \citeauthor{Landin98}'s modelling of \Algol{} labels
+and gotos using the J
+operator~\cite{Landin65,Landin65a,Landin98,Reynolds93}.
+
+Backtracking is another early and prominent use of
+continuations. \citet{Burstall69} used the J operator to implement a
+backtracking mechanism to facilitate tree-based search.
+
+Meta-programming~\cite{LawallD94,KameyamaKS11,OishiK17,Yallop17}.
 
 \section{Constraining continuations}
 For example callec is a variation of callcc where the continuation
