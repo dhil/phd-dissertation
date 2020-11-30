@@ -2097,16 +2097,16 @@ Shallow handlers can be used to simulate control0 and prompt0.
   \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
 
-\subsection{Second-class control operators}
-Coroutines, async/await, generators/iterators, amb.
+% \subsection{Second-class control operators}
+% Coroutines, async/await, generators/iterators, amb.
 
-Backtracking: Amb~\cite{McCarthy63}.
+% Backtracking: Amb~\cite{McCarthy63}.
 
-Coroutines~\cite{DahlDH72} as introduced by Simula
-67~\cite{DahlMN68}. The notion of coroutines was coined by Melvin
-Conway, who used coroutines as a code idiom in assembly
-programs~\cite{Knuth97}. Canonical reference for implementing
-coroutines with call/cc~\cite{HaynesFW86}.
+% Coroutines~\cite{DahlDH72} as introduced by Simula
+% 67~\cite{DahlMN68}. The notion of coroutines was coined by Melvin
+% Conway, who used coroutines as a code idiom in assembly
+% programs~\cite{Knuth97}. Canonical reference for implementing
+% coroutines with call/cc~\cite{HaynesFW86}.
 
 \section{Programming continuations}
 %Blind vs non-blind backtracking. Engines. Web
@@ -2118,16 +2118,64 @@ jumps, such as \citeauthor{Landin98}'s modelling of \Algol{} labels
 and gotos using the J
 operator~\cite{Landin65,Landin65a,Landin98,Reynolds93}.
 
-Backtracking is another early and prominent use of
-continuations. \citet{Burstall69} used the J operator to implement a
-backtracking mechanism to facilitate tree-based search.
+Backtracking is another early and prominent use of continuations. For
+example, \citet{Burstall69} used the J operator to implement a
+heuristic-driven search procedure with continuation-backed
+backtracking for tree-based search.
+%
+Somewhat related to backtracking, \citet{FriedmanHK84} posed the
+\emph{devils and angels problem} as an example that has no direct
+solution in a programming language without first-class control. Any
+solution to the devils and angels problem involves extensive
+manipulation of control to jump both backwards and forwards to resume
+computation.
 
-Meta-programming~\cite{LawallD94,KameyamaKS11,OishiK17,Yallop17}.
+If the reader ever find themselves in a quiz show asked to single out
+a canonical example of continuation use, then implementation of
+cooperative concurrency would be a qualified guess. Various forms of
+coroutines as continuations occur so frequently in the literature and
+in the wild that they have become routine.
+%
+\citet{HaynesFW86} published one of the first implementations of
+coroutines using first-class control. \citet{HiebD90} demonstrated how
+to implement engines. An engine is a kind of scheduler for
+computations running on a time budget~\cite{HaynesF84}.
+%
+Various other forms of schedulers were developed by \citet{GanzFW99}.
+
+Continuations have also been used in meta-programming to speed up
+partial evaluation and
+multi-staging~\cite{LawallD94,KameyamaKS11,OishiK17,Yallop17}. Let
+insertion is a canonical example of use of continuations in
+multi-staging~\cite{Yallop17}.
+
+The aforementioned applications of continuations is by no means
+exhaustive, however, the diverse application spectrum underlines the
+versatility of continuations.
 
 \section{Constraining continuations}
+
+\citet{FriedmanH85} argued in favour of constraining the power of
+continuations~\cite{HaynesF87}. Although, they were concerned with
+callcc and undelimited continuations many of their arguments are
+applicable to other control operators and delimited continuations.
+
 For example callec is a variation of callcc where the continuation
 only can be invoked during the dynamic extent of
 callec~\cite{Flatt20}.
+
+Dynamic-wind\dots
+
+To avoid resource leakage the implementation of effect handlers in
+Multicore OCaml provides both a \emph{continue} primitive for
+continuing a given continuation and a \emph{discontinue} primitive for
+aborting a given continuation~\cite{DolanWSYM15,DolanEHMSW17}. The
+latter throws an exception at the operation invocation site to clean
+up resources.
+%
+A similar approached is used by \citet{Fowler19}, who uses a
+substructural type system to statically enforce the use of
+continuations, either by means of a continue or a discontinue.
 
 \section{Implementing continuations}
 Table~\ref{tbl:ctrl-operators-impls} lists some programming languages
@@ -2178,7 +2226,7 @@ implementation strategies.
 
 \paragraph{Continuation passing style}
 
-\paragraph{Interpreter}
+\paragraph{Abstract and virtual machines}
 
 \paragraph{Segmented stacks}
 
