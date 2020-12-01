@@ -568,42 +568,6 @@ the translation preserve typeability.
 \citet{Shan04} shows that dynamic delimited control and static
 delimited control is macro-expressible in an untyped setting.
 
-\paragraph{A language for understanding control}
-%
-To look at control we will a simply typed fine-grain call-by-value
-calculus. The calculus is essentially the same as the one used in
-Chapter~\ref{ch:handlers-efficiency}, except that here we will have an
-explicit invocation form for continuations. Although, in practice most
-systems disguise continuations as first-class functions, but for a
-theoretical examination it is convenient to treat them specially such
-that continuation invocation is a separate reduction rule from
-ordinary function application. Figure~\ref{fig:pcf-lang-control}
-depicts the syntax of types and terms in the calculus.
-%
-\begin{figure}
-  \centering
-\begin{syntax}
-  \slab{Types}        & A,B &::=& \UnitType \mid \Zero \mid A \to B \mid A + B \mid A \times B \mid \Cont\,\Record{A;B} \smallskip\\
-  \slab{Values}       & V,W &::=& x \mid \lambda x^A.M \mid V + W \mid \Record{V;W} \mid \Unit \mid \cont_\EC\\
-  \slab{Computations} & M,N &::=& \Return\;V \mid \Let\;x \revto M \;\In\;N \mid \Let \Record{x;y} = V \;\In\; N \\
-                       &     &\mid& \Absurd^A\;V \mid V\,W \mid \Continue~V~W \smallskip\\
-  \slab{Evaluation\textrm{ }contexts} & \EC &::=& [\,] \mid \Let\;x \revto \EC \;\In\;N
-\end{syntax}
-\caption{Types and term syntax}\label{fig:pcf-lang-control}
-\end{figure}
-%
-The types are the standard simple types with the addition of the empty
-type $\Zero$ and the continuation object type $\Cont\,\Record{A;B}$,
-which is parameterised by an argument type and a result type,
-respectively. The static semantics is standard as well, except for the
-continuation invocation primitive $\Continue$.
-%
-\begin{mathpar}
-    \inferrule*
-    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
-    {\typ{\Gamma}{\Continue~W~V : B}}
-\end{mathpar}
-
 \section{Classifying continuations}
 
 % \citeauthor{Reynolds93} has written a historical account of the
@@ -755,6 +719,42 @@ non-exhaustive list of first-class control operators.
   \caption{Classification of first-class sequential control operators.}\label{tbl:classify-ctrl}
 \end{table}
 %
+
+\paragraph{An optical device for control}
+%
+To look at control we will a simply typed fine-grain call-by-value
+calculus. The calculus is essentially the same as the one used in
+Chapter~\ref{ch:handlers-efficiency}, except that here we will have an
+explicit invocation form for continuations. Although, in practice most
+systems disguise continuations as first-class functions, but for a
+theoretical examination it is convenient to treat them specially such
+that continuation invocation is a separate reduction rule from
+ordinary function application. Figure~\ref{fig:pcf-lang-control}
+depicts the syntax of types and terms in the calculus.
+%
+\begin{figure}
+  \centering
+\begin{syntax}
+  \slab{Types}        & A,B &::=& \UnitType \mid \Zero \mid A \to B \mid A + B \mid A \times B \mid \Cont\,\Record{A;B} \smallskip\\
+  \slab{Values}       & V,W &::=& x \mid \lambda x^A.M \mid V + W \mid \Record{V;W} \mid \Unit \mid \cont_\EC\\
+  \slab{Computations} & M,N &::=& \Return\;V \mid \Let\;x \revto M \;\In\;N \mid \Let \Record{x;y} = V \;\In\; N \\
+                       &     &\mid& \Absurd^A\;V \mid V\,W \mid \Continue~V~W \smallskip\\
+  \slab{Evaluation\textrm{ }contexts} & \EC &::=& [\,] \mid \Let\;x \revto \EC \;\In\;N
+\end{syntax}
+\caption{Types and term syntax}\label{fig:pcf-lang-control}
+\end{figure}
+%
+The types are the standard simple types with the addition of the empty
+type $\Zero$ and the continuation object type $\Cont\,\Record{A;B}$,
+which is parameterised by an argument type and a result type,
+respectively. The static semantics is standard as well, except for the
+continuation invocation primitive $\Continue$.
+%
+\begin{mathpar}
+    \inferrule*
+    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
+    {\typ{\Gamma}{\Continue~W~V : B}}
+\end{mathpar}
 
 \subsection{Undelimited control operators}
 %
@@ -1084,20 +1084,21 @@ In our framework both operators are value forms.
   V,W \in \ValCat ::= \cdots \mid \FelleisenC \mid \FelleisenF
 \]
 %
-The static semantics of $\FelleisenC$ are the same as $\Callcc$,
-whilst the static semantics of $\FelleisenF$ are the same as
-$\Callcomc$.
-\begin{mathpar}
-  \inferrule*
-    {~}
-    {\typ{\Gamma}{\FelleisenC : (\Cont\,\Record{A;\Zero} \to A) \to A}}
+% The static semantics of $\FelleisenC$ are the same as $\Callcc$,
+% whilst the static semantics of $\FelleisenF$ are the same as
+% $\Callcomc$.
+% \begin{mathpar}
+%   \inferrule*
+%     {~}
+%     {\typ{\Gamma}{\FelleisenC : (\Cont\,\Record{A;\Zero} \to A) \to A}}
 
-  \inferrule*
-    {~}
-    {\typ{\Gamma}{\FelleisenF : (\Cont\,\Record{A;A} \to A) \to A}}
-\end{mathpar}
+%   \inferrule*
+%     {~}
+%     {\typ{\Gamma}{\FelleisenF : (\Cont\,\Record{A;A} \to A) \to A}}
+% \end{mathpar}
 %
-The dynamic semantics of $\FelleisenC$ and $\FelleisenF$ also differ.
+The dynamic semantics of $\FelleisenC$ and $\FelleisenF$ are as
+follows.
 %
 \begin{reductions}
   \slab{C\textrm{-}Capture} &  \EC[\FelleisenC\,V] &\reducesto& V~\qq{\cont_{\EC}}\\
