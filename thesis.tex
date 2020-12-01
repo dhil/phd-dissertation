@@ -946,20 +946,21 @@ macro-expressible.
 \end{equations}
 
 \paragraph{Call-with-composable-continuation} A variation of callcc is
-call-with-composable-continuation, or as I call it \textCallcomc{}.
+call-with-composable-continuation, abbreviated \textCallcomc{}.
 %
 As the name suggests the captured continuation is composable rather
-than abortive.
+than abortive. It was introduced by \citet{FlattYFF07} in 2007, and
+and implemented in November 2006 according to the history log of
+Racket (Racket was then known as MzScheme, version
+360)~\cite{Flatt20}. The history log classifies it as a delimited
+control operator.
 %
-According to the history log of Racket it appeared in November 2006
-(Racket was then known as MzScheme, version 360)~\cite{Flatt20}. The
-history log classifies it as a delimited control operator. Truth to be
-told nowadays in Racket virtually all control operators are delimited,
-even callcc, because they are parameterised by an optional prompt
-tag. If the programmer does not supply a prompt tag at invocation time
-then the optional parameter assume the actual value of the top-level
-prompt, effectively making the extent of the captured continuation
-undelimited.
+Truth to be told nowadays in Racket virtually all control operators
+are delimited, even callcc, because they are parameterised by an
+optional prompt tag. If the programmer does not supply a prompt tag at
+invocation time then the optional parameter assume the actual value of
+the top-level prompt, effectively making the extent of the captured
+continuation undelimited.
 %
 In other words its default mode of operation is undelimited, hence the
 justification for categorising it as such.
@@ -971,29 +972,30 @@ Like $\Callcc$ this operator is a value.
   V,W \in \ValCat ::= \cdots \mid \Callcomc
 \]
 %
-Unlike $\Callcc$, the continuation returns, which the typing rule for
-$\Callcomc$ reflects.
-%
-\begin{mathpar}
-  \inferrule*
-    {~}
-    {\typ{\Gamma}{\Callcomc : (\Cont\,\Record{A;A} \to A) \to A}}
+% Unlike $\Callcc$, the continuation returns, which the typing rule for
+% $\Callcomc$ reflects.
+% %
+% \begin{mathpar}
+%   \inferrule*
+%     {~}
+%     {\typ{\Gamma}{\Callcomc : (\Cont\,\Record{A;A} \to A) \to A}}
 
-  \inferrule*
-    {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
-    {\typ{\Gamma}{\Continue~W~V : B}}
-\end{mathpar}
-%
-Both the domain and codomain of the continuation are the same as the
-body type of function argument. The capture rule for $\Callcomc$ is
-identical to the rule for $\Callcomc$, but the resume rule is
-different.
+%   \inferrule*
+%     {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
+%     {\typ{\Gamma}{\Continue~W~V : B}}
+% \end{mathpar}
+% %
+% Both the domain and codomain of the continuation are the same as the
+% body type of function argument.
+Unlike $\Callcc$, captured continuations behave as functions.
 %
 \begin{reductions}
   \slab{Capture} &  \EC[\Callcomc~V] &\reducesto& \EC[V~\qq{\cont_{\EC}}]\\
-  % \slab{Resume}  &  \EC[\Continue~\cont_{\EC'}~V]  &\reducesto& \EC[\EC'[V]]
   \slab{Resume}  &  \Continue~\cont_{\EC}~V  &\reducesto& \EC[V]
 \end{reductions}
+%
+The capture rule for $\Callcomc$ is identical to the rule for
+$\Callcomc$, but the resume rule is different.
 %
 The effect of continuation invocation can be understood locally as it
 does not erase the global evaluation context, but rather composes with
@@ -2132,16 +2134,31 @@ computation.
 
 If the reader ever find themselves in a quiz show asked to single out
 a canonical example of continuation use, then implementation of
-cooperative concurrency would be a qualified guess. Various forms of
-coroutines as continuations occur so frequently in the literature and
-in the wild that they have become routine.
+concurrency would be a qualified guess. Cooperative concurrency in
+terms of various forms of coroutines as continuations occur so
+frequently in the literature and in the wild that they have become
+routine.
 %
 \citet{HaynesFW86} published one of the first implementations of
-coroutines using first-class control. \citet{HiebD90} demonstrated how
-to implement engines. An engine is a kind of scheduler for
-computations running on a time budget~\cite{HaynesF84}.
+coroutines using first-class control.
 %
-Various other forms of schedulers were developed by \citet{GanzFW99}.
+Preemptive concurrency in the form of engines were implemented by
+\citet{DybvigH89}. An engine is a control abstraction that runs
+computations with an allotted time budget~\cite{HaynesF84}. They used
+continuations to represent strands of computation and timer interrupts
+to suspend continuations.
+%
+\citet{KiselyovS07a} used delimited continuations to explain various
+phenomena of operating systems, including multi-tasking.
+%
+On the web, \citet{Queinnec04} used continuations to model the
+client-server interactions. This model was adapted by
+\citet{CooperLWY06} in Links with support for an Erlang-style
+concurrency model~\cite{ArmstrongVW93}.
+%
+\citet{Leijen17a} and \citet{DolanEHMSW17} gave two different ways of
+implementing the asynchronous programming operator async/await as a
+user-definable library.
 
 Continuations have also been used in meta-programming to speed up
 partial evaluation and
@@ -2149,35 +2166,73 @@ multi-staging~\cite{LawallD94,KameyamaKS11,OishiK17,Yallop17}. Let
 insertion is a canonical example of use of continuations in
 multi-staging~\cite{Yallop17}.
 
-The aforementioned applications of continuations is by no means
-exhaustive, however, the diverse application spectrum underlines the
+Probabilistic programming is yet another application domain of
+continuations.  \citet{KiselyovS09} used delimited continuations to
+speed up probabilistic programs. \citet{GorinovaMH20} used
+continuations to achieve modularise probabilistic programs and to
+provide a simple and efficient mechanism for reparameterisation of
+inference algorithms.
+%
+In the subject of differentiable programming \citet{WangZDWER19}
+explained reverse-mode automatic differentiation operators in terms of
+delimited continuations.
+
+The aforementioned applications of continuations are by no means
+exhaustive, though, the diverse application spectrum underlines the
 versatility of continuations.
 
 \section{Constraining continuations}
 
-\citet{FriedmanH85} argued in favour of constraining the power of
-continuations~\cite{HaynesF87}. Although, they were concerned with
-callcc and undelimited continuations many of their arguments are
-applicable to other control operators and delimited continuations.
-
-For example callec is a variation of callcc where the continuation
-only can be invoked during the dynamic extent of
-callec~\cite{Flatt20}.
-
-Dynamic-wind\dots
-
-To avoid resource leakage the implementation of effect handlers in
-Multicore OCaml provides both a \emph{continue} primitive for
-continuing a given continuation and a \emph{discontinue} primitive for
-aborting a given continuation~\cite{DolanWSYM15,DolanEHMSW17}. The
-latter throws an exception at the operation invocation site to clean
-up resources.
+\citet{FriedmanH85} advocated for constraining the power of
+(undelimited) continuations~\cite{HaynesF87}.
 %
-A similar approached is used by \citet{Fowler19}, who uses a
+Even though, they were concerned with callcc and undelimited
+continuations some of their arguments are applicable to other control
+operators and delimited continuations.
+%
+For example, they argued in favour of restricting continuations to be
+one-shot, which means continuations may only be invoked once. Firstly,
+because one-shot continuations admit particularly efficient
+implementations. Secondly, many applications involve only single use
+of continuations. Thirdly, one-shot continuations interact more
+robustly with resources, such as file handles, than general multi-shot
+continuations, because multiple use of a continuation may accidentally
+interact with a resource after it has been released.
+
+One-shot continuations by themselves are no saving grace for avoiding
+resource leakage as they may be dropped or used to perform premature
+exits from a block with resources. For example, Racket provides the
+programmer with a facility known as \emph{dynamic-wind} to protect a
+context with resources such that non-local exits properly release
+whatever resources the context has acquired~\cite{Flatt20}.
+%
+An alternative approach is taken by Multicore OCaml, whose
+implementation of effect handlers with one-shot continuations provides
+both a \emph{continue} primitive for continuing a given continuation
+and a \emph{discontinue} primitive for aborting a given
+continuation~\cite{DolanWSYM15,DolanEHMSW17}. The latter throws an
+exception at the operation invocation site to which can be caught by
+local exception handlers to release resources properly.
+%
+This approach is also used by \citet{Fowler19}, who uses a
 substructural type system to statically enforce the use of
 continuations, either by means of a continue or a discontinue.
 
+% For example callec is a variation of callcc where continuation
+% invocation is only defined during the dynamic extent of
+% callec~\cite{Flatt20}.
+
 \section{Implementing continuations}
+
+There are numerous strategies for implementing continuations. There is
+no best implementation strategy. Each strategy has different
+trade-offs, and as such, there is no ``best'' strategy. In this
+section, I will briefly outline the gist of some implementation
+strategies and their trade-offs. For an in depth analysis the
+interested reader may consult the respective work of
+\citet{ClingerHO88} and \citet{FarvardinR20}, which contain thorough
+studies of implementation strategies for first-class continuations.
+
 Table~\ref{tbl:ctrl-operators-impls} lists some programming languages
 with support for first-class control operators and their
 implementation strategies.
@@ -2208,7 +2263,7 @@ implementation strategies.
     \hline
     OchaCaml & shift/reset & Virtual machine\\
     \hline
-    Racket & callcc, callcc$^{\ast}$, cupto, fcontrol, control/prompt, shift/reset, splitter, spawn & Continuation marks\\
+    Racket & callcc, \textCallcomc{}, cupto, fcontrol, control/prompt, shift/reset, splitter, spawn & Segmented stacks\\
     \hline
     Rhino JavaScript      & JI                & Interpreter \\
     \hline
@@ -2216,21 +2271,29 @@ implementation strategies.
     \hline
     SML/NJ                & callcc            & CPS\\
     \hline
-    Wasm/k                & control/prompt    & ?? \\
+    Wasm/k                & control/prompt    & Virtual machine \\
     \hline
   \end{tabular}
-  \caption{Some languages and  their implementation strategies for first-class control.}\label{tbl:ctrl-operators-impls}
+  \caption{Some languages and their implementation strategies for continuations.}\label{tbl:ctrl-operators-impls}
 \end{table}
+%
+At runtime the call stack represents the current continuation.
+%
+Thus continuation capture can be implemented by copying the current
+stack, and continuation invocation as reinstatement of the stack. This
+implementation strategy works well if continuations are captured
+infrequently. A slight this implementation strategy is to defer
+copying the stack until the continuation is invoked
 
-\paragraph{Continuation marks}
+% \paragraph{Continuation marks}
 
-\paragraph{Continuation passing style}
+% \paragraph{Continuation passing style}
 
-\paragraph{Abstract and virtual machines}
+% \paragraph{Abstract and virtual machines}
 
-\paragraph{Segmented stacks}
+% \paragraph{Segmented stacks}
 
-\paragraph{Stack copying}
+% \paragraph{Stack copying}
 
 \part{Design}
 

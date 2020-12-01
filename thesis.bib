@@ -51,24 +51,27 @@
   year      = {2017}
 }
 
-# Efficient one-shot continuations
+# Segmented stacks
+@inproceedings{HiebDB90,
+  author    = {Robert Hieb and
+               R. Kent Dybvig and
+               Carl Bruggeman},
+  title     = {Representing Control in the Presence of First-Class Continuations},
+  booktitle = {{PLDI}},
+  pages     = {66--77},
+  publisher = {{ACM}},
+  year      = {1990}
+}
+
 @inproceedings{BruggemanWD96,
   author    = {Carl Bruggeman and
                Oscar Waddell and
                R. Kent Dybvig},
-  editor    = {Charles N. Fischer},
   title     = {Representing Control in the Presence of One-Shot Continuations},
-  booktitle = {Proceedings of the {ACM} SIGPLAN'96 Conference on Programming Language
-               Design and Implementation (PLDI), Philadephia, Pennsylvania, May 21-24,
-               1996},
+  booktitle = {{PLDI}},
   pages     = {99--107},
   publisher = {{ACM}},
-  year      = {1996},
-  OPTurl       = {http://doi.acm.org/10.1145/231379.231395},
-  OPTdoi       = {10.1145/231379.231395},
-  timestamp = {Mon, 21 May 2012 16:19:53 +0200},
-  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/pldi/BruggemanWD96},
-  bibsource = {dblp computer science bibliography, http://dblp.org}
+  year      = {1996}
 }
 
 # Programming with continuations
@@ -158,21 +161,13 @@
 }
 
 # Other algebraic effects and handlers
-@InProceedings{Lindley14,
+@inproceedings{Lindley14,
   author    = {Sam Lindley},
-  editor    = {Jos{\'{e}} Pedro Magalh{\~{a}}es and
-               Tiark Rompf},
   title     = {Algebraic effects and effect handlers for idioms and arrows},
-  booktitle = {Proceedings of the 10th {ACM} {SIGPLAN} workshop on Generic programming,
-               {WGP} 2014, Gothenburg, Sweden, August 31, 2014},
+  booktitle = {WGP@ICFP},
   pages     = {47--58},
   publisher = {{ACM}},
-  year      = {2014},
-  OPTurl       = {http://doi.acm.org/10.1145/2633628.2633636},
-  OPTdoi       = {10.1145/2633628.2633636},
-  timestamp = {Thu, 25 Jun 2015 13:50:37 +0200},
-  biburl    = {http://dblp.uni-trier.de/rec/bib/conf/icfp/Lindley14},
-  bibsource = {dblp computer science bibliography, http://dblp.org}
+  year      = {2014}
 }
 
 @article{Pretnar15,
@@ -1463,6 +1458,20 @@
   month      = aug
 }
 
+# callcomp
+@inproceedings{FlattYFF07,
+  author    = {Matthew Flatt and
+               Gang Yu and
+               Robert Bruce Findler and
+               Matthias Felleisen},
+  title     = {Adding delimited and composable control to a production programming
+               environment},
+  booktitle = {{ICFP}},
+  pages     = {165--176},
+  publisher = {{ACM}},
+  year      = {2007}
+}
+
 # Constraining call/cc
 @inproceedings{FriedmanH85,
   author    = {Daniel P. Friedman and
@@ -1817,6 +1826,17 @@
   number = {ECS-LFCS-90-113},
   year = {1990},
   address = {Scotland, {UK}}
+}
+
+@article{DybvigH89,
+  author    = {R. Kent Dybvig and
+               Robert Hieb},
+  title     = {Engines From Continuations},
+  journal   = {Comput. Lang.},
+  volume    = {14},
+  number    = {2},
+  pages     = {109--123},
+  year      = {1989}
 }
 
 @inproceedings{HiebD90,
@@ -2267,3 +2287,115 @@
   year      = {1994}
 }
 
+# Differentiable programming with delimited continuations
+@article{WangZDWER19,
+  author    = {Fei Wang and
+               Daniel Zheng and
+               James M. Decker and
+               Xilun Wu and
+               Gr{\'{e}}gory M. Essertel and
+               Tiark Rompf},
+  title     = {Demystifying differentiable programming: shift/reset the penultimate
+               backpropagator},
+  journal   = {Proc. {ACM} Program. Lang.},
+  volume    = {3},
+  number    = {{ICFP}},
+  pages     = {96:1--96:31},
+  year      = {2019}
+}
+
+# Probabilistic programming with continuations
+@inproceedings{KiselyovS09,
+  author    = {Oleg Kiselyov and
+               Chung{-}chieh Shan},
+  title     = {Embedded Probabilistic Programming},
+  booktitle = {{DSL}},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {5658},
+  pages     = {360--384},
+  publisher = {Springer},
+  year      = {2009}
+}
+
+
+@InProceedings{GorinovaMH20,
+  title = {Automatic Reparameterisation of Probabilistic Programs},
+  author = {Maria I. Gorinova and Dave Moore and Matthew D. Hoffman},
+  booktitle = {{ICML}},
+  pages = {3648--3657},
+  year = {2020},
+  OPTeditor = {Hal Daumé III and Aarti Singh},
+  volume = {119},
+  OPTseries = {Proceedings of Machine Learning Research},
+  OPTaddress = {Virtual},
+  OPTmonth = {13--18 Jul},
+  publisher = {PMLR},
+  OPTpdf = {http://proceedings.mlr.press/v119/gorinova20a/gorinova20a.pdf},
+  OPTurl = {http://proceedings.mlr.press/v119/gorinova20a.html},
+}
+
+# Continuations in operating systems
+@inproceedings{KiselyovS07a,
+  author    = {Oleg Kiselyov and
+               Chung{-}chieh Shan},
+  title     = {Delimited Continuations in Operating Systems},
+  booktitle = {{CONTEXT}},
+  series    = {Lecture Notes in Computer Science},
+  volume    = {4635},
+  pages     = {291--302},
+  publisher = {Springer},
+  year      = {2007}
+}
+
+# Web programming and continuations
+@article{Queinnec04,
+  author    = {Christian Queinnec},
+  title     = {Continuations and Web Servers},
+  journal   = {High. Order Symb. Comput.},
+  volume    = {17},
+  number    = {4},
+  pages     = {277--295},
+  year      = {2004}
+}
+
+# Erlang
+@book{ArmstrongVW93,
+  author    = {Joe Armstrong and
+               Robert Virding and
+               Mike Williams},
+  title     = {Concurrent programming in {ERLANG}},
+  publisher = {Prentice Hall},
+  year      = {1993}
+}
+
+# Asynchrony with effect handlers
+@inproceedings{Leijen17a,
+  author    = {Daan Leijen},
+  title     = {Structured asynchrony with algebraic effects},
+  booktitle = {TyDe@ICFP},
+  pages     = {16--29},
+  publisher = {{ACM}},
+  year      = {2017}
+}
+
+# Surveys of implementation strategies for continuations
+@inproceedings{ClingerHO88,
+  author    = {William D. Clinger and
+               Anne Hartheimer and
+               Eric Ost},
+  title     = {Implementation Strategies for Continuations},
+  booktitle = {{LISP} and Functional Programming},
+  pages     = {124--131},
+  publisher = {{ACM}},
+  year      = {1988}
+}
+
+@inproceedings{FarvardinR20,
+  author    = {Kavon Farvardin and
+               John H. Reppy},
+  title     = {From folklore to fact: comparing implementations of stacks and continuations},
+  booktitle = {{PLDI}},
+  pages     = {75--90},
+  publisher = {{ACM}},
+  year      = {2020}
+}
