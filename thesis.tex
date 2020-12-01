@@ -914,25 +914,26 @@ categories of values.
 The value $\Callcc$ is essentially a hard-wired function name. Being a
 value means that the operator itself is a first-class entity which
 entails it can be passed to functions, returned from functions, and
-stored in data structures.
+stored in data structures. Operationally, $\Callcc$ captures the
+current continuation and aborts it before applying it on its argument.
 %
-The typing rule for $\Callcc$ testifies to the fact that it is a
-particular higher-order function.
+% The typing rule for $\Callcc$ testifies to the fact that it is a
+% particular higher-order function.
 %
-\begin{mathpar}
-  \inferrule*
-    {~}
-    {\typ{\Gamma}{\Callcc : (\Cont\,\Record{A;\Zero} \to A) \to A}}
+% \begin{mathpar}
+%   \inferrule*
+%     {~}
+%     {\typ{\Gamma}{\Callcc : (\Cont\,\Record{A;\Zero} \to A) \to A}}
 
-  % \inferrule*
-  %   {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
-  %   {\typ{\Gamma}{\Continue~W~V : B}}
-\end{mathpar}
-%
-An invocation of $\Callcc$ returns a value of type $A$. This value can
-be produced in one of two ways, either the function argument returns
-normally or it applies the provided continuation object to a value
-that then becomes the result of $\Callcc$-application.
+%   % \inferrule*
+%   %   {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
+%   %   {\typ{\Gamma}{\Continue~W~V : B}}
+% \end{mathpar}
+% %
+% An invocation of $\Callcc$ returns a value of type $A$. This value can
+% be produced in one of two ways, either the function argument returns
+% normally or it applies the provided continuation object to a value
+% that then becomes the result of $\Callcc$-application.
 %
 \begin{reductions}
   \slab{Capture} &  \EC[\Callcc~V] &\reducesto& \EC[V~\qq{\cont_{\EC}}]\\
@@ -1195,28 +1196,28 @@ calling context.
 The particular application $\J\,(\lambda x.x)$ is so idiomatic that it
 has its own name: $\JI$, where $\keyw{I}$ is the identity function.
 
-Clearly, the return type of a continuation object produced by an $\J$
-application must be the same as the caller of $\J$. Thus to type $\J$
-we must track the type of calling context. Formally, we track the type
-of the context by extending the typing judgement relation with an
-additional singleton context $\Delta$. This context is modified by the
-typing rule for $\lambda$-abstraction and used by the typing rule for
-$\J$-applications. This is similar to type checking of return
-statements in statement-oriented programming languages.
-%
-\begin{mathpar}
-  \inferrule*
-    {\typ{\Gamma,x:A;B}{M : B}}
-    {\typ{\Gamma;\Delta}{\lambda x.M : A \to B}}
+% Clearly, the return type of a continuation object produced by an $\J$
+% application must be the same as the caller of $\J$. Thus to type $\J$
+% we must track the type of calling context. Formally, we track the type
+% of the context by extending the typing judgement relation with an
+% additional singleton context $\Delta$. This context is modified by the
+% typing rule for $\lambda$-abstraction and used by the typing rule for
+% $\J$-applications. This is similar to type checking of return
+% statements in statement-oriented programming languages.
+% %
+% \begin{mathpar}
+%   \inferrule*
+%     {\typ{\Gamma,x:A;B}{M : B}}
+%     {\typ{\Gamma;\Delta}{\lambda x.M : A \to B}}
 
-  \inferrule*
-    {~}
-    {\typ{\Gamma;B}{\J : (A \to B) \to \Cont\,\Record{A;B}}}
+%   \inferrule*
+%     {~}
+%     {\typ{\Gamma;B}{\J : (A \to B) \to \Cont\,\Record{A;B}}}
 
-  % \inferrule*
-  %   {\typ{\Gamma;\Delta}{V : A} \\ \typ{\Gamma;\Delta}{W : \Cont\,\Record{A;B}}}
-  %   {\typ{\Gamma;\Delta}{\Continue~W~V : B}}
-\end{mathpar}
+%   % \inferrule*
+%   %   {\typ{\Gamma;\Delta}{V : A} \\ \typ{\Gamma;\Delta}{W : \Cont\,\Record{A;B}}}
+%   %   {\typ{\Gamma;\Delta}{\Continue~W~V : B}}
+% \end{mathpar}
 %
 Any meaningful applications of $\J$ must appear under a
 $\lambda$-abstraction, because the application captures its caller's
@@ -1229,7 +1230,7 @@ annotate the evaluation contexts for ordinary applications.
   \slab{Resume}    & \EC[\Continue~\cont_{\Record{\EC';W}}\,V]  &\reducesto& \EC'[W\,V]
 \end{reductions}
 %
-\dhil{The continuation object should have time $\Cont\,\Record{A;\Zero}$}
+% \dhil{The continuation object should have time $\Cont\,\Record{A;\Zero}$}
 %
 The $\slab{Capture}$ rule only applies if the application of $\J$
 takes place inside an annotated evaluation context. The continuation
