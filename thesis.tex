@@ -2232,7 +2232,7 @@ strategies and their trade-offs. For an in depth analysis the
 interested reader may consult the respective work of
 \citet{ClingerHO88} and \citet{FarvardinR20}, which contain thorough
 studies of implementation strategies for first-class continuations.
-
+%
 Table~\ref{tbl:ctrl-operators-impls} lists some programming languages
 with support for first-class control operators and their
 implementation strategies.
@@ -2275,15 +2275,64 @@ implementation strategies.
     \hline
   \end{tabular}
   \caption{Some languages and their implementation strategies for continuations.}\label{tbl:ctrl-operators-impls}
+  \dhil{TODO: Figure out which implementation strategy Effekt uses}
 \end{table}
 %
-At runtime the call stack represents the current continuation.
+The control stack provides a adequate runtime representation of
+continuations as the contiguous sequence of activation records quite
+literally represent what to do next.
 %
-Thus continuation capture can be implemented by copying the current
-stack, and continuation invocation as reinstatement of the stack. This
-implementation strategy works well if continuations are captured
-infrequently. A slight this implementation strategy is to defer
-copying the stack until the continuation is invoked
+Thus continuation capture can be implemented by making a copy of the
+current stack (possibly up to some delimiter), and continuation
+invocation as reinstatement of the stack. This implementation strategy
+works well if continuations are captured infrequently. The MLton
+implementation of Standard ML utilises this strategy~\cite{Fluet20}.
+A slight variation is to defer the first copy action until the
+continuation is invoked, which requires marking the stack to remember
+which sequence of activation records to copy.
+
+Obviously, frequent continuation use on top of a stack copying
+implementation can be expensive time wise as well as space wise,
+because with undelimited continuations multiple copies of the stack
+may be alive simultaneously.
+%
+Typically the prefix of copies will be identical, which suggests they
+ought to be shared. One way to achieve optimal sharing is to move from
+a contiguous stack to a non-contiguous stack representation,
+e.g. representing the stack as a heap allocated linked list of
+activation records~\cite{Danvy87}. With such a representation copying
+is a constant time and space operation, because there is no need to
+actually copy anything as the continuation is just a pointer into the
+stack.
+%
+The disadvantage of this strategy is that it turns every operation
+into an indirection.
+
+Segmented stacks provide a middle ground between contiguous stack and
+non-contiguous stack representations. With this representation the
+control stack is represented as a linked list of contiguous stacks
+which makes it possible to only copy a segment of the stack. The
+stacks grown and shrink dynamically as needed. This representation is
+due to \citet{HiebDB90}. It is used by Chez Scheme, which is the
+runtime that powers Racket~\cite{FlattD20}.
+%
+For undelimited continuations the basic idea is to create a pointer to
+the current stack upon continuation capture, and then allocate a new
+stack where subsequent computation happens.
+%
+For delimited continuations the control delimiter identify when a new
+stack should be allocated.
+%
+A potential problem with this representation is \emph{stack
+  thrashing}, which is a phenomenon that occurs when a stack is being
+continuously resized.
+%
+This problem was addressed by \citet{BruggemanWD96}, who designed a
+slight variation of segmented stacks optimised for one-shot
+continuations, which has been adapted by Multicore
+OCaml~\cite{DolanEHMSW17}.
+
+\dhil{TODO: CPS and abstract machines}
 
 % \paragraph{Continuation marks}
 
