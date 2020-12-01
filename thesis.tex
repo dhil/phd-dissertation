@@ -817,28 +817,34 @@ available for use within $N$. \citeauthor{Reynolds98a} recognised the
 power of this idiom and noted that it could be used to implement
 coroutines and backtracking~\cite{Reynolds98a}.
 %
-In our simply-typed setting it is not possible for the continuation to
-propagate outside its binding $\Escape$-expression as it would require
-the addition of either recursive types or some other escape hatch like
+\citeauthor{Reynolds98a} did not develop the static semantics for
+$\Escape$, however, it is worth noting that this idiom require
+recursive types to type check. Even in a language without recursive
+types, the continuation may propagate outside its binding
+$\Escape$-expression if the language provides an escape hatch such as
 mutable reference cells.
-%
+% In our simply-typed setting it is not possible for the continuation to
+% propagate outside its binding $\Escape$-expression as it would require
+% the addition of either recursive types or some other escape hatch like
+% mutable reference cells.
+% %
 
-The typing of $\Escape$ and $\Continue$ reflects that the captured
-continuation is abortive.
-%
-\begin{mathpar}
-  \inferrule*
-    {\typ{\Gamma,k : \Cont\,\Record{A;\Zero}}{M : A}}
-    {\typ{\Gamma}{\Escape\;k\;\In\;M : A}}
+% The typing of $\Escape$ and $\Continue$ reflects that the captured
+% continuation is abortive.
+% %
+% \begin{mathpar}
+%   \inferrule*
+%     {\typ{\Gamma,k : \Cont\,\Record{A;\Zero}}{M : A}}
+%     {\typ{\Gamma}{\Escape\;k\;\In\;M : A}}
 
-  % \inferrule*
-  %   {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
-  %   {\typ{\Gamma}{\Continue~W~V : \Zero}}
-\end{mathpar}
-%
-The return type of the continuation object can be taken as a telltale
-sign that an invocation of this object never returns, since there are
-no inhabitants of the empty type.
+%   % \inferrule*
+%   %   {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;\Zero}}}
+%   %   {\typ{\Gamma}{\Continue~W~V : \Zero}}
+% \end{mathpar}
+% %
+% The return type of the continuation object can be taken as a telltale
+% sign that an invocation of this object never returns, since there are
+% no inhabitants of the empty type.
 %
 An invocation of the continuation discards the invocation context and
 plugs the argument into the captured context.
@@ -869,18 +875,17 @@ with access to the current continuation. Thus it is same as
   M,N ::= \cdots \mid \Catch~k.M
 \]
 %
-Although, their syntax differ, their static and dynamic semantics are
-the same.
+Although, their syntax differ, their dynamic semantics are the same.
 %
-\begin{mathpar}
-  \inferrule*
-    {\typ{\Gamma,k : \Cont\,\Record{A;\Zero}}{M : A}}
-    {\typ{\Gamma}{\Catch~k.M : A}}
+% \begin{mathpar}
+%   \inferrule*
+%     {\typ{\Gamma,k : \Cont\,\Record{A;\Zero}}{M : A}}
+%     {\typ{\Gamma}{\Catch~k.M : A}}
 
-  % \inferrule*
-  %   {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
-  %   {\typ{\Gamma}{\Continue~W~V : B}}
-\end{mathpar}
+%   % \inferrule*
+%   %   {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
+%   %   {\typ{\Gamma}{\Continue~W~V : B}}
+% \end{mathpar}
 %
 \begin{reductions}
   \slab{Capture} &  \EC[\Catch~k.M] &\reducesto& \EC[M[\qq{\cont_{\EC}}/k]]\\
