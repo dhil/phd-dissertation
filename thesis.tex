@@ -2254,7 +2254,7 @@ implementation strategies.
     \hline
     Effekt   & Lexical effect handlers & ??\\
     \hline
-    Frank    & N-ary effect handlers & Abstract machine \\
+    Frank    & N-ary effect handlers & CEK machine \\
     \hline
     Gauche   & callcc, shift/reset & Virtual machine \\
     \hline
@@ -2272,8 +2272,8 @@ implementation strategies.
     \hline
     Racket & callcc, \textCallcomc{}, cupto, fcontrol, control/prompt, shift/reset, splitter, spawn & Segmented stacks\\
     \hline
-    Rhino JavaScript      & JI                & Interpreter \\
-    \hline
+    % Rhino JavaScript      & JI                & Interpreter \\
+    % \hline
     Scala                 & shift/reset       & CPS\\
     \hline
     SML/NJ                & callcc            & CPS\\
@@ -2339,24 +2339,70 @@ slight variation of segmented stacks optimised for one-shot
 continuations, which has been adapted by Multicore
 OCaml~\cite{DolanEHMSW17}.
 
-\dhil{TODO: abstract machines}
-
-Continuation passing style (CPS) is a particular idiomatic notation
-for programs, where every aspect of control flow is made explicit,
-which makes it a good fit for implementing control abstractions.
+Full stack copying and segmented stacks both depend on being able to
+manipulate the stack directly. This is seldom possible if the language
+implementer do not have control over the target runtime,
+e.g. compilation to JavaScript. However, it is possible to emulate
+stack copying and segmented stacks in lieu of direct stack access. For
+example, \citet{PettyjohnCMKF05} describe a technique that emulates
+stack copying by piggybacking on the facile stack inception facility
+provided by exception handlers in order to lazily reify the control
+stack.
 %
-Using trampolines CPS is even a viable strategy in environments that
-lack proper tail calls such as JavaScript~\cite{GanzFW99}.
+\citet{KumarBD98} emulated segmented stacks via threads. Each thread
+has its own local stack, and as such, a collection of threads
+effectively models segmented stacks. To actually implement
+continuations as threads \citeauthor{KumarBD98} also made use of
+standard synchronisation primitives.
+%
+The advantage of these techniques is that they are generally
+applicable and portable. The disadvantage is the performance overhead
+induced by emulation.
 
-% \paragraph{Continuation marks}
+Abstract and virtual machines are a form of full machine emulation. An
+abstract machine is an idealised machine. Abstract machines, such as
+the CEK machine~\cite{FelleisenF86}, are attractive because they
+provide a suitably high-level framework for defining language
+semantics in terms of control string manipulations, whilst admitting a
+direct implementation.
+%
+We will discuss abstract machines in more detail in
+Chapter~\ref{ch:abstract-machine}.
+%
+The term virtual machine typically connotes an abstract machine that
+works on a byte code representation of programs, whereas the default
+connotation of abstract machine is a machine that works on a rich
+abstract syntax tree representation of programs.
+% \citeauthor{Landin64}'s SECD machine was the
+% first abstract machine for evaluating $\lambda$-calculus
+% terms~\cite{Landin64,Danvy04}.
+%
+% Either machine model has an explicit representation of the control
+% state in terms of an environment and a control string. Thus either machine can  to the
+% interpretative overhead.
+The disadvantage of abstract machines is their interpretative
+overhead, although, techniques such as just-in-time compilation can be
+utilised to reduce this overhead.
 
-% \paragraph{Continuation passing style}
-
-% \paragraph{Abstract and virtual machines}
-
-% \paragraph{Segmented stacks}
-
-% \paragraph{Stack copying}
+Continuation passing style (CPS) is a canonical implementation
+strategy for continuations --- the word `continuation' even feature in
+its name.
+%
+CPS is a particular idiomatic notation for programs, where every
+function takes an additional argument, the current continuation, as
+input and every function call appears in tail position. Consequently,
+every aspect of control flow is made explicit, which makes CPS a good
+fit for implementing control abstraction. In classic CPS the
+continuation argument is typically represented as a heap allocated
+closure~\cite{Appel92}, however, as we shall see in
+Chapter~\ref{ch:cps} richer representations of continuations are
+possible.
+%
+At first thought it may seem that CPS will not work well in
+environments that lack proper tail calls such as JavaScript. However,
+the contrary is true, because the stackless nature of CPS means it can
+readily be implemented with a trampoline~\cite{GanzFW99}. Alas, at the
+cost of the indirection induced by the trampoline.
 
 \part{Design}
 
@@ -8391,6 +8437,7 @@ then in the image $\cps{M}\,k \reducesto^\ast k\,\cps{V}$.
 \paragraph{Partial evaluation}
 
 \chapter{Abstract machine semantics}
+\label{ch:abstract-machine}
 \dhil{The text is this chapter needs to be reworked}
 
 In this chapter we develop an abstract machine that supports deep and
