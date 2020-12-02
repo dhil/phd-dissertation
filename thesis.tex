@@ -514,59 +514,68 @@ handlers.
 
 \chapter{Continuations}
 \label{ch:continuations}
+
+A continuation represents the remainder of computation at a given
+point during evaluation. Continuations are one of those canonical
+ideas, that have been discovered multiple times and whose definition
+predates their use~\cite{Reynolds93}. The term `continuation' was
+coined by \citet{StracheyW74}, who used continuations to give a
+denotational semantics to programming languages with unrestricted
+jumps~\cite{StracheyW00}.
+
 % The significance of continuations in the programming languages
 % literature is inescapable as continuations have found widespread use .
 %
 
-A continuation is an abstract data structure that captures the
-remainder of the computation from some given point in the computation.
-%
-The exact nature of the data structure and the precise point at which
-the remainder of the computation is captured depends largely on the
-exact notion of continuation under consideration.
-%
-It can be difficult to navigate the existing literature on
-continuations as sometimes the terminologies for different notions of
-continuations are overloaded or even conflated.
-%
-As there exist several notions of continuations, there exist several
-mechanisms for programmatic manipulation of continuations. These
-mechanisms are known as control operators.
-%
-A substantial amount of existing literature has been devoted to
-understand how to program with individual control operators, and to a
-lesser extent how the various operators compare.
+% A continuation is an abstract data structure that captures the
+% remainder of the computation from some given point in the computation.
+% %
+% The exact nature of the data structure and the precise point at which
+% the remainder of the computation is captured depends largely on the
+% exact notion of continuation under consideration.
+% %
+% It can be difficult to navigate the existing literature on
+% continuations as sometimes the terminologies for different notions of
+% continuations are overloaded or even conflated.
+% %
+% As there exist several notions of continuations, there exist several
+% mechanisms for programmatic manipulation of continuations. These
+% mechanisms are known as control operators.
+% %
+% A substantial amount of existing literature has been devoted to
+% understand how to program with individual control operators, and to a
+% lesser extent how the various operators compare.
 
-The purpose of this chapter is to provide a contemporary and
-unambiguous characterisation of the notions of continuations in
-literature. This characterisation is used to classify and discuss a
-wide range of control operators from the literature.
+% The purpose of this chapter is to provide a contemporary and
+% unambiguous characterisation of the notions of continuations in
+% literature. This characterisation is used to classify and discuss a
+% wide range of control operators from the literature.
 
-% Undelimited control: Landin's J~\cite{Landin98}, Reynolds'
-% escape~\cite{Reynolds98a}, Scheme75's catch~\cite{SussmanS75} ---
-% which was based the less expressive MacLisp catch~\cite{Moon74},
-% callcc is a procedural variation of catch. It was invented in
-% 1982~\cite{AbelsonHAKBOBPCRFRHSHW85}.
+% % Undelimited control: Landin's J~\cite{Landin98}, Reynolds'
+% % escape~\cite{Reynolds98a}, Scheme75's catch~\cite{SussmanS75} ---
+% % which was based the less expressive MacLisp catch~\cite{Moon74},
+% % callcc is a procedural variation of catch. It was invented in
+% % 1982~\cite{AbelsonHAKBOBPCRFRHSHW85}.
 
-A full formal comparison of the control operators is out of scope of
-this chapter. The literature contains comparisons of various control
-operators along various dimensions, e.g.
-%
-\citet{Thielecke02} studies a handful of operators via double
-barrelled continuation passing style. \citet{ForsterKLP19} compare the
-relative expressiveness of untyped and simply-typed variations of
-effect handlers, shift/reset, and monadic reflection by means of
-whether they are macro-expressible. Their work demonstrates that in an
-untyped setting each operator is macro-expressible, but in most cases
-the macro-translations do not preserve typeability, for instance the
-simple type structure is insufficient to type the image of
-macro-translation between effect handlers and shift/reset.
-%
-However, \citet{PirogPS19} show that with a polymorphic type system
-the translation preserve typeability.
-%
-\citet{Shan04} shows that dynamic delimited control and static
-delimited control is macro-expressible in an untyped setting.
+% A full formal comparison of the control operators is out of scope of
+% this chapter. The literature contains comparisons of various control
+% operators along various dimensions, e.g.
+% %
+% \citet{Thielecke02} studies a handful of operators via double
+% barrelled continuation passing style. \citet{ForsterKLP19} compare the
+% relative expressiveness of untyped and simply-typed variations of
+% effect handlers, shift/reset, and monadic reflection by means of
+% whether they are macro-expressible. Their work demonstrates that in an
+% untyped setting each operator is macro-expressible, but in most cases
+% the macro-translations do not preserve typeability, for instance the
+% simple type structure is insufficient to type the image of
+% macro-translation between effect handlers and shift/reset.
+% %
+% However, \citet{PirogPS19} show that with a polymorphic type system
+% the translation preserve typeability.
+% %
+% \citet{Shan04} shows that dynamic delimited control and static
+% delimited control is macro-expressible in an untyped setting.
 
 \section{Classifying continuations}
 
