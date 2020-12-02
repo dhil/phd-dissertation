@@ -2339,7 +2339,14 @@ slight variation of segmented stacks optimised for one-shot
 continuations, which has been adapted by Multicore
 OCaml~\cite{DolanEHMSW17}.
 
-\dhil{TODO: CPS and abstract machines}
+\dhil{TODO: abstract machines}
+
+Continuation passing style (CPS) is a particular idiomatic notation
+for programs, where every aspect of control flow is made explicit,
+which makes it a good fit for implementing control abstractions.
+%
+Using trampolines CPS is even a viable strategy in environments that
+lack proper tail calls such as JavaScript~\cite{GanzFW99}.
 
 % \paragraph{Continuation marks}
 
