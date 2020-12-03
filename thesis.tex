@@ -515,13 +515,59 @@ handlers.
 \chapter{Continuations}
 \label{ch:continuations}
 
-A continuation represents the remainder of computation at a given
-point during evaluation. Continuations are one of those canonical
-ideas, that have been discovered multiple times and whose definition
-predates their use~\cite{Reynolds93}. The term `continuation' was
-coined by \citet{StracheyW74}, who used continuations to give a
-denotational semantics to programming languages with unrestricted
-jumps~\cite{StracheyW00}.
+A continuation represents the control state of computation at a given
+point during evaluation. The control state contains the necessary
+operational information for evaluation to continue. As such,
+continuations drive computation. % Continuations are a ubiquitous
+% phenomenon as they exist both semantically and programmatically.
+%
+Continuations are one of those canonical ideas, that have been
+discovered multiple times and whose definition predates their
+use~\cite{Reynolds93}. The term `continuation' first appeared in the
+literature in 1974, when \citet{StracheyW74} used continuations to
+give a denotational semantics to programming languages with
+unrestricted jumps~\cite{StracheyW00}.
+
+The inaugural use of continuations came well before
+\citeauthor{StracheyW00}'s definition. About a decade earlier
+continuation passing style had already been conceived, if not in name
+then in spirit, as a compiler transformation for eliminating labels
+and goto statements~\cite{Reynolds93}. In the mid 1960s
+\citet{Landin98} introduced the J operator as a programmatic mechanism
+for manipulating continuations.
+
+\citeauthor{Landin98}'s J operator is an instance of a first-class
+control operator, which is a mechanism that lets programmers reify
+continuations as first-class objects, that can be invoked, discarded,
+or stored for later use. There exists a wide variety of control
+operators, which expose continuations of varying extent and behaviour.
+
+The purpose of this chapter is to examine control operators and their
+continuations in
+programming. Section~\ref{sec:classifying-continuations} examines
+different notions of continuations by characterising their extent and
+behaviour operationally. Section~\ref{sec:controlling-continuations}
+contains a detailed overview of various control operators that appear
+in programming languages and in the
+literature. Section~\ref{sec:programming-continuations} summarises
+some applications of continuations, whilst
+Section~\ref{sec:constraining-continuations} contains a brief summary
+of ideas for constraining the power of continuations. Lastly,
+Section~\ref{sec:implementing-continuations} outlines some
+implementation strategies for continuations.
+
+% A lot of literature has been devoted to study continuations. Whilst
+% the literature recognises the importance and significance of
+% continuations
+
+% continuations are widely recognised as important in the programming
+% language literature,
+
+% The concrete structure and behaviour of continuations differs 
+
+% Continuations, when exposed programmatically, imbue programmers with
+% the power to take control of programs. This power enables programmers
+% to implement their own control idioms as user-definable libraries.
 
 % The significance of continuations in the programming languages
 % literature is inescapable as continuations have found widespread use .
@@ -578,6 +624,7 @@ jumps~\cite{StracheyW00}.
 % delimited control is macro-expressible in an untyped setting.
 
 \section{Classifying continuations}
+\label{sec:classifying-continuations}
 
 % \citeauthor{Reynolds93} has written a historical account of the
 % various early discoveries of continuations~\cite{Reynolds93}.
@@ -685,6 +732,7 @@ continuations, composable continuations.
 Downward and upward use of continuations.
 
 \section{Controlling continuations}
+\label{sec:controlling-continuations}
 Table~\ref{tbl:classify-ctrl} provides a classification of a
 non-exhaustive list of first-class control operators.
 %
@@ -2127,6 +2175,7 @@ Shallow handlers can be used to simulate control0 and prompt0.
 % coroutines with call/cc~\cite{HaynesFW86}.
 
 \section{Programming continuations}
+\label{sec:programming-continuations}
 %Blind vs non-blind backtracking. Engines. Web
 % programming. Asynchronous
 % programming. Coroutines.
@@ -2198,6 +2247,7 @@ exhaustive, though, the diverse application spectrum underlines the
 versatility of continuations.
 
 \section{Constraining continuations}
+\label{sec:constraining-continuations}
 
 \citet{FriedmanH85} advocated for constraining the power of
 (undelimited) continuations~\cite{HaynesF87}.
@@ -2239,6 +2289,7 @@ continuations, either by means of a continue or a discontinue.
 % callec~\cite{Flatt20}.
 
 \section{Implementing continuations}
+\label{sec:implementing-continuations}
 
 There are numerous strategies for implementing continuations. There is
 no best implementation strategy. Each strategy has different
