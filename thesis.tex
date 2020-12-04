@@ -626,54 +626,220 @@ implementation strategies for continuations.
 \section{Classifying continuations}
 \label{sec:classifying-continuations}
 
-% \citeauthor{Reynolds93} has written a historical account of the
-% various early discoveries of continuations~\cite{Reynolds93}.
+The term `continuation' is really an umbrella term that covers several
+distinct notions of continuations. It is common in the literature to
+find the word `continuation' accompanied by a qualifier such as full,
+partial, abortive, escape, undelimited, delimited, composable, or
+functional (in Chapter~\ref{ch:cps} I will extend this list by three
+new ones). Some of these notions of continuations synonyms, whereas
+others have distinct meaning. Common to all notions of continuations
+is that in essence they represent the control state. However, the
+extent and behaviour of continuations differ widely from notion to
+notion. The essential notions of continuations are
+undelimited/delimited and abortive/composable. To tell them apart, we
+will classify them by their operational behaviour.
 
-In the literature the term ``continuation'' is often accompanied by a
-qualifier such as full~\cite{JohnsonD88}, partial~\cite{JohnsonD88},
-abortive, escape, undelimited, delimited, composable, or functional.
-%
-Some of these qualifiers are synonyms, and hence redundant, e.g. the
-terms ``full'' and ``undelimited'' refer to the same notion of
-continuation, likewise the terms ``partial'' and ``delimited'' mean
-the same thing, the notions of ``abortive'' and ``escape'' are
-interchangeable too, and ``composable'' and ``functional'' also refer
-to the same notion.
+The extent and behaviour of a continuation in programming are
+determined by its introduction and elimination forms,
+respectively. Programmatically, a continuation is introduced via a
+control operator, which typically reifies the control state as a
+first-class object, e.g. a function. A continuation is eliminated via
+application.
 %
 
-Thus the peloton of distinct continuation notions can be pruned to
-``undelimited'', ``delimited'', ``abortive'', and ``composable''.
 %
-The first two notions concern the introduction of continuations, that
-is how continuations are captured. Dually, the latter two notions
-concern the elimination of continuations, that is how continuations
-interact with the enclosing context.
-%
-Consequently, it is not meaningful to contrast, say, ``undelimited''
-with ``abortive'' continuations, because they are orthogonal notions.
-%
-A common confusion in the literature is to conflate ``undelimited''
-continuations with ``abortive'' continuations.
-% Similarly, often times ``composable'' is taken to imply ``delimited''.
-However, it is perfectly possible to conceive of a continuation that
-is undelimited but not abortive.
-%
-% An educated guess as to why this confusion occurs in the literature
-% may be that it is due to the introduction
+% If the continuation is reified as a function, then the elimination
+% form coincides with ordinary function application. This is convenient
+% in practice for programming with continuations, but it is inconvenient
+% for formal examination. In order to examine and understand the
+% phenomenon it is generally a good idea to treat the phenomenon
+% specially. Therefore, our abstract control operator will reify the
+% control state as a value $\cont_{\EC}$, which is indexed by the
+% reified evaluation context $\EC$ to make notionally convenient to
+% reflect the context again. We will write $\Continue~\cont_{\EC}~W$ to
+% denote application of a $\cont$ object to the value $W$.
 
-To make each notion of continuation concrete I will present its
-characteristic reduction rule. To facilitate this presentation I will
-make use of an abstract control operator $\CC$ to perform an abstract
-capture of continuations, i.e. informally $C\,k.M$ is to be understood
-as a syntactic construct that captures the continuation and reifies it
-as a function which it binds to $k$ in the computation $M$. The
-precise extent of the capture will be given by the characteristic
-reduction rule. I will also make use of an abstract control delimiter
-$\Delim{-}$. The term $\Delim{M}$ encloses the computation $M$ in a
-syntactically identifiable marker. For the intent and purposes of this
-presentation enclosing a value in a delimiter is an idempotent
-operation, i.e.  $\Delim{V} \reducesto V$. I will write $\EC$ to
-denote an evaluation context~\cite{Felleisen87}.
+\subsection{Introduction of continuations}
+%
+The extent of a continuation determines how much of the control state
+is contained with the continuation.
+%
+The extent can be either undelimited or delimited, and it is
+determined at the point of capture by the control operator.
+%
+
+We need some notation for control operators in order to examine the
+introduction of continuations operationally. We will use the syntax
+$\CC~k.M$ to denote a control operator, or control reifier, which that
+reifies the control state and binds it to $k$ in the computation
+$M$. Here the control state will simply be an evaluation context. We
+will denote continuations by a special value $\cont_{\EC}$, which is
+indexed by the reified evaluation context $\EC$ to make notionally
+convenient to reflect the context again. To characterise delimited
+continuations we also need a control delimiter. We will write
+$\Delim{M}$ to denote a syntactic marker that delimits some
+computation $M$.
+
+\paragraph{Undelimited continuation} The extent of an undelimited
+continuation is indefinite as it ranges over the entire remainder of
+computation.
+%
+The most common undelimited continuation is the \emph{current}
+continuation, which is the precisely continuation following the
+control operator. The following is the characteristic reduction for
+the introduction of the current continuation.
+% The indefinite extents means that undelimited continuation capture can
+% only be understood in context. The characteristic reduction is as
+% follows.
+%
+\[
+  \EC[\CC~k.M] \reducesto \EC[M[\cont_{\EC}/k]]
+\]
+%
+The evaluation context $\EC$ is the continuation of $\CC$. The
+evaluation context on the left hand side gets reified as a
+continuation object, which is accessible inside of $M$ via $k$. On the
+right hand side the entire context remains in place after
+reification. Thus, the current continuation is evaluated regardless of
+whether the continuation object is invoked.  This is an instance of
+non-abortive undelimited control. Alternatively, the control operator
+can abort the current continuation before proceeding as $M$, i.e.
+%
+\[
+  \EC[\CC~k.M] \reducesto M[\cont_{\EC}/k]
+\]
+%
+This is the characteristic reduction rule for abortive undelimited
+control. The rule is nearly the same as the previous, except that on
+the right hand side the evaluation context $\EC$ is discarded after
+reification. Now, the programmer has control over the whole
+continuation, since it is entirely up to the programmer whether $\EC$
+gets evaluated.
+
+An alternative to reify the current continuation is to reify the
+caller continuation. The caller continuation is the continuation of
+the invocation context of the control operator. Characterising
+undelimited caller continuations is slightly more involved as we have
+to remember the continuation of the invocation context. We will use a
+bold lambda $\llambda$ as a syntactic runtime marker to remember the
+continuation of an application. In addition we need three reduction
+rules, where the first is purely administrative, the second is an
+extension of regular application, and the third is the characteristic
+reduction rule for undelimited control with caller continuations.
+%
+\begin{reductions}
+  & \llambda.V       &\reducesto& V\\
+  & (\lambda x.N)\,V &\reducesto& \llambda.N[V/x]\\
+  & \EC[\llambda.\EC'[\CC~k.M]] &\reducesto& \EC[\llambda.\EC'[M[\cont_{\EC}/k]]], \quad \text{where $\EC'$ contains no $\llambda$}
+\end{reductions}
+%
+The first rule accounts for the case where $\llambda$ marks a value,
+in which case the marker is eliminated. The second rule marks inserts
+a marker after an application such that this position can be recalled
+later. The third rule is the interesting rule. Here an occurrence of
+$\CC$ reifies $\EC$, the continuation of some application, rather than
+its current continuation $\EC'$. The side condition ensures that $\CC$
+reifies the continuation of the inner most application. This rule
+characterises a non-abortive control operator as both contexts, $\EC$
+and $\EC'$, are left in place after reification. It is straightforward
+to adapt this rule to an abortive operator. Although, there is no
+abortive undelimited control operator that captures the caller
+continuation in the literature.
+
+It is worth noting that the two first rules can be understood locally,
+that is without mentioning the enclosing context, whereas the third
+rule must be understood globally.
+
+In the literature an undelimited continuation is also known as a
+`full' continuation.
+
+\paragraph{Delimited continuation} A delimited continuation is in some
+sense a refinement of a undelimited continuation as its extent is
+definite. A delimited continuation ranges over some designated part of
+computation. A delimited continuation is introduced by a pair
+operators: a control delimiter and a control reifier. The control
+delimiter acts as a barrier, which prevents the reifier from reaching
+beyond it, e.g.
+%
+\begin{reductions}
+  & \Delim{V} &\reducesto& V\\
+  & \Delim{\EC[\CC~k.M]} &\reducesto& \Delim{\EC[M[\cont_{\EC}/k]]}
+\end{reductions}
+%
+The first rule applies whenever the control delimiter delimits a
+value, in which case the delimiter is eliminated. The second rule is
+the characteristic reduction rule for a non-abortive delimited control
+reifier. It reifies the context $\EC$ up to the control delimiter, and
+then continues as $M$ under the control delimiter. Note that the
+continuation of $\keyw{del}$ is invisible to $\CC$, and thus, the
+behaviour of $\CC$ can be understood locally.
+
+There are multiple design choices for delimited control operators. The
+control delimiter may remain in place after reification, as above, or
+be discarded. Similarly, the control reifier may reify the
+continuation up to and including the delimiter or, as above, without
+the delimiter.
+%
+The most common variation of delimited control in the literature is
+abortive and reifies the current continuation up to, but not including
+the delimiter, i.e.
+\begin{reductions}
+  & \Delim{\EC[\CC~k.M]} &\reducesto& M[\cont_{\EC}/k]
+\end{reductions}
+%
+In the literature a delimited continuation is also known as a
+`partial' continuation.
+
+\subsection{Elimination of continuations}
+
+% % \citeauthor{Reynolds93} has written a historical account of the
+% % various early discoveries of continuations~\cite{Reynolds93}.
+
+% In the literature the term ``continuation'' is often accompanied by a
+% qualifier such as full~\cite{JohnsonD88}, partial~\cite{JohnsonD88},
+% abortive, escape, undelimited, delimited, composable, or functional.
+% %
+% Some of these qualifiers are synonyms, and hence redundant, e.g. the
+% terms ``full'' and ``undelimited'' refer to the same notion of
+% continuation, likewise the terms ``partial'' and ``delimited'' mean
+% the same thing, the notions of ``abortive'' and ``escape'' are
+% interchangeable too, and ``composable'' and ``functional'' also refer
+% to the same notion.
+% %
+
+% Thus the peloton of distinct continuation notions can be pruned to
+% ``undelimited'', ``delimited'', ``abortive'', and ``composable''.
+% %
+% The first two notions concern the introduction of continuations, that
+% is how continuations are captured. Dually, the latter two notions
+% concern the elimination of continuations, that is how continuations
+% interact with the enclosing context.
+% %
+% Consequently, it is not meaningful to contrast, say, ``undelimited''
+% with ``abortive'' continuations, because they are orthogonal notions.
+% %
+% A common confusion in the literature is to conflate ``undelimited''
+% continuations with ``abortive'' continuations.
+% % Similarly, often times ``composable'' is taken to imply ``delimited''.
+% However, it is perfectly possible to conceive of a continuation that
+% is undelimited but not abortive.
+% %
+% % An educated guess as to why this confusion occurs in the literature
+% % may be that it is due to the introduction
+
+% To make each notion of continuation concrete I will present its
+% characteristic reduction rule. To facilitate this presentation I will
+% make use of an abstract control operator $\CC$ to perform an abstract
+% capture of continuations, i.e. informally $C\,k.M$ is to be understood
+% as a syntactic construct that captures the continuation and reifies it
+% as a function which it binds to $k$ in the computation $M$. The
+% precise extent of the capture will be given by the characteristic
+% reduction rule. I will also make use of an abstract control delimiter
+% $\Delim{-}$. The term $\Delim{M}$ encloses the computation $M$ in a
+% syntactically identifiable marker. For the intent and purposes of this
+% presentation enclosing a value in a delimiter is an idempotent
+% operation, i.e.  $\Delim{V} \reducesto V$. I will write $\EC$ to
+% denote an evaluation context~\cite{Felleisen87}.
 
 \paragraph{Undelimited continuation}
 %
@@ -919,14 +1085,15 @@ argument $V$ plugged in.
 
 \paragraph{\citeauthor{SussmanS75}'s catch}
 %
-The catch operator originated in Lisp as an exception handling
-construct. It had a companion throw operation, which would unwind the
-evaluation stack until it was caught by an instance of catch. In 1975
-\citeauthor{SussmanS75} implemented a more powerful variation of the
-catch operator in Scheme~\cite{SussmanS75}. Their catch operator would
-disperse of the throw operation and instead provide the programmer
-with access to the current continuation. Thus it is same as
-\citeauthor{Reynolds98a}' escape operator.
+In 1975 \citet{SussmanS75} designed and implemented the catch operator
+in Scheme. It is a more powerful variant of the catch operator in
+MacLisp~\cite{Moon74}. The MacLisp catch operator had a companion
+throw operation, which would unwind the evaluation stack until it was
+caught by an instance of catch. \citeauthor{SussmanS75}'s catch
+operator dispenses with the throw operation and instead provides the
+programmer with access to the current continuation. Their operator is
+identical to \citeauthor{Reynolds98a}' escape operator, save for the
+syntax.
 %
 \[
   M,N ::= \cdots \mid \Catch~k.M
