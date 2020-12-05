@@ -865,124 +865,30 @@ just as a delimited abortive continuation is conceivable.
 A composable continuation is also known as a `functional' continuation
 in the literature.
 
-% % \citeauthor{Reynolds93} has written a historical account of the
-% % various early discoveries of continuations~\cite{Reynolds93}.
-
-% In the literature the term ``continuation'' is often accompanied by a
-% qualifier such as full~\cite{JohnsonD88}, partial~\cite{JohnsonD88},
-% abortive, escape, undelimited, delimited, composable, or functional.
-% %
-% Some of these qualifiers are synonyms, and hence redundant, e.g. the
-% terms ``full'' and ``undelimited'' refer to the same notion of
-% continuation, likewise the terms ``partial'' and ``delimited'' mean
-% the same thing, the notions of ``abortive'' and ``escape'' are
-% interchangeable too, and ``composable'' and ``functional'' also refer
-% to the same notion.
-% %
-
-% Thus the peloton of distinct continuation notions can be pruned to
-% ``undelimited'', ``delimited'', ``abortive'', and ``composable''.
-% %
-% The first two notions concern the introduction of continuations, that
-% is how continuations are captured. Dually, the latter two notions
-% concern the elimination of continuations, that is how continuations
-% interact with the enclosing context.
-% %
-% Consequently, it is not meaningful to contrast, say, ``undelimited''
-% with ``abortive'' continuations, because they are orthogonal notions.
-% %
-% A common confusion in the literature is to conflate ``undelimited''
-% continuations with ``abortive'' continuations.
-% % Similarly, often times ``composable'' is taken to imply ``delimited''.
-% However, it is perfectly possible to conceive of a continuation that
-% is undelimited but not abortive.
-% %
-% % An educated guess as to why this confusion occurs in the literature
-% % may be that it is due to the introduction
-
-% To make each notion of continuation concrete I will present its
-% characteristic reduction rule. To facilitate this presentation I will
-% make use of an abstract control operator $\CC$ to perform an abstract
-% capture of continuations, i.e. informally $C\,k.M$ is to be understood
-% as a syntactic construct that captures the continuation and reifies it
-% as a function which it binds to $k$ in the computation $M$. The
-% precise extent of the capture will be given by the characteristic
-% reduction rule. I will also make use of an abstract control delimiter
-% $\Delim{-}$. The term $\Delim{M}$ encloses the computation $M$ in a
-% syntactically identifiable marker. For the intent and purposes of this
-% presentation enclosing a value in a delimiter is an idempotent
-% operation, i.e.  $\Delim{V} \reducesto V$. I will write $\EC$ to
-% denote an evaluation context~\cite{Felleisen87}.
-
-% \paragraph{Undelimited continuation}
-% %
-% \[
-%   \EC[\CC\,k.M] \reducesto \EC[M[(\lambda x.\EC[x])/k]]
-% \]
-% %
-% \begin{derivation}
-%   & 3 * (\CC\,k. 2 + k\,(k\,1))\\
-%   \reducesto& \reason{captures the context $k = 3 * [~]$}\\
-%   & 3 * (2 + k\,(k~1))[(\lambda x. 3 * x)/k]\\
-%   =& \reason{substitution}\\
-%   & 3 * (2 + (\lambda x. 3 * x)((\lambda x. 3 * x)\,1))\\
-%   \reducesto& \reason{$\beta$-reduction}\\
-%   & 3 * (2 + (\lambda x. 3 * x)(3 * 1))\\
-%   \reducesto& \reason{$\beta$-reduction}\\
-%   & 3 * (2 + (\lambda x. 3 * x)\,3)\\
-%   \reducesto^4& \reason{$\beta$-reductions}\\
-%   & 33
-% \end{derivation}
-
-% \paragraph{Delimited continuation}
-% %
-% \[
-%   \Delim{\EC[\CC\,k.M]} \reducesto \Delim{M[(\lambda x.\Delim{\EC[x]})/k]}
-% \]
-% %
-% \[
-%   \Delim{\EC[\CC\,k.M]} \reducesto M[(\lambda x.\Delim{\EC[x]})/k]
-% \]
-
-% \paragraph{Abortive continuation} An abortive continuation discards the current context.Like delimited continuations, an
-% abortive continuation is accompanied by a delimiter. The
-% characteristic property of an abortive continuation is that it
-% discards its invocation context up to its enclosing delimiter.
-% %
-% \[
-%   \EC[k\,V] \reducesto V, \quad \text{where } k = (\lambda x. \keyw{abort}\;x).
-% \]
-% %
-% Consequently, composing an abortive continuation with itself is
-% meaningless, e.g. in $k (k\,V)$ the innermost application erases the
-% outermost application.
-
-% \paragraph{Composable continuation} The defining characteristic of a
-% composable continuation is that it composes the captured context with
-% current context, i.e.
-% %
-% \[
-%   \EC[k\,V] \reducesto \EC[\EC'[V]], \quad \text{where } k = (\lambda x. \EC'[x])
-% \]
-
-% Escape continuations, undelimited continuations, delimited
-% continuations, composable continuations.
-
-% Downward and upward use of continuations.
-
 \section{Controlling continuations}
 \label{sec:controlling-continuations}
 As suggested in the previous section, the design space for
 continuation is rich. This richness is to an extent reflected by the
-considerable amount of control operators that appear in the literature
+large amount of control operators that appear in the literature
 and in practice.
+%
+The purpose of this section is to survey a considerable subset of the
+first-class \emph{sequential} control operators that occur in the
+literature and in practice. Control operators for parallel programming
+will not be considered here.
 %
 Table~\ref{tbl:classify-ctrl} provides a classification of a
 non-exhaustive list of first-class control operators.
 
-It is worth remarking that a \emph{first-class} control operator is
-typically not itself a first-class citizen, rather, it means that the
-reified continuation is a first-class citizen.
+Note that a \emph{first-class} control operator is typically not
+itself a first-class citizen, rather, the label `first-class' means
+that the reified continuation is a first-class object. Control
+operators that reify the current continuation can be made first-class
+by enclosing them in a $\lambda$-abstraction. Obviously, this trick
+does not work for operators that reify the caller continuation.
+
+To study the control operators we will make use of a small base
+language.
 %
 \begin{table}
   \centering
@@ -1028,7 +934,7 @@ reified continuation is a first-class citizen.
 
 \paragraph{A small calculus for control}
 %
-To look at control we will a simply typed fine-grain call-by-value
+To look at control we will use a simply typed fine-grain call-by-value
 calculus. Although, we will sometimes have to discard the types, as
 many of the control operators were invented and studied in a untyped
 setting. The calculus is essentially the same as the one used in
@@ -1063,6 +969,17 @@ primitive $\Continue$.
     {\typ{\Gamma}{V : A} \\ \typ{\Gamma}{W : \Cont\,\Record{A;B}}}
     {\typ{\Gamma}{\Continue~W~V : B}}
 \end{mathpar}
+%
+Although, it is convenient to treat continuation application specially
+for operational inspection, it is rather cumbersome to do so when
+studying encodings of control operators. Therefore, to obtain the best
+of both worlds, the control operators will reify their continuations
+as first-class functions, whose body is $\Continue$-expression. To
+save some ink, we will use the following notation.
+%
+\[
+  \qq{\cont_{\EC}} \defas \lambda x. \Continue~\cont_{\EC}~x
+\]
 
 \subsection{Undelimited control operators}
 %
@@ -1432,9 +1349,13 @@ continuation with the then-current continuation.
 $\FelleisenC$.
 %
 \[
-  \sembr{\FelleisenC} \defas \lambda m.\FelleisenF\,(\lambda k. m\,(\lambda v.\FelleisenF\,(\lambda\_.\Continue~k~v)))
+  \sembr{\FelleisenC} \defas \lambda m.\FelleisenF\,(\lambda k. m\,(\lambda v.\FelleisenF\,(\lambda\_.k~v)))
 \]
 %
+The first application of $\FelleisenF$ has the effect of aborting the
+current continuation, whilst the second application of $\FelleisenF$
+aborts the invocation context.
+
 \citet{FelleisenFDM87} also postulate that $\FelleisenC$ cannot express $\FelleisenF$.
 
 \paragraph{\citeauthor{Landin98}'s J operator}
@@ -1559,11 +1480,16 @@ translate $\J$ to a language with $\JI$ as follows.
   \sembr{\J} \defas (\lambda k.\lambda f.\lambda x.\Continue\;k\,(f\,x))\,(\JI)
 \]
 %
-Strictly speaking in our setting this encoding is not faithful,
-because we do not treat continuations as first-class functions,
-meaning the types are not going to match up. An application of the
-left hand side returns a continuation object, whereas an application
-of the right hand side returns a continuation function.
+The term $\JI$ captures the caller continuation, which gets bound to
+$k$. The shape of the residual term is as expected: when $\sembr{\J}$
+is applied to a function, it returns another function, which when
+applied ultimately invokes the captured continuation.
+%
+% Strictly speaking in our setting this encoding is not faithful,
+% because we do not treat continuations as first-class functions,
+% meaning the types are not going to match up. An application of the
+% left hand side returns a continuation object, whereas an application
+% of the right hand side returns a continuation function.
 
 Let us end by remarking that the J operator is expressive enough to
 encode a familiar control operator like $\Callcc$~\cite{Thielecke98}.
@@ -1576,11 +1502,16 @@ encode a familiar control operator like $\Callcc$~\cite{Thielecke98}.
 syntactically embedded using callcc.
 %
 \[
-  \sembr{\lambda x.M} \defas \lambda x.\Callcc\,(\lambda k.\sembr{M}[\J \mapsto \lambda f.\lambda y. \Continue~k~(f\,y)])
+  \sembr{\lambda x.M} \defas \lambda x.\Callcc\,(\lambda k.\sembr{M}[\J \mapsto \lambda f.\lambda y. k~(f\,y)])
 \]
-% %
-\dhil{I am sort of torn between whether to treat continuations as
-  first-class functions\dots}
+%
+The key point here is that $\lambda$-abstractions are not translated
+homomorphically. The occurrence of $\Callcc$ immediately under the
+binder reifies the current continuation of the function, which is the
+precisely the caller continuation in the body $M$. In $M$ the symbol
+$\J$ is substituted with a function that simulates $\J$ by
+post-composing the captured continuation with the function argument
+provided to $\J$.
 
 \subsection{Delimited control operators}
 %
@@ -1726,6 +1657,10 @@ The prompt remains in place after the reification, and thus any
 subsequent application of $\Control$ will be delimited by the same
 prompt.
 %
+Presenting $\Control$ as a binding form may conceal the fact that it
+is same as $\FelleisenF$. However, the presentation here is close to
+\citeauthor{SitaramF90}'s presentation, which in turn is close to
+actual implementations of $\Control$.
 
 The static semantics of control and prompt were absent in
 \citeauthor{Felleisen88}'s original treatment.
@@ -1801,39 +1736,61 @@ To illustrate $\Prompt$ and $\Control$ in action, let us consider a
 few simple examples.
 %
 \begin{derivation}
-  & 1 + \Prompt~2 + (\Control~k.\Continue~k~(\Continue~k~0))\\
-  \reducesto^+& \reason{Capture $\EC = 2 + [\,]$}\\
-  & 1 + \Prompt~\Continue~\cont_{\EC}~(\Continue~\cont_{\EC]}~0))\,\\
+  & 1 + \Prompt~2 + (\Control~k.3 + k~0) + (\Control~k'.k'~4)\\
+  \reducesto^+& \reason{Capture $\EC = 2 + [\,] + (\Control~k'.k'~4)$}\\
+  & 1 + \Prompt~3+\Continue~\cont_{\EC}~0\\
   \reducesto & \reason{Resume with 0}\\
-  & 1 + \Prompt~\Continue~\cont_{\EC}~(2 + 0)\\
-  \reducesto^+ & \reason{Resume with 2}\\
-  & 1 + \Prompt~2 + 2\\
+  & 1 + \Prompt~3 + (2 + 0) + (\Control~k'.k'~4)\\
+  \reducesto^+ & \reason{Capture $\EC' = 5 + [\,]$}\\
+  & 1 + \Prompt~\Continue~\cont_{\EC'}~4\\
+  \reducesto^+ & \reason{Resume with 4}\\
+  & 1 + \Prompt~5 + 4\\
   \reducesto^+ & \reason{\slab{Value} rule}\\
-  & 1 + 4 \reducesto 5
+  & 1 + 9 \reducesto 10
 \end{derivation}
 %
-The continuation captured by the application of $\Control$ is
+The continuation captured by the either application of $\Control$ is
 oblivious to the continuation $1 + [\,]$ of $\Prompt$. Since the
 captured continuation is composable it returns to its call site. The
-first invocation of the continuation $k$ returns the value 2, which is
-provided as the argument to the second invocation of $k$, resulting in
-the value $4$. The prompt $\Prompt$ gets eliminated when the
-computation constituent of $\Prompt$ has been reduced to the value
-$4$, which is (implicitly) supplied to the continuation of $\Prompt$.
+invocation of the captured continuation $k$ returns the value 0, but
+splices the captured context into the context $3 + [\,]$. The second
+application of $\Control$ captures the new context up to the
+delimiter. The continuation is immediately applied to the value 4,
+which causes the captured context to be reinstated with the value 4
+plugged in. Ultimately the delimited context reduces to the value $9$,
+after which the prompt $\Prompt$ gets eliminated, and the continuation
+of the $\Prompt$ is applied to the value $9$, resulting in the final
+result $10$.
 
 Let us consider a slight variation of the previous example.
 %
 \begin{derivation}
-  & 1 + \Prompt~2 + (\Control~k.\Continue~k~0) + (\Control~k'. 0)\\
-  \reducesto^+& \reason{Capture $\EC = 2 + [\,] + (\Control~k'.0)$}\\
-  & 1 + \Prompt~\Continue~\cont_{\EC}~0\\
+  & 1 + \Prompt~2 + (\Control~k.3 + k~0) + (\Control~k'.4)\\
+  \reducesto^+& \reason{Capture $\EC = 2 + [\,] + (\Control~k'.4)$}\\
+  & 1 + \Prompt~3+\Continue~\cont_{\EC}~0\\
   \reducesto & \reason{Resume with 0}\\
-  & 1 + \Prompt~2 + 0 + (\Control~k'. 0)\\
-  \reducesto^+ & \reason{Capture $\EC' = 2 + [\,]$}\\
-  & 1 + \Prompt~0 \\
-  \reducesto & \reason{\slab{Value} rule}\\
-  & 1 + 0 \reducesto 1
+  & 1 + \Prompt~3 + (2 + 0) + (\Control~k'.4)\\
+  \reducesto^+ & \reason{Capture $\EC' = 5 + [\,]$}\\
+  & 1 + \Prompt~4\\
+  \reducesto^+ & \reason{\slab{Value} rule}\\
+  & 1 + 4 \reducesto 5
 \end{derivation}
+%
+Here the computation constituent of the second application of
+$\Control$ drops the captured continuation, which has the effect of
+erasing the previous computation, ultimately resulting in the value
+$5$ rather than $10$.
+% \begin{derivation}
+%   & 1 + \Prompt~2 + (\Control~k.\Continue~k~0) + (\Control~k'. 0)\\
+%   \reducesto^+& \reason{Capture $\EC = 2 + [\,] + (\Control~k'.0)$}\\
+%   & 1 + \Prompt~\Continue~\cont_{\EC}~0\\
+%   \reducesto & \reason{Resume with 0}\\
+%   & 1 + \Prompt~2 + 0 + (\Control~k'. 0)\\
+%   \reducesto^+ & \reason{Capture $\EC' = 2 + [\,]$}\\
+%   & 1 + \Prompt~0 \\
+%   \reducesto & \reason{\slab{Value} rule}\\
+%   & 1 + 0 \reducesto 1
+% \end{derivation}
 %
 The continuation captured by the first application of $\Control$
 contains another application of $\Control$. The application of the
@@ -1936,21 +1893,21 @@ perspective, let us revisit the second control/prompt example with
 shift/reset instead.
 %
 \begin{derivation}
-  & 1 + \reset{2 + (\shift\;k.3 + k\,0) + (\shift\;k'.0)}\\
-  \reducesto^+& \reason{Capture $\EC = 2 + [\,] + (\shift\;k.0)$}\\
+  & 1 + \reset{2 + (\shift\;k.3 + k\,0) + (\shift\;k'.4)}\\
+  \reducesto^+& \reason{Capture $\EC = 2 + [\,] + (\shift\;k.4)$}\\
   & 1 + \reset{\Continue~\cont_{\EC}~0}\\
   \reducesto & \reason{Resume with 0}\\
-  & 1 + \reset{3 + \reset{2 + 0 + (\shift\;k'. 0)}}\\
+  & 1 + \reset{3 + \reset{2 + 0 + (\shift\;k'. 4)}}\\
   \reducesto^+ & \reason{Capture $\EC' = 2 + [\,]$}\\
-  & 1 + \reset{3 + \reset{0}} \\
+  & 1 + \reset{3 + \reset{4}} \\
   \reducesto^+ & \reason{\slab{Value} rule}\\
-  & 1 + \reset{3} \reducesto^+ 4 \\
+  & 1 + \reset{7} \reducesto^+ 8 \\
 \end{derivation}
 %
-Contrast this result with the result $1$ obtained when using
+Contrast this result with the result $5$ obtained when using
 control/prompt. In essence the insertion of a new reset after
 resumption has the effect of remembering the local context of the
-first continuation invocation.
+previous continuation invocation.
 
 This difference naturally raises the question whether shift/reset and
 control/prompt are interdefinable or exhibit essential expressivity
