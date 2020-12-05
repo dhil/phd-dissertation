@@ -1800,7 +1800,7 @@ second application of $\Control$ captures the remainder of the
 computation of to $\Prompt$. However, the captured context gets
 discarded, because the continuation $k'$ is never invoked.
 %
-\dhil{Multi-prompts: more liberal typing, no interference}
+\dhil{Mention control0/prompt0 and the control hierarchy}
 
 \paragraph{\citeauthor{DanvyF90}'s shift and reset} Shift and reset
 first appeared in a technical report by \citeauthor{DanvyF89} in
@@ -2222,8 +2222,14 @@ Effect handler definitions occupy their own syntactic category.
                         \mid \{ \OpCase{\ell}{p}{k} \mapsto N \} \uplus H\\
 \end{syntax}
 %
-A handler consists of a $\Return$-clause and zero or more operation
-clauses.
+An effect handler consists of a $\Return$-clause and zero or more
+operation clauses. Each operation clause binds the payload of the
+matching operation $\ell$ to $p$ and the continuation of the operation
+invocation to $k$ in $N$.
+
+Effect handlers introduces a new syntactic category of signatures, and
+extends the value types with operation types. Operation and handler
+application both appear as computation forms.
 %
 \begin{syntax}
   &\Sigma \in \mathsf{Sig} &::=& \emptyset \mid \{ \ell : A \opto B \} \uplus \Sigma\\
@@ -2231,28 +2237,63 @@ clauses.
   &M,N \in \CompCat    &::=& \cdots \mid \Do\;\ell\,V \mid \Handle \; M \; \With \; H\\[1ex]
 \end{syntax}
 %
+A signature is a collection of labels with operation types. An
+operation type $A \opto B$ is similar to the function type in that $A$
+denotes the domain (type of the argument) of the operation, and $B$
+denotes the codomain (return type). For simplicity, we will just
+assume a global fixed signature. The form $\Do\;\ell\,V$ is the
+application form for operations. It applies an operation $\ell$ with
+payload $V$. The construct $\Handle\;M\;\With\;H$ handles a
+computation $M$ with handler $H$.
+%
 \begin{mathpar}
+  \inferrule*
+   {{\bl
+       % C = A \eff \{(\ell_i : A_i \opto B_i)_i; R\} \\
+       % D = B \eff \{(\ell_i : P_i)_i;           R\}\\
+       \{\ell_i : A_i \opto B_i\}_i \in \Sigma \\
+       H = \{\Return\;x \mapsto M\} \uplus \{ \OpCase{\ell_i}{p_i}{k_i} \mapsto N_i \}_i \\
+       \el}\\\\
+       \typ{\Gamma, x : A;\Sigma}{M : D}\\\\
+       [\typ{\Gamma,p_i : A_i, k_i : B_i \to D;\Sigma}{N_i : D}]_i
+    }
+    {\typ{\Gamma;\Sigma}{H : C \Harrow D}}
+\end{mathpar}
+\begin{mathpar}
+  \inferrule*
+  {\{ \ell : A \opto B \} \in \Sigma \\ \typ{\Gamma;\Sigma}{V : A}}
+  {\typ{\Gamma;\Sigma}{\Do\;\ell\,V : B}}
+
   \inferrule*
   {
     \typ{\Gamma}{M : C} \\
     \typ{\Gamma}{H : C \Harrow D}
   }
   {\typ{\Gamma;\Sigma}{\Handle \; M \; \With\; H : D}}
-
-
-%\mprset{flushleft}
-  \inferrule*
-   {{\bl
-       % C = A \eff \{(\ell_i : A_i \opto B_i)_i; R\} \\
-       % D = B \eff \{(\ell_i : P_i)_i;           R\}\\
-       \{\ell_i : A_i \opto B_i\}_i \in \Sigma \\
-       H = \{\Return\;x \mapsto M\} \uplus \{ \OpCase{\ell_i}{p_i}{r_i} \mapsto N_i \}_i \\
-       \el}\\\\
-       \typ{\Gamma, x : A;\Sigma}{M : D}\\\\
-       [\typ{\Gamma,p_i : A_i, r_i : B_i \to D;\Sigma}{N_i : D}]_i
-    }
-    {\typ{\Gamma;\Sigma}{H : C \Harrow D}}
 \end{mathpar}
+%
+The first typing rule checks that the operation label of each
+operation clause is declared in the signature $\Sigma$. The signature
+provides the necessary information to construct the type of the
+payload parameters $p_i$ and the continuations $k_i$. Note that the
+domain of each continuation $k_i$ is compatible with the codomain of
+$\ell_i$, and the codomain of $k_i$ is compatible with the codomain of
+the handler.
+%
+The second and third typing rules are application of operations and
+handlers, respectively. The rule for operation application simply
+inspects the signature to check that the operation is declared, and
+that the type of the payload is compatible with the declared type.
+
+This particular presentation is nominal, because operations are
+declared up front. Nominal typing is the only sound option in the
+absence of an effect system (unless we restrict operations to work
+over a fixed type, say, an integer). In
+Chapter~\ref{ch:unary-handlers} we see a different presentation based
+on structural typing.
+
+The dynamic semantics of effect handlers are similar to that of
+$\fcontrol$, though, the $\slab{Value}$ rule is more interesting.
 %
 \begin{reductions}
   \slab{Value}    & \Handle\; V \;\With\;H   &\reducesto& M[V/x], \text{ where } \{\Return\;x \mapsto M\} \in H\\
@@ -2319,8 +2360,12 @@ $\ShallowHandle\; - \;\With\;-$.
   \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]\\
 \end{reductions}
 %
+Chapter~\ref{ch:unary-handlers} contains further examples of deep and
+shallow handlers in action.
 
-Deep handlers can be used to simulate shift0 and reset0.
+
+Deep handlers can be used to simulate shift0 and
+reset0~\cite{KammarLO13}.
 %
 \begin{equations}
   \sembr{\shiftz~k.M} &\defas& \Do\;\dec{Shift0}~(\lambda k.M)\\
@@ -2328,13 +2373,14 @@ Deep handlers can be used to simulate shift0 and reset0.
               \ba[t]{@{~}l}\Handle\;m\,\Unit\;\With\\
                   ~\ba{@{~}l@{~}c@{~}l}
                       \Return\;x &\mapsto& x\\
-                      \OpCase{\dec{Shift0}}{f}{k} &\mapsto& f\,(\lambda x. \Continue~k~x)
+                      \OpCase{\dec{Shift0}}{f}{k} &\mapsto& f\,k
                    \ea
               \ea
 \end{equations}
 %
 
-Shallow handlers can be used to simulate control0 and prompt0.
+Shallow handlers can be used to simulate control0 and
+prompt0~\cite{KammarLO13}.
 %
 \begin{equations}
   \sembr{\Controlz~k.M} &\defas& \Do\;\dec{Control0}~(\lambda k.M)\\
@@ -2347,7 +2393,7 @@ Shallow handlers can be used to simulate control0 and prompt0.
               \ba[t]{@{~}l}\ShallowHandle\;m\,\Unit\;\With\\
                   ~\ba{@{~}l@{~}c@{~}l}
                       \Return\;x &\mapsto& x\\
-                      \OpCase{\dec{Control0}}{f}{k} &\mapsto& prompt0\,(\lambda\Unit.f\,(\lambda x. \Continue~k~x))
+                      \OpCase{\dec{Control0}}{f}{k} &\mapsto& prompt0\,(\lambda\Unit.f\,k)
                    \ea
               \ea
           \el
