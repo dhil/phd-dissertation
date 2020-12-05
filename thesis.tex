@@ -827,7 +827,7 @@ itself have no effect.
 %
 The innermost application erases the outermost application term,
 consequently only the first application of $\cont$ occurs during
-runtime.
+runtime. It is as if the first application occurred in tail position.
 
 The continuations introduced by the early control operators were all
 abortive, since they were motivated by modelling unrestricted jumps
@@ -837,11 +837,33 @@ An abortive continuation is also known as an `escape' continuation in
 the literature.
 
 \paragraph{Composable continuation} A composable continuation splices
-its captured context with the its invocation context.
+its captured context with the its invocation context, i.e.
 %
 \[
-  \EC[\Continue~\cont_{\EC'}~V] \reducesto \EC[\EC'[V]]
+  \Continue~\cont_{\EC}~V \reducesto \EC[V]
 \]
+%
+The application of a composable continuation can be understood
+locally, because it has no effect on its invocation context. A
+composable continuation behaves like a function in the sense that it
+returns to its caller, and thus composition is well-defined, e.g.
+%
+\[
+  \Continue~\cont_{\EC}~(\Continue~\cont_{\EC}~V) \reducesto \Continue~\cont_{\EC}~\EC[V]
+\]
+%
+The innermost application composes the captured context with the
+outermost application. Thus, the outermost application occurs when
+$\EC[V]$ has been reduced to a value.
+
+In the literature, virtually every delimited control operator provides
+composable continuations. However, the notion of composable
+continuation is not intimately connected to delimited control. It is
+perfect possible to conceive of a undelimited composable continuation,
+just as a delimited abortive continuation is conceivable.
+
+A composable continuation is also known as a `functional' continuation
+in the literature.
 
 % % \citeauthor{Reynolds93} has written a historical account of the
 % % various early discoveries of continuations~\cite{Reynolds93}.
@@ -950,8 +972,17 @@ its captured context with the its invocation context.
 
 \section{Controlling continuations}
 \label{sec:controlling-continuations}
+As suggested in the previous section, the design space for
+continuation is rich. This richness is to an extent reflected by the
+considerable amount of control operators that appear in the literature
+and in practice.
+%
 Table~\ref{tbl:classify-ctrl} provides a classification of a
 non-exhaustive list of first-class control operators.
+
+It is worth remarking that a \emph{first-class} control operator is
+typically not itself a first-class citizen, rather, it means that the
+reified continuation is a first-class citizen.
 %
 \begin{table}
   \centering
@@ -973,7 +1004,7 @@ non-exhaustive list of first-class control operators.
     \hline
     control/prompt      & Delimited & Composable & \citet{Felleisen88}\\
     \hline
-    effect handlers     & Delimited & Composable & \citet{PlotkinP09,PlotkinP13} \\
+    effect handlers     & Delimited & Composable & \citet{PlotkinP13} \\
     \hline
     escape              & Undelimited & Abortive & \citet{Reynolds98a}\\
     \hline
@@ -985,19 +1016,22 @@ non-exhaustive list of first-class control operators.
     \hline
     shift/reset         & Delimited & Composable & \citet{DanvyF90}\\
     \hline
-    spawn               & Delimited & Composable & \citet{HiebDA94}\\
+    spawn               & Delimited & Composable & \citet{HiebD90}\\
     \hline
     splitter            & Delimited & Abortive, composable & \citet{QueinnecS91}\\
     \hline
   \end{tabular}
   \caption{Classification of first-class sequential control operators.}\label{tbl:classify-ctrl}
+  \dhil{TODO: Possibly split into two tables: undelimited and delimited. Change the table to display the behaviour of control reifiers.}
 \end{table}
 %
 
-\paragraph{An optical device for control}
+\paragraph{A small calculus for control}
 %
 To look at control we will a simply typed fine-grain call-by-value
-calculus. The calculus is essentially the same as the one used in
+calculus. Although, we will sometimes have to discard the types, as
+many of the control operators were invented and studied in a untyped
+setting. The calculus is essentially the same as the one used in
 Chapter~\ref{ch:handlers-efficiency}, except that here we will have an
 explicit invocation form for continuations. Although, in practice most
 systems disguise continuations as first-class functions, but for a
@@ -1009,20 +1043,20 @@ depicts the syntax of types and terms in the calculus.
 \begin{figure}
   \centering
 \begin{syntax}
-  \slab{Types}        & A,B &::=& \UnitType \mid \Zero \mid A \to B \mid A + B \mid A \times B \mid \Cont\,\Record{A;B} \smallskip\\
-  \slab{Values}       & V,W &::=& x \mid \lambda x^A.M \mid V + W \mid \Record{V;W} \mid \Unit \mid \cont_\EC\\
-  \slab{Computations} & M,N &::=& \Return\;V \mid \Let\;x \revto M \;\In\;N \mid \Let \Record{x;y} = V \;\In\; N \\
-                       &     &\mid& \Absurd^A\;V \mid V\,W \mid \Continue~V~W \smallskip\\
+  \slab{Types}        & A,B &::=& \UnitType \mid A \to B \mid A \times B \mid \Cont\,\Record{A;B} \mid A + B \smallskip\\
+  \slab{Values}       & V,W &::=& \Unit \mid \lambda x^A.M \mid \Record{V;W} \mid \cont_\EC \mid \Inl~V \mid \Inr~W \mid x\\
+  \slab{Computations} & M,N &::=& \Return\;V \mid \Let\;x \revto M \;\In\;N \mid \Let\;\Record{x;y} = V \;\In\; N \\
+                       &     &\mid& V\,W \mid \Continue~V~W \smallskip\\
   \slab{Evaluation\textrm{ }contexts} & \EC &::=& [\,] \mid \Let\;x \revto \EC \;\In\;N
 \end{syntax}
 \caption{Types and term syntax}\label{fig:pcf-lang-control}
 \end{figure}
 %
-The types are the standard simple types with the addition of the empty
-type $\Zero$ and the continuation object type $\Cont\,\Record{A;B}$,
-which is parameterised by an argument type and a result type,
-respectively. The static semantics is standard as well, except for the
-continuation invocation primitive $\Continue$.
+The types are the standard simple types with the addition of the
+continuation object type $\Cont\,\Record{A;B}$, which is parameterised
+by an argument type and a result type, respectively. The static
+semantics is standard as well, except for the continuation invocation
+primitive $\Continue$.
 %
 \begin{mathpar}
     \inferrule*
@@ -1096,7 +1130,7 @@ $\Escape$, however, it is worth noting that this idiom require
 recursive types to type check. Even in a language without recursive
 types, the continuation may propagate outside its binding
 $\Escape$-expression if the language provides an escape hatch such as
-mutable reference cells.
+mutable references.
 % In our simply-typed setting it is not possible for the continuation to
 % propagate outside its binding $\Escape$-expression as it would require
 % the addition of either recursive types or some other escape hatch like
