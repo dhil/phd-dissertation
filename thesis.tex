@@ -642,22 +642,9 @@ will classify them by their operational behaviour.
 The extent and behaviour of a continuation in programming are
 determined by its introduction and elimination forms,
 respectively. Programmatically, a continuation is introduced via a
-control operator, which typically reifies the control state as a
-first-class object, e.g. a function. A continuation is eliminated via
+control operator, which reifies the control state as a first-class
+object, e.g. a function, that can be eliminated via some form of
 application.
-%
-
-%
-% If the continuation is reified as a function, then the elimination
-% form coincides with ordinary function application. This is convenient
-% in practice for programming with continuations, but it is inconvenient
-% for formal examination. In order to examine and understand the
-% phenomenon it is generally a good idea to treat the phenomenon
-% specially. Therefore, our abstract control operator will reify the
-% control state as a value $\cont_{\EC}$, which is indexed by the
-% reified evaluation context $\EC$ to make notionally convenient to
-% reflect the context again. We will write $\Continue~\cont_{\EC}~W$ to
-% denote application of a $\cont$ object to the value $W$.
 
 \subsection{Introduction of continuations}
 %
@@ -684,10 +671,11 @@ computation $M$.
 continuation is indefinite as it ranges over the entire remainder of
 computation.
 %
-The most common undelimited continuation is the \emph{current}
-continuation, which is the precisely continuation following the
-control operator. The following is the characteristic reduction for
-the introduction of the current continuation.
+In functional programming languages undelimted control operators most
+commonly expose the \emph{current} continuation, which is the
+precisely continuation following the control operator. The following
+is the characteristic reduction for the introduction of the current
+continuation.
 % The indefinite extents means that undelimited continuation capture can
 % only be understood in context. The characteristic reduction is as
 % follows.
@@ -716,16 +704,17 @@ reification. Now, the programmer has control over the whole
 continuation, since it is entirely up to the programmer whether $\EC$
 gets evaluated.
 
-An alternative to reify the current continuation is to reify the
-caller continuation. The caller continuation is the continuation of
-the invocation context of the control operator. Characterising
-undelimited caller continuations is slightly more involved as we have
-to remember the continuation of the invocation context. We will use a
-bold lambda $\llambda$ as a syntactic runtime marker to remember the
-continuation of an application. In addition we need three reduction
-rules, where the first is purely administrative, the second is an
-extension of regular application, and the third is the characteristic
-reduction rule for undelimited control with caller continuations.
+Imperative statement-oriented programming languages commonly expose
+the \emph{caller} continuation, typically via a return statement. The
+caller continuation is the continuation of the invocation context of
+the control operator. Characterising undelimited caller continuations
+is slightly more involved as we have to remember the continuation of
+the invocation context. We will use a bold lambda $\llambda$ as a
+syntactic runtime marker to remember the continuation of an
+application. In addition we need three reduction rules, where the
+first is purely administrative, the second is an extension of regular
+application, and the third is the characteristic reduction rule for
+undelimited control with caller continuations.
 %
 \begin{reductions}
   & \llambda.V       &\reducesto& V\\
@@ -774,11 +763,11 @@ then continues as $M$ under the control delimiter. Note that the
 continuation of $\keyw{del}$ is invisible to $\CC$, and thus, the
 behaviour of $\CC$ can be understood locally.
 
-There are multiple design choices for delimited control operators. The
-control delimiter may remain in place after reification, as above, or
-be discarded. Similarly, the control reifier may reify the
-continuation up to and including the delimiter or, as above, without
-the delimiter.
+The design space of delimited control is somewhat richer than that of
+undelimited control, as the control delimiter may remain in place
+after reification, as above, or be discarded. Similarly, the control
+reifier may reify the continuation up to and including the delimiter
+or, as above, without the delimiter.
 %
 The most common variation of delimited control in the literature is
 abortive and reifies the current continuation up to, but not including
@@ -791,6 +780,68 @@ In the literature a delimited continuation is also known as a
 `partial' continuation.
 
 \subsection{Elimination of continuations}
+
+The purpose of continuation application is to reinstall the captured
+context.
+%
+However, a continuation application may affect the control state in
+various ways. The literature features two distinct behaviours of
+continuation application: abortive and composable. We need some
+notation for application of continuations in order to characterise
+abortive and composable behaviours. We will write
+$\Continue~\cont_{\EC}~V$ to denote the application of some
+continuation object $\cont$ to some value $V$.
+
+\paragraph{Abortive continuation} Upon invocation an abortive
+continuation discards the entire evaluation context before
+reinstalling the captured context. In other words, an abortive
+continuation replaces the current context with its captured context,
+i.e.
+%
+\[
+  \EC[\Continue~\cont_{\EC'}~V] \reducesto \EC'[V]
+\]
+%
+The current context $\EC$ is discarded in favour of the captured
+context $\EC'$ (whether the two contexts coincide depends on the
+control operator).  Abortive continuations are a global phenomenon due
+to their effect on the current context. However, in conjunction with a
+control delimiter the behaviour of an abortive continuation can be
+localised, i.e.
+%
+\[
+  \Delim{\EC[\Continue~\cont_{\EC'}~V]} \reducesto \EC'[V]
+\]
+%
+Here, the behaviour of continuation does not interfere with the
+context of $\keyw{del}$, and thus, the behaviour can be understood and
+reasoned about locally with respect to $\keyw{del}$.
+
+A key characteristic of an abortive continuation is that composition
+is meaningless. For example, composing an abortive continuation with
+itself have no effect.
+%
+\[
+  \EC[\Continue~\cont_{\EC'}~(\Continue~\cont_{\EC'}~V)] \reducesto \EC'[V]
+\]
+%
+The innermost application erases the outermost application term,
+consequently only the first application of $\cont$ occurs during
+runtime.
+
+The continuations introduced by the early control operators were all
+abortive, since they were motivated by modelling unrestricted jumps
+akin to $\keyw{goto}$ in statement-oriented programming languages.
+
+An abortive continuation is also known as an `escape' continuation in
+the literature.
+
+\paragraph{Composable continuation} A composable continuation splices
+its captured context with the its invocation context.
+%
+\[
+  \EC[\Continue~\cont_{\EC'}~V] \reducesto \EC[\EC'[V]]
+\]
 
 % % \citeauthor{Reynolds93} has written a historical account of the
 % % various early discoveries of continuations~\cite{Reynolds93}.
@@ -841,61 +892,61 @@ In the literature a delimited continuation is also known as a
 % operation, i.e.  $\Delim{V} \reducesto V$. I will write $\EC$ to
 % denote an evaluation context~\cite{Felleisen87}.
 
-\paragraph{Undelimited continuation}
-%
-\[
-  \EC[\CC\,k.M] \reducesto \EC[M[(\lambda x.\EC[x])/k]]
-\]
-%
-\begin{derivation}
-  & 3 * (\CC\,k. 2 + k\,(k\,1))\\
-  \reducesto& \reason{captures the context $k = 3 * [~]$}\\
-  & 3 * (2 + k\,(k~1))[(\lambda x. 3 * x)/k]\\
-  =& \reason{substitution}\\
-  & 3 * (2 + (\lambda x. 3 * x)((\lambda x. 3 * x)\,1))\\
-  \reducesto& \reason{$\beta$-reduction}\\
-  & 3 * (2 + (\lambda x. 3 * x)(3 * 1))\\
-  \reducesto& \reason{$\beta$-reduction}\\
-  & 3 * (2 + (\lambda x. 3 * x)\,3)\\
-  \reducesto^4& \reason{$\beta$-reductions}\\
-  & 33
-\end{derivation}
+% \paragraph{Undelimited continuation}
+% %
+% \[
+%   \EC[\CC\,k.M] \reducesto \EC[M[(\lambda x.\EC[x])/k]]
+% \]
+% %
+% \begin{derivation}
+%   & 3 * (\CC\,k. 2 + k\,(k\,1))\\
+%   \reducesto& \reason{captures the context $k = 3 * [~]$}\\
+%   & 3 * (2 + k\,(k~1))[(\lambda x. 3 * x)/k]\\
+%   =& \reason{substitution}\\
+%   & 3 * (2 + (\lambda x. 3 * x)((\lambda x. 3 * x)\,1))\\
+%   \reducesto& \reason{$\beta$-reduction}\\
+%   & 3 * (2 + (\lambda x. 3 * x)(3 * 1))\\
+%   \reducesto& \reason{$\beta$-reduction}\\
+%   & 3 * (2 + (\lambda x. 3 * x)\,3)\\
+%   \reducesto^4& \reason{$\beta$-reductions}\\
+%   & 33
+% \end{derivation}
 
-\paragraph{Delimited continuation}
-%
-\[
-  \Delim{\EC[\CC\,k.M]} \reducesto \Delim{M[(\lambda x.\Delim{\EC[x]})/k]}
-\]
-%
-\[
-  \Delim{\EC[\CC\,k.M]} \reducesto M[(\lambda x.\Delim{\EC[x]})/k]
-\]
+% \paragraph{Delimited continuation}
+% %
+% \[
+%   \Delim{\EC[\CC\,k.M]} \reducesto \Delim{M[(\lambda x.\Delim{\EC[x]})/k]}
+% \]
+% %
+% \[
+%   \Delim{\EC[\CC\,k.M]} \reducesto M[(\lambda x.\Delim{\EC[x]})/k]
+% \]
 
-\paragraph{Abortive continuation} An abortive continuation discards the current context.Like delimited continuations, an
-abortive continuation is accompanied by a delimiter. The
-characteristic property of an abortive continuation is that it
-discards its invocation context up to its enclosing delimiter.
-%
-\[
-  \EC[k\,V] \reducesto V, \quad \text{where } k = (\lambda x. \keyw{abort}\;x).
-\]
-%
-Consequently, composing an abortive continuation with itself is
-meaningless, e.g. in $k (k\,V)$ the innermost application erases the
-outermost application.
+% \paragraph{Abortive continuation} An abortive continuation discards the current context.Like delimited continuations, an
+% abortive continuation is accompanied by a delimiter. The
+% characteristic property of an abortive continuation is that it
+% discards its invocation context up to its enclosing delimiter.
+% %
+% \[
+%   \EC[k\,V] \reducesto V, \quad \text{where } k = (\lambda x. \keyw{abort}\;x).
+% \]
+% %
+% Consequently, composing an abortive continuation with itself is
+% meaningless, e.g. in $k (k\,V)$ the innermost application erases the
+% outermost application.
 
-\paragraph{Composable continuation} The defining characteristic of a
-composable continuation is that it composes the captured context with
-current context, i.e.
-%
-\[
-  \EC[k\,V] \reducesto \EC[\EC'[V]], \quad \text{where } k = (\lambda x. \EC'[x])
-\]
+% \paragraph{Composable continuation} The defining characteristic of a
+% composable continuation is that it composes the captured context with
+% current context, i.e.
+% %
+% \[
+%   \EC[k\,V] \reducesto \EC[\EC'[V]], \quad \text{where } k = (\lambda x. \EC'[x])
+% \]
 
-Escape continuations, undelimited continuations, delimited
-continuations, composable continuations.
+% Escape continuations, undelimited continuations, delimited
+% continuations, composable continuations.
 
-Downward and upward use of continuations.
+% Downward and upward use of continuations.
 
 \section{Controlling continuations}
 \label{sec:controlling-continuations}
