@@ -2298,7 +2298,7 @@ $\fcontrol$, though, the $\slab{Value}$ rule is more interesting.
 \begin{reductions}
   \slab{Value}    & \Handle\; V \;\With\;H   &\reducesto& M[V/x], \text{ where } \{\Return\;x \mapsto M\} \in H\\
   \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\qq{\cont_{\Record{\EC;H}}}/k],\\
-  \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
+  \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\OpCase{\ell}{p}{k} \mapsto M\} \in H\el}\\
   \slab{Resume}   & \Continue~\cont_{\Record{\EC;H}}~V &\reducesto& \Handle\;\EC[V]\;\With\;H\\
 \end{reductions}
 %
@@ -2323,7 +2323,105 @@ akin to fold over computation trees induced by effectful
 operations. The recursion is evident from $\slab{Resume}$ rule, as
 continuation invocation causes the same handler to be reinstalled
 along with the captured context.
+
+A classic example of handlers in action is handling of
+nondeterminism. Let us fix a signature with two operations.
 %
+\[
+  \Sigma \defas \{\Fail : \UnitType \opto \Zero; \Choose : \UnitType \opto \Bool\}
+\]
+%
+The $\Fail$ operation is essentially an exception as its codomain is
+the empty type, meaning that its continuation can never be
+invoked. The $\Choose$ operation returns a boolean.
+
+We will define a handler for each operation.
+%
+\[
+  \ba{@{~}l@{~}l}
+     H^{A}_{f} : A \Harrow \Option~A\\
+     H_{f} \defas \{ \Return\; x \mapsto \Some~x; &\OpCase{\Fail}{\Unit}{k} \mapsto \None \}\\
+     H^B_{c} : B \Harrow \List~B\\
+     H_{c} \defas \{ \Return\; x \mapsto [x]; &\OpCase{\Choose}{\Unit}{k} \mapsto k~\True \concat k~\False \}
+   \ea
+\]
+%
+The handler $H_f$ handles an invocation of $\Fail$ by dropping the
+continuation and simply returning $\None$ (due to the lack
+polymorphism, the definitions are parameterised by types $A$ and $B$
+respectively. We may consider them as universal type variables). The
+$\Return$-case of $H_f$ tags its argument with $\Some$.
+%
+The $H_c$ definition handles an invocation of $\Choose$ by first
+invoking the continuation $k$ with $\True$ and subsequently with
+$\False$. The two results are ultimately concatenated. The
+$\Return$-case lifts its argument into a singleton list.
+%
+Now, let us define a simple nondeterministic coin tossing computation
+with failure (by convention let us interpret $\True$ as heads and
+$\False$ as tails).
+%
+\[
+  \bl
+    \toss : \UnitType \to \Bool\\
+    \toss~\Unit \defas
+                  \ba[t]{@{~}l}
+                    \If\;\Do\;\Choose~\Unit\\
+                    \Then\;\Do\;\Choose~\Unit\\
+                    \Else\;\Absurd\;\Do\;\Fail
+                  \ea
+  \el
+\]
+%
+The computation $\toss$ first performs $\Choose$ in order to
+branch. If it returns $\True$ then a second instance of $\Choose$ is
+performed. Otherwise, it raises the $\Fail$ exception.
+%
+If we apply $\toss$ outside of $H_c$ and $H_f$ then the computation
+gets stuck as either $\Choose$ or $\Fail$, or both, would be
+unhandled. Thus, we have to run the computation in the context of both
+handlers. However, we have a choice to make as we can compose the
+handlers in either order. Let us first explore the composition, where
+$H_c$ is the outermost handler. Thus instantiate $H_c$ at type
+$\Option~\Bool$ and $H_f$ at type $\Bool$.
+%
+\begin{derivation}
+  & \Handle\;(\Handle\;\toss~\Unit\;\With\; H_f)\;\With\;H_c\\
+  \reducesto & \reason{$\beta$-reduction, $\EC = \If\;[\,]\;\Then \cdots$}\\
+  & \Handle\;(\Handle\; \EC[\Do\;\Choose~\Unit] \;\With\; H_f)\;\With\;H_c\\
+  \reducesto & \reason{\slab{Capture}, $\{\OpCase{\Choose}{\Unit}{k} \mapsto \cdots\} \in H_c$, $\EC' = (\Handle\;\EC\;\cdots)$}\\
+  & k~\True \concat k~\False, \qquad \text{where $k = \qq{\cont_{\Record{\EC';H_c}}}$}\\
+  \reducesto^+ & \reason{\slab{Resume} with $\True$}\\
+  & (\Handle\;(\Handle\;\EC[\True] \;\With\;H_f)\;\With\;H_c) \concat k~\False\\
+  \reducesto & \reason{$\beta$-reduction}\\
+  & (\Handle\;(\Handle\; \Do\;\Choose~\Unit \;\With\; H_f)\;\With\;H_c) \concat k~\False\\
+  \reducesto & \reason{\slab{Capture}, $\{\OpCase{\Choose}{\Unit}{k'} \mapsto \cdots\} \in H_c$, $\EC'' = (\Handle\;[\,]\;\cdots)$}\\
+  & (k'~\True \concat k'~\False) \concat k~\False, \qquad \text{where $k' = \qq{\cont_{\Record{\EC'';H_c}}}$}\\
+  \reducesto& \reason{\slab{Resume} with $\True$}\\
+  &((\Handle\;(\Handle\; \True \;\With\; H_f)\;\With\;H_c) \concat k'~\False) \concat k~\False\\
+  \reducesto& \reason{\slab{Value}, $\{\Return\;x \mapsto \cdots\} \in H_f$}\\
+  &((\Handle\;\Some~\True\;\With\;H_c) \concat k'~\False) \concat k~\False\\
+   \reducesto& \reason{\slab{Value}, $\{\Return\;x \mapsto \cdots\} \in H_c$}\\
+  & ([\Some~\True] \concat k'~\False) \concat k~\False\\
+  \reducesto^+& \reason{\slab{Resume} with $\False$, \slab{Value}, \slab{Value}}\\
+  & [\Some~\True] \concat [\Some~\False] \concat k~\False\\
+  \reducesto^+& \reason{\slab{Resume} with $\False$}\\
+  & [\Some~\True, \Some~\False] \concat (\Handle\;(\Handle\; \Absurd\;\Do\;\Fail~\Unit \;\With\; H_f)\;\With\;H_c)\\
+  \reducesto& \reason{\slab{Capture}, $\{\OpCase{\Fail}{\Unit}{k} \mapsto \cdots\} \in H_f$}\\
+  & [\Some~\True, \Some~\False] \concat (\Handle\; \None\; \With\; H_c)\\
+  \reducesto& \reason{\slab{Value}, $\{\Return\;x \mapsto \cdots\} \in H_c$}\\
+  & [\Some~\True, \Some~\False] \concat [\None] \reducesto [\Some~\True,\Some~\False,\None]
+\end{derivation}
+%
+Note how the invocation of $\Choose$ passes through $H_f$, because
+$H_f$ does not handle the operation. This is a key characteristic of
+handlers, and it is called \emph{effect forwarding}. Any handler will
+implicitly forward every operation that it does not handle.
+
+Suppose we were to swap the order of $H_c$ and $H_f$, then the
+computation would yield $\None$, because the invocation of $\Fail$
+would transfer control to $H_f$, which is the now the outermost
+handler, and it would drop the continuation and simply return $\None$.
 
 The alternative to deep handlers is known as \emph{shallow}
 handlers. They do not embody a particular recursion scheme, rather,
@@ -2331,7 +2429,8 @@ they correspond to case splits to over computation trees.
 %
 To distinguish between applications of deep and shallow handlers, we
 will mark the latter with a dagger superscript, i.e.
-$\ShallowHandle\; - \;\With\;-$.
+$\ShallowHandle\; - \;\With\;-$. Syntactically deep and shallow
+handler definitions are identical, however, their typing differ.
 %
 \begin{mathpar}
 %\mprset{flushleft}
@@ -2340,13 +2439,19 @@ $\ShallowHandle\; - \;\With\;-$.
        % C = A \eff \{(\ell_i : A_i \opto B_i)_i; R\} \\
        % D = B \eff \{(\ell_i : P_i)_i;           R\}\\
        \{\ell_i : A_i \opto B_i\}_i \in \Sigma \\
-       H = \{\Return\;x \mapsto M\} \uplus \{ \OpCase{\ell_i}{p_i}{r_i} \mapsto N_i \}_i \\
+       H = \{\Return\;x \mapsto M\} \uplus \{ \OpCase{\ell_i}{p_i}{k_i} \mapsto N_i \}_i \\
        \el}\\\\
        \typ{\Gamma, x : A;\Sigma}{M : D}\\\\
-       [\typ{\Gamma,p_i : A_i, r_i : B_i \to C;\Sigma}{N_i : D}]_i
+       [\typ{\Gamma,p_i : A_i, k_i : B_i \to C;\Sigma}{N_i : D}]_i
     }
     {\typ{\Gamma;\Sigma}{H : C \Harrow D}}
 \end{mathpar}
+%
+The difference is in the typing of the continuation $k_i$. The
+codomains of continuations must now be compatible with the return type
+$C$ of the handled computation. The typing suggests that an invocation
+of $k_i$ does not reinstall the handler. The dynamic semantics reveal
+that a shallow handler does not reify its own definition.
 %
 \begin{reductions}
   \slab{Capture}  & \ShallowHandle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\qq{\cont_{\EC}}/k],\\
@@ -2354,16 +2459,23 @@ $\ShallowHandle\; - \;\With\;-$.
   \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]\\
 \end{reductions}
 %
-\begin{reductions}
-  \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\qq{\cont_{\EC}}/k],\\
-  \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
-  \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]\\
-\end{reductions}
+The $\slab{Capture}$ reifies the continuation up to the handler, and
+thus the $\slab{Resume}$ rule can only reinstate the captured
+continuation without the handler.
 %
+\dhil{Revisit the toss example with shallow handlers}
+% \begin{reductions}
+%   \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\qq{\cont_{\EC}}/k],\\
+%   \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
+%   \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]\\
+% \end{reductions}
+%
+
 Chapter~\ref{ch:unary-handlers} contains further examples of deep and
 shallow handlers in action.
-
-
+%
+\dhil{Consider whether to present the below encodings\dots}
+%
 Deep handlers can be used to simulate shift0 and
 reset0~\cite{KammarLO13}.
 %
@@ -2403,6 +2515,8 @@ prompt0~\cite{KammarLO13}.
 %Recursive types are required to type the image of this translation
 
 \paragraph{\citeauthor{Longley09}'s catch-with-continue}
+%
+\dhil{TODO}
 %
 \begin{mathpar}
   \inferrule*
