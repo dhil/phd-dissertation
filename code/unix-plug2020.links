@@ -65,24 +65,24 @@ fun has(k, kvs) {
 #
 # What is an operating system? (very abstractly)
 #
-# A software abstraction that handles a collection of tasks
+# An operating system responds to a collection of system calls
 #
 # Example tasks:
-#  - Controlling I/O devices
-#  - Scheduling processes
 #  - Signalling errors
+#  - Scheduling processes
+#  - Reading/writing I/O
 #?
 
 #!
 #
 # What is an effect handler? (very abstractly)
 #
-# An effect handler handles a collection of abstract operations
+# An effect handler responds a collection of abstract operation calls
 #
-# Example operations:
+# Example tasks:
+#  - Signalling errors
+#  - Scheduling processes
 #  - Reading/writing I/O
-#  - Forking/yielding processes
-#  - Raising exceptions
 #
 #
 #
@@ -94,12 +94,12 @@ fun has(k, kvs) {
 #
 # What is an effect handler? (very abstractly)
 #
-# An effect handler handles a collection of abstract operations
+# An effect handler responds a collection of abstract operation calls
 #
-# Example operations:
+# Example tasks:
+#  - Signalling errors
+#  - Scheduling processes
 #  - Reading/writing I/O
-#  - Forking/yielding processes
-#  - Raising exceptions
 #
 # Thus an effect handler is an operating system (credit James McKinna)
 # (Kiselyov and Shan (2007) used delimited continuations to model
@@ -108,6 +108,19 @@ fun has(k, kvs) {
 #?
 
 #!
+#
+# Objectives of this talk
+#
+# - Demonstrate the versatility of handlers
+# - Explain operating systems as the combination of
+#   + Exceptions
+#   + Dynamic binding
+#   + Nondeterminism
+#   + State
+#
+#?
+
+#
 #
 # What is UNIX?
 #
@@ -125,11 +138,11 @@ fun has(k, kvs) {
 #  - Documentation
 #    + manual pages (e.g. `man`)
 #
-#?
+#
 
 #!
 #
-# Key characteristics of a UNIX-y operating system
+# Key characteristics of UNIX (Ritchie & Thompson, 1974)
 #
 # - Support for multiple user sessions
 # - Time-sharing between processes
@@ -148,7 +161,7 @@ sig stdout : FileDescr
 var stdout = 1;
 
 sig echo : (String) {Write:(FileDescr,String) -> () |%}-> ()
-fun echo(cs) { todo("echo") }
+fun echo(cs) { todo("implement echo") }
 #?
 
 #!
@@ -157,7 +170,7 @@ fun echo(cs) { todo("echo") }
 #
 sig basicIO : ( () {Write:(FileDescr,String) -> () |%}-> a ) { |%}-> (a, File)
 fun basicIO(m) {
-    todo("implement basicIO")
+   todo("implement basicIO")
 }
 #?
 
@@ -303,7 +316,24 @@ fun example3() {
 
 #!
 #
-# Nondeterminism: Multi-tasking
+# Nondeterminism: Multi-tasking (1)
+#
+# From the man pages.
+#
+# Description
+#   fork() creates a new process by duplicating the calling process.  The
+#   new process is referred to as the child process.  The calling process
+#   is referred to as the parent process.
+#
+# Return value
+#   On success, the PID of the child process is returned in the parent,
+#   and 0 is returned in the child.
+#
+#?
+
+#!
+#
+# Nondeterminism: Multi-tasking (2)
 #
 sig fork : () {Fork:Bool |_}-> Bool
 fun fork() { do Fork }
@@ -311,8 +341,8 @@ fun fork() { do Fork }
 sig nondet : (() {Fork:Bool |%}-> a) { |%}-> [a]
 fun nondet(m) {
   handle(m()) {
-    case Return(res)  -> todo("implement nondet Return case")
-    case Fork(resume) -> todo("implement nondet Fork case")
+    case Return(ans)  -> todo("implement Return case")
+    case Fork(resume) -> todo("implement Fork case")
   }
 }
 #?
@@ -392,7 +422,7 @@ typename Pstate(a,e::Eff)
 sig reifyProcess : (() {Interrupt:() |%}-> a) { |%}-> Pstate(a, { |%})
 fun reifyProcess(m) {
   handle(m()) {
-    case Return(res) -> Done(res)
+    case Return(ans) -> Done(ans)
     case Interrupt(resume) -> Paused(fun() { resume(()) })
   }
 }
@@ -434,7 +464,8 @@ sig echo' : (FileDescr,String) {Interrupt:(), Write:(FileDescr,String) -> () |%}
 fun echo'(fd, cs) { interrupt(); do Write(fd, cs) }
 #
 # Third idea: overload interpretations of operations
-sig interruptWrite : (() {Write:(FileDescr,String) -> () |%}-> a) {Write:(FileDescr,String) -> () |%}-> a
+sig interruptWrite : (() {Write:(FileDescr,String) -> () |%}-> a)
+                              {Write:(FileDescr,String) -> () |%}-> a
 fun interruptWrite(m) {
   handle(m()) {
     case Return(res) -> res
@@ -494,6 +525,19 @@ fun runState(st0, m) {
 
 #!
 #
+# State: Example
+#
+sig incr : () {Get:Int,Put:(Int) -> () |%}-> ()
+fun incr() { put(get() + 1) }
+
+sig example6 : () { |%}-> ((), Int)
+fun example6() {
+  runState(41, incr)
+}
+#?
+
+#!
+#
 # Basic Serial File System
 #
 #     Directory              I-List              Data region
@@ -534,23 +578,11 @@ var fsys0 = ( dir     = [("stdout", 0)]
             , inodes  = [(0, (loc=0, lno=1))]
             , dregion = [(0, "")]
             , lnext = 1, inext = 1 );
-#?
 
-#!
-#
+
 # Utility functions
-#
 sig lookup : (a, [(a, b)]) {Fail:Zero |%}-> b
 var lookup = lookup;
-
-sig modify : (a, b, [(a, b)]) { |%}-> [(a, b)]
-var modify = modify;
-
-sig remove : (a, [(a, b)]) { |%}-> [(a, b)]
-var remove = remove;
-
-sig has : (a, [(a, b)]) { |%}-> Bool
-var has = has;
 
 sig withDefault : (a, () {Fail:Zero |%}-> a) { |%}-> a
 fun withDefault(x', m) {
@@ -561,10 +593,6 @@ fun withDefault(x', m) {
 }
 #?
 
-#!
-#
-# BSFS primitive operations: file reading and writing
-#
 sig fwrite : (Int, String, FileSystem) {Fail:Zero |%}-> FileSystem
 fun fwrite(ino, cs, fsys) {
   var inode = lookup(ino, fsys.inodes);
@@ -578,12 +606,16 @@ fun fread(ino, fsys) {
   var inode = lookup(ino, fsys.inodes);
   lookup(inode.loc, fsys.dregion)
 }
-#?
 
 #!
 #
-# Handling reading and writing
+# Handling BSFS operations: file reading and writing
 #
+sig fwrite : (FileDescr, String, FileSystem) {Fail:Zero |%}-> FileSystem
+var fwrite = fwrite;
+sig fread : (FileDescr, FileSystem) {Fail:Zero |%}-> String
+var fread = fread;
+
 sig fileRW : ( () { Read :(FileDescr) -> Option(String)
                   , Write:(FileDescr, String) -> ()     |%}-> a )
                           {Get:FileSystem,Put:(FileSystem) -> () |%}-> a
@@ -593,8 +625,7 @@ fun fileRW(m) {
     case Read(fd, resume) ->
       var cs = withDefault(None, fun() {
                  Some(fread(fd, get()))
-               });
-      resume(cs)
+      }); resume(cs)
     case Write(fd, cs, resume) ->
       withDefault((), fun() {
         var fsys = fwrite(fd, cs, get());
@@ -604,10 +635,6 @@ fun fileRW(m) {
 }
 #?
 
-#!
-#
-# BSFS operation: file opening and creation
-#
 sig fopen : (String, FileSystem) {Fail:Zero |%}-> FileDescr
 fun fopen(fname, fsys) { lookup(fname, fsys.dir) }
 
@@ -631,12 +658,16 @@ fun fcreate(fname, fsys) {
     (ino, (=dir, =dregion, =inodes, lnext=loc+1, inext=ino+1))
   }
 }
-#?
 
 #!
 #
-# Handling file creation and opening
+# BSFS operation: file opening and creation
 #
+sig fopen : (String, FileSystem) {Fail:Zero |%}-> FileDescr
+var fopen = fopen;
+sig fcreate : (String, FileSystem) {Fail:Zero |%}-> (FileDescr, FileSystem)
+var fcreate = fcreate;
+
 sig fileOC : ( () { Open  :(String) -> Option(FileDescr)
                   , Create:(String) -> Option(FileDescr) |%}-> a )
                           {Get:FileSystem,Put:(FileSystem) -> () |%}-> a
@@ -646,12 +677,12 @@ fun fileOC(m) {
     case Open(fname, resume) ->
       var fd = withDefault(None, fun() {
                  Some(fopen(fname, get()))
-               }); resume(fd)
+      }); resume(fd)
     case Create(fname, resume) ->
       var fd = withDefault(None, fun() {
                  var (fd, fsys) = fcreate(fname, get());
                  put(fsys); Some(fd)
-               }); resume(fd)
+      }); resume(fd)
   }
 }
 #?
@@ -694,11 +725,32 @@ op f >- fname {
 
 #!
 #
+# Crude copy
+#
+sig ccp : (String, String) { Create:(String) -> Option(FileDescr)
+                           , Exit  :(Int) -> Zero
+                           , Read  :(FileDescr) -> Option(String)
+                           , Open  :(String) -> Option(FileDescr)
+                           , Write :(FileDescr,String) -> ()      |%}-> ()
+fun ccp(src, dst) {
+  var srcfd = switch (do Open(src)) {
+    case None -> exit(-1)
+    case Some(fd) -> fd
+  };
+  switch (do Read(srcfd)) {
+    case None -> exit(-1)
+    case Some(cs) -> fun() {echo(cs)} >- dst
+  }
+}
+#?
+
+#!
+#
 # Plugging everything together
 #
-sig example6 : (FileSystem) { |%}-> ([Int], FileSystem)
-fun example6(fsys) {
-  runState(fsys, fun() {
+sig example7 : () { |%}-> ([Int], FileSystem)
+fun example7() {
+  runState(fsys0, fun() {
     bsfs0(fun() {
       timeshare(fun() {
         sessionmgr(Root, fun() {
@@ -708,7 +760,8 @@ fun example6(fsys) {
               ritchie >- "ritchie.txt"
             } else {
               su(Bob);
-              hamlet >- "hamlet"
+              hamlet >- "hamlet";
+              ccp("hamlet", "act3")
             }
           })
         })
