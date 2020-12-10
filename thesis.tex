@@ -4226,20 +4226,51 @@ The term `pure' is heavily overloaded in the programming literature.
 \chapter{Programming with control via effect handlers}
 \label{ch:unary-handlers}
 %
-In this chapter we study various flavours of unary effect
-handlers~\cite{PlotkinP13}, that is handlers of a single
-computation. Concretely, we shall study four variations of effect
-handlers: in Section~\ref{sec:unary-deep-handlers} we augment the base
-calculus \BCalc{} with \emph{deep} effect handlers yielding the
-calculus \HCalc{}; subsequently in
-Sections~\ref{sec:unary-parameterised-handlers} and
-\ref{sec:unary-default-handlers} we refine \HCalc{} with two practical
-relevant kinds of handlers, namely, \emph{parameterised} and
-\emph{default} handlers. The former is a specialisation of a
-particular class of deep handlers, whilst the latter is important for
-programming at large. Finally in
-Section~\ref{sec:unary-shallow-handlers} we study \emph{shallow}
-effect handlers which are an alternative to deep effect handlers.
+Programming with effect handlers is a dichotomy of \emph{performing}
+and \emph{handling} of effectful operations -- or alternatively a
+dichotomy of \emph{constructing} and \emph{deconstructing} effects. An
+operation is a constructor of an effect. By itself an operation has no
+predefined semantics. A handler deconstructs effects by
+pattern-matching on their operations. By matching on a particular
+operation, a handler instantiates the said operation with a particular
+semantics of its own choosing. The key ingredient to make this work in
+practice is \emph{delimited control}. Performing an operation reifies
+the remainder of the computation up to the nearest enclosing handler
+of the said operation as a continuation. The continuation is provided
+to the programmer via the handler, and it may be manipulated like any
+other first-class value.
+
+Effect handlers provide a structured interface for programming with
+delimited continuations. They are structured in the sense that an
+invocation site of an operation is decoupled from the use site of its
+continuation. A continuation is exposed in the corresponding operation
+cases inside the handler of its operation of provenance.
+
+I will make a slight change of terminology to disambiguate
+programmatic continuations, i.e. continuations exposed to the
+programmer, from continuations in continuation passing style
+(Chapter~\ref{ch:cps}) and machine continuations
+(Chapter~\ref{ch:abstract-machine}). In the remainder of this
+dissertation I refer to programmatic continuations as `resumptions',
+and reserve the term `continuation' for continuations concerning the
+implementation details.
+
+
+
+% In this chapter we study various flavours of unary effect
+% handlers~\cite{PlotkinP13}, that is handlers of a single
+% computation. Concretely, we shall study four variations of effect
+% handlers: in Section~\ref{sec:unary-deep-handlers} we augment the base
+% calculus \BCalc{} with \emph{deep} effect handlers yielding the
+% calculus \HCalc{}; subsequently in
+% Sections~\ref{sec:unary-parameterised-handlers} and
+% \ref{sec:unary-default-handlers} we refine \HCalc{} with two practical
+% relevant kinds of handlers, namely, \emph{parameterised} and
+% \emph{default} handlers. The former is a specialisation of a
+% particular class of deep handlers, whilst the latter is important for
+% programming at large. Finally in
+% Section~\ref{sec:unary-shallow-handlers} we study \emph{shallow}
+% effect handlers which are an alternative to deep effect handlers.
 
 
 % , First we endow \BCalc{}
@@ -4257,17 +4288,17 @@ effect handlers which are an alternative to deep effect handlers.
 \section{Deep handlers}
 \label{sec:unary-deep-handlers}
 %
-Programming with effect handlers is a dichotomy of \emph{performing}
-and \emph{handling} of effectful operations -- or alternatively a
-dichotomy of \emph{constructing} and \emph{deconstructing}. An operation
-is a constructor of an effect without a predefined semantics. A
-handler deconstructs effects by pattern-matching on their operations. By
-matching on a particular operation, a handler instantiates the said
-operation with a particular semantics of its own choosing. The key
-ingredient to make this work in practice is \emph{delimited
-  control}~\cite{Landin65,Landin65a,Landin98,FelleisenF86,DanvyF90}. Performing
-an operation reifies the remainder of the computation up to the
-nearest enclosing handler of the said operation.
+% Programming with effect handlers is a dichotomy of \emph{performing}
+% and \emph{handling} of effectful operations -- or alternatively a
+% dichotomy of \emph{constructing} and \emph{deconstructing}. An operation
+% is a constructor of an effect without a predefined semantics. A
+% handler deconstructs effects by pattern-matching on their operations. By
+% matching on a particular operation, a handler instantiates the said
+% operation with a particular semantics of its own choosing. The key
+% ingredient to make this work in practice is \emph{delimited
+%   control}~\cite{Landin65,Landin65a,Landin98,FelleisenF86,DanvyF90}. Performing
+% an operation reifies the remainder of the computation up to the
+% nearest enclosing handler of the said operation.
 
 As our starting point we take the regular base calculus, \BCalc{},
 without the recursion operator. We elect to do so to understand
@@ -4291,7 +4322,7 @@ no predefined dynamic semantics. The introduction form for effectful
 operations is a computation term.
 %
 \begin{syntax}
-  \slab{Value types}             &A,B \in \ValTypeCat   &::=& \cdots \mid~ \tikzmarkin{optype} A \opto B \tikzmarkend{optype}\\
+  \slab{Value\textrm{ }types}             &A,B \in \ValTypeCat   &::=& \cdots \mid~ \tikzmarkin{optype} A \opto B \tikzmarkend{optype}\\
   \slab{Computations}      &M,N \in \CompCat      &::=& \cdots \mid~ \tikzmarkin{do1} (\Do \; \ell~V)^E \tikzmarkend{do1}
 \end{syntax}
 %
@@ -4339,7 +4370,7 @@ First we define notation for handler kinds and types.
 %
 \begin{syntax}
 \slab{Kinds}             &K \in \KindCat         &::=& \cdots \mid~ \tikzmarkin{handlerkinds1} \Handler \tikzmarkend{handlerkinds1}\\
-\slab{Handler types}     &F \in \HandlerTypeCat  &::=& C \Harrow D\\
+\slab{Handler\textrm{ }types}     &F \in \HandlerTypeCat  &::=& C \Harrow D\\
 \slab{Types}             &T \in \TypeCat         &::=& \cdots \mid~ \tikzmarkin{typeswithhandler} F \tikzmarkend{typeswithhandler}
 \end{syntax}
 %
@@ -6013,12 +6044,12 @@ We can now plug everything together.
                \Record{2;
                  \ba[t]{@{}l@{}l}
                    \texttt{"}&\texttt{To be, or not to be,\nl{}that is the question:\nl{}}\\
-                             &\texttt{Whether 'tis nobler in the mind to suffer\nl{}}};
+                             &\texttt{Whether 'tis nobler in the mind to suffer\nl{}"}};
                  \ea\\
                \Record{1;
                  \ba[t]{@{}l@{}l}
                    \texttt{"}&\texttt{UNIX is basically a simple operating system, }\\
-                             &\texttt{but you have to be a genius to understand the simplicity.\nl{}}};
+                             &\texttt{but you have to be a genius to understand the simplicity.\nl{"}}};
                  \ea\\
                \Record{0; \strlit{}}]}}
            \ea
@@ -6396,283 +6427,6 @@ applies the consumer's resumption to the yielded value.
 \begin{example}[Communicating pipes]
   bar
 \end{example}
-
-\section{Interdefinability of deep and shallow handlers}
-\label{sec:deep-vs-shallow}
-
-In this section we show that shallow handlers and general recursion
-can simulate deep handlers up to congruence, and that deep handlers
-can simulate shallow handlers up to administrative reductions. The
-latter construction generalises the example of pipes implemented using
-deep handlers that we gave in
-Section~\ref{sec:pipes}.
-%
-
-\subsection{Deep as shallow}
-\label{sec:deep-as-shallow}
-
-\newcommand{\dstrans}[1]{\mathcal{S}\llbracket #1 \rrbracket}
-
-The implementation of deep handlers using shallow handlers (and
-recursive functions) is by a direct local translation, similar to how
-one would implement a fold (catamorphism) in terms of general
-recursion. Each handler is wrapped in a recursive function and each
-resumption has its body wrapped in a call to this recursive function.
-%
-Formally, the translation $\dstrans{-}$ is defined as the homomorphic
-extension of the following equations to all terms.
-\begin{equations}
-\dstrans{\Handle \; M \; \With \; H} &=&
-    (\Rec~h~f.\ShallowHandle\; f\,\Unit \; \With \; \dstrans{H} h)\,(\lambda \Unit{}.\dstrans{M}) \\
-\dstrans{H}h &=& \dstrans{\hret}h \uplus \dstrans{\hops}h \\
-\dstrans{\{ \Return \; x \mapsto N\}} h &=&
-  \{ \Return \; x \mapsto \dstrans{N} \}\\
-\dstrans{\{ \ell \; p \; r \mapsto N_\ell \}_{\ell \in \mathcal{L}}} h &=&
-  \{ \ell \; p \; r \mapsto
-      \Let \; r \revto \Return \; \lambda x.h\,(\lambda \Unit{}.r\,x) \; \In \;
-         \dstrans{N_\ell} \}_{\ell \in \mathcal{L}}
-\end{equations}
-
-% \paragraph{Example} We illustrate the translation $\dstrans{-}$ on the
-% EXAMPLE handler from Section~\ref{sec:strategies} (recall that the
-% variable $m$ is bound to the input computation). The example here is
-% reproduced in ANF notation.
-% \[
-%  \ba{@{~}l@{~}l@{}l}
-%   &\mathcal{S}&\left\llbracket
-%     \ba[m]{@{~}l}
-%         \Handle\; m~\Unit\; \With\\
-%         \quad
-%           \ba{@{}l@{~}c@{~}l}
-%              \Return~x &\mapsto& \Return\;x\\
-%              \Move~\Record{\_;n}~resume &\mapsto& \Let\;y \revto ps~n\;\In\; resume~y
-%           \ea
-%     \ea\right\rrbracket =\\\\
-%   &
-%   &\ba[m]{@{}l}
-%   \hspace{-1ex}
-%   \left(
-%     \ba[m]{@{~}l}
-%     \Rec~h~f.
-%     \ba[t]{@{~}l}
-%      \ShallowHandle\; f~\Unit\; \With\\
-%        \quad
-%          \ba{@{}l@{~}c@{~}l}
-%             \Return~x &\mapsto& \Return\; x\\
-%             \Move~\Record{\_;n}~resume &\mapsto&\\
-%              \quad\ba[t]{@{~}l@{}}
-%                 \Let\; r \revto \Return\; \lambda x. h (\lambda\Unit.resume~x)\;\In\\
-%                 \Let\; y \revto ps~n\; \In\; r~y
-%               \ea
-%          \ea
-%        \ea
-%       \ea\right)~(\lambda \Unit. m~\Unit)
-%     \ea
-%   \ea
-% \]\\
-
-\begin{theorem}
-If $\Delta; \Gamma \vdash M : C$ then $\Delta; \Gamma \vdash
-\dstrans{M} : C$.
-\end{theorem}
-
-In order to obtain a simulation result, we allow reduction in the
-simulated term to be performed under lambda abstractions (and indeed
-anywhere in a term), which is necessary because of the redefinition of
-the resumption to wrap the handler around its body.
-%
-Nevertheless, the simulation proof makes minimal use of this power,
-merely using it to rename a single variable.
-%
-We write $R_{\mathrm{cong}}$ for the compatible closure of relation
-$R$, that is the smallest relation including $R$ and closed under term
-constructors for $\SCalc$.
-%% , otherwise known as \emph{reduction up to
-%%   congruence}.
-
-\begin{theorem}[Simulation up to congruence]
-If $M \reducesto N$ then $\dstrans{M} \reducesto_{\mathrm{cong}}^+
-\dstrans{N}$.
-\end{theorem}
-
-\begin{proof}
-  By induction on $\reducesto$ using a substitution lemma. The
-  interesting case is $\semlab{Op}$, which is where we apply a single
-  $\beta$-reduction, renaming a variable, under the lambda abstraction
-  representing the resumption.
-\end{proof}
-
-\subsection{Shallow as deep}
-
-\newcommand{\sdtrans}[1]{\mathcal{D}\llbracket #1 \rrbracket}
-
-Implementing shallow handlers in terms of deep handlers is slightly
-more involved than the other way round.
-%
-It amounts to the encoding of a case split by a fold and involves a
-translation on handler types as well as handler terms.
-%
-Formally, the translation $\sdtrans{-}$ is defined as the homomorphic
-extension of the following equations to all types, terms, and type
-environments.
-\begin{equations}
-  \sdtrans{C \Rightarrow D} &=&
-    \sdtrans{C} \Rightarrow \Record{\UnitType \to \sdtrans{C}; \UnitType \to \sdtrans{D}} \medskip \\
-  \sdtrans{\ShallowHandle \; M \; \With \; H} &=&
-      \ba[t]{@{}l}
-      \Let\;z \revto \Handle \; \sdtrans{M} \; \With \; \sdtrans{H} \; \In\\
-      \Let\;\Record{f; g} = z \;\In\;
-      g\,\Unit
-      \ea \\
-  \sdtrans{H} &=& \sdtrans{\hret} \uplus \sdtrans{\hops} \\
-  \sdtrans{\{\Return \; x \mapsto N\}} &=&
-    \{\Return \; x \mapsto \Return\; \Record{\lambda \Unit.\Return\; x; \lambda \Unit.\sdtrans{N}}\} \\
-  \sdtrans{\{\ell\; p\; r \mapsto N\}_{\ell \in \mathcal{L}}} &=& \{
-    \bl
-    \ell\; p\; r \mapsto \\
-    \quad \Let \;r \revto
-       \lambda x. \Let\; z \revto r\,x\; \In\;
-                  \Let\; \Record{f; g} = z\; \In\; f\,\Unit
-    \; \In\\
-    \quad \Return\;\Record{\lambda \Unit.\Let\; x \revto \Do\;\ell\,p\; \In\; r\,x; \lambda \Unit.\sdtrans{N}}\}_{\ell \in \mathcal{L}}
-    \el
-\end{equations}
-%
-Each shallow handler is encoded as a deep handler that returns a pair
-of thunks. The first forwards all operations, acting as the identity
-on computations. The second interprets a single operation before
-reverting to forwarding.
-
-% \paragraph{Example} We demonstrate the translation $\sdtrans{-}$ on
-% the $\Pipe$ handler from Section~\ref{sec:shallow-handlers-tutorial}
-% (recall that the variables $c$ and $p$ are bound to the consumer and
-% producer functions respectively). The example is reproduced in ANF
-% notation.
-% %
-% \[
-%   \ba{@{~}l@{~}l@{}l}
-%   &\mathcal{D}&\left\llbracket
-%     \ba[m]{@{~}l}
-%        \ShallowHandle\; c\,\Unit \;\With\; \\
-%        \quad
-%         \ba[m]{@{}l@{~}c@{~}l@{}}
-%            \Return~x &\mapsto& \Return\; x \\
-%            \Await~\Unit~resume  &\mapsto& \Copipe\; \Record{resume; p} \\
-%         \ea \\
-%       \ea\right\rrbracket = \\
-%     &
-%     &\ba[t]{@{~}l}
-%     \Let\; z \revto
-%        \ba[t]{@{~}l}
-%           \Handle\; c~\Unit \; \With\\
-%           \quad \ba[m]{@{~}l}
-%              \ba[m]{@{~}l@{~}l}
-%                 \Return~x      &\mapsto \Return\; \Record{\lambda\Unit. \Return\; x; \lambda\Unit. \Return\;x}\\
-%                 \Await~\Unit~resume &\mapsto
-%              \ea\\
-%                \qquad\ba[t]{@{~}l}
-%                 \Let\;r \revto \lambda x.\Let\; z \revto resume~x\;
-%                                          \In\; \Let\; \Record{f; g} = z \;\In\; f~\Unit\; \In\\
-%                 \Return\;\Record{\lambda \Unit. \Let\; x \revto \Do\; \ell~p \;\In\; r~x;
-%                                  \lambda\Unit.\sdtrans{\Copipe}\Record{r; p}}
-%              \ea
-%             \ea
-%       \ea\\
-%     \In\;\Let\;\Record{f; g} = z\; \In\; g~\Unit
-%     \ea
-%   \ea
-% \]
-%
-
-\begin{theorem}
-If $\Delta; \Gamma \vdash M : C$ then $\sdtrans{\Delta};
-\sdtrans{\Gamma} \vdash \sdtrans{M} : \sdtrans{C}$.
-\end{theorem}
-
-
-\newcommand{\admin}{admin}
-\newcommand{\approxa}{\gtrsim}
-
-As with the implementation of deep handlers as shallow handlers, the
-implementation is again given by a local translation. However, this
-time the administrative overhead is more significant. Reduction up to
-congruence is insufficient and we require a more semantic notion of
-administrative reduction.
-
-\begin{definition}[Administrative evaluation contexts]
-An evaluation context $\EC$ is administrative, $\admin(\EC)$, iff
-\begin{enumerate}
-\item For all values $V$, we have: $\EC[\Return\;V] \reducesto^\ast
-  \Return\;V$
-\item For all evaluation contexts $\EC'$, operations $\ell \in BL(\EC)
-  \backslash BL(\EC')$, values $V$:
-%
-\[
-  \EC[\EC'[\Do\;\ell\;V]] \reducesto^\ast \Let\; x \revto \Do\;\ell\;V \;\In\; \EC[\EC'[\Return\;x]].
-\]
-\end{enumerate}
-\end{definition}
-%
-The intuition is that an administrative evaluation context behaves
-like the empty evaluation context up to some amount of administrative
-reduction, which can only proceed once the term in the context becomes
-sufficiently evaluated.
-%
-Values annihilate the evaluation context and handled operations are
-forwarded.
-%
-%% The forwarding handler is a technical device which allows us to state
-%% the second property in a uniform way by ensuring that the operation is
-%% handled at least once.
-
-\begin{definition}[Approximation up to administrative reduction]
-Define $\approxa$ as the compatible closure of the following inference
-rules.
-%
-\begin{mathpar}
-  \inferrule*
-    { }
-    {M \approxa M}
-
-  \inferrule*
-    {M \reducesto M' \\ M' \approxa N}
-    {M \approxa N}
-
-  \inferrule*
-    {\admin(\EC) \\ M \approxa N}
-    {\EC[M] \approxa N}
-\end{mathpar}
-%
-We say that $M$ approximates $N$ up to administrative reduction if $M
-\approxa N$.
-\end{definition}
-%
-Approximation up to administrative reduction captures the property
-that administrative reduction may occur anywhere within a term.
-%
-The following lemma states that the forwarding component of the
-translation is administrative.
-\begin{lemma}\label{lem:sdtrans-admin}
-For all shallow handlers $H$, the following context is administrative:
-\begin{displaymath}
-\Let\; z \revto
-               \Handle\; [~] \;\With\; \sdtrans{H}\;
-                   \In\;
-                   \Let\; \Record{f;\_} = z\; \In\; f\,\Unit.
-\end{displaymath}
-\end{lemma}
-
-\begin{theorem}[Simulation up to administrative reduction]
-If $M' \approxa \sdtrans{M}$ and $M \reducesto N$ then there exists
-$N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
-\end{theorem}
-%
-\begin{proof}
-By induction on $\reducesto$ using a substitution lemma and
-Lemma~\ref{lem:sdtrans-admin}. The interesting case is
-$\semlab{Op^\dagger}$, which uses Lemma~\ref{lem:sdtrans-admin} to
-approximate the body of the resumption up to administrative reduction.
-\end{proof}
 
 \section{Parameterised handlers}
 \label{sec:unary-parameterised-handlers}
@@ -9482,6 +9236,283 @@ If $\typc{}{M : A}{E}$ and $M \reducesto^+ N \not\reducesto$, then $M
 
 
 \part{Expressiveness}
+\chapter{Interdefinability of deep and shallow handlers}
+\label{ch:deep-vs-shallow}
+
+In this section we show that shallow handlers and general recursion
+can simulate deep handlers up to congruence, and that deep handlers
+can simulate shallow handlers up to administrative reductions. The
+latter construction generalises the example of pipes implemented using
+deep handlers that we gave in
+Section~\ref{sec:pipes}.
+%
+
+\section{Deep as shallow}
+\label{sec:deep-as-shallow}
+
+\newcommand{\dstrans}[1]{\mathcal{S}\llbracket #1 \rrbracket}
+
+The implementation of deep handlers using shallow handlers (and
+recursive functions) is by a direct local translation, similar to how
+one would implement a fold (catamorphism) in terms of general
+recursion. Each handler is wrapped in a recursive function and each
+resumption has its body wrapped in a call to this recursive function.
+%
+Formally, the translation $\dstrans{-}$ is defined as the homomorphic
+extension of the following equations to all terms.
+\begin{equations}
+\dstrans{\Handle \; M \; \With \; H} &=&
+    (\Rec~h~f.\ShallowHandle\; f\,\Unit \; \With \; \dstrans{H} h)\,(\lambda \Unit{}.\dstrans{M}) \\
+\dstrans{H}h &=& \dstrans{\hret}h \uplus \dstrans{\hops}h \\
+\dstrans{\{ \Return \; x \mapsto N\}} h &=&
+  \{ \Return \; x \mapsto \dstrans{N} \}\\
+\dstrans{\{ \ell \; p \; r \mapsto N_\ell \}_{\ell \in \mathcal{L}}} h &=&
+  \{ \ell \; p \; r \mapsto
+      \Let \; r \revto \Return \; \lambda x.h\,(\lambda \Unit{}.r\,x) \; \In \;
+         \dstrans{N_\ell} \}_{\ell \in \mathcal{L}}
+\end{equations}
+
+% \paragraph{Example} We illustrate the translation $\dstrans{-}$ on the
+% EXAMPLE handler from Section~\ref{sec:strategies} (recall that the
+% variable $m$ is bound to the input computation). The example here is
+% reproduced in ANF notation.
+% \[
+%  \ba{@{~}l@{~}l@{}l}
+%   &\mathcal{S}&\left\llbracket
+%     \ba[m]{@{~}l}
+%         \Handle\; m~\Unit\; \With\\
+%         \quad
+%           \ba{@{}l@{~}c@{~}l}
+%              \Return~x &\mapsto& \Return\;x\\
+%              \Move~\Record{\_;n}~resume &\mapsto& \Let\;y \revto ps~n\;\In\; resume~y
+%           \ea
+%     \ea\right\rrbracket =\\\\
+%   &
+%   &\ba[m]{@{}l}
+%   \hspace{-1ex}
+%   \left(
+%     \ba[m]{@{~}l}
+%     \Rec~h~f.
+%     \ba[t]{@{~}l}
+%      \ShallowHandle\; f~\Unit\; \With\\
+%        \quad
+%          \ba{@{}l@{~}c@{~}l}
+%             \Return~x &\mapsto& \Return\; x\\
+%             \Move~\Record{\_;n}~resume &\mapsto&\\
+%              \quad\ba[t]{@{~}l@{}}
+%                 \Let\; r \revto \Return\; \lambda x. h (\lambda\Unit.resume~x)\;\In\\
+%                 \Let\; y \revto ps~n\; \In\; r~y
+%               \ea
+%          \ea
+%        \ea
+%       \ea\right)~(\lambda \Unit. m~\Unit)
+%     \ea
+%   \ea
+% \]\\
+
+\begin{theorem}
+If $\Delta; \Gamma \vdash M : C$ then $\Delta; \Gamma \vdash
+\dstrans{M} : C$.
+\end{theorem}
+
+In order to obtain a simulation result, we allow reduction in the
+simulated term to be performed under lambda abstractions (and indeed
+anywhere in a term), which is necessary because of the redefinition of
+the resumption to wrap the handler around its body.
+%
+Nevertheless, the simulation proof makes minimal use of this power,
+merely using it to rename a single variable.
+%
+We write $R_{\mathrm{cong}}$ for the compatible closure of relation
+$R$, that is the smallest relation including $R$ and closed under term
+constructors for $\SCalc$.
+%% , otherwise known as \emph{reduction up to
+%%   congruence}.
+
+\begin{theorem}[Simulation up to congruence]
+If $M \reducesto N$ then $\dstrans{M} \reducesto_{\mathrm{cong}}^+
+\dstrans{N}$.
+\end{theorem}
+
+\begin{proof}
+  By induction on $\reducesto$ using a substitution lemma. The
+  interesting case is $\semlab{Op}$, which is where we apply a single
+  $\beta$-reduction, renaming a variable, under the lambda abstraction
+  representing the resumption.
+\end{proof}
+
+\section{Shallow as deep}
+
+\newcommand{\sdtrans}[1]{\mathcal{D}\llbracket #1 \rrbracket}
+
+Implementing shallow handlers in terms of deep handlers is slightly
+more involved than the other way round.
+%
+It amounts to the encoding of a case split by a fold and involves a
+translation on handler types as well as handler terms.
+%
+Formally, the translation $\sdtrans{-}$ is defined as the homomorphic
+extension of the following equations to all types, terms, and type
+environments.
+\begin{equations}
+  \sdtrans{C \Rightarrow D} &=&
+    \sdtrans{C} \Rightarrow \Record{\UnitType \to \sdtrans{C}; \UnitType \to \sdtrans{D}} \medskip \\
+  \sdtrans{\ShallowHandle \; M \; \With \; H} &=&
+      \ba[t]{@{}l}
+      \Let\;z \revto \Handle \; \sdtrans{M} \; \With \; \sdtrans{H} \; \In\\
+      \Let\;\Record{f; g} = z \;\In\;
+      g\,\Unit
+      \ea \\
+  \sdtrans{H} &=& \sdtrans{\hret} \uplus \sdtrans{\hops} \\
+  \sdtrans{\{\Return \; x \mapsto N\}} &=&
+    \{\Return \; x \mapsto \Return\; \Record{\lambda \Unit.\Return\; x; \lambda \Unit.\sdtrans{N}}\} \\
+  \sdtrans{\{\ell\; p\; r \mapsto N\}_{\ell \in \mathcal{L}}} &=& \{
+    \bl
+    \ell\; p\; r \mapsto \\
+    \quad \Let \;r \revto
+       \lambda x. \Let\; z \revto r\,x\; \In\;
+                  \Let\; \Record{f; g} = z\; \In\; f\,\Unit
+    \; \In\\
+    \quad \Return\;\Record{\lambda \Unit.\Let\; x \revto \Do\;\ell\,p\; \In\; r\,x; \lambda \Unit.\sdtrans{N}}\}_{\ell \in \mathcal{L}}
+    \el
+\end{equations}
+%
+Each shallow handler is encoded as a deep handler that returns a pair
+of thunks. The first forwards all operations, acting as the identity
+on computations. The second interprets a single operation before
+reverting to forwarding.
+
+% \paragraph{Example} We demonstrate the translation $\sdtrans{-}$ on
+% the $\Pipe$ handler from Section~\ref{sec:shallow-handlers-tutorial}
+% (recall that the variables $c$ and $p$ are bound to the consumer and
+% producer functions respectively). The example is reproduced in ANF
+% notation.
+% %
+% \[
+%   \ba{@{~}l@{~}l@{}l}
+%   &\mathcal{D}&\left\llbracket
+%     \ba[m]{@{~}l}
+%        \ShallowHandle\; c\,\Unit \;\With\; \\
+%        \quad
+%         \ba[m]{@{}l@{~}c@{~}l@{}}
+%            \Return~x &\mapsto& \Return\; x \\
+%            \Await~\Unit~resume  &\mapsto& \Copipe\; \Record{resume; p} \\
+%         \ea \\
+%       \ea\right\rrbracket = \\
+%     &
+%     &\ba[t]{@{~}l}
+%     \Let\; z \revto
+%        \ba[t]{@{~}l}
+%           \Handle\; c~\Unit \; \With\\
+%           \quad \ba[m]{@{~}l}
+%              \ba[m]{@{~}l@{~}l}
+%                 \Return~x      &\mapsto \Return\; \Record{\lambda\Unit. \Return\; x; \lambda\Unit. \Return\;x}\\
+%                 \Await~\Unit~resume &\mapsto
+%              \ea\\
+%                \qquad\ba[t]{@{~}l}
+%                 \Let\;r \revto \lambda x.\Let\; z \revto resume~x\;
+%                                          \In\; \Let\; \Record{f; g} = z \;\In\; f~\Unit\; \In\\
+%                 \Return\;\Record{\lambda \Unit. \Let\; x \revto \Do\; \ell~p \;\In\; r~x;
+%                                  \lambda\Unit.\sdtrans{\Copipe}\Record{r; p}}
+%              \ea
+%             \ea
+%       \ea\\
+%     \In\;\Let\;\Record{f; g} = z\; \In\; g~\Unit
+%     \ea
+%   \ea
+% \]
+%
+
+\begin{theorem}
+If $\Delta; \Gamma \vdash M : C$ then $\sdtrans{\Delta};
+\sdtrans{\Gamma} \vdash \sdtrans{M} : \sdtrans{C}$.
+\end{theorem}
+
+
+\newcommand{\admin}{admin}
+\newcommand{\approxa}{\gtrsim}
+
+As with the implementation of deep handlers as shallow handlers, the
+implementation is again given by a local translation. However, this
+time the administrative overhead is more significant. Reduction up to
+congruence is insufficient and we require a more semantic notion of
+administrative reduction.
+
+\begin{definition}[Administrative evaluation contexts]
+An evaluation context $\EC$ is administrative, $\admin(\EC)$, iff
+\begin{enumerate}
+\item For all values $V$, we have: $\EC[\Return\;V] \reducesto^\ast
+  \Return\;V$
+\item For all evaluation contexts $\EC'$, operations $\ell \in BL(\EC)
+  \backslash BL(\EC')$, values $V$:
+%
+\[
+  \EC[\EC'[\Do\;\ell\;V]] \reducesto^\ast \Let\; x \revto \Do\;\ell\;V \;\In\; \EC[\EC'[\Return\;x]].
+\]
+\end{enumerate}
+\end{definition}
+%
+The intuition is that an administrative evaluation context behaves
+like the empty evaluation context up to some amount of administrative
+reduction, which can only proceed once the term in the context becomes
+sufficiently evaluated.
+%
+Values annihilate the evaluation context and handled operations are
+forwarded.
+%
+%% The forwarding handler is a technical device which allows us to state
+%% the second property in a uniform way by ensuring that the operation is
+%% handled at least once.
+
+\begin{definition}[Approximation up to administrative reduction]
+Define $\approxa$ as the compatible closure of the following inference
+rules.
+%
+\begin{mathpar}
+  \inferrule*
+    { }
+    {M \approxa M}
+
+  \inferrule*
+    {M \reducesto M' \\ M' \approxa N}
+    {M \approxa N}
+
+  \inferrule*
+    {\admin(\EC) \\ M \approxa N}
+    {\EC[M] \approxa N}
+\end{mathpar}
+%
+We say that $M$ approximates $N$ up to administrative reduction if $M
+\approxa N$.
+\end{definition}
+%
+Approximation up to administrative reduction captures the property
+that administrative reduction may occur anywhere within a term.
+%
+The following lemma states that the forwarding component of the
+translation is administrative.
+\begin{lemma}\label{lem:sdtrans-admin}
+For all shallow handlers $H$, the following context is administrative:
+\begin{displaymath}
+\Let\; z \revto
+               \Handle\; [~] \;\With\; \sdtrans{H}\;
+                   \In\;
+                   \Let\; \Record{f;\_} = z\; \In\; f\,\Unit.
+\end{displaymath}
+\end{lemma}
+
+\begin{theorem}[Simulation up to administrative reduction]
+If $M' \approxa \sdtrans{M}$ and $M \reducesto N$ then there exists
+$N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
+\end{theorem}
+%
+\begin{proof}
+By induction on $\reducesto$ using a substitution lemma and
+Lemma~\ref{lem:sdtrans-admin}. The interesting case is
+$\semlab{Op^\dagger}$, which uses Lemma~\ref{lem:sdtrans-admin} to
+approximate the body of the resumption up to administrative reduction.
+\end{proof}
+
 % \chapter{Computability, complexity, and expressivness}
 % \label{ch:expressiveness}
 % \section{Notions of expressiveness}
