@@ -129,23 +129,34 @@
 
 %% Specify the abstract here.
 \abstract{%
-  Virtually every programming language is equipped with some control
-  operator which enables the programmer to manipulate the flow of
-  control.
+  % Virtually every programming language is equipped with multiple
+  % different control operators which enable the programmer to manipulate
+  % the flow of control.
+  % %
+  % For example, the operator \emph{if-then-else} lets the programmer
+  % conditionally select between two distinct \emph{continuations}. The
+  % operator \emph{async-await} lets the programmer run multiple
+  % distinct continuations asynchronously and await their results.
   %
   First-class control operators provide an expressive and efficient
   means for programmers to implement their own control idioms as
   shareable libraries.
+  %
+  Effect handlers provide a structured interface for programming with
+  first-class control by separating control reifying operations from
+  their handling.
 
   The first strand develops the core calculus of a programming
   language with a \emph{structural} notion of effects, as opposed to
   the dominant \emph{nominal} notion of effects.
 
-  By making critical use of \emph{row polymorphism} to build and track
+  By making crucial use of \emph{row polymorphism} to build and track
   effect signatures.
 
   The second strand studies foundational implementation techniques for
   deep, shallow, and parameterised effect handlers.
+
+  The third strand explores the expressive power of effect handlers.
 
   In this thesis I develop foundational techniques for programming and
   implementing effect handlers.
@@ -4075,7 +4086,7 @@ First we augment the syntactic category of values with a new
 abstraction form for recursive functions.
 %
 \begin{syntax}
-  & V,W \in \ValCat &::=& \cdots \mid~ \tikzmarkin{rec1} \Rec \; f^{A \to C} \, x.M \tikzmarkend{rec1}
+  & V,W \in \ValCat &::=& \cdots \mid \Rec \; f^{A \to C} \, x.M
 \end{syntax}
 %
 The $\Rec$ construct binds the function name $f$ and its argument $x$
@@ -4341,8 +4352,8 @@ no predefined dynamic semantics. The introduction form for effectful
 operations is a computation term.
 %
 \begin{syntax}
-  \slab{Value\textrm{ }types}             &A,B \in \ValTypeCat   &::=& \cdots \mid~ \tikzmarkin{optype} A \opto B \tikzmarkend{optype}\\
-  \slab{Computations}      &M,N \in \CompCat      &::=& \cdots \mid~ \tikzmarkin{do1} (\Do \; \ell~V)^E \tikzmarkend{do1}
+  \slab{Value\textrm{ }types}   &A,B \in \ValTypeCat   &::=& \cdots \mid A \opto B\\
+  \slab{Computations}           &M,N \in \CompCat      &::=& \cdots \mid (\Do \; \ell~V)^E
 \end{syntax}
 %
 \dhil{Describe the operation arrow.}
@@ -4388,9 +4399,9 @@ handlers.
 First we define notation for handler kinds and types.
 %
 \begin{syntax}
-\slab{Kinds}             &K \in \KindCat         &::=& \cdots \mid~ \tikzmarkin{handlerkinds1} \Handler \tikzmarkend{handlerkinds1}\\
+\slab{Kinds}             &K \in \KindCat         &::=& \cdots \mid \Handler\\
 \slab{Handler\textrm{ }types}     &F \in \HandlerTypeCat  &::=& C \Harrow D\\
-\slab{Types}             &T \in \TypeCat         &::=& \cdots \mid~ \tikzmarkin{typeswithhandler} F \tikzmarkend{typeswithhandler}
+\slab{Types}             &T \in \TypeCat         &::=& \cdots \mid F
 \end{syntax}
 %
 The syntactic category of kinds is augmented with the kind $\Handler$
@@ -4414,10 +4425,10 @@ computations with a new computation form as well as introducing a new
 syntactic category of handler definitions.
 %
 \begin{syntax}
-\slab{Computations} &M,N \in \CompCat    &::=& \cdots \mid~ \tikzmarkin{deephandlers1} \Handle \; M \; \With \; H\tikzmarkend{deephandlers1}\\[1ex]
+\slab{Computations} &M,N \in \CompCat    &::=& \cdots \mid \Handle \; M \; \With \; H\\[1ex]
 \slab{Handlers}     &H   \in \HandlerCat &::=&  \{ \Return \; x \mapsto M \}
                                            \mid \{ \OpCase{\ell}{p}{r} \mapsto N \} \uplus H\\
-\slab{Terms}        &t \in \TermCat      &::=& \cdots \mid~ \tikzmarkin{handlerdefs} H \tikzmarkend{handlerdefs}
+\slab{Terms}        &t \in \TermCat      &::=& \cdots \mid H
 \end{syntax}
 %
 The handle construct $(\Handle \; M \; \With \; H)$ is the counterpart
