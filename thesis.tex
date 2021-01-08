@@ -4280,12 +4280,17 @@ the programmer via the handler as a first-class value, and thus, it
 may be invoked, discarded, or stored for later use at the discretion
 of the programmer.
 
-Effect handlers provide a structured interface for programming with
-delimited control that operationally augments exception handlers with
-the ability to resume its operations. Effect handlers structured in
-the sense that the invocation site of an operation is decoupled from
-the use site of its continuation -- akin to how the throw-site for an
-exception is decoupled from its handling site.
+Effect handlers provide a structured and modular interface for
+programming with delimited control. They are structured in the sense
+that the invocation site of an operation is decoupled from the use
+site of its continuation. A handler consists of a collection of
+operation clauses, one for each operation it handles. Effect handlers
+are modular as a handler will only capture and expose continuations
+for operations that it handles, other operation invocations pass
+seamlessly through the handler such that the operation can be handled
+by another suitable handler. This allows modular construction of
+programs, where multiple handlers can be composed to interpret all
+effects of the whole program.
 
 From here onwards I will make a slight change of terminology to
 disambiguate programmatic continuations, i.e. continuations exposed to
