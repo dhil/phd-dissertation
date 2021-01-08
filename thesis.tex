@@ -138,13 +138,18 @@
   % operator \emph{async-await} lets the programmer run multiple
   % distinct continuations asynchronously and await their results.
   %
-  First-class control operators provide an expressive and efficient
-  means for programmers to implement their own control idioms as
-  shareable libraries.
+  First-class control operators provide programmers with an expressive
+  and efficient means for manipulating control through reification of
+  the current control state as a first-class object, enabling
+  programmers to implement their own control idioms as shareable
+  libraries.
   %
-  Effect handlers provide a structured interface for programming with
-  first-class control by separating control reifying operations from
-  their handling.
+  Effect handlers provide a particularly structured approach to
+  programming with first-class control by separating control reifying
+  operations from their handling.
+
+  In this thesis I develop operational foundations for programming and
+  implementing effect handlers.
 
   The first strand develops the core calculus of a programming
   language with a \emph{structural} notion of effects, as opposed to
@@ -153,13 +158,17 @@
   By making crucial use of \emph{row polymorphism} to build and track
   effect signatures.
 
-  The second strand studies foundational implementation techniques for
-  deep, shallow, and parameterised effect handlers.
+  The second strand studies \emph{continuation passing style} and
+  \emph{abstract machine semantics}, which are foundational techniques
+  that admit a unified basis for implementing deep, shallow, and
+  parameterised effect handlers in the same environment.
+  %
+  Starting from a CPS translation basic Eventually leading to the
+  notion of \emph{generalised continuation}.
 
-  The third strand explores the expressive power of effect handlers.
-
-  In this thesis I develop foundational techniques for programming and
-  implementing effect handlers.
+  The third strand investigates the expressive power of effect
+  handlers.
+%
 }
 
 %% Now we start with the actual document.
@@ -4257,34 +4266,35 @@ The term `pure' is heavily overloaded in the programming literature.
 \label{ch:unary-handlers}
 %
 Programming with effect handlers is a dichotomy of \emph{performing}
-and \emph{handling} of effectful operations -- or alternatively a
+and \emph{handling} of effectful operations --- or alternatively a
 dichotomy of \emph{constructing} and \emph{deconstructing} effects. An
 operation is a constructor of an effect. By itself an operation has no
-predefined semantics. A handler deconstructs effects by
-pattern-matching on their operations. By matching on a particular
-operation, a handler instantiates the said operation with a particular
+predefined semantics. A handler deconstructs an effect by
+pattern-matching on its operations. By matching on a particular
+operation, a handler instantiates the operation with a particular
 semantics of its own choosing. The key ingredient to make this work in
 practice is \emph{delimited control}. Performing an operation reifies
 the remainder of the computation up to the nearest enclosing handler
-of the said operation as a continuation. The continuation is provided
-to the programmer via the handler, and it may be manipulated like any
-other first-class value.
+of the operation as a continuation. This continuation is exposed to
+the programmer via the handler as a first-class value, and thus, it
+may be invoked, discarded, or stored for later use at the discretion
+of the programmer.
 
 Effect handlers provide a structured interface for programming with
-delimited continuations. They are structured in the sense that an
-invocation site of an operation is decoupled from the use site of its
-continuation. A continuation is exposed in the corresponding operation
-cases inside the handler of its operation of provenance.
+delimited control that operationally augments exception handlers with
+the ability to resume its operations. Effect handlers structured in
+the sense that the invocation site of an operation is decoupled from
+the use site of its continuation -- akin to how the throw-site for an
+exception is decoupled from its handling site.
 
-I will make a slight change of terminology to disambiguate
-programmatic continuations, i.e. continuations exposed to the
-programmer, from continuations in continuation passing style
-(Chapter~\ref{ch:cps}) and machine continuations
+From here onwards I will make a slight change of terminology to
+disambiguate programmatic continuations, i.e. continuations exposed to
+the programmer, from continuations in continuation passing style
+(Chapter~\ref{ch:cps}) and continuations in abstract machines
 (Chapter~\ref{ch:abstract-machine}). In the remainder of this
 dissertation I refer to programmatic continuations as `resumptions',
 and reserve the term `continuation' for continuations concerning the
 implementation details.
-
 
 
 % In this chapter we study various flavours of unary effect
