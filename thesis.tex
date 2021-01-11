@@ -4289,8 +4289,29 @@ are modular as a handler will only capture and expose continuations
 for operations that it handles, other operation invocations pass
 seamlessly through the handler such that the operation can be handled
 by another suitable handler. This allows modular construction of
-programs, where multiple handlers can be composed to interpret all
-effects of the whole program.
+effectful programs, where multiple handlers can be composed to fully
+interpret the effect signature of the whole program.
+
+% There exists multiple flavours of effect handlers. The handlers
+% introduced by \citet{PlotkinP09} are known as \emph{deep} handlers,
+% and they are semantically defined as folds over computation
+% trees. Dually, \emph{shallow} handlers are defined as case-splits over
+% computation trees.
+%
+The purpose of the chapter is to augment the base calculi \BCalc{} and
+\BCalcRec{} with effect handlers, and demonstrate their practical
+versatility by way of a programming case study. The primary focus is
+on so-called \emph{deep} and \emph{shallow} variants of handlers. In
+Section~\ref{sec:unary-deep-handlers} we endow \BCalc{} with deep
+handlers, which we put to use in
+Section~\ref{sec:deep-handlers-in-action} where we implement a
+\UNIX{}-style operating system. In
+Section~\ref{sec:unary-shallow-handlers} we extend \BCalcRec{} with
+shallow handlers, and subsequently we use them to extend the
+functionality of the operating system example. Finally, in
+Section~\ref{sec:unary-parameterised-handlers} we will look at
+\emph{parameterised} handlers, which are a refinement of ordinary deep
+handlers.
 
 From here onwards I will make a slight change of terminology to
 disambiguate programmatic continuations, i.e. continuations exposed to
@@ -4301,81 +4322,63 @@ dissertation I refer to programmatic continuations as `resumptions',
 and reserve the term `continuation' for continuations concerning the
 implementation details.
 
-
-% In this chapter we study various flavours of unary effect
-% handlers~\cite{PlotkinP13}, that is handlers of a single
-% computation. Concretely, we shall study four variations of effect
-% handlers: in Section~\ref{sec:unary-deep-handlers} we augment the base
-% calculus \BCalc{} with \emph{deep} effect handlers yielding the
-% calculus \HCalc{}; subsequently in
-% Sections~\ref{sec:unary-parameterised-handlers} and
-% \ref{sec:unary-default-handlers} we refine \HCalc{} with two practical
-% relevant kinds of handlers, namely, \emph{parameterised} and
-% \emph{default} handlers. The former is a specialisation of a
-% particular class of deep handlers, whilst the latter is important for
-% programming at large. Finally in
-% Section~\ref{sec:unary-shallow-handlers} we study \emph{shallow}
-% effect handlers which are an alternative to deep effect handlers.
-
-
-% , First we endow \BCalc{}
-% with a syntax for performing effectful operations, yielding the
-% calculus \EffCalc{}. On its own the calculus is not very interesting,
-% however, as the sole addition of the ability to perform effectful
-% operations does not provide any practical note-worthy
-% expressiveness. However, as we augment the calculus with different
-% forms of effect handlers, we begin be able to implement interesting
-% that are either difficult or impossible to realise in \BCalc{} in
-% direct-style. Concretely, we shall study four variations of effect
-% handlers, each as a separate extension to \EffCalc{}: deep, default,
-% parameterised, and shallow handlers.
+\paragraph{Relation to prior work} The deep and shallow handler
+calculi that are introduced in Section~\ref{sec:unary-deep-handlers},
+Section~\ref{sec:unary-shallow-handlers}, and
+Section~\ref{sec:unary-parameterised-handlers} are adapted with minor
+syntactic changes from the following work.
+%
+\begin{enumerate}[i]
+    \item \bibentry{HillerstromL16}
+    \item \bibentry{HillerstromL18}  \label{en:sec-handlers-L18}
+    \item \bibentry{HillerstromLA20} \label{en:sec-handlers-HLA20}
+\end{enumerate}
+%
+The `pipes' example in Section~\ref{sec:unary-shallow-handlers}
+appears in items \ref{en:sec-handlers-L18} and
+\ref{en:sec-handlers-HLA20} above.
 
 \section{Deep handlers}
 \label{sec:unary-deep-handlers}
 %
-% Programming with effect handlers is a dichotomy of \emph{performing}
-% and \emph{handling} of effectful operations -- or alternatively a
-% dichotomy of \emph{constructing} and \emph{deconstructing}. An operation
-% is a constructor of an effect without a predefined semantics. A
-% handler deconstructs effects by pattern-matching on their operations. By
-% matching on a particular operation, a handler instantiates the said
-% operation with a particular semantics of its own choosing. The key
-% ingredient to make this work in practice is \emph{delimited
-%   control}~\cite{Landin65,Landin65a,Landin98,FelleisenF86,DanvyF90}. Performing
-% an operation reifies the remainder of the computation up to the
-% nearest enclosing handler of the said operation.
 
 As our starting point we take the regular base calculus, \BCalc{},
 without the recursion operator. We elect to do so to understand
 exactly which primitive effects deep handlers bring into our resulting
 calculus.
 %
-Deep handlers~\cite{PlotkinP09,Pretnar10} are defined as folds
-(catamorphisms) over computation trees, meaning they provide a uniform
-semantics to the handled operations of a given computation. In
-contrast, shallow handlers are defined as case-splits over computation
-trees, and thus, allow a nonuniform semantics to be given to
-operations. We will discuss this last point in greater detail in
-Section~\ref{sec:unary-shallow-handlers}.
+Deep handlers~\cite{PlotkinP09,Pretnar10} are defined by folds
+(specifically \emph{catamorphisms}~\cite{MeijerFP91}) over computation
+trees, meaning they provide a uniform semantics to the handled
+operations of a given computation. In contrast, shallow handlers are
+defined as case-splits over computation trees, and thus, allow a
+nonuniform semantics to be given to operations. We will discuss this
+last point in more detail in Section~\ref{sec:unary-shallow-handlers}.
 
 
 \subsection{Performing effectful operations}
 \label{sec:eff-language-perform}
 
 An effectful operation is a purely syntactic construction, which has
-no predefined dynamic semantics. The introduction form for effectful
-operations is a computation term.
+no predefined dynamic semantics. In our calculus effectful operations
+are a computational phenomenon, and thus, their introduction form is a
+computation term. To type operation we augment the syntactic category
+of value types with a new arrow.
 %
 \begin{syntax}
   \slab{Value\textrm{ }types}   &A,B \in \ValTypeCat   &::=& \cdots \mid A \opto B\\
   \slab{Computations}           &M,N \in \CompCat      &::=& \cdots \mid (\Do \; \ell~V)^E
 \end{syntax}
 %
-\dhil{Describe the operation arrow.}
-%
-Informally, the intended behaviour of the new computation term
-$(\Do\; \ell~V)^E$ is that it performs some operation $\ell$ with
-value argument $V$. Thus the $\Do$-construct is similar to the typical
+The operation arrow, $\opto$, denotes the operation space. Contrary to
+the function space constructor, $\to$, it does not have an associated
+effect row. As we will see later, the reason that the operation space
+constructor does not have an effect row is that the effects of an
+operation is conferred by its handler.
+
+The intended behaviour of the new computation term $(\Do\; \ell~V)^E$
+is that it performs some operation $\ell$ with value argument
+$V$. Thus the $\Do$-construct is similar to the typical
 exception-signalling $\keyw{throw}$ or $\keyw{raise}$ constructs found
 in programming languages with support for exceptions. The term is
 annotated with an effect row $E$, providing a handle to obtain the
