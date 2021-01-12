@@ -91,6 +91,24 @@
 
 \newcommand{\XCancel}[1]{\Cancel[red,X,line width=1pt]{#1}}
 
+% Structures
+\tikzset{
+  port/.style = {treenode, font=\Huge, draw=white, minimum width=0.5em, minimum height=0.5em},
+  blackbox/.style = {rectangle, fill=black, draw=black, minimum width=2cm, minimum height=2cm},
+  treenode/.style = {align=center, inner sep=3pt, text centered},
+  opnode/.style = {treenode, rectangle, draw=black},
+  leaf/.style = {treenode, draw=black, ellipse, thin},
+  comptree/.style = {treenode, draw=black, regular polygon, regular polygon sides=3},
+  highlight/.style = {draw=red,very thick},
+  pencildraw/.style={
+    black!75,
+    decorate,
+    decoration={random steps,segment length=0.8pt,amplitude=0.1pt}
+  },
+  hbox/.style = {rectangle,draw=none, minimum width=6cm, minimum height=1cm},
+  gbox/.style = {rectangle,draw=none,minimum width=2cm,minimum height=1cm}
+}
+
 %%
 %% Theorem environments
 %%
@@ -4370,8 +4388,12 @@ of value types with a new arrow.
   \slab{Computations}           &M,N \in \CompCat      &::=& \cdots \mid (\Do \; \ell~V)^E
 \end{syntax}
 %
-The operation arrow, $\opto$, denotes the operation space. Contrary to
-the function space constructor, $\to$, it does not have an associated
+The operation arrow, $\opto$, denotes the operation space. The
+operation space arrow is similar to the function space arrow in that
+the type $A$ denotes the domain type of the operation, i.e. the type
+of the operation payload, and the codomain type $B$ denotes the return
+type of the operation. Contrary to the function space constructor,
+$\to$, the operation space constructor does not have an associated
 effect row. As we will see later, the reason that the operation space
 constructor does not have an effect row is that the effects of an
 operation is conferred by its handler.
@@ -4380,34 +4402,62 @@ The intended behaviour of the new computation term $(\Do\; \ell~V)^E$
 is that it performs some operation $\ell$ with value argument
 $V$. Thus the $\Do$-construct is similar to the typical
 exception-signalling $\keyw{throw}$ or $\keyw{raise}$ constructs found
-in programming languages with support for exceptions. The term is
-annotated with an effect row $E$, providing a handle to obtain the
-current effect context. We make use of this effect row during typing.
+in programming languages with support for exceptions. In fact
+operationally, an effectful operation may be thought of as an
+exception which is resumable~\cite{Leijen17}. The term is annotated
+with an effect row $E$, providing a way to make the current effect
+context accessible during typing.
 %
 \begin{mathpar}
   \inferrule*[Lab=\tylab{Do}]
-    { E = \{\ell : A \opto B; R\} \\
-      \typ{\Delta}{E} \\
+    { \typ{\Delta}{E} \\
+      E = \{\ell : A \opto B; R\} \\
       \typ{\Delta;\Gamma}{V : A}
     }
     {\typc{\Delta;\Gamma}{(\Do \; \ell \; V)^E : B}{E}}
 \end{mathpar}
 %
 An operation invocation is only well-typed if the effect row $E$ is
-well-kinded and contains the said operation with a present type; in
-other words, the current effect context permits the operation. The
-argument type $A$ must be the same as the domain of the operation.
-%
-We slightly abuse notation by using the function space arrow, $\to$,
-to also denote the operation space. Although, the function and
-operation spaces are separate entities, we may think of the operation
-space as a subspace of the function space in which every effect row is
-empty, that is every operation has a type on the form
-$A \to B \eff \emptyset$. The reason that the effect row is always
-empty is that any effects an operation might have are ultimately
-conferred by a handler.
+well-kinded and mentions the operation with a present type, or put
+differently: the current effect context must permit an instance of the
+operation to occur. The argument type $A$ must be the same as the
+domain type of the operation. The type of the whole term is the
+(value) return type of the operation paired with the current effect
+context.
 
-\dhil{Introduce notation for computation trees.}
+We have the basic machinery for writing effectful programs, albeit we
+cannot evaluate those programs without handlers to ascribe a semantics
+to the operations.
+
+% \paragraph{Computation trees} We have the basic machinery for writing
+% effectful programs, albeit we cannot evaluate those programs without
+% handlers to ascribe a semantics to the operations.
+% %
+% For instance consider the signature of computations over some state at
+% type $\beta$.
+% %
+% \[
+%   \State~\beta \defas \{\Get : \UnitType \opto \beta; \Put : \beta \opto \UnitType\}
+% \]
+% %
+% \[
+%   \bl
+%   \dec{condupd} : \Record{\Bool;\beta} \to \beta \eff \State~\beta\\
+%   \dec{condupd}~\Record{b;v} \defas
+%     \bl
+%       \Let\; x \revto \Do\;\Get\,\Unit\;\In\\
+%       \If\;b\;\Then\;\;\Do\;\Put~v;\,x\;
+%       \Else\;x
+%     \el
+%   \el
+% \]
+% %
+
+% This exact notation is due to \citet{Lindley14}, though the idea of
+% using computation trees dates back to at least
+% \citet{Kleene59,Kleene63}.
+
+% \dhil{Introduce notation for computation trees.}
 
 \subsection{Handling of effectful operations}
 %
