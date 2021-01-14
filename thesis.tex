@@ -4835,10 +4835,10 @@ operation $\Write$ for writing a list of characters to the file.
   \BIO \defas \{\Write : \Record{\UFD;\String} \opto \UnitType\}
 \]
 %
-The operation is parameterised by an $\UFD$ and a character
+The operation is parameterised by a $\UFD$ and a character
 sequence. We will leave the $\UFD$ type abstract until
-Section~\ref{sec:tiny-unix-io}, however, we will assume the existence
-of a term $\stdout : \UFD$ such that we perform invocations of
+Section~\ref{sec:tiny-unix-io}, however, we shall assume the existence
+of a term $\stdout : \UFD$ such that we can perform invocations of
 $\Write$.
 %
 Let us define a suitable handler for this operation.
@@ -4877,10 +4877,15 @@ The $\Write$-case extends the file by first invoking the resumption,
 whose return type is the same as the handler's return type, thus it
 returns a pair containing the result of $m$ and the file state. The
 file gets extended with the character sequence $cs$ before it is
-returned along with the original result of $m$.%  The file is
-% effectively built bottom up starting with the last character.
+returned along with the original result of $m$.
+%
+Intuitively, we may think of this implementation of $\Write$ as a
+peculiar instance of buffered writing, where the contents of the
+operation are committed to the file in last-in-first-out order,
+i.e. the contents of the last write will be committed first.
 
-Let us define an auxiliary function that writes a string to the $\stdout$ file.
+Let us define an auxiliary function that writes a string to the
+$\stdout$ file.
 %
 \[
   \bl
@@ -5275,8 +5280,8 @@ $\False$. The results are joined by list concatenation ($\concat$).
 %
 Thus the handler returns a list of all the possible results of $m$.
 %
-In fact, this handler is exactly the handler for nondeterministic
-choice, and it satisfies the standard semi-lattice
+In fact, this handler is exactly the standard handler for
+nondeterministic choice, which satisfies the standard semi-lattice
 equations~\cite{PlotkinP09,PlotkinP13}.
 % \dhil{This is an instance of non-blind backtracking~\cite{FriedmanHK84}}
 
@@ -5752,7 +5757,7 @@ evaluation of the stateful fragment of $m$ to continue.
 \dhil{Discuss briefly local vs global state~\cite{PauwelsSM19}}
 
 
-\subsubsection{Basic sequential file system}
+\subsubsection{Basic serial file system}
 %
 \begin{figure}[t]
   \centering
@@ -5827,7 +5832,7 @@ files~\cite{RitchieT74}. An ordinary file is a sequence of
 characters. A directory file is a container for all kinds of files. A
 special file is an interface for interacting with an i/o device.
 
-We will implement a \emph{basic sequential file system}, which we dub
+We will implement a \emph{basic serial file system}, which we dub
 \fsname{}.
 %
 It will be basic in the sense that it models the bare minimum to pass
@@ -5835,9 +5840,9 @@ as a file system, that is we will implement support for the four basic
 operations: file allocation, file deletion, file reading, and file
 writing.
 %
-The system will support sequential read and write operations. This
-means every file is read in order from its first character to its
-character, and every file is written to by appending the new content.
+The read and write operations will be serial, meaning every file is
+read in order from its first character to its last character, and
+every file is written to by appending the new content.
 %
 \fsname{} will only contain ordinary files, and as a result
 the file hierarchy will be entirely flat. Although, the system can
@@ -5846,8 +5851,11 @@ extra complexity, that blurs rather than illuminates the model.
 
 \paragraph{Directory, i-list, and data region}
 %
-The core of \fsname{} comprises three structures to manage interaction
-with files.
+A storage medium is an array of bytes. An \UNIX{} file system is
+implemented on top of this array by interpreting certain intervals of
+the array differently. These intervals provide the space for the
+essential administrative structures for file organisation.
+%
 \begin{enumerate}
   \item The \emph{directory} is a collection of human-readable names for
   files. In general, a file may have multiple names. Each name is
@@ -5858,13 +5866,13 @@ with files.
   \item The \emph{data region} contains the actual file contents.
 \end{enumerate}
 %
-\dhil{Motivate i-nodes, etc. Real UNIX file system use those structures. Admit simplification: no file handles; no resource leakage}
+These structures make up the \fsname{}.
 %
 Figure~\ref{fig:unix-mappings} depicts an example with the three
 structures and a mapping between them.
 %
-The only file meta-data tracked by \fsname{} is the number of names
-for a file.
+The only file metadata tracked by \fsname{} is the number of names for
+a file.
 %
 The three structures and their mappings can be implemented using
 association lists. Although, a better practical choice may be a
@@ -5920,6 +5928,16 @@ system.
 Initially the file system contains a single, empty file with the name
 $\texttt{stdout}$. Next we will implement the basic operations on the
 file system separately.
+
+We have made a gross simplification here, as a typical file system
+would provide some \emph{file descriptor} abstraction for managing
+access open files. In \fsname{} we will operate directly on i-nodes,
+meaning we define $\UFD \defas \Int$, meaning the file open operation
+will return an i-node identifier. As consequence it does not matter
+whether a file is closed after use as file closing would be a no-op
+(closing a file does not change the state of its i-node). Therefore
+\fsname{} will not provide a close operation. As a further consequence
+the file system will have no resource leakage.
 
 \paragraph{File reading and writing}
 %
@@ -6065,10 +6083,36 @@ $\fwrite$. Failure is interpreted as unit, meaning that from the
 caller perspective the operation fails silently.
 
 \paragraph{File creation and opening}
+The signature of file creation and opening is unsurprisingly comprised
+of two operations.
 %
-\dhil{TODO}
 \[
   \dec{FileCO} \defas \{\UCreate : \String \opto \Int; \UOpen : \String \opto \Option~\Int\}
+\]
+%
+The implementation of file creation and opening follows the same
+pattern as the implementation of reading and writing. As before, we
+implement a primitive routine for each operation that interacts
+directly with the file system structure. We start with the
+implementation of primitive file opening function as file creation
+function depends on this function.
+%
+\[
+  \bl
+    \fopen : \Record{\String;\FileSystem} \to \Int \eff \{\Fail : \UnitType \opto \Zero\}\\
+    \fopen\,\Record{fname;fs} \defas \lookup\,\Record{fname; fs.dir}
+  \el
+\]
+
+\[
+  \bl
+    \fcreate : \Record{\String;\FileSystem} \to \Record{\Int;\FileSystem} \eff \{\Fail : \UnitType \opto \Zero\}\\
+    \fcreate\,\Record{fname;fs} \defas
+      \ba[t]{@{}l}
+        \Let\;inode \revto \lookup\,\Record{ino; fs.ilist}\;\In\\
+        \lookup\,\Record{inode.loc; fs.dreg}
+      \el
+  \el
 \]
 %
 \[
@@ -6101,15 +6145,12 @@ caller perspective the operation fails silently.
 %
 There is no file close operation in \fsname{}, because it would be a no-op.
 
-\paragraph{File linking and unlinking}
-\dhil{Maybe axe\dots} \medskip\\
-
 The composition of $\fileRW$ and $\fileAlloc$ give a semantics to file
 i/o.
 %
 \[
   \bl
-    \fileIO : (\UnitType \to \alpha \eff \{\dec{FileCO},\dec{FileRW}\}) \to \alpha \eff \State~\FileSystem \\
+    \fileIO : (\UnitType \to \alpha \eff \{\dec{FileCO};\dec{FileRW}\}) \to \alpha \eff \State~\FileSystem \\
     \fileIO~m \defas \dec{fileCO}\,(\lambda\Unit. \dec{fileRW}\,m)
   \el
 \]
@@ -6224,6 +6265,38 @@ We can now plug everything together.
      \el
   \ea
 \]
+%
+\subsubsection{File linking and unlinking}
+
+\[
+  \bl
+    \dec{cp} : \Record{\Bool;\String;\String} \to \UnitType \eff \{\ULink : \Record{\String;\String} \opto \UnitType;\dec{FileCO};\dec{FileRW}\}\\
+    \dec{cp}~\Record{link;src;dest} \defas
+      \bl
+        \If\;link\;\Then\;\Do\;\ULink\,\Record{src;dest}\\
+        \Else\; \bl
+        \Case\;\Do\;\UOpen~src\\
+         \{ \ba[t]{@{~}l@{~}c@{~}l}
+              \None &\mapsto& \Unit\\
+              \Some~ino &\mapsto& \\
+              \multicolumn{3}{l}{\quad\Case\;\Do\;\URead~ino\;\{
+                \ba[t]{@{~}l@{~}c@{~}l}
+                  \None &\mapsto& \Unit\\
+                  \Some~cs &\mapsto& \echo~cs~\redirect~dest \} \}
+                \ea}
+             \ea
+         \el
+      \el
+  \el
+\]
+
+\[
+  \bl
+    \dec{rm} : \String \to \UnitType \eff \{\UUnlink : \String \opto \UnitType\}\\
+    \dec{rm}~fname \defas \Do\;\UUnlink~fname
+  \el
+\]
+
 % \begin{figure}[t]
 %   \centering
 %   \begin{tikzpicture}[node distance=4cm,auto,>=stealth']
