@@ -4461,10 +4461,13 @@ to the operations.
 
 \subsection{Handling of effectful operations}
 %
-We now present the elimination form for effectful operations, namely,
-handlers.
+The elimination form for an effectful operation is an effect
+handler. Effect handlers interpret the effectful segments of a
+program.
 %
-First we define notation for handler kinds and types.
+The addition of handlers requires us to extend the type algebra of
+$\BCalc$ with a kind for handlers and a new syntactic category for
+handler types.
 %
 \begin{syntax}
 \slab{Kinds}             &K \in \KindCat         &::=& \cdots \mid \Handler\\
@@ -4474,10 +4477,17 @@ First we define notation for handler kinds and types.
 %
 The syntactic category of kinds is augmented with the kind $\Handler$
 which we will ascribe to handler types $F$. The arrow, $\Harrow$,
-denotes the handler space. Type structure suggests that a handler is a
-transformer of computations, as by the types it takes a computation of
-type $C$ and returns another computation of type $D$. We use the
-following kinding rule to check that a handler type is well-kinded.
+denotes the handler space. The type structure suggests that a handler
+is a transformer of computations, since by looking solely at the types
+a handler takes a computation of type $C$ and returns another
+computation of type $D$. As such, we may think of a handler as a sort
+of generalised function, that work over computations rather than bare
+values (this observation is exploited in the \Frank{} programming
+language, where a function is but a special case of a
+handler~\cite{LindleyMM17,ConventLMM20}).
+%
+The following kinding rule checks whether a handler type is
+well-kinded.
 %
 \begin{mathpar}
  \inferrule*[Lab=\klab{Handler}]
@@ -4487,10 +4497,10 @@ following kinding rule to check that a handler type is well-kinded.
  {\Delta \vdash C \Harrow D : \Handler}
 \end{mathpar}
 %
-With the type structure in place, we present the term syntax for
-handlers. The addition of handlers augments the syntactic category of
-computations with a new computation form as well as introducing a new
-syntactic category of handler definitions.
+With the type structure in place, we can move on to the term syntax
+for handlers. Handlers extend the syntactic category of computations
+with a new computation form as well as introducing a new syntactic
+category of handler definitions.
 %
 \begin{syntax}
 \slab{Computations} &M,N \in \CompCat    &::=& \cdots \mid \Handle \; M \; \With \; H\\[1ex]
@@ -4506,15 +4516,19 @@ possibly empty set of operation clauses
 $\{\OpCase{\ell}{p_\ell}{r_\ell} \mapsto N_\ell\}_{\ell \in \mathcal{L}}$.
 %
 The return clause $\{\Return \; x \mapsto M\}$ defines how to
-interpret the final return value of a handled computation. The
-variable $x$ is bound to the final return value in the body $M$.
+interpret the final return value of a handled computation, i.e. a
+computation that has been fully reduced to $\Return~V$ for some value
+$V$. The variable $x$ is bound to the final return value in the body
+$M$.
 %
 Each operation clause
-$\{\OpCase{\ell}{p_\ell}{r_\ell} \mapsto N_\ell\}_{\ell \in \mathcal{L}}$
-defines how to interpret an invocation of a particular operation
-$\ell$. The variables $p_\ell$ and $r_\ell$ are bound in the body
-$N_\ell$: $p_\ell$ binds the argument carried by the operation and
-$r_\ell$ binds the continuation of the invocation site of $\ell$.
+$\{\OpCase{\ell}{p_\ell}{r_\ell} \mapsto N_\ell\}_{\ell \in
+  \mathcal{L}}$ defines how to interpret an invocation of some
+operation $\ell$. The variables $p_\ell$ and $r_\ell$ are bound in the
+body $N_\ell$. The binding occurrence $p_\ell$ binds the payload of
+the operation and $r_\ell$ binds the resumption of the operation
+invocation, which is the delimited continuation from the invocation
+site up of $\ell$ to and including the enclosing handler.
 
 Given a handler $H$, we often wish to refer to the clause for a
 particular operation or the return clause; for these purposes we
@@ -4541,8 +4555,9 @@ labels it handles, i.e.
 
 \subsection{Static semantics}
 
-The typing of effect handlers is slightly more involved than the
-typing of the $\Do$-construct.
+There are two typing rules for handlers. The first rule type checks
+the $\Handle$-construct and the second rule type checks handler
+definitions.
 %
 \begin{mathpar}
   \inferrule*[Lab=\tylab{Handle}]
@@ -4566,6 +4581,7 @@ typing of the $\Do$-construct.
     {\typ{\Delta;\Gamma}{H : C \Harrow D}}
 \end{mathpar}
 %
+The \tylab{Handle} rule is simply the application rule for handlers.
 %
 The \tylab{Handler} rule is where most of the work happens. The effect
 rows on the input computation type $C$ and the output computation type
@@ -4602,12 +4618,19 @@ for handling return values and another for handling operations.
 The rule \semlab{Ret} invokes the return clause of the current handler
 $H$ and substitutes $V$ for $x$ in the body $N$.
 %
-The rule \semlab{Op} handles an operation $\ell$, provided that the
-handler definition $H$ contains a corresponding operation clause for
-$\ell$ and that $\ell$ does not appear in the \emph{bound labels}
-($\BL$) of the inner context $\EC$. The bound label condition enforces
-that an operation is always handled by the nearest enclosing suitable
-handler.
+The rule \semlab{Op} handles an operation $\ell$ subject to two
+conditions. The first condition ensures that the operation is only
+captured by a handler if its handler definition $H$ contains a
+corresponding operation clause for the operation. Otherwise the
+operation passes seamlessly through the handler such that another
+suitable handler can handle the operation. This phenomenon is known as
+\emph{effect forwarding}. It is key to enable modular composition of
+effectful computations.
+%
+The second condition ensures the operation $\ell$ and that the
+operation does not appear in the \emph{bound labels} ($\BL$) of the
+inner context $\EC$. The bound label condition enforces that an
+operation is always handled by the nearest enclosing suitable handler.
 %
 Formally, we define the notion of bound labels,
 $\BL : \EvalCat \to \LabelCat$, inductively over the structure of
@@ -4647,22 +4670,22 @@ because $\ell$ is bound in the computation term of the outermost
 $\Handle$.
 %
 
-We have made a conscious design decision by always selecting nearest
-enclosing suitable handler for any operation. In fact, we have made
-the \emph{only} natural and sensible choice as picking any other
-handler than the nearest enclosing renders programming with effect
-handlers anti-modular. Consider always selecting the outermost
-suitable handler, then the meaning of closed program composition
-cannot be derived from its immediate constituents. For example,
-consider using integer addition as the composition operator to compose
-the inner handle expression from above with a copy of itself.
+The decision to always select the nearest enclosing suitable handler
+for an operation invocation is a conscious choice. In fact, it is the
+\emph{only} natural and sensible choice as picking any other handler
+than the nearest enclosing renders programming with effect handlers
+anti-modular. Consider the other extreme of always selecting the
+outermost suitable handler, then the meaning of any effectful program
+fragment depends on the entire ambient context. For example, consider
+using integer addition as the composition operator to compose the
+inner handle expression from above with a copy of itself.
 %
 \[
   \bl
       \dec{fortytwo} \defas \Handle\;\Do\;\ell~\Unit\;\With\;H_{\mathsf{inner}} \medskip\\
       \EC[\dec{fortytwo} + \dec{fortytwo}] \reducesto^+ \begin{cases}
                                                           \Return\; 84 & \text{when $\EC$ is empty}\\
-                                                          ?? & \text{otherwise}
+                                                          ? & \text{otherwise}
                                                         \end{cases}
   \el
 \]
@@ -4670,17 +4693,21 @@ the inner handle expression from above with a copy of itself.
 Clearly, if the ambient context $\EC$ is empty, then we can derive the
 result by reasoning locally about each constituent separately and
 subsequently add their results together to obtain the computation term
-$\Return\;84$. However, if the ambient context is nonempty, then we
-need to account for the possibility that some handler for $\ell$ could
-occur in the context. For instance if
+$\Return\;84$. Conversely, if the ambient context is nonempty, then we
+need to account for the possibility that some handler for $\ell$ is
+could be present in the context. For instance if
 $\EC = \Handle\;[~]\;\With\;H_{\mathsf{outer}}$ then the result would
 be $\Return\;0$, which we cannot derive locally from looking at the
-constituents. Thus we argue that if we want programming to remain
-modular and compositional, then we must necessarily always select the
-nearest enclosing suitable handler to handle an operation invocation.
+immediate constituents. Thus we can argue that if we want programming
+to remain modular and compositional, then we must necessarily always
+select the nearest enclosing suitable handler for an operation.
 %
-\dhil{Effect forwarding (the first condition)}
 
+The resumption $r$ includes both the captured evaluation context and
+the handler. Invoking the resumption causes the both the evaluation
+context and handler to be reinstalled, meaning subsequent invocations
+of $\ell$ get handled by the same handler. This is a defining
+characteristic of deep handlers.
 
 The metatheoretic properties of $\BCalc$ transfer to $\HCalc$ with
 little extra effort, although we must amend the definition of
@@ -4706,37 +4733,77 @@ getting stuck on an unhandled operation.
   $\typ{\Gamma}{M' : C}$.
 \end{theorem}
 
-\section{\OSname{} in 50 lines of code or less}
+\section{Composing \UNIX{} with effect handlers}
 \label{sec:deep-handlers-in-action}
 
-A systems software engineering reading of effect handlers may be to
-understand them as modular ``tiny operating systems''. Operationally,
-how an \emph{operating system} interprets a set of \emph{system
-  commands} performed via \emph{system calls} is similar to how an
-effect handler interprets a set of abstract operations performed via
-operation invocations.
+There are several analogies for effect handlers, e.g. as interpreters
+for effects, folds over computation trees, etc. A particularly
+compelling programmatic analogy for effect handlers is \emph{effect
+  handlers as composable operating systems}. Effect handlers and
+operating systems share operational characteristics: an operating
+system interprets a set of system commands performed via system calls,
+which is similar to how an effect handler interprets a set of abstract
+operations performed via operation invocations. This analogy was
+suggested to me by James McKinna (personal communication, 2017).
 %
-This reading was suggested to me by James McKinna (personal
-communication). In this section I will take this reading literally,
-and demonstrate how we can use the power of (deep) effect handlers to
-implement a tiny operating system that supports multiple users,
-time-sharing, and file i/o.
+The compelling aspect of this analogy is that we can understand a
+monolithic and complex operating system like \UNIX{}~\cite{RitchieT74}
+as a collection of effect handlers, or alternatively, a collection of
+tiny operating systems, that when composed yield a semantics for
+\UNIX{}.
+
+In this section we will take this reading of effect handlers
+literally, and demonstrate how we can harness the power of (deep)
+effect handlers to implement a \UNIX{}-style operating system with
+multiple user sessions, time-sharing, and file i/o. We dub the system
+\OSname{}.
 %
-The operating system will be a variation of \UNIX{}~\cite{RitchieT74},
-which we will call \OSname{}.
-%
-To make the task tractable we will occasionally jump some hops and
-make some simplifying assumptions, nevertheless the resulting
-implementation will capture the essence of a \UNIX{}-like operating
-system.
+It is a case study that demonstrates the versatility of effect
+handlers, and shows how standard computational effects such as
+\emph{exceptions}, \emph{dynamic binding}, \emph{nondeterminism}, and
+\emph{state} make up the essence of an operating system.
+
+For the sake of clarity, we will occasionally make some blatant
+simplifications, nevertheless the resulting implementation will
+capture the essence of a \UNIX{}-like operating system.
 %
 The implementation will be composed of several small modular effect
 handlers, that each handles a particular set of system commands. In
 this respect, we will truly realise \OSname{} in the spirit of the
-\UNIX{} philosophy~\cite[Section~1.6]{Raymond03}.  The implementation of
-the operating system will showcase several computational effects in
-action including \emph{dynamic binding}, \emph{nondeterminism}, and
-\emph{state}.
+\UNIX{} philosophy~\cite[Section~1.6]{Raymond03}.
+
+% This case study demonstrates that we can decompose a monolithic
+% operating system like \UNIX{} into a collection of specialised effect
+% handlers. Each handler interprets a particular system command.
+
+% A systems software engineering reading of effect handlers may be to
+% understand them as modular ``tiny operating systems''. Operationally,
+% how an \emph{operating system} interprets a set of \emph{system
+%   commands} performed via \emph{system calls} is similar to how an
+% effect handler interprets a set of abstract operations performed via
+% operation invocations.
+% %
+% This reading was suggested to me by James McKinna (personal
+% communication). In this section I will take this reading literally,
+% and demonstrate how we can use the power of (deep) effect handlers to
+% implement a tiny operating system that supports multiple users,
+% time-sharing, and file i/o.
+% %
+% The operating system will be a variation of \UNIX{}~\cite{RitchieT74},
+% which we will call \OSname{}.
+% %
+% To make the task tractable we will occasionally jump some hops and
+% make some simplifying assumptions, nevertheless the resulting
+% implementation will capture the essence of a \UNIX{}-like operating
+% system.
+% %
+% The implementation will be composed of several small modular effect
+% handlers, that each handles a particular set of system commands. In
+% this respect, we will truly realise \OSname{} in the spirit of the
+% \UNIX{} philosophy~\cite[Section~1.6]{Raymond03}.  The implementation of
+% the operating system will showcase several computational effects in
+% action including \emph{dynamic binding}, \emph{nondeterminism}, and
+% \emph{state}.
 
 \subsection{Basic i/o}
 \label{sec:tiny-unix-bio}

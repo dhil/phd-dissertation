@@ -465,3 +465,28 @@
 \newcommand{\Algol}{Algol~60}
 \newcommand{\qq}[1]{\ensuremath{\ulcorner #1 \urcorner}}
 \newcommand{\prompttype}{\dec{Prompt}}
+
+% Language macros
+\newcommand{\Frank}{Frank}
+\newcommand{\SML}{SML}
+\newcommand{\SMLNJ}{\SML{}/NJ}
+\newcommand{\OCaml}{OCaml}
+
+
+% Tikz figures
+\newcommand\toggle{
+\begin{tikzpicture}[->,>=stealth',level/.style={sibling distance = 5cm/##1,
+  level distance = 1.5cm}]
+\node [opnode] {$\Get~\Unit$}
+    child{ node [opnode] {$\Put~\False$}
+           child{ node [leaf] {$\True$}
+                  edge from parent node[left] {$\Unit$}}
+           edge from parent node[above left] {$\True$}
+    }
+    child{ node [opnode] {$\Put~v$}
+           child{ node [leaf] {$\False$}
+                  edge from parent node[right] {$\res{()}$}}
+           edge from parent node[above right] {$\res{\False}$}
+    }
+;
+\end{tikzpicture}}
