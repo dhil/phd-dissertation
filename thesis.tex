@@ -6087,15 +6087,15 @@ The signature of file creation and opening is unsurprisingly comprised
 of two operations.
 %
 \[
-  \dec{FileCO} \defas \{\UCreate : \String \opto \Int; \UOpen : \String \opto \Option~\Int\}
+  \dec{FileCO} \defas \{\UCreate : \String \opto \Option~\Int; \UOpen : \String \opto \Option~\Int\}
 \]
 %
 The implementation of file creation and opening follows the same
 pattern as the implementation of reading and writing. As before, we
 implement a primitive routine for each operation that interacts
-directly with the file system structure. We start with the
-implementation of primitive file opening function as file creation
-function depends on this function.
+directly with the file system structure. We first implement the
+primitive file opening function as the file creation function depends
+on this function.
 %
 \[
   \bl
@@ -6103,17 +6103,92 @@ function depends on this function.
     \fopen\,\Record{fname;fs} \defas \lookup\,\Record{fname; fs.dir}
   \el
 \]
+%
+Opening a file in the file system simply corresponds to returning the
+i-node index associated with the filename in the directory table.
 
+The \UNIX{} file create command does one of two things depending on
+the state of the file system. If the create command is provided with
+the name of a file that is already present in the directory, then the
+system truncates the file, and returns the file descriptor for the
+file. Otherwise the system allocates a new empty file and returns its
+file descriptor~\cite{RitchieT74}. To check whether a file already
+exists in the directory we need a function $\dec{has}$ that given a
+filename and the file system state returns whether there exists a file
+with the given name. This function can be built completely generically
+from the functions we already have at our disposal.
+%
+\[
+  \bl
+    \dec{has} : \Record{\alpha;\List~\Record{\alpha;\beta}} \to \Bool\\
+    \dec{has}\,\Record{k;xs} \defas \faild\,\Record{\False;(\lambda\Unit.\lookup\,\Record{k;xs};\True)}
+  \el
+\]
+%
+The function $\dec{has}$ applies $\lookup$ under the failure handler
+with default value $\False$. If $\lookup$ returns successfully then
+its result is ignored, and the computation returns $\True$, otherwise
+the computation returns the default value $\False$.
+%
+With this function we can implement the semantics of create.
+%
 \[
   \bl
     \fcreate : \Record{\String;\FileSystem} \to \Record{\Int;\FileSystem} \eff \{\Fail : \UnitType \opto \Zero\}\\
     \fcreate\,\Record{fname;fs} \defas
       \ba[t]{@{}l}
-        \Let\;inode \revto \lookup\,\Record{ino; fs.ilist}\;\In\\
-        \lookup\,\Record{inode.loc; fs.dreg}
+        \If\;\dec{has}\,\Record{fname;fs.dir}\;\Then\\
+          \quad\bl
+            \Let\;ino   \revto \fopen\,\Record{fname;fs}\;\In\\
+            \Let\;inode \revto \lookup\,\Record{ino;fs}\;\In\\
+            \Let\;dreg' \revto \modify\,\Record{inode.loc; \strlit{}; fs.dreg}\;\In\\
+            \Record{ino;\Record{fs\;\With\;dreg = dreg'}}
+          \el\\
+        \Else\\
+        \quad\bl
+          \Let\;loc \revto fs.lnext \;\In\\
+          \Let\;dreg \revto \Record{loc; \strlit{}} \cons fs.dreg\;\In\\
+          \Let\;ino \revto fs.inext \;\In\\
+          \Let\;inode \revto \Record{loc=loc;lno=1}\;\In\\
+          \Let\;ilist \revto \Record{ino;inode} \cons fs.ilist \;\In\\
+          \Let\;dir   \revto \Record{fname; ino} \cons fs.dir \;\In\\
+          \Record{ino;\Record{
+              \bl
+                dir=dir;ilist=ilist;dreg=dreg;\\
+                lnext=loc+1;inext=ino+1}}
+              \el
+        \el
       \el
   \el
 \]
+%
+The $\Then$-branch accounts for the case where the filename $fname$
+already exists in the directory. First we retrieve the i-node for the
+file to obtain its location in the data region such that we can
+truncate the file contents.
+%
+The branch returns the i-node index along with the modified file
+system. The $\Else$-branch allocates a new empty file. First we
+allocate a location in the data region by copying the value of
+$fs.lnext$ and consing the location and empty string onto
+$fs.dreg$. The next three lines allocates the i-node for the file in a
+similar fashion. The second to last line associates the filename with
+the new i-node. The last line returns the identifier for the i-node
+along with the modified file system, where the next location ($lnext$)
+and next i-node identifier ($inext$) have been incremented.
+%
+It is worth noting that the effect signature of $\dec{has}$ mentions
+$\Fail$ even though it will (most likely) never fail. It is present in
+the effect row due to the use of $\lookup$ in the $\Then$-branch. This
+application of $\lookup$ can only fail if the file system is in an
+inconsistent state, where the index $ino$ has become stale. The
+$\dec{f}$-family of functions have been carefully engineered to always
+leave the file system in a consistent state.
+%
+
+Now we can implement the semantics for the $\UCreate$ and $\UOpen$
+effectful operations. The implementation is similar to the
+implementation of $\fileRW$.
 %
 \[
   \bl
@@ -6125,10 +6200,10 @@ function depends on this function.
                  \Return\;res      &\mapsto& res\\
                  \OpCase{\UCreate}{fname}{resume} &\mapsto&
                    \bl
-                     \Let\;ino \revto \faild\,\Record{-1; \lambda\Unit.\\
+                     \Let\;ino \revto \faild\,\Record{\None; \lambda\Unit.\\
                        \quad\bl
                          \Let\;\Record{ino;fs} = \fcreate\,\Record{\,fname;\Uget\,\Unit}\\
-                         \In\;\Uput~fs;\,ino}
+                         \In\;\Uput~fs;\,\Some~ino}
                        \el\\
                      \In\; resume\,ino
                    \el\\
@@ -6143,25 +6218,25 @@ function depends on this function.
   \el
 \]
 %
-There is no file close operation in \fsname{}, because it would be a no-op.
 
-The composition of $\fileRW$ and $\fileAlloc$ give a semantics to file
-i/o.
-%
-\[
-  \bl
-    \fileIO : (\UnitType \to \alpha \eff \{\dec{FileCO};\dec{FileRW}\}) \to \alpha \eff \State~\FileSystem \\
-    \fileIO~m \defas \dec{fileCO}\,(\lambda\Unit. \dec{fileRW}\,m)
-  \el
-\]
-%
-The two handlers may as well be implemented as a single monolithic
-handler, since they implement different operations, return the same
-value, and make use of the same state cell. In practice a monolithic
-handler may have better performance. However, a sufficient clever
-compiler would be able to use the fusion technique of \citet{WuS15} to
-fuse the two handlers into one, and thus allow modular composition
-without remorse.
+
+% The composition of $\fileRW$ and $\fileAlloc$ give a semantics to file
+% i/o.
+% %
+% \[
+%   \bl
+%     \fileIO : (\UnitType \to \alpha \eff \{\dec{FileCO};\dec{FileRW}\}) \to \alpha \eff \State~\FileSystem \\
+%     \fileIO~m \defas \dec{fileCO}\,(\lambda\Unit. \dec{fileRW}\,m)
+%   \el
+% \]
+% %
+% The two handlers may as well be implemented as a single monolithic
+% handler, since they implement different operations, return the same
+% value, and make use of the same state cell. In practice a monolithic
+% handler may have better performance. However, a sufficient clever
+% compiler would be able to use the fusion technique of \citet{WuS15} to
+% fuse the two handlers into one, and thus allow modular composition
+% without remorse.
 
 \paragraph{Stream redirection}
 %
@@ -6172,12 +6247,16 @@ without remorse.
   \redirect :
      \bl
        \Record{\UnitType \to \alpha \eff \{\Write : \Record{\Int;\String} \opto \UnitType\}; \String}\\
-       \to \alpha \eff \{\UCreate : \String \opto \Int;\Write : \Record{\Int;\String} \opto \UnitType\}
+       \to \alpha \eff \{\UCreate : \String \opto \Option~\Int;\Exit : \Int \opto \Zero;\Write : \Record{\Int;\String} \opto \UnitType\}
      \el\\
     m~\redirect~fname \defas
         \ba[t]{@{}l}
-          \Let\;ino \revto \Ucreate~fname\;\In\\
-          \Handle\;m\,\Unit\;\With\\
+        \Let\;ino \revto \Case\;\Do\;\UCreate~fname\;\{
+          \ba[t]{@{~}l@{~}c@{~}l}
+            \None &\mapsto& \exit\,(-1)\\
+            \Some~ino &\mapsto& ino\}
+          \ea\\
+          \In\;\Handle\;m\,\Unit\;\With\\
              ~\ba{@{~}l@{~}c@{~}l}
                  \Return\;res      &\mapsto& res\\
                  \OpCase{\Write}{\Record{\_;cs}}{resume} &\mapsto& resume\,(\Do\;\Write\,\Record{ino;cs})
@@ -6250,14 +6329,14 @@ We can now plug everything together.
                \Record{2;
                  \ba[t]{@{}l@{}l}
                    \texttt{"}&\texttt{To be, or not to be,\nl{}that is the question:\nl{}}\\
-                             &\texttt{Whether 'tis nobler in the mind to suffer\nl{}"}};
+                             &\texttt{Whether 'tis nobler in the mind to suffer\nl{}"}},
                  \ea\\
                \Record{1;
                  \ba[t]{@{}l@{}l}
                    \texttt{"}&\texttt{UNIX is basically a simple operating system, }\\
-                             &\texttt{but you have to be a genius to understand the simplicity.\nl{"}}};
+                             &\texttt{but you have to be a genius to understand the simplicity.\nl{"}}},
                  \ea\\
-               \Record{0; \strlit{}}]}}
+                 \Record{0; \strlit{}}]; lnext=3; inext=3}}\\
            \ea
          \ea
        \ea\\
