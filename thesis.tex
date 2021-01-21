@@ -6219,25 +6219,6 @@ implementation of $\fileRW$.
 \]
 %
 
-
-% The composition of $\fileRW$ and $\fileAlloc$ give a semantics to file
-% i/o.
-% %
-% \[
-%   \bl
-%     \fileIO : (\UnitType \to \alpha \eff \{\dec{FileCO};\dec{FileRW}\}) \to \alpha \eff \State~\FileSystem \\
-%     \fileIO~m \defas \dec{fileCO}\,(\lambda\Unit. \dec{fileRW}\,m)
-%   \el
-% \]
-% %
-% The two handlers may as well be implemented as a single monolithic
-% handler, since they implement different operations, return the same
-% value, and make use of the same state cell. In practice a monolithic
-% handler may have better performance. However, a sufficient clever
-% compiler would be able to use the fusion technique of \citet{WuS15} to
-% fuse the two handlers into one, and thus allow modular composition
-% without remorse.
-
 \paragraph{Stream redirection}
 %
 The processes we have defined so far use the $\echo$ utility to write
@@ -6384,13 +6365,127 @@ the file system such that it can be used as the initial file system
 state on the next start of the operating system.
 
 \subsubsection{File linking and unlinking}
-
+%
+At this point the implementation of \fsname{} is almost feature
+complete. We are missing two dual file operations: linking and
+unlinking. The former enables us to make shallow copies of files and
+the latter enables us to remove copies. The interface is given below.
+%
+\[
+  \dec{FileLU} \defas \{\ULink : \Record{\String;\String} \opto \UnitType; \UUnlink : \String \opto \UnitType\}
+\]
+%
+The $\ULink$ operation is parameterised by two strings. The first
+string is intended to be the name of the original file and the second
+string is the name of the copy. The $\UUnlink$ operation takes a
+single string argument, which is the name of the file to be removed.
+%
+\[
+  \bl
+    \flink : \Record{\String;\String;\FileSystem} \to \FileSystem \eff \{\Fail : \UnitType \opto \Zero\}\\
+    \flink\,\Record{src;dest;fs} \defas
+      \bl
+        \If\;\dec{has}\,\Record{dest;fs.dir}\;\Then\;fs\\
+        \Else\;
+          \bl
+            \Let\;ino \revto \lookup~\Record{src;fs.dir}\;\In\\
+            \Let\;dir' \revto \Record{dest;ino} \cons fs.dir\;\In\\
+            \Let\;inode \revto \lookup~\Record{ino;fs.ilist}\;\In\\
+            \Let\;inode' \revto \Record{inode\;\With\;lno = inode.lno + 1}\;\In\\
+            \Let\;ilist' \revto \modify\,\Record{ino;inode';fs.ilist}\;\In\\
+            \Record{fs\;\With\;dir = dir';ilist = ilist'}
+          \el
+      \el
+  \el
+\]
+%
+\[
+  \remove : \Record{\alpha;\Record{\alpha;\beta}} \to \Record{\alpha;\beta}
+\]
+%
+\[
+  \bl
+    \funlink : \Record{\String;\FileSystem} \to \FileSystem \eff \{\Fail : \UnitType \opto \Zero\}\\
+    \funlink\,\Record{fname;fs} \defas
+      \bl
+        \If\;\dec{has}\,\Record{fname;fs.dir}\;\Then\\
+        \quad
+          \bl
+            \Let\;ino \revto \lookup\,\Record{fname;fs.dir}\;\In\\
+            \Let\;dir' \revto \remove\,\Record{fname;fs.dir}\;\In\\
+            \Let\;inode \revto \lookup\,\Record{ino;fs.ilist}\;\In\\
+            \Let\;\Record{ilist';dreg'} \revto
+               \bl
+                  \If\;inode.lno > 1\;\Then\\
+                   \quad\bl
+                      \Let\;inode' \revto \Record{inode\;\With\;lno = inode.lno - 1}\\
+                      \In\;\Record{\modify\,\Record{ino;inode';fs.ilist};fs.dreg}
+                    \el\\
+                  \Else\;
+                       \Record{\bl\remove\,\Record{ino;fs.ilist};\\
+                       \remove\,\Record{inode.loc;fs.dreg}}
+                    \el
+                  \el\\
+            \In\;\Record{fs\;\With\;dir = dir'; ilist = ilist'; dreg = dreg'}
+          \el\\
+        \Else\; fs
+      \el
+  \el
+\]
+%
+\[
+  \bl
+    \fileLU : (\UnitType \to \alpha \eff \FileLU) \to \alpha \eff \State~\FileSystem\\
+    \fileLU~m \defas
+       \bl
+         \Handle\;m\,\Unit\;\With\\
+             ~\ba{@{~}l@{~}c@{~}l}
+                 \Return\;res      &\mapsto& res\\
+                 \OpCase{\ULink}{\Record{src;dest}}{resume} &\mapsto&
+                   \bl
+                     \faild\,\Record{\Unit; \lambda\Unit.\\
+                       \quad\bl
+                         \Let\;fs = \flink\,\Record{src;dest;\Uget\,\Unit}\\
+                         \In\;\Uput~fs}; resume\,\Unit
+                       \el
+                   \el\\
+                 \OpCase{\UUnlink}{fname}{resume} &\mapsto&
+                   \bl
+                     \faild\,\Record{\Unit; \lambda\Unit.\\
+                       \quad\bl
+                         \Let\;fs = \funlink\,\Record{src;dest;\Uget\,\Unit}\\
+                         \In\;\Uput~fs}; resume\,\Unit
+                       \el
+                   \el
+               \ea
+       \el
+  \el
+\]
+%
+The composition of $\fileRW$, $\fileAlloc$, and $\fileLU$ complete the
+implementation of \fsname{}.
+%
+\[
+  \bl
+    \fileIO : (\UnitType \to \alpha \eff \{\dec{FileCO};\dec{FileRW}\}) \to \alpha \eff \State~\FileSystem \\
+    \fileIO~m \defas \fileRW\,(\lambda\Unit. \fileAlloc\,(\lambda\Unit.\fileLU\,m))
+  \el
+\]
+%
+The three handlers may as well be implemented as a single monolithic
+handler, since they implement different operations, return the same
+value, and make use of the same state cell. In practice a monolithic
+handler may have better performance. However, a sufficient clever
+compiler would be able to use the fusion technique of \citet{WuS15} to
+fuse the two handlers into one, and thus allow modular composition
+without remorse.
+%
 \[
   \bl
     \dec{cp} : \Record{\Bool;\String;\String} \to \UnitType \eff \{\ULink : \Record{\String;\String} \opto \UnitType;\dec{FileCO};\dec{FileRW}\}\\
     \dec{cp}~\Record{link;src;dest} \defas
       \bl
-        \If\;link\;\Then\;\Do\;\ULink\,\Record{src;dest}\\
+        \If\;link\;\Then\;\Do\;\ULink\,\Record{src;dest}\;\\
         \Else\; \bl
         \Case\;\Do\;\UOpen~src\\
          \{ \ba[t]{@{~}l@{~}c@{~}l}
@@ -6413,6 +6508,71 @@ state on the next start of the operating system.
     \dec{rm}~fname \defas \Do\;\UUnlink~fname
   \el
 \]
+
+\[
+  \ba{@{~}l@{~}l}
+    &\bl
+    \runState\,\Record{\dec{fs}_0;\fileIO\,(\lambda\Unit.\\
+         \quad\timeshare\,(\lambda\Unit.\\
+         \qquad\dec{interruptWrite}\,(\lambda\Unit.\\
+         \qquad\quad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
+         \qquad\qquad\status\,(\lambda\Unit.
+                 \ba[t]{@{}l}
+                   \If\;\fork~\Unit\;\\
+                   \Then\;
+                     \bl
+                       \su~\Alice;\,
+                       \quoteRitchie~\redirect~\strlit{ritchie.txt};\\
+                       \dec{cp}\,\Record{\False;\strlit{ritchie.txt};\strlit{ritchie}};\\
+                       \dec{rm}\,\strlit{ritchie.txt}
+                     \el\\
+                   \Else\;
+                     \bl
+                       \su~\Bob;\,
+                       \quoteHamlet~\redirect~\strlit{hamlet};\\
+                       \dec{cp}\,\Record{\True;\strlit{hamlet};\strlit{act3}}
+                       )}))))}
+                     \el
+                 \ea
+     \el \smallskip\\
+     \reducesto^+&
+     \bl
+      \Record{
+       \ba[t]{@{}l}
+       [0, 0];\\
+       \Record{
+         \ba[t]{@{}l}
+           dir=[\Record{\strlit{ritchie};3},\Record{\strlit{act3};2},\Record{\strlit{hamlet};2},
+                \Record{\strlit{stdout};0}];\\
+           ilist=[\Record{3;\Record{lno=1;loc=3}},
+                  \Record{2;\Record{lno=2;loc=2}},
+                  \Record{0;\Record{lno=1;loc=0}}];\\
+           dreg=[
+             \ba[t]{@{}l}
+               \Record{3;
+                 \ba[t]{@{}l@{}l}
+                   \texttt{"}&\texttt{UNIX is basically a simple operating system, }\\
+                             &\texttt{but you have to be a genius to understand the simplicity.\nl{"}}},
+                 \ea\\
+               \Record{2;
+                 \ba[t]{@{}l@{}l}
+                   \texttt{"}&\texttt{To be, or not to be,\nl{}that is the question:\nl{}}\\
+                             &\texttt{Whether 'tis nobler in the mind to suffer\nl{}"}},
+                 \ea\\
+                 \Record{0; \strlit{}}]; lnext=4; inext=4}}\\
+           \ea
+         \ea
+       \ea\\
+       : \Record{\List~\Int; \FileSystem}
+     \el
+  \ea
+\]
+%
+Alice makes a deep copy of the file \texttt{ritchie.txt} as
+\texttt{ritchie}, and subsequently removes the original file, which
+effectively amounts to a roundabout way of renaming a file. Bob makes
+a shallow copy of the file \texttt{hamlet} as \texttt{act3}, meaning
+both names share the same i-node with index $2$.
 
 % \begin{figure}[t]
 %   \centering
