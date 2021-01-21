@@ -6240,7 +6240,14 @@ implementation of $\fileRW$.
 
 \paragraph{Stream redirection}
 %
-\dhil{TODO}
+The processes we have defined so far use the $\echo$ utility to write
+to the $\stdout$ file. The target file $\stdout$ is hardwired into the
+definition of $\echo$ (Section~\ref{sec:tiny-unix-bio}). To take
+advantage of the capabilities of the new file system we could choose
+to modify the definition of $\echo$ such that it is parameterised by
+the target file. However, such a modification is a breaking
+change. Instead we can define a \emph{stream redirection} operator
+that allow us to redefine the target of $\Write$ operations locally.
 %
 \[
   \bl
@@ -6265,7 +6272,30 @@ implementation of $\fileRW$.
   \el
 \]
 %
-\medskip\\
+The operator $\redirect$ first attempts to create a new target file
+with name $fname$. If it fails it simply exits with code
+$-1$. Otherwise it continues with the i-node reference $ino$. The
+handler overloads the definition of $\Write$ inside the provided
+computation $m$. The new definition drops the i-node reference of the
+initial target file and replaces it by the reference to new target
+file.
+
+This stream redirection operator is slightly more general than the
+original redirection operator in the original \UNIX{} environment. As
+the \UNIX{} redirection operator only redirects writes targeted at the
+\emph{stdout} file~\cite{RitchieT74}, whereas the above operator
+redirects writes regardless of their initial target.
+%
+It is straightforward to implement this original \UNIX{} behaviour by
+inspecting the first argument of $\Write$ in the operation clause
+before committing to performing the redirecting $\Write$ operation.
+%
+Modern \UNIX{} environments typically provide more fine-grained
+control over redirects, for example by allowing the user to specify on
+a per file basis which writes should be redirected. Again, we can
+implement this behaviour by comparing the provided file descriptor
+with the descriptor in the payload of $\Write$.
+
 % ([0, 0, 0],
 %  (dir = [("hamlet", 2), ("ritchie.txt", 1), ("stdout", 0)],
 %   dregion = [(2, "To be, or not to be,
@@ -6291,24 +6321,25 @@ implementation of $\fileRW$.
 %   inext = 3,
 %   inodes = [(2, (lno = 1, loc = 2)), (1, (lno = 1, loc = 1)), (0, (lno = 1, loc = 0))],
 %   lnext = 3)) : ([Int], FileSystem)
-
-We can now plug everything together.
+\medskip We can plug everything together to observe the new file
+system in action.
 %
 \[
   \ba{@{~}l@{~}l}
     &\bl
-    \runState\,\Record{\dec{fs}_0;\fileIO\,(\lambda\Unit.\\
+    \runState\,\Record{\dec{fs}_0;\fileRW\,(\lambda\Unit.\\
+         \quad\fileAlloc\,(\lambda\Unit.\\
          \qquad\timeshare\,(\lambda\Unit.\\
-         \qquad\qquad\dec{interruptWrite}\,(\lambda\Unit.\\
-         \qquad\qquad\qquad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
-         \qquad\qquad\qquad\qquad\status\,(\lambda\Unit.
+         \qquad\quad\dec{interruptWrite}\,(\lambda\Unit.\\
+         \qquad\qquad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
+         \qquad\qquad\quad\status\,(\lambda\Unit.
                  \ba[t]{@{}l}
                    \If\;\fork~\Unit\;\Then\;
                        \su~\Alice;\,
                        \quoteRitchie~\redirect~\strlit{ritchie.txt}\\
                    \Else\;
                        \su~\Bob;\,
-                       \quoteHamlet~\redirect~\strlit{hamlet})})))}
+                       \quoteHamlet~\redirect~\strlit{hamlet})}))))}
                  \ea
      \el \smallskip\\
      \reducesto^+&
@@ -6345,6 +6376,13 @@ We can now plug everything together.
   \ea
 \]
 %
+The writes of the processes $\quoteRitchie$ and $\quoteHamlet$ are now
+being redirected to designated files \texttt{ritchie.txt} and
+\texttt{hamlet}, respectively. The operating system returns the
+completion status of all the processes along with the current state of
+the file system such that it can be used as the initial file system
+state on the next start of the operating system.
+
 \subsubsection{File linking and unlinking}
 
 \[
