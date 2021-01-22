@@ -6367,25 +6367,33 @@ state on the next start of the operating system.
 \subsubsection{File linking and unlinking}
 %
 At this point the implementation of \fsname{} is almost feature
-complete. We are missing two dual file operations: linking and
-unlinking. The former enables us to make shallow copies of files and
-the latter enables us to remove copies. The interface is given below.
+complete. However, we have yet to implement two dual file operations:
+linking and unlinking. The former enables us to associate a new
+filename with an existing i-node, thus providing a mechanism for
+making shallow copies of files (i.e. the file contents are
+shared). The latter lets us dissociate a filename from an i-node, thus
+providing a means for removing files. The interface of linking and
+unlinking is given below.
 %
 \[
   \dec{FileLU} \defas \{\ULink : \Record{\String;\String} \opto \UnitType; \UUnlink : \String \opto \UnitType\}
 \]
 %
 The $\ULink$ operation is parameterised by two strings. The first
-string is intended to be the name of the original file and the second
-string is the name of the copy. The $\UUnlink$ operation takes a
-single string argument, which is the name of the file to be removed.
+string is the name of the \emph{source} file and the second string is
+the \emph{destination} name (i.e. the new name). The $\UUnlink$
+operation takes a single string argument, which is the name of the
+file to be removed.
+
+As before, we bundle the low level operations on the file system state
+into their own functions. We start with file linking.
 %
 \[
   \bl
     \flink : \Record{\String;\String;\FileSystem} \to \FileSystem \eff \{\Fail : \UnitType \opto \Zero\}\\
     \flink\,\Record{src;dest;fs} \defas
       \bl
-        \If\;\dec{has}\,\Record{dest;fs.dir}\;\Then\;fs\\
+        \If\;\dec{has}\,\Record{dest;fs.dir}\;\Then\;\Do\;\Fail\,\Unit\\
         \Else\;
           \bl
             \Let\;ino \revto \lookup~\Record{src;fs.dir}\;\In\\
@@ -6399,9 +6407,33 @@ single string argument, which is the name of the file to be removed.
   \el
 \]
 %
+The function $\flink$ checks whether the destination filename, $dest$,
+already exists in the directory. If it exists then the function raises
+the $\Fail$ exception. Otherwise it looks up the index of the i-node,
+$ino$, associated with the source file, $src$. Next, the directory is
+extended with the destination filename, which gets associated with
+this index, meaning $src$ and $dest$ both share the same
+i-node. Finally, the link count of the i-node at index $ino$ gets
+incremented, and the function returns the updated file system state.
+%
+
+The semantics of file unlinking is slightly more complicated as an
+i-node may become unlinked, meaning that it needs to garbage collected
+along with its file contents in the data region. To implement file
+removal we make use of another standard operation on association
+lists.
+%
 \[
   \remove : \Record{\alpha;\Record{\alpha;\beta}} \to \Record{\alpha;\beta}
 \]
+%
+The first parameter to $\remove$ is the key associated with the entry
+to be removed from the association list, which is given as the second
+parameter. If the association list does not have an entry for the
+given key, then the function behaves as the identity. The behaviour of
+the function in case of multiple entries for a single key does not
+matter as our system is carefully set up to ensure that each key has
+an unique entry.
 %
 \[
   \bl
@@ -6428,7 +6460,7 @@ single string argument, which is the name of the file to be removed.
                   \el\\
             \In\;\Record{fs\;\With\;dir = dir'; ilist = ilist'; dreg = dreg'}
           \el\\
-        \Else\; fs
+        \Else\; \Do\;\Fail\,\Unit
       \el
   \el
 \]
@@ -6453,7 +6485,7 @@ single string argument, which is the name of the file to be removed.
                    \bl
                      \faild\,\Record{\Unit; \lambda\Unit.\\
                        \quad\bl
-                         \Let\;fs = \funlink\,\Record{src;dest;\Uget\,\Unit}\\
+                         \Let\;fs = \funlink\,\Record{fname;\Uget\,\Unit}\\
                          \In\;\Uput~fs}; resume\,\Unit
                        \el
                    \el
