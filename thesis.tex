@@ -2385,7 +2385,7 @@ A classic example of handlers in action is handling of
 nondeterminism. Let us fix a signature with two operations.
 %
 \[
-  \Sigma \defas \{\Fail : \UnitType \opto \Zero; \Choose : \UnitType \opto \Bool\}
+  \Sigma \defas \{\Fail : \UnitType \opto \ZeroType; \Choose : \UnitType \opto \Bool\}
 \]
 %
 The $\Fail$ operation is essentially an exception as its codomain is
@@ -2425,7 +2425,7 @@ $\False$ as tails).
                   \ba[t]{@{~}l}
                     \If\;\Do\;\Choose~\Unit\\
                     \Then\;\Do\;\Choose~\Unit\\
-                    \Else\;\Absurd\;\Do\;\Fail
+                    \Else\;\Absurd\;\Do\;\Fail~\Unit
                   \ea
   \el
 \]
@@ -2463,7 +2463,7 @@ $\Option~\Bool$ and $H_f$ at type $\Bool$.
   \reducesto^+& \reason{\slab{Resume} with $\False$, \slab{Value}, \slab{Value}}\\
   & [\Some~\True] \concat [\Some~\False] \concat k~\False\\
   \reducesto^+& \reason{\slab{Resume} with $\False$}\\
-  & [\Some~\True, \Some~\False] \concat (\Handle\;(\Handle\; \Absurd\;\Do\;\Fail~\Unit \;\With\; H_f)\;\With\;H_c)\\
+  & [\Some~\True, \Some~\False] \concat (\Handle\;(\Handle\; \Absurd\;\Do\;\Fail\,\Unit \;\With\; H_f)\;\With\;H_c)\\
   \reducesto& \reason{\slab{Capture}, $\{\OpCase{\Fail}{\Unit}{k} \mapsto \cdots\} \in H_f$}\\
   & [\Some~\True, \Some~\False] \concat (\Handle\; \None\; \With\; H_c)\\
   \reducesto& \reason{\slab{Value}, $\{\Return\;x \mapsto \cdots\} \in H_c$}\\
@@ -4188,8 +4188,8 @@ some primitive operation into the effect row.
 %
 \begin{mathpar}
   \inferrule*[Lab=$\tylab{Rec}^\ast$]
-    {\typ{\Delta;\Gamma,f : A \to B\eff\{\dec{Div}:\Zero\}, x : A}{M : B\eff\{\dec{Div}:\Zero\}}}
-    {\typ{\Delta;\Gamma}{(\Rec \; f^{A \to B\eff\{\dec{Div}:\Zero\}} \, x .M) : A \to B\eff\{\dec{Div}:\Zero\}}}
+    {\typ{\Delta;\Gamma,f : A \to B\eff\{\dec{Div}:\ZeroType\}, x : A}{M : B\eff\{\dec{Div}:\ZeroType\}}}
+    {\typ{\Delta;\Gamma}{(\Rec \; f^{A \to B\eff\{\dec{Div}:\ZeroType\}} \, x .M) : A \to B\eff\{\dec{Div}:\ZeroType\}}}
 \end{mathpar}
 %
 In this typing rule we have chosen to inject an operation named
@@ -4199,7 +4199,7 @@ be directly invoked, rather, it occurs as a side-effect of applying a
 $\Rec$-definition.
 %
 Using this typing rule we get that
-$\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\Zero\}$. Consequently,
+$\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\ZeroType\}$. Consequently,
 every application-site of $\dec{fac}$ must now permit the $\dec{Div}$
 operation in order to type check.
 %
@@ -4218,17 +4218,17 @@ operation in order to type check.
   We will now give a typing derivation for this computation to
   illustrate how the application of $\dec{fac}$ causes its effect row
   to be propagated outwards. Let
-  $\Gamma = \{\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\Zero\}\}$.
+  $\Gamma = \{\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\ZeroType\}\}$.
   %
   \begin{mathpar}
     \inferrule*[Right={\tylab{Lam}}]
       {\inferrule*[Right={\tylab{App}}]
-        {\typ{\emptyset;\Gamma,\Unit:\Record{}}{\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\Zero\}}\\
+        {\typ{\emptyset;\Gamma,\Unit:\Record{}}{\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\ZeroType\}}\\
          \typ{\emptyset;\Gamma,\Unit:\Record{}}{3 : \Int}
         }
-        {\typc{\emptyset;\Gamma,\Unit:\Record{}}{\dec{fac}~3 : \Int}{\{\dec{Div}:\Zero\}}}
+        {\typc{\emptyset;\Gamma,\Unit:\Record{}}{\dec{fac}~3 : \Int}{\{\dec{Div}:\ZeroType\}}}
       }
-      {\typ{\emptyset;\Gamma}{\lambda\Unit.\dec{fac}~3} : \Unit \to \Int \eff \{\dec{Div}:\Zero\}}
+      {\typ{\emptyset;\Gamma}{\lambda\Unit.\dec{fac}~3} : \Unit \to \Int \eff \{\dec{Div}:\ZeroType\}}
   \end{mathpar}
   %
   The information that the computation applies a possibly divergent
@@ -4239,7 +4239,7 @@ operation in order to type check.
 A possible inconvenience of the current formulation of
 $\tylab{Rec}^\ast$ is that it recursion cannot be mixed with other
 computational effects. The reason being that the effect row on
-$A \to B\eff \{\dec{Div}:\Zero\}$ is closed. Thus in a practical
+$A \to B\eff \{\dec{Div}:\ZeroType\}$ is closed. Thus in a practical
 general-purpose programming language implementation it is likely be
 more convenient to leave the tail of the effect row open as to allow
 recursion to be used in larger effect contexts. The rule formulation
@@ -4255,7 +4255,7 @@ tracking of divergence.
 % %
 % \begin{mathpar}
 %   \inferrule*[lab=$\tylab{AppRec}^\ast$]
-%   { E' = \{\dec{Div}:\Zero\} \uplus E\\
+%   { E' = \{\dec{Div}:\ZeroType\} \uplus E\\
 %     \typ{\Delta}{E'}\\\\
 %     \typ{\Delta;\Gamma}{\Rec\;f^{A \to B \eff E}\,x.M : A \to B \eff E}\\
 %     \typ{\Delta;\Gamma}{W : A}
@@ -4923,11 +4923,11 @@ We can model the exit system call by way of a single operation
 $\Exit$.
 %
 \[
-  \Status \defas \{\Exit : \Int \opto \Zero\}
+  \Status \defas \{\Exit : \Int \opto \ZeroType\}
 \]
 %
 The operation is parameterised by an integer value, however, an
-invocation of $\Exit$ can never return, because the type $\Zero$ is
+invocation of $\Exit$ can never return, because the type $\ZeroType$ is
 uninhabited. Thus $\Exit$ acts like an exception.
 %
 It is convenient to abstract invocations of $\Exit$ to make it
@@ -4941,8 +4941,8 @@ possible to invoke the operation in any context.
 \]
 %
 The $\Absurd$ computation term is used to coerce the return type
-$\Zero$ of $\Fail$ into $\alpha$. This coercion is safe, because
-$\Zero$ is an uninhabited type.
+$\ZeroType$ of $\Fail$ into $\alpha$. This coercion is safe, because
+$\ZeroType$ is an uninhabited type.
 %
 An interpretation of $\Fail$ amounts to implementing an exception
 handler.
@@ -5520,8 +5520,8 @@ system's process scheduler, which can then decide to which processes
 to suspend and continue.
 %
 If our core calculi had an integrated notion of asynchrony and effects
-along the lines of \citeauthor{AhmanP20}'s core calculus
-$\lambda_{\text{\ae}}$~\cite{AhmanP20}, then we could potentially
+along the lines of \citeauthor{AhmanP21}'s core calculus
+$\lambda_{\text{\ae}}$~\cite{AhmanP21}, then we could potentially
 treat interruption signals as asynchronous effectful operations, which
 can occur spontaneously and, as suggested by \citet{DolanEHMSW17} and
 realised by \citet{Poulson20}, be handled by a user-definable handler.
@@ -5968,7 +5968,7 @@ will only their signatures here.
 %
 \[
   \bl
-    \lookup : \Record{\alpha;\List\,\Record{\alpha;\beta}} \to \beta \eff \{\Fail : \UnitType \opto \Zero\} \smallskip\\
+    \lookup : \Record{\alpha;\List\,\Record{\alpha;\beta}} \to \beta \eff \{\Fail : \UnitType \opto \ZeroType\} \smallskip\\
     \modify : \Record{\alpha;\beta;\List\,\Record{\alpha;\beta}} \to \Record{\alpha;\beta}
   \el
 \]
@@ -5987,7 +5987,7 @@ operations.
 %
 \[
   \bl
-    \fread : \Record{\Int;\FileSystem} \to \String \eff \{\Fail : \UnitType \opto \Zero\}\\
+    \fread : \Record{\Int;\FileSystem} \to \String \eff \{\Fail : \UnitType \opto \ZeroType\}\\
     \fread\,\Record{ino;fs} \defas
       \ba[t]{@{}l}
         \Let\;inode \revto \lookup\,\Record{ino; fs.ilist}\;\In\\
@@ -6005,7 +6005,7 @@ the primitive write operation is similar.
 %
 \[
   \bl
-    \fwrite : \Record{\Int;\String;\FileSystem} \to \FileSystem \eff \{\Fail : \UnitType \opto \Zero\}\\
+    \fwrite : \Record{\Int;\String;\FileSystem} \to \FileSystem \eff \{\Fail : \UnitType \opto \ZeroType\}\\
     \fwrite\,\Record{ino;cs;fs} \defas
       \ba[t]{@{}l}
         \Let\;inode \revto \lookup\,\Record{ino; fs.ilist}\;\In\\
@@ -6025,7 +6025,7 @@ default value.
 %
 \[
     \bl
-      \faild : \Record{\alpha;\UnitType \to \alpha \eff \{\Fail : \UnitType \opto \Zero\}} \to \alpha\\
+      \faild : \Record{\alpha;\UnitType \to \alpha \eff \{\Fail : \UnitType \opto \ZeroType\}} \to \alpha\\
       \faild\,\Record{default;m} \defas
         \ba[t]{@{~}l}
           \Handle\;m~\Unit\;\With\\
@@ -6099,7 +6099,7 @@ on this function.
 %
 \[
   \bl
-    \fopen : \Record{\String;\FileSystem} \to \Int \eff \{\Fail : \UnitType \opto \Zero\}\\
+    \fopen : \Record{\String;\FileSystem} \to \Int \eff \{\Fail : \UnitType \opto \ZeroType\}\\
     \fopen\,\Record{fname;fs} \defas \lookup\,\Record{fname; fs.dir}
   \el
 \]
@@ -6134,7 +6134,7 @@ With this function we can implement the semantics of create.
 %
 \[
   \bl
-    \fcreate : \Record{\String;\FileSystem} \to \Record{\Int;\FileSystem} \eff \{\Fail : \UnitType \opto \Zero\}\\
+    \fcreate : \Record{\String;\FileSystem} \to \Record{\Int;\FileSystem} \eff \{\Fail : \UnitType \opto \ZeroType\}\\
     \fcreate\,\Record{fname;fs} \defas
       \ba[t]{@{}l}
         \If\;\dec{has}\,\Record{fname;fs.dir}\;\Then\\
@@ -6235,13 +6235,13 @@ that allow us to redefine the target of $\Write$ operations locally.
   \redirect :
      \bl
        \Record{\UnitType \to \alpha \eff \{\Write : \Record{\Int;\String} \opto \UnitType\}; \String}\\
-       \to \alpha \eff \{\UCreate : \String \opto \Option~\Int;\Exit : \Int \opto \Zero;\Write : \Record{\Int;\String} \opto \UnitType\}
+       \to \alpha \eff \{\UCreate : \String \opto \Option~\Int;\Exit : \Int \opto \ZeroType;\Write : \Record{\Int;\String} \opto \UnitType\}
      \el\\
     m~\redirect~fname \defas
         \ba[t]{@{}l}
         \Let\;ino \revto \Case\;\Do\;\UCreate~fname\;\{
           \ba[t]{@{~}l@{~}c@{~}l}
-            \None &\mapsto& \exit\,(-1)\\
+            \None &\mapsto& \exit\,1\\
             \Some~ino &\mapsto& ino\}
           \ea\\
           \In\;\Handle\;m\,\Unit\;\With\\
@@ -6255,7 +6255,7 @@ that allow us to redefine the target of $\Write$ operations locally.
 %
 The operator $\redirect$ first attempts to create a new target file
 with name $fname$. If it fails it simply exits with code
-$-1$. Otherwise it continues with the i-node reference $ino$. The
+$1$. Otherwise it continues with the i-node reference $ino$. The
 handler overloads the definition of $\Write$ inside the provided
 computation $m$. The new definition drops the i-node reference of the
 initial target file and replaces it by the reference to new target
@@ -6370,7 +6370,7 @@ At this point the implementation of \fsname{} is almost feature
 complete. However, we have yet to implement two dual file operations:
 linking and unlinking. The former enables us to associate a new
 filename with an existing i-node, thus providing a mechanism for
-making shallow copies of files (i.e. the file contents are
+making soft copies of files (i.e. the file contents are
 shared). The latter lets us dissociate a filename from an i-node, thus
 providing a means for removing files. The interface of linking and
 unlinking is given below.
@@ -6390,10 +6390,10 @@ into their own functions. We start with file linking.
 %
 \[
   \bl
-    \flink : \Record{\String;\String;\FileSystem} \to \FileSystem \eff \{\Fail : \UnitType \opto \Zero\}\\
+    \flink : \Record{\String;\String;\FileSystem} \to \FileSystem \eff \{\Fail : \UnitType \opto \ZeroType\}\\
     \flink\,\Record{src;dest;fs} \defas
       \bl
-        \If\;\dec{has}\,\Record{dest;fs.dir}\;\Then\;\Do\;\Fail\,\Unit\\
+        \If\;\dec{has}\,\Record{dest;fs.dir}\;\Then\;\Absurd~\Do\;\Fail\,\Unit\\
         \Else\;
           \bl
             \Let\;ino \revto \lookup~\Record{src;fs.dir}\;\In\\
@@ -6437,7 +6437,7 @@ an unique entry.
 %
 \[
   \bl
-    \funlink : \Record{\String;\FileSystem} \to \FileSystem \eff \{\Fail : \UnitType \opto \Zero\}\\
+    \funlink : \Record{\String;\FileSystem} \to \FileSystem \eff \{\Fail : \UnitType \opto \ZeroType\}\\
     \funlink\,\Record{fname;fs} \defas
       \bl
         \If\;\dec{has}\,\Record{fname;fs.dir}\;\Then\\
@@ -6460,10 +6460,29 @@ an unique entry.
                   \el\\
             \In\;\Record{fs\;\With\;dir = dir'; ilist = ilist'; dreg = dreg'}
           \el\\
-        \Else\; \Do\;\Fail\,\Unit
+        \Else\; \Absurd~\Do\;\Fail\,\Unit
       \el
   \el
 \]
+%
+The $\funlink$ function checks whether the given filename $fname$
+exists in the directory. If it does not, then it raises the $\Fail$
+exceptions. However, if it does exist then the function proceeds to
+lookup the index of the i-node for the file, which gets bound to
+$ino$, and subsequently remove the filename from the
+directory. Afterwards it looks up the i-node with index $ino$. Now one
+of two things happen depending on the current link count of the
+i-node. If the count is greater than one, then we need only decrement
+the link count by one, thus we modify the i-node structure. If the
+link count is 1, then i-node is about to become stale, thus we must
+garbage collect it by removing both the i-node from the i-list and the
+contents from the data region. Either branch returns the new state of
+i-list and data region. Finally, the function returns the new file
+system state.
+
+With the $\flink$ and $\funlink$ functions, we can implement the
+semantics for $\ULink$ and $\UUnlink$ operations following the same
+patterns as for the other file system operations.
 %
 \[
   \bl
@@ -6499,7 +6518,8 @@ implementation of \fsname{}.
 %
 \[
   \bl
-    \fileIO : (\UnitType \to \alpha \eff \{\dec{FileCO};\dec{FileRW}\}) \to \alpha \eff \State~\FileSystem \\
+    \FileIO \defas \{\FileRW;\FileCO;\FileLU\} \medskip\\
+    \fileIO : (\UnitType \to \alpha \eff \FileIO) \to \alpha \eff \State~\FileSystem \\
     \fileIO~m \defas \fileRW\,(\lambda\Unit. \fileAlloc\,(\lambda\Unit.\fileLU\,m))
   \el
 \]
@@ -6507,25 +6527,33 @@ implementation of \fsname{}.
 The three handlers may as well be implemented as a single monolithic
 handler, since they implement different operations, return the same
 value, and make use of the same state cell. In practice a monolithic
-handler may have better performance. However, a sufficient clever
-compiler would be able to use the fusion technique of \citet{WuS15} to
-fuse the two handlers into one, and thus allow modular composition
-without remorse.
+handler may have better performance. However, a sufficiently clever
+compiler would be able to take advantage of the fusion laws of deep
+handlers to fuse the three handlers into one (e.g. using the technique
+of \citet{WuS15}), and thus allow modular composition without
+composition.
+
+We now have the building blocks to implement a file copying
+utility. We will implement the utility such that it takes an argument
+to decide whether it should make a soft copy such that the source file
+and destination file are linked, or it should make a hard copy such
+that a new i-node is allocated and the bytes in the data regions gets
+duplicated.
 %
 \[
   \bl
-    \dec{cp} : \Record{\Bool;\String;\String} \to \UnitType \eff \{\ULink : \Record{\String;\String} \opto \UnitType;\dec{FileCO};\dec{FileRW}\}\\
+    \dec{cp} : \Record{\Bool;\String;\String} \to \UnitType \eff \{\FileIO;\Exit : \Int \opto \ZeroType\}\\
     \dec{cp}~\Record{link;src;dest} \defas
       \bl
         \If\;link\;\Then\;\Do\;\ULink\,\Record{src;dest}\;\\
         \Else\; \bl
         \Case\;\Do\;\UOpen~src\\
          \{ \ba[t]{@{~}l@{~}c@{~}l}
-              \None &\mapsto& \Unit\\
+              \None &\mapsto& \exit~1\\
               \Some~ino &\mapsto& \\
               \multicolumn{3}{l}{\quad\Case\;\Do\;\URead~ino\;\{
                 \ba[t]{@{~}l@{~}c@{~}l}
-                  \None &\mapsto& \Unit\\
+                  \None &\mapsto& \exit~1\\
                   \Some~cs &\mapsto& \echo~cs~\redirect~dest \} \}
                 \ea}
              \ea
@@ -6533,14 +6561,30 @@ without remorse.
       \el
   \el
 \]
+%
+If the $link$ parameter is $\True$, then the utility makes a soft copy
+by performing the operation $\ULink$ to link the source file and
+destination file. Otherwise the utility makes a hard copy by first
+opening the source file. If $\UOpen$ returns the $\None$ (i.e. the
+open failed) then the utility exits with code $1$. If the open
+succeeds then the entire file contents are read. If the read operation
+fails then we again just exit, however, in the event that it succeeds
+we apply the $\echo$ to the file contents and redirects the output to
+the file $dest$.
 
+The logic for file removal is part of the semantics for
+$\UUnlink$. Therefore the implementation of a file removal utility is
+simply an application of the operation $\UUnlink$.
+%
 \[
   \bl
     \dec{rm} : \String \to \UnitType \eff \{\UUnlink : \String \opto \UnitType\}\\
     \dec{rm}~fname \defas \Do\;\UUnlink~fname
   \el
 \]
-
+%
+We can now plug it all together.
+%
 \[
   \ba{@{~}l@{~}l}
     &\bl
@@ -6600,10 +6644,10 @@ without remorse.
   \ea
 \]
 %
-Alice makes a deep copy of the file \texttt{ritchie.txt} as
+Alice makes a hard copy of the file \texttt{ritchie.txt} as
 \texttt{ritchie}, and subsequently removes the original file, which
 effectively amounts to a roundabout way of renaming a file. Bob makes
-a shallow copy of the file \texttt{hamlet} as \texttt{act3}, meaning
+a soft copy of the file \texttt{hamlet} as \texttt{act3}, meaning
 both names share the same i-node with index $2$.
 
 % \begin{figure}[t]
