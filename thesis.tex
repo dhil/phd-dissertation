@@ -4944,7 +4944,7 @@ The $\Absurd$ computation term is used to coerce the return type
 $\ZeroType$ of $\Fail$ into $\alpha$. This coercion is safe, because
 $\ZeroType$ is an uninhabited type.
 %
-An interpretation of $\Fail$ amounts to implementing an exception
+An interpretation of $\Exit$ amounts to implementing an exception
 handler.
 %
 \[
@@ -6644,11 +6644,30 @@ We can now plug it all together.
   \ea
 \]
 %
-Alice makes a hard copy of the file \texttt{ritchie.txt} as
-\texttt{ritchie}, and subsequently removes the original file, which
-effectively amounts to a roundabout way of renaming a file. Bob makes
-a soft copy of the file \texttt{hamlet} as \texttt{act3}, meaning
-both names share the same i-node with index $2$.
+Alice copies the file \texttt{ritchie.txt} as \texttt{ritchie}, and
+subsequently removes the original file, which effectively amounts to a
+roundabout way of renaming a file. It is evident from the file system
+state that the file is a hard copy as the contents of
+\texttt{ritchie.txt} now reside in location $3$ rather than location
+$1$ in the data region. Bob makes a soft copy of the file
+\texttt{hamlet} as \texttt{act3}, which is evident by looking at the
+directory where the two filenames point to the same i-node (with index
+$2$), whose link counter has value $2$.
+
+\paragraph{Summary} Starting from a simple file I/O model we seen how
+the modularity of effect handlers enable us to develop a \UNIX{}-style
+operating system in an incremental way by composing several handlers
+to implement a basic file system, multi-user environments, and
+multi-tasking support. Each incremental change to the system has been
+backwards compatible with previous changes in the sense that we have
+not modified any previously defined interfaces in order to support a
+new feature. It serves as a testament to demonstrate the versatility
+of effect handlers, and it suggests that handlers can be a viable
+option to use with legacy code bases to retrofit functionality. The
+operating system uses a total of 14 operations, which are being
+handled by 12 handlers, some of which are used multiple times,
+e.g. the $\environment$ and $\redirect$ handlers.
+
 
 % \begin{figure}[t]
 %   \centering
