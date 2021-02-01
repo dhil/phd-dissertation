@@ -6654,19 +6654,23 @@ $1$ in the data region. Bob makes a soft copy of the file
 directory where the two filenames point to the same i-node (with index
 $2$), whose link counter has value $2$.
 
-\paragraph{Summary} Starting from a simple file I/O model we seen how
-the modularity of effect handlers enable us to develop a \UNIX{}-style
-operating system in an incremental way by composing several handlers
-to implement a basic file system, multi-user environments, and
-multi-tasking support. Each incremental change to the system has been
-backwards compatible with previous changes in the sense that we have
-not modified any previously defined interfaces in order to support a
-new feature. It serves as a testament to demonstrate the versatility
-of effect handlers, and it suggests that handlers can be a viable
-option to use with legacy code bases to retrofit functionality. The
-operating system uses a total of 14 operations, which are being
-handled by 12 handlers, some of which are used multiple times,
-e.g. the $\environment$ and $\redirect$ handlers.
+\paragraph{Summary} Throughout this section we have used effect
+handlers to give a semantics to a \UNIX{}-style operating system by
+treating system calls as effectful operations, whose semantics are
+given by handlers, acting as composable micro-kernels. Starting from a
+simple bare minimum file I/O model we seen how the modularity of
+effect handlers enable us to develop a feature-rich operating system
+in an incremental way by composing several handlers to implement a
+basic file system, multi-user environments, and multi-tasking
+support. Each incremental change to the system has been backwards
+compatible with previous changes in the sense that we have not
+modified any previously defined interfaces in order to support a new
+feature. It serves as a testament to demonstrate the versatility of
+effect handlers, and it suggests that handlers can be a viable option
+to use with legacy code bases to retrofit functionality. The operating
+system makes use of fourteen operations, which are being handled by
+twelve handlers, some of which are used multiple times, e.g. the
+$\environment$ and $\redirect$ handlers.
 
 
 % \begin{figure}[t]
@@ -6963,8 +6967,85 @@ e.g. the $\environment$ and $\redirect$ handlers.
 \section{Shallow handlers}
 \label{sec:unary-shallow-handlers}
 
+Shallow handlers are an alternative to deep handlers. Shallow handlers
+are defined as case-splits over computation trees, whereas deep
+handlers are defined as folds. Consequently, a shallow handler
+application unfolds only a single layer of the computation tree.
+%
+Semantically, the difference between deep and shallow handlers is
+similar to the difference between \citet{Church41} and \citet{Scott62}
+encoding techniques for data types in the sense that the recursion is
+intrinsic to the former, whilst recursion is extrinsic to the latter.
+%
+Often deep handlers are attractive because they are semantically
+well-behaved and provide appropriate structure for efficient
+implementations using optimisations such as fusion~\cite{WuS15}, and
+as we saw in the previous they codify a wide variety of applications.
+%
+However, they are not always convenient for implementing other
+structural recursion schemes such as mutual recursion.
+
 \subsection{Syntax and static semantics}
+\begin{syntax}
+\slab{Computations} &M,N \in \CompCat    &::=& \cdots \mid \ShallowHandle \; M \; \With \; H\\[1ex]
+\end{syntax}
+%
+%
+\begin{mathpar}
+  \inferrule*[Lab=\tylab{Handle}]
+  {
+    \typ{\Gamma}{M : C} \\
+    \typ{\Gamma}{H : C \Harrow D}
+  }
+  {\Gamma \vdash \ShallowHandle \; M \; \With\; H : D}
+
+
+%\mprset{flushleft}
+  \inferrule*[Lab=\tylab{Handler}]
+    {{\bl
+       C = A \eff \{(\ell_i : A_i \opto B_i)_i; R\} \\
+       D = B \eff \{(\ell_i : P_i)_i;           R\}\\
+       H = \{\Return\;x \mapsto M\} \uplus \{ \OpCase{\ell_i}{p_i}{r_i} \mapsto N_i \}_i
+       \el}\\\\
+       \typ{\Delta;\Gamma, x : A}{M : D}\\\\
+       [\typ{\Delta;\Gamma,p_i : A_i, r_i : B_i \to C}{N_i : D}]_i
+    }
+    {\typ{\Delta;\Gamma}{H : C \Harrow D}}
+\end{mathpar}
+%
+The \tylab{Handle} rule is simply the application rule for handlers.
+%
+The \tylab{Handler} rule is where most of the work happens. The effect
+rows on the input computation type $C$ and the output computation type
+$D$ must mention every operation in the domain of the handler. In the
+output row those operations may be either present ($\Pre{A}$), absent
+($\Abs$), or polymorphic in their presence ($\theta$), whilst in the
+input row they must be mentioned with a present type as those types
+are used to type operation clauses.
+%
+In each operation clause the resumption $r_i$ must have the same
+return type, $D$, as its handler. In the return clause the binder $x$
+has the same type, $C$, as the result of the input computation.
+
+
 \subsection{Dynamic semantics}
+
+We augment the operational semantics with two new reduction rules: one
+for handling return values and another for handling operations.
+%{\small{
+\begin{reductions}
+\semlab{Ret} &
+  \ShallowHandle \; (\Return \; V) \; \With \; H &\reducesto& N[V/x],  \hfill\text{where } \hret = \{ \Return \; x \mapsto N \} \\
+\semlab{Op} &
+  \ShallowHandle \; \EC[\Do \; \ell \, V] \; \With \; H
+    &\reducesto& N[V/p, \lambda y . \, \EC[\Return \; y]/r], \\
+\multicolumn{4}{@{}r@{}}{
+       \hfill\ba[t]{@{~}r@{~}l}
+                   \text{where}& \hell = \{ \OpCase{\ell}{p}{r} \mapsto N \}\\
+                   \text{and}  & \ell \notin \BL(\EC)
+              \ea
+}
+\end{reductions}%}}%
 
 \subsection{\UNIX{}-style pipes}
 \label{sec:pipes}
@@ -7029,14 +7110,6 @@ waiting consumer.
 If the producer performs the $\Yield$ operation, then $\Pipe$ is
 invoked with the resumption of the producer along with a thunk that
 applies the consumer's resumption to the yielded value.
-
-\begin{example}[Inversion of control]
-  foo
-\end{example}
-
-\begin{example}[Communicating pipes]
-  bar
-\end{example}
 
 \section{Parameterised handlers}
 \label{sec:unary-parameterised-handlers}
