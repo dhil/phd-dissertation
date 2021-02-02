@@ -4361,9 +4361,11 @@ appears in items \ref{en:sec-handlers-L18} and
 %
 
 As our starting point we take the regular base calculus, \BCalc{},
-without the recursion operator. We elect to do so to understand
-exactly which primitive effects deep handlers bring into our resulting
-calculus.
+without the recursion operator and extend it with deep handlers to
+yield the calculus \HCalc{}. We elect to do so because deep handlers
+do not require the power of an explicit fixpoint operator to be a
+practical programming abstraction. Building \HCalc{} on top of
+\BCalcRec{} require no change in semantics.
 %
 Deep handlers~\cite{PlotkinP09,Pretnar10} are defined by folds
 (specifically \emph{catamorphisms}~\cite{MeijerFP91}) over computation
@@ -4371,7 +4373,7 @@ trees, meaning they provide a uniform semantics to the handled
 operations of a given computation. In contrast, shallow handlers are
 defined as case-splits over computation trees, and thus, allow a
 nonuniform semantics to be given to operations. We will discuss this
-last point in more detail in Section~\ref{sec:unary-shallow-handlers}.
+point in more detail in Section~\ref{sec:unary-shallow-handlers}.
 
 
 \subsection{Performing effectful operations}
@@ -6973,26 +6975,54 @@ handlers are defined as folds. Consequently, a shallow handler
 application unfolds only a single layer of the computation tree.
 %
 Semantically, the difference between deep and shallow handlers is
-similar to the difference between \citet{Church41} and \citet{Scott62}
-encoding techniques for data types in the sense that the recursion is
-intrinsic to the former, whilst recursion is extrinsic to the latter.
+analogous to the difference between \citet{Church41} and
+\citet{Scott62} encoding techniques for data types in the sense that
+the recursion is intrinsic to the former, whilst recursion is
+extrinsic to the latter.
 %
-Often deep handlers are attractive because they are semantically
-well-behaved and provide appropriate structure for efficient
-implementations using optimisations such as fusion~\cite{WuS15}, and
-as we saw in the previous they codify a wide variety of applications.
+Thus a fixpoint operator is necessary to make programming with shallow
+handlers practical.
+
+Shallow handlers offer more flexibility than deep handlers as they do
+not hard wire a particular recursion scheme. Shallow handlers are
+favourable when catamorphisms are not the natural solution to the
+problem at hand.
 %
-However, they are not always convenient for implementing other
-structural recursion schemes such as mutual recursion.
+A canonical example of when shallow handlers are desirable over deep
+handlers is \UNIX{}-style pipes, where the natural implementation is
+in terms of two mutually recursive functions (specifically
+\emph{mutumorphisms}~\cite{Fokkinga90}), which is convoluted to
+implement with deep
+handlers~\cite{KammarLO13,HillerstromL18,HillerstromLA20}.
+
+In this section we take $\BCalcRec$ as our starting point and extend
+it with shallow handlers, resulting in the calculus $\SCalc$.  The
+calculus borrows some syntax and semantics from \HCalc{}, whose
+presentation will not be duplicated in this section.
+% Often deep handlers are attractive because they are semantically
+% well-behaved and provide appropriate structure for efficient
+% implementations using optimisations such as fusion~\cite{WuS15}, and
+% as we saw in the previous they codify a wide variety of applications.
+% %
+% However, they are not always convenient for implementing other
+% structural recursion schemes such as mutual recursion.
 
 \subsection{Syntax and static semantics}
+The syntax and semantics for effectful operation invocations are the
+same as in $\HCalc$. Handler definitions and applications also have
+the same syntax as in \HCalc{}, although we shall annotate the
+application form for shallow handlers with a superscript $\dagger$ to
+distinguish it from deep handler application.
+%
 \begin{syntax}
 \slab{Computations} &M,N \in \CompCat    &::=& \cdots \mid \ShallowHandle \; M \; \With \; H\\[1ex]
 \end{syntax}
 %
+The static semantics for $\Handle^\dagger$ are the same as the static
+semantics for $\Handle$.
 %
 \begin{mathpar}
-  \inferrule*[Lab=\tylab{Handle}]
+  \inferrule*[Lab=\tylab{Handle^\dagger}]
   {
     \typ{\Gamma}{M : C} \\
     \typ{\Gamma}{H : C \Harrow D}
@@ -7001,7 +7031,7 @@ structural recursion schemes such as mutual recursion.
 
 
 %\mprset{flushleft}
-  \inferrule*[Lab=\tylab{Handler}]
+  \inferrule*[Lab=\tylab{Handler^\dagger}]
     {{\bl
        C = A \eff \{(\ell_i : A_i \opto B_i)_i; R\} \\
        D = B \eff \{(\ell_i : P_i)_i;           R\}\\
@@ -7013,30 +7043,21 @@ structural recursion schemes such as mutual recursion.
     {\typ{\Delta;\Gamma}{H : C \Harrow D}}
 \end{mathpar}
 %
-The \tylab{Handle} rule is simply the application rule for handlers.
-%
-The \tylab{Handler} rule is where most of the work happens. The effect
-rows on the input computation type $C$ and the output computation type
-$D$ must mention every operation in the domain of the handler. In the
-output row those operations may be either present ($\Pre{A}$), absent
-($\Abs$), or polymorphic in their presence ($\theta$), whilst in the
-input row they must be mentioned with a present type as those types
-are used to type operation clauses.
-%
-In each operation clause the resumption $r_i$ must have the same
-return type, $D$, as its handler. In the return clause the binder $x$
-has the same type, $C$, as the result of the input computation.
+The \tylab{Handler^\dagger} rule is remarkably similar to the
+\tylab{Handler} rule. In fact, the only difference is the typing of
+resumptions $r_i$. The codomain of $r_i$ is $C$ rather than $D$,
+meaning that a resumption returns a value of the same type as the
+input computation.
 
 
 \subsection{Dynamic semantics}
 
-We augment the operational semantics with two new reduction rules: one
-for handling return values and another for handling operations.
+As with deep handlers there are two reduction rules.
 %{\small{
 \begin{reductions}
-\semlab{Ret} &
+\semlab{Ret^\dagger} &
   \ShallowHandle \; (\Return \; V) \; \With \; H &\reducesto& N[V/x],  \hfill\text{where } \hret = \{ \Return \; x \mapsto N \} \\
-\semlab{Op} &
+\semlab{Op^\dagger} &
   \ShallowHandle \; \EC[\Do \; \ell \, V] \; \With \; H
     &\reducesto& N[V/p, \lambda y . \, \EC[\Return \; y]/r], \\
 \multicolumn{4}{@{}r@{}}{
@@ -7046,6 +7067,12 @@ for handling return values and another for handling operations.
               \ea
 }
 \end{reductions}%}}%
+%
+The rule \semlab{Ret^\dagger} is the same as the \semlab{Ret} rule for
+deep handlers --- there is no difference in how the return value is
+handled. The \semlab{Op^\dagger} rule is almost the same as the
+\semlab{Op} rule the crucial difference being the construction of the
+resumption $r$.
 
 \subsection{\UNIX{}-style pipes}
 \label{sec:pipes}
@@ -7056,8 +7083,8 @@ as follows.
 \[
     \ba{@{}c@{}}
     \ba{@{}r@{~}c@{~}l@{}l@{~}c@{~}l@{}}
-    \Pipe   &:& \Record{\UnitType \to \alpha ! \{ \Yield : \beta \opto \UnitType; \varepsilon \}, &\UnitType \to \alpha!\{ \Await : \UnitType \opto \beta; \varepsilon \}}          &\to& \alpha!\{\varepsilon\} \\
-    \Copipe &:& \Record{\beta \to \alpha!\{ \Await : \UnitType \opto \beta; \varepsilon\},    &\UnitType \to \alpha!\{ \Yield : \beta \opto \UnitType; \varepsilon\}} &\to& \alpha!\{\varepsilon\} \\
+    \Pipe   &:& \Record{\UnitType \to \alpha \eff \{ \Yield : \beta \opto \UnitType \}, &\UnitType \to \alpha\eff\{ \Await : \UnitType \opto \beta \}}          &\to& \alpha \\
+    \Copipe &:& \Record{\beta \to \alpha\eff\{ \Await : \UnitType \opto \beta\},    &\UnitType \to \alpha\eff\{ \Yield : \beta \opto \UnitType\}} &\to& \alpha \\
     \ea \medskip \\
     \ba{@{}l@{\hspace{-0em}}@{\hspace{-2mm}}l@{}}
     \ba[t]{@{}l@{}}
@@ -7143,7 +7170,7 @@ the parameter $q$.
 \begin{figure}
 \begin{mathpar}
   % Handle
-  \inferrule*[Lab=\tylab{Param-Handle}]
+  \inferrule*[Lab=\tylab{Param\textrm{-}Handle}]
   {
     % \typ{\Gamma}{V : A} \\
     \typ{\Gamma}{M : C} \\
