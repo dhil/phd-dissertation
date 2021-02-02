@@ -7047,12 +7047,14 @@ The \tylab{Handler^\dagger} rule is remarkably similar to the
 \tylab{Handler} rule. In fact, the only difference is the typing of
 resumptions $r_i$. The codomain of $r_i$ is $C$ rather than $D$,
 meaning that a resumption returns a value of the same type as the
-input computation.
+input computation. In general the type $C$ may be different from the
+output type $D$, thus it is evident from this typing rule that the
+handler does not guard invocations of resumptions $r_i$.
 
 
 \subsection{Dynamic semantics}
 
-As with deep handlers there are two reduction rules.
+There are two reduction rules.
 %{\small{
 \begin{reductions}
 \semlab{Ret^\dagger} &
@@ -7072,63 +7074,73 @@ The rule \semlab{Ret^\dagger} is the same as the \semlab{Ret} rule for
 deep handlers --- there is no difference in how the return value is
 handled. The \semlab{Op^\dagger} rule is almost the same as the
 \semlab{Op} rule the crucial difference being the construction of the
-resumption $r$.
+resumption $r$. The resumption consists entirely of the captured
+context $\EC$. Thus an invocation of $r$ does not reinstall its
+handler as in the setting of deep handlers, meaning is up to the
+programmer to supply the handler the next invocation of $\ell$ inside
+$\EC$. This handler may be different from $H$.
 
 \subsection{\UNIX{}-style pipes}
 \label{sec:pipes}
 
-With shallow handlers we define a demand-driven Unix pipeline operator
-as follows.
+A \UNIX{} pipe is an abstraction for streaming communication between
+two processes. Technically, a pipe works by connecting the standard
+out file descriptor of the first process to the standard in file
+descriptor of the second process. The second process can then process
+the output of the first process by reading its own standard in
+file~\cite{RitchieT74}.
+
+We could implement pipes using the file system, however, it would
+require us to implement a substantial amount of bookkeeping as we
+would have to generate and garbage collect a standard out file and a
+standard in file per process. Instead we can represent the files as
+effectful operations and connect them via handlers.
+%
+With shallow handlers we can implement a demand-driven Unix pipeline
+operator as two mutually recursive handlers.
 %
 \[
-    \ba{@{}c@{}}
-    \ba{@{}r@{~}c@{~}l@{}l@{~}c@{~}l@{}}
-    \Pipe   &:& \Record{\UnitType \to \alpha \eff \{ \Yield : \beta \opto \UnitType \}, &\UnitType \to \alpha\eff\{ \Await : \UnitType \opto \beta \}}          &\to& \alpha \\
-    \Copipe &:& \Record{\beta \to \alpha\eff\{ \Await : \UnitType \opto \beta\},    &\UnitType \to \alpha\eff\{ \Yield : \beta \opto \UnitType\}} &\to& \alpha \\
-    \ea \medskip \\
-    \ba{@{}l@{\hspace{-0em}}@{\hspace{-2mm}}l@{}}
-    \ba[t]{@{}l@{}}
-    \Pipe\, \Record{p; c} \defas \\
-    \quad
+\bl
+   \Pipe   : \Record{\UnitType \to \alpha \eff \{ \Yield : \beta \opto \UnitType \}, \UnitType \to \alpha\eff\{ \Await : \UnitType \opto \beta \}}          \to \alpha \\
+   \Pipe\, \Record{p; c} \defas
         \bl
-        \ShallowHandle\; c\,\Unit \;\With\; \\
-        \quad
-        \ba[m]{@{}l@{~}c@{~}l@{}}
-           \Return~x &\mapsto& x \\
-           \Await~\Unit~resume  &\mapsto& \Copipe\,\Record{resume; p} \\
-        \ea \\
-        \el
-    \ea &
-    \ba[t]{@{}l@{}}
-    \Copipe\, \Record{c; p} \defas \\
-        \quad
-        \bl
-        \ShallowHandle\; p\,\Unit \;\With\; \\
-        \quad
-        \ba[m]{@{}l@{~}c@{~}l@{}}
-          \Return~x &\mapsto& x \\
-          \Yield~s~resume &\mapsto& \Pipe\,\Record{resume; \lambda \Unit. c\, s} \\
-        \ea \\
-        \el \\
-   \ea \\
-   \ea \\
-   \ea
+          \ShallowHandle\; c\,\Unit \;\With\; \\
+           ~\ba[m]{@{}l@{~}c@{~}l@{}}
+              \Return~x &\mapsto& x \\
+              \OpCase{\Await}{\Unit}{resume}  &\mapsto& \Copipe\,\Record{resume; p} \\
+            \ea
+        \el\medskip\\
+
+   \Copipe : \Record{\beta \to \alpha\eff\{ \Await : \UnitType \opto \beta\},    \UnitType \to \alpha\eff\{ \Yield : \beta \opto \UnitType\}} \to \alpha \\
+   \Copipe\, \Record{c; p} \defas
+      \bl
+         \ShallowHandle\; p\,\Unit \;\With\; \\
+          ~\ba[m]{@{}l@{~}c@{~}l@{}}
+             \Return~x &\mapsto& x \\
+             \OpCase{\Yield}{y}{resume} &\mapsto& \Pipe\,\Record{resume; \lambda \Unit. c\, y} \\
+           \ea \\
+      \el \\
+\el
 \]
 %
-A pipe takes two suspended computations, a producer $p$ and a consumer
-$c$.
+A $\Pipe$ takes two suspended computations, a producer $p$ and a
+consumer $c$.
 %
 Each of the computations returns a value of type $\alpha$.
 %
 The producer can perform the $\Yield$ operation, which yields a value
 of type $\beta$ and the consumer can perform the $\Await$ operation,
-which correspondingly awaits a value of type $\beta$.
+which correspondingly awaits a value of type $\beta$. The $\Yield$
+operation corresponds to writing to standard out, whilst $\Await$
+corresponds to reading from standard in.
 %
 The shallow handler $\Pipe$ runs the consumer first. If the consumer
 terminates with a value, then the $\Return$ clause is executed and
 returns that value as is. If the consumer performs the $\Await$
 operation, then the $\Copipe$ handler is invoked with the resumption
-of the consumer ($resume$) and the producer ($p$) as arguments.
+of the consumer ($resume$) and the producer ($p$) as arguments. This
+models the effect of blocking the consumer process until the producer
+process provides some data.
 
 The $\Copipe$ function runs the producer to get a value to feed to the
 waiting consumer.
@@ -7137,6 +7149,46 @@ waiting consumer.
 If the producer performs the $\Yield$ operation, then $\Pipe$ is
 invoked with the resumption of the producer along with a thunk that
 applies the consumer's resumption to the yielded value.
+%
+For aesthetics, we define an infix alias for pipe:
+$p \mid c \defas \Pipe\,\Record{p;c}$.
+%
+\[
+  \iter : \Record{\alpha \to \beta; \List~\alpha} \to \UnitType
+\]
+%
+%
+\[
+  \bl
+    \cat : \String \to \UnitType \eff \{\FileIO;\Yield : \Char \opto \UnitType;\Exit : \Int \opto \ZeroType\}\\
+    \cat~fname \defas
+      \bl
+        \Case\;\Do\;\UOpen~fname~\{\\
+        ~\ba[t]{@{~}l@{~}c@{~}l}
+           \None &\mapsto& \exit\,1\\
+           \Some~ino &\mapsto& \bl \Case\;\Do\;\URead~ino~\{\\
+                                  ~\ba[t]{@{~}l@{~}c@{~}l}
+                                     \None &\mapsto& \exit\,1\\
+                                     \Some~cs &\mapsto& \iter\,\Record{\lambda c.\Do\;\Yield~c;cs} \}\}
+                                   \ea
+                               \el
+         \ea
+      \el
+  \el
+\]
+%
+This is an example of inversion of control.
+%
+\[
+  \bl
+    \grep : \String \to \UnitType \eff \{\Await : \UnitType \opto \Char;\Yield : \Char \opto \UnitType\}\\
+    \grep~str \defas
+      \bl
+        \match\,\Record{\Do\;\Await~\Unit; str; \nil}
+      \el
+  \el
+\]
+%
 
 \section{Parameterised handlers}
 \label{sec:unary-parameterised-handlers}
