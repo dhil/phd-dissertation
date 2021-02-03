@@ -7151,7 +7151,7 @@ invoked with the resumption of the producer along with a thunk that
 applies the consumer's resumption to the yielded value.
 %
 For aesthetics, we define a right-associative infix alias for pipe:
-$p \mid c \defas \Pipe\,\Record{p;c}$.
+$p \mid c \defas \lambda\Unit.\Pipe\,\Record{p;c}$.
 
 Let us put the pipe operator to use by performing a simple string
 frequency analysis on a file. We will implement the analysis as a
@@ -7245,6 +7245,16 @@ the character was nil in which case the process
 terminates. Alternatively, if the character was a newline the function
 applies itself recursively with $n$ decremented by one. Otherwise it
 applies itself recursively with the original $n$.
+
+The $\head$ filter does not transform the shape of its data stream. It
+both awaits and yields a character. However, the awaits and yields
+need not operate on the same type within the same filter, meaning we
+can implement a filter that transforms the shape of the data. Let us
+implement a variation of the GNU coreutil \emph{paste} which merges
+lines of files~\cite[Section~8.2]{MacKenzieMPPBYS20}. Our
+implementation will join characters in its input stream into strings
+separated by spaces and newlines such that the string frequency
+analysis utility need not operate on the low level of characters.
 %
 \[
   \bl
@@ -7264,6 +7274,33 @@ applies itself recursively with the original $n$.
   \el
 \]
 %
+The heavy-lifting is delegated to the recursive function $paste'$
+which accepts two parameters: 1) the next character in the input
+stream, and 2) a string buffer for building the output string. The
+function is initially applied to the first character from the stream
+(returned by the invocation of $\Await$) and the empty string
+buffer. The function $paste'$ is defined by pattern matching on the
+character parameter. The first three definitions handle the special
+cases when the received character is nil, newline, and space,
+respectively. If the character is nil, then the function yields the
+contents of the string buffer followed by a string with containing
+only the nil character. If the character is a newline, then the
+function yields the string buffer followed by a string containing the
+newline character. Afterwards the function applies itself recursively
+with the next character from the input stream and an empty string
+buffer. The case when the character is a space is similar to the
+previous case except that it does not yield a newline string. The
+final definition simply concatenates the character onto the string
+buffer and recurses.
+
+Another useful filter is the GNU stream editor abbreviated
+\emph{sed}~\cite{PizziniBMG20}. It is an advanced text processing
+editor, whose complete functionality we will not attempt to replicate
+here. We will just implement the ability to replace a string by
+another. This will be useful for normalising the input stream to the
+frequency analysis utility, e.g. decapitalise words, remove unwanted
+characters, etc.
+%
 \[
   \bl
     \sed : \Record{\String;\String} \to \UnitType \eff \{\Await : \UnitType \opto \String;\Yield : \String \opto \UnitType\}\\
@@ -7275,6 +7312,16 @@ applies itself recursively with the original $n$.
       \el
   \el
 \]
+%
+The function $\sed$ takes two string arguments. The first argument is
+the string to be replaced in the input stream, and the second argument
+is the replacement. The function first awaits the next string from the
+input stream, then it checks whether the received string is the same
+as $target$ in which case it yields the replacement $str'$ and
+recurses. Otherwise it yields the received string and recurses.
+
+Now let us implement the string frequency analysis utility. It work on
+strings and count the occurrences of each string in the input stream.
 %
 \[
   \bl
@@ -7300,19 +7347,49 @@ applies itself recursively with the original $n$.
   \el
 \]
 %
-\[
-  \bl
-    \intToString : \Int \to \String
-  \el
-\]
+The auxiliary recursive function $freq'$ implements the analysis. It
+takes two arguments: 1) the next string from the input stream, and 2)
+a table to keep track of how many times each string has occurred. The
+table is implemented as an association list indexed by strings. The
+function is initially applied to the first string from the input
+stream and the empty list. The function is defined by pattern matching
+on the string argument. The first definition handles the case when the
+input stream has been exhausted in which case the function yields the
+table. The other case is responsible for updating the entry associated
+with the string $str$ in the table $tbl$. There are two subcases to
+consider: 1) the string has not been seen before, thus a new entry
+will have to created; or 2) the string already has an entry in the
+table, thus the entry will have to be updated. We handle both cases
+simultaneously by making use of the handler $\faild$, where the
+default value accounts for the first subcase, and the computation
+accounts for the second. The computation attempts to lookup the entry
+associated with $str$ in $tbl$, if the lookup fails then $\faild$
+returns the default value, which is the original table augmented with
+an entry for $str$. If an entry already exists it gets incremented by
+one. The resulting table $tbl'$ is supplied to a recursive application
+of $freq'$.
+
+We need one more building block to complete the pipeline. The utility
+$\freq$ returns a value of type $\List~\Record{\String;\Int}$, we need
+a utility to render the value as a string in order to write it to a
+file.
 %
 \[
   \bl
     \printTable : \UnitType \to \UnitType \eff \{\Await : \UnitType \opto \List\,\Record{\String;\Int}\}\\
     \printTable\,\Unit \defas
-        \dec{map}\,\Record{\lambda\Record{s;i}.s \concat \strlit{:} \concat \intToString~i \concat \strlit{;};\Do\;\Await~\Unit}
+        \map\,\Record{\lambda\Record{s;i}.s \concat \strlit{:} \concat \intToString~i \concat \strlit{;};\Do\;\Await~\Unit}
   \el
 \]
+%
+The function performs one invocation of $\Await$ to receive the table,
+and then performs a $\map$ over the table. The function argument to
+$\map$ builds a string from the string-integer pair.
+%
+Here we make use of an auxiliary function,
+$\intToString : \Int \to \String$, that turns an integer into a
+string. The definition of the function is omitted here for brevity.
+%
 %
 % \[
 %   \bl
@@ -7343,13 +7420,14 @@ applies itself recursively with the original $n$.
          \qquad\qquad\status\,(\lambda\Unit.
                   \ba[t]{@{}l}
                   \quoteHamlet~\redirect~\strlit{hamlet};\\
-                  \Let\;cs \revto
+                  \Let\;p \revto
                   \bl
-                    (\lambda\Unit.\cat~\strlit{hamlet}) \mid (\lambda\Unit.\head~2) \mid \paste\\
-                    \mid (\lambda\Unit.\sed\,\Record{\strlit{be,};\strlit{live}}) \mid (\lambda\Unit.\sed\,\Record{\strlit{To};\strlit{to}})\\
+                    ~~(\lambda\Unit.\cat~\strlit{hamlet}) \mid (\lambda\Unit.\head~2) \mid \paste\\
+                    \mid (\lambda\Unit.\sed\,\Record{\strlit{be,};\strlit{be}}) \mid (\lambda\Unit.\sed\,\Record{\strlit{To};\strlit{to}})\\
+                    \mid (\lambda\Unit.\sed\,\Record{\strlit{question:};\strlit{question}})\\
                     \mid \freq \mid \printTable
                   \el\\
-                  \In\;(\lambda\Unit.\echo~cs)~\redirect~\strlit{analysis})})))}
+                  \In\;(\lambda\Unit.\echo~(p\,\Unit))~\redirect~\strlit{analysis})})))}
                  \ea
      \el \smallskip\\
      \reducesto^+&
@@ -7368,8 +7446,8 @@ applies itself recursively with the original $n$.
              \ba[t]{@{}l}
                \Record{2;
                  \ba[t]{@{}l@{}l}
-                   \texttt{"}&\texttt{to:2;live:2;or:1;not:1;\nl:2;that:1;is:1}\\
-                             &\texttt{the:1;question::1;"}},
+                   \texttt{"}&\texttt{to:2;be:2;or:1;not:1;\nl:2;that:1;is:1}\\
+                             &\texttt{the:1;question:1;"}},
                  \ea\\
                \Record{1;
                  \ba[t]{@{}l@{}l}
