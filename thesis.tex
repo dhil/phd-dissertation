@@ -7384,11 +7384,11 @@ file.
 %
 The function performs one invocation of $\Await$ to receive the table,
 and then performs a $\map$ over the table. The function argument to
-$\map$ builds a string from the string-integer pair.
+$\map$ builds a string from the provided string-integer pair.
 %
 Here we make use of an auxiliary function,
 $\intToString : \Int \to \String$, that turns an integer into a
-string. The definition of the function is omitted here for brevity.
+string. The definition of this function is omitted here for brevity.
 %
 %
 % \[
@@ -7409,6 +7409,11 @@ string. The definition of the function is omitted here for brevity.
 %       \el
 %   \el
 % \]
+%
+
+We now have all the building blocks to construct a pipeline for
+performing string frequency analysis on a file. The following performs
+the analysis on the two first lines of Hamlet quote.
 %
 \[
   \ba{@{~}l@{~}l}
@@ -7463,35 +7468,48 @@ string. The definition of the function is omitted here for brevity.
   \ea
 \]
 %
-%
-% \[
-%   \bl
-%     \grep : \String \to \UnitType \eff \{\Await : \UnitType \opto \Char;\Yield : \Char \opto \UnitType\}\\
-%     \grep~str \defas
-%       \bl
-%         \match\,\Record{\Do\;\Await~\Unit; str; \nil}
-%       \el
-%   \el
-% \]
-%
+The pipeline gets bound to the variable $p$. The pipeline starts with
+call to $\cat$ which streams the contents of the file
+$\strlit{hamlet}$ to the process $\head$ applied to $2$, meaning it
+will only forward the first two lines of the file to its
+successor. The third process $\paste$ receives the first two lines one
+character at a time and joins the characters into strings delimited by
+whitespace. The next three instances of $\sed$ perform some string
+normalisation. The first instance removes the trailing comma from the
+string $\strlit{be,}$; the second normalises the capitalisation of the
+word ``to''; and the third removes the trailing colon from the string
+$\strlit{question:}$. The seventh process performs the frequency
+analysis and outputs a table, which is being rendered as a string by
+the eighth process. The output of the pipeline is supplied to the
+$\echo$ utility whose output is being redirected to a file named
+$\strlit{analysis}$. Contents of the file reside in location $2$ in
+the data region. Here we can see that the analysis has found that the
+words ``to'', ``be'', and the newline character ``$\nl$'' appear two
+times each, whilst the other words appear once each.
 
 \section{Parameterised handlers}
 \label{sec:unary-parameterised-handlers}
 
-Parameterised handlers are a useful idiom for handling stateful
-computations.
+Parameterised handlers are a variation of ordinary deep handlers with
+an embedded functional state cell. This state cell is only accessible
+locally within the handler. The use of state within the handler is
+opaque to both the ambient context and the context of the computation
+being handled. Semantically, parameterised handlers are defined as
+folds with state threading over computation trees.
+
+We take the deep handler calculus $\HCalc$ as our starting point and
+extend it with parameterised handlers to yield the calculus $\HPCalc$.
 
 \subsection{Syntax and static semantics}
+In addition to a computation, a parameterised handler also take a
+value as argument. This argument is the initial value of the state
+cell embedded inside the handler.
 %
-\begin{figure}
-  \begin{syntax}
-    & F          &::=& \cdots \mid \Record{C; A} \Rightarrow^\param D\\
-    & \delta     &::=& \cdots \mid \param\\
-    & M,N        &::=& \cdots \mid \ParamHandle\; M \;\With\; H^\param(W)\\
-    & H^\param   &::=& q^A.~H
-  \end{syntax}
-  \caption{Syntax extensions for parameterised handlers.}\label{fig:param-syntax}
-\end{figure}
+\begin{syntax}
+\slab{Handler\textrm{ }types}  & F          &::=& \cdots \mid \Record{C; A} \Rightarrow^\param D\\
+\slab{Computations}   & M,N        &::=& \cdots \mid \ParamHandle\; M \;\With\; H^\param(W)\\
+\slab{Parameterised\textrm{ }definitions}   & H^\param   &::=& q^A.~H
+\end{syntax}
 %
 Figure~\ref{fig:param-syntax} extends the syntax of
 $\HCalc$ with parameterised handlers. Syntactically a parameterised
@@ -7504,20 +7522,17 @@ definition is applied to a value $W$, which is the initial value of
 the parameter $q$.
 
 %
-\begin{figure}
 \begin{mathpar}
   % Handle
-  \inferrule*[Lab=\tylab{Param\textrm{-}Handle}]
+  \inferrule*[Lab=\tylab{Handle^\param}]
   {
     % \typ{\Gamma}{V : A} \\
     \typ{\Gamma}{M : C} \\
     \typ{\Gamma}{W : A} \\
-    \typ{\Gamma}{H^\param : \Record{C; A} \Harrow D}
+    \typ{\Gamma}{H^\param : \Record{C; A} \Harrow^\param D}
    }
    {\Gamma \vdash \ParamHandle \; M \; \With\; H^\param(W) : D}
-\end{mathpar}
-~
-\begin{mathpar}
+
 % Parameterised handler
   \inferrule*[Lab=\tylab{Handler^\param}]
     {{\bl
@@ -7531,9 +7546,6 @@ the parameter $q$.
     {\typ{\Delta;\Gamma}{(q^{A'} . H) : \Record{C;A'} \Harrow^\param D}}
 \end{mathpar}
 %%
-  \caption{Typing rules for parameterised handlers.}\label{fig:param-static-semantics}
-\end{figure}
-%
 We require two additional rules to type parameterised handlers. The
 rules are given in Figure~\ref{fig:param-static-semantics}. The main
 differences between the \tylab{Handler} and \tylab{Handler^\param} are
