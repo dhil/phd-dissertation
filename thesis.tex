@@ -7150,13 +7150,29 @@ If the producer performs the $\Yield$ operation, then $\Pipe$ is
 invoked with the resumption of the producer along with a thunk that
 applies the consumer's resumption to the yielded value.
 %
-For aesthetics, we define an infix alias for pipe:
+For aesthetics, we define a right-associative infix alias for pipe:
 $p \mid c \defas \Pipe\,\Record{p;c}$.
+
+Let us put the pipe operator to use by performing a simple string
+frequency analysis on a file. We will implement the analysis as a
+collection of small single-purpose utilities which we connect by way
+of pipes. We will build a collection of small utilities. We will make
+use of two standard list iteration functions.
 %
 \[
-  \iter : \Record{\alpha \to \beta; \List~\alpha} \to \UnitType
+  \ba{@{~}l@{~}c@{~}l}
+    \map   &:& \Record{\alpha \to \beta;\List~\alpha} \to \List~\beta\\
+    \iter  &:& \Record{\alpha \to \beta; \List~\alpha} \to \UnitType
+  \ea
 \]
 %
+The function $\map$ applies its function argument to each element of
+the provided list in left-to-right order and returns the resulting
+list. The function $\iter$ is simply $\map$ where the resulting list
+is ignored. Our first utility is a simplified version of the GNU
+coreutil utility \emph{cat}, which copies the contents of files to
+standard out~\cite[Section~3.1]{MacKenzieMPPBYS20}. Our version will
+open a single file and stream its contents one character at a time.
 %
 \[
   \bl
@@ -7169,7 +7185,7 @@ $p \mid c \defas \Pipe\,\Record{p;c}$.
            \Some~ino &\mapsto& \bl \Case\;\Do\;\URead~ino~\{\\
                                   ~\ba[t]{@{~}l@{~}c@{~}l}
                                      \None &\mapsto& \exit\,1\\
-                                     \Some~cs &\mapsto& \iter\,\Record{\lambda c.\Do\;\Yield~c;cs} \}\}
+                                     \Some~cs &\mapsto& \iter\,\Record{\lambda c.\Do\;\Yield~c;cs}; \Do\;\Yield~\charlit{\textnil} \}\}
                                    \ea
                                \el
          \ea
@@ -7177,17 +7193,208 @@ $p \mid c \defas \Pipe\,\Record{p;c}$.
   \el
 \]
 %
-This is an example of inversion of control.
+The last line is the interesting line of code. The contents of the
+file gets bound to $cs$, which is supplied as an argument to the list
+iteration function $\iter$. The function argument yields each
+character. Each invocation of $\Yield$ effectively suspends the
+iteration until the next character is awaited.
+%
+This is an example of inversion of control as the iterator $\iter$ has
+been turned into a generator.
+%
+We use the character $\textnil$ to identify the end of a stream. It is
+essentially a character interpretation of the empty list (file)
+$\nil$.
+
+The $\cat$ utility processes the entire contents of a given
+file. However, we may only be interested in some parts. The GNU
+coreutil \emph{head} provides a way to process only a fixed amount of
+lines and ignore subsequent
+lines~\cite[Section~5.1]{MacKenzieMPPBYS20}.
+%
+We will implement a simplified version of this utility which lets us
+keep the first $n$ lines of a stream and discard the remainder. This
+process will act as a \emph{filter}, which is an intermediary process
+in a pipeline that both awaits and yields data.
 %
 \[
   \bl
-    \grep : \String \to \UnitType \eff \{\Await : \UnitType \opto \Char;\Yield : \Char \opto \UnitType\}\\
-    \grep~str \defas
+  \head : \Int \to \UnitType \eff \{\Await : \UnitType \opto \Char;\Yield : \Char \opto \UnitType\}\\
+  \head~n \defas
+    \bl
+    \If\;n = 0\;\Then\;\Do\;\Yield~\charlit{\textnil}\\
+    \Else\;
       \bl
-        \match\,\Record{\Do\;\Await~\Unit; str; \nil}
+        \Let\;c \revto \Do\;\Await~\Unit\;\In\\
+        \Do\;\Yield~c;\\
+        \If\;c = \charlit{\textnil}\;\Then\;\Unit\\
+        \Else\;\If\;c = \charlit{\nl}\;\Then\;\head~(n-1)\\
+        \Else\;\head~n
+     \el
+    \el
+  \el
+\]
+%
+The function first checks whether more lines need to be processed. If
+$n$ is zero, then it yields the nil character to signify the end of
+stream. This has the effect of ignoring any future instances of
+$\Yield$ in the input stream. Otherwise it awaits a character. Once a
+character has been received the function yields the character in order
+to include it in the output stream. After the yield, it checks whether
+the character was nil in which case the process
+terminates. Alternatively, if the character was a newline the function
+applies itself recursively with $n$ decremented by one. Otherwise it
+applies itself recursively with the original $n$.
+%
+\[
+  \bl
+    \paste : \UnitType \to \UnitType \eff \{\Await : \UnitType \opto \Char;\Yield : \String \opto \UnitType\}\\
+    \paste\,\Unit \defas
+      \bl
+        paste'\,\Record{\Do\;\Await~\Unit;\strlit{}}\\
+        \where
+          \ba[t]{@{~}l@{~}c@{~}l}
+             paste'\,\Record{\charlit{\textnil};str} &\defas& \Do\;\Yield~str;\Do\;\Yield~\strlit{\textnil}\\
+             paste'\,\Record{\charlit{\nl};str} &\defas& \Do\;\Yield~str;\Do\;\Yield~\strlit{\nl};paste'\,\Record{\Do\;\Await~\Unit;\strlit{}}\\
+             paste'\,\Record{\charlit{~};str} &\defas& \Do\;\Yield~str;paste'\,\Record{\Do\;\Await~\Unit;\strlit{}}\\
+             paste'\,\Record{c;str} &\defas& paste'\,\Record{\Do\;\Await~\Unit;str \concat [c]}
+
+          \ea
       \el
   \el
 \]
+%
+\[
+  \bl
+    \sed : \Record{\String;\String} \to \UnitType \eff \{\Await : \UnitType \opto \String;\Yield : \String \opto \UnitType\}\\
+    \sed\,\Record{target;str'} \defas
+      \bl
+        \Let\;str \revto \Do\;\Await~\Unit\;\In\\
+        \If\;str = target\;\Then\;\Do\;\Yield~str';\sed\,\Record{target;str'}\\
+        \Else\;\Do\;\Yield~str;\sed\,\Record{target;str'}
+      \el
+  \el
+\]
+%
+\[
+  \bl
+    \freq : \UnitType \to \UnitType \eff \{\Await : \UnitType \opto \String;\Yield : \List\,\Record{\String;\Int} \opto \UnitType\}\\
+    \freq\,\Unit \defas
+      \bl
+        freq'\,\Record{\Do\;\Await~\Unit;\nil}\\
+        \where
+          \ba[t]{@{~}l@{~}c@{~}l}
+            freq'\,\Record{\strlit{\textnil};tbl} &\defas& \Do\;\Yield~tbl\\
+            freq'\,\Record{str;tbl} &\defas&
+              \bl
+                \Let\;tbl' \revto \faild\,\Record{
+                \bl
+                  \Record{str;1} \cons tbl; \lambda\Unit.\\
+                  \Let\; sum \revto \lookup\,\Record{str;tbl}\;\In\\
+                  \modify\,\Record{str;sum+1;tbl}}
+                \el\\
+                \In\;freq'\,\Record{\Do\;\Await~\Unit;tbl'}
+              \el
+          \ea
+      \el
+  \el
+\]
+%
+\[
+  \bl
+    \intToString : \Int \to \String
+  \el
+\]
+%
+\[
+  \bl
+    \printTable : \UnitType \to \UnitType \eff \{\Await : \UnitType \opto \List\,\Record{\String;\Int}\}\\
+    \printTable\,\Unit \defas
+        \dec{map}\,\Record{\lambda\Record{s;i}.s \concat \strlit{:} \concat \intToString~i \concat \strlit{;};\Do\;\Await~\Unit}
+  \el
+\]
+%
+% \[
+%   \bl
+%     \wc : \UnitType \to \UnitType \eff \{\Await : \UnitType \opto \Char;\Yield : \Int \opto \UnitType\}\\
+%     \wc\,\Unit \defas
+%       \bl
+%         \Do\;\Yield~(wc'\,\Unit)\\
+%         \where~
+%           \bl
+%           wc' \Unit \defas
+%             \bl
+%               \Let\;c \revto \Do\;\Await~\Unit\;\In\\
+%               \If\;c = \charlit{\textnil}\;\Then\;0\\
+%               \Else\; 1 + wc'~\Unit
+%               \el
+%           \el
+%       \el
+%   \el
+% \]
+%
+\[
+  \ba{@{~}l@{~}l}
+    &\bl
+    \runState\,\Record{\dec{fs}_0;\fileIO\,(\lambda\Unit.\\
+         \quad\timeshare\,(\lambda\Unit.\\
+         \qquad\dec{interruptWrite}\,(\lambda\Unit.\\
+         \qquad\quad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
+         \qquad\qquad\status\,(\lambda\Unit.
+                  \ba[t]{@{}l}
+                  \quoteHamlet~\redirect~\strlit{hamlet};\\
+                  \Let\;cs \revto
+                  \bl
+                    (\lambda\Unit.\cat~\strlit{hamlet}) \mid (\lambda\Unit.\head~2) \mid \paste\\
+                    \mid (\lambda\Unit.\sed\,\Record{\strlit{be,};\strlit{live}}) \mid (\lambda\Unit.\sed\,\Record{\strlit{To};\strlit{to}})\\
+                    \mid \freq \mid \printTable
+                  \el\\
+                  \In\;(\lambda\Unit.\echo~cs)~\redirect~\strlit{analysis})})))}
+                 \ea
+     \el \smallskip\\
+     \reducesto^+&
+     \bl
+      \Record{
+       \ba[t]{@{}l}
+       [0];\\
+       \Record{
+         \ba[t]{@{}l}
+           dir=[\Record{\strlit{analysis};2},\Record{\strlit{hamlet};1},
+                \Record{\strlit{stdout};0}];\\
+           ilist=[\Record{2;\Record{lno=1;loc=2}},
+                  \Record{1;\Record{lno=1;loc=1}},
+                  \Record{0;\Record{lno=1;loc=0}}];\\
+           dreg=[
+             \ba[t]{@{}l}
+               \Record{2;
+                 \ba[t]{@{}l@{}l}
+                   \texttt{"}&\texttt{to:2;live:2;or:1;not:1;\nl:2;that:1;is:1}\\
+                             &\texttt{the:1;question::1;"}},
+                 \ea\\
+               \Record{1;
+                 \ba[t]{@{}l@{}l}
+                   \texttt{"}&\texttt{To be, or not to be,\nl{}that is the question:\nl{}}\\
+                             &\texttt{Whether 'tis nobler in the mind to suffer\nl{}"}},
+                 \ea\\
+                 \Record{0; \strlit{}}]; lnext=3; inext=3}}\\
+           \ea
+         \ea
+       \ea\\
+       : \Record{\List~\Int; \FileSystem}
+     \el
+  \ea
+\]
+%
+%
+% \[
+%   \bl
+%     \grep : \String \to \UnitType \eff \{\Await : \UnitType \opto \Char;\Yield : \Char \opto \UnitType\}\\
+%     \grep~str \defas
+%       \bl
+%         \match\,\Record{\Do\;\Await~\Unit; str; \nil}
+%       \el
+%   \el
+% \]
 %
 
 \section{Parameterised handlers}
