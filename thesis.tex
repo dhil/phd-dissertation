@@ -7541,7 +7541,7 @@ the parameter $q$.
        H = \{\Return\;x \mapsto M\} \uplus \{ \OpCase{\ell_i}{p_i}{r_i} \mapsto N_i \}_i
        \el}\\\\
        \typ{\Delta;\Gamma, q : A', x : A}{M : D}\\\\
-       [\typ{\Delta;\Gamma,q : A', p_i : A_i, r_i : B_i \to D}{N_i : D}]_i
+       [\typ{\Delta;\Gamma,q : A', p_i : A_i, r_i : \Record{B_i;A'} \to D}{N_i : D}]_i
     }
     {\typ{\Delta;\Gamma}{(q^{A'} . H) : \Record{C;A'} \Harrow^\param D}}
 \end{mathpar}
