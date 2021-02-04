@@ -7619,19 +7619,89 @@ passing as the value of $q'$ becomes available upon the next
 activation of the handler.
 
 \subsection{Process synchronisation}
+%
+In Section~\ref{sec:tiny-unix-time} we implemented a time-sharing
+system on top of a simple process model. However, the model lacks a
+process synchronisation facility. It is somewhat difficult to cleanly
+add support for synchronisation to the implementation as it is in
+Section~\ref{sec:tiny-unix-time}. Firstly, because the interface of
+$\Fork : \UnitType \to \Bool$ only gives us two possible process
+identifiers: $\True$ and $\False$, meaning at any point we can only
+identify two processes. Secondly, and more importantly, some state is
+necessary to implement synchronisation, but the current implementation
+of process scheduling is split amongst two handlers and one auxiliary
+function, all of which need to coordinate their access and
+manipulation of the state cell. One option is to use some global state
+via the interface from Section~\ref{sec:tiny-unix-io}, which has the
+advantage of making the state manipulation within the scheduler
+modular, but it also has the disadvantage of exposing the state as an
+implementation detail --- and it comes with all the caveats of
+programming with global state. A parameterised handler provides an
+elegant solution, which lets us internalise the state within the
+scheduler.
 
+We will see how a parameterised handler enables us to implement a
+richer process model supporting synchronisation with ease. The effect
+signature of process concurrency is as follows.
+%
 \[
   \Co \defas \{\UFork : \UnitType \opto \Int; \Wait : \Int \opto \UnitType; \Interrupt : \UnitType \opto \UnitType\}
 \]
+%
+The operation $\UFork$ models \UNIX{}
+\emph{fork}~\cite{RitchieT74}. It is generalisation of the $\Fork$
+operation from Section~\ref{sec:tiny-unix-time}. The operation is
+intended to return twice: once to the parent process with a unique
+process identifier for the child process, and a second time to the
+child process with the zero identifier. The $\Wait$ operation takes a
+process identifier as argument and then blocks the invoking process
+until the process associated with the provided identifier has
+completed. The $\Interrupt$ operation is the same as in
+Section~\ref{sec:tiny-unix-time}; it temporarily suspends the invoking
+process in order to let another process run.
 
+The main idea is to use the state cell of a parameterised handler to
+manage the process queue and to keep track of the return values of
+completed processes. The scheduler will return the list of values when
+there are no more processes to be run. The process queue will consist
+of reified processes, which we will represent using parameterised
+resumptions. To make the type signatures understandable we will make
+use of three mutually recursive type aliases.
+%
 \[
   \ba{@{~}l@{~}l@{~}c@{~}l}
-    \Proc   &\alpha~\varepsilon   &\defas& \Sstate \to \List~\alpha \eff \varepsilon\\
+    \Proc   &\alpha~\varepsilon   &\defas& \Sstate~\alpha~\varepsilon \to \List~\alpha \eff \varepsilon\\
     \Pstate &\alpha~\varepsilon &\defas& [\Ready:\Proc~\alpha~\varepsilon;\Blocked:\Record{\Int;\Proc~\alpha~\varepsilon}]\\
     \Sstate &\alpha~\varepsilon &\defas& \Record{q:\List\,\Record{\Int;\Pstate~\alpha~\varepsilon};done:\List~\alpha;pid:\Int;pnext:\Int}\\
   \ea
 \]
+%
+The $\Proc$ alias is the type of reified processes. It is defined as a
+function that takes the current scheduler state and returns a list of
+$\alpha$s. This is almost the type of a parameterised resumption as
+the only thing missing is the a component for the interpretation of an
+operation.
+%
+The second alias $\Pstate$ enumerates the possible process
+states. Either a process is \emph{ready} to be run or it is
+\emph{blocked} on some other process. The payload of the $\Ready$ tag
+is the process to run. The $\Blocked$ tag is parameterised by a pair,
+where the first component is the identifier of the process that is
+being waited on and the second component is the process to be
+continued when the other process has completed.
+%
+The third alias $\Sstate$ is the type of scheduler state. It is a
+quadruple, where the label $q$ is the process queue. It is implemented
+as an association list indexed by process identifiers. The label
+$done$ is used to store the return values of completed processes. The
+label $pid$ is used to remember the identifier of currently executing
+process, and finally $pnext$ is used to compute a unique identifier
+for new processes.
 
+We will abstract some of the scheduling logic into an auxiliary
+function $\runNext$, which is responsible for dequeuing and running
+the next process from the queue.
+%
 \[
   \bl
     \runNext : \Sstate~\alpha~\varepsilon \to \List~\alpha \eff \varepsilon\\
@@ -7654,7 +7724,20 @@ activation of the handler.
       \el
   \el
 \]
-
+%
+The function operates on the scheduler state. It first performs a case
+split on the process queue. There are three cases to consider.
+\begin{enumerate}
+  \item The queue is empty. Then the function returns the list $done$,
+    which is the list of process return values.
+  \item The next process is blocked. Then the process is moved to the
+    end of the queue, and the function is applied recursively to the
+    scheduler state with the updated queue.
+  \item The next process is ready. Then the $q$ and $pid$ fields
+    within the scheduler state are updated accordingly. The updated
+    state is supplied as argument to the reified process.
+\end{enumerate}
+%
 \[
   \bl
     \scheduler : \Record{\alpha \eff \{\Co;\varepsilon\};\Sstate~\alpha~\varepsilon} \Harrow^\param \List~\alpha \eff \varepsilon\\
