@@ -7585,47 +7585,79 @@ handling the return of a computation is as follows.
 Both the return value $V$ and the parameter value $W$ are substituted
 into the return case body $N$ for their respective binders.
 
-\subsection{Process scheduling}
+\subsection{Process synchronisation}
 
 \[
-  \Co \defas \{\UFork : \UnitType \opto \Int; \Interrupt : \UnitType \opto \UnitType; \Wait : \Int \opto \UnitType\}
+  \Co \defas \{\UFork : \UnitType \opto \Int; \Wait : \Int \opto \UnitType; \Interrupt : \UnitType \opto \UnitType;\}
+\]
+
+\[
+  \ba{@{~}l@{~}l@{~}c@{~}l}
+    \Proc   &\alpha~\varepsilon   &\defas& \Sstate \to \alpha \eff \varepsilon\\
+    \Pstate &\alpha~\varepsilon &\defas& [\Ready:\Proc~\alpha~\varepsilon;\Blocked:\Record{\Int;\Proc~\alpha~\varepsilon}]\\
+    \Sstate &\alpha~\varepsilon &\defas& \Record{q:\List\,\Record{\Int;\Pstate~\alpha~\varepsilon};done:\List~\alpha;pid:\Int;pnext:\Int}\\
+  \ea
 \]
 
 \[
   \bl
-    \dec{SchedState}~\alpha~\varepsilon \defas \Record{\List\,(\dec{Process}~\alpha~\varepsilon);\List~\alpha;\Int;\Int}\\
-    \dec{Process}~\alpha~\varepsilon \defas \dec{SchedState} \to \alpha \eff \varepsilon
+    \runNext : \Sstate~\alpha~\varepsilon \to \List~\alpha \eff \varepsilon\\
+    \runNext~st \defas
+      \bl
+        \Case\;st.q\;\{\\
+        ~\bl
+           \nil \mapsto st.done\\
+           \Record{pid;\Blocked\,\Record{pid';resume}} \cons q' \mapsto\\
+             \quad\bl
+               \Let\;st' \revto \Record{st \;\With\; q = q' \concat [\Record{pid;\Blocked\,\Record{pid';resume}}]}\;\In\\
+               \runNext~st'
+             \el\\
+           \Record{pid;\Ready~resume} \cons q' \mapsto\\
+             \quad\bl
+               \Let\;st' \revto \Record{st \;\With\; q = q'; pid = pid}\;\In\\
+               resume~st'\,\}
+             \el
+         \el
+      \el
   \el
 \]
 
 \[
   \bl
-    \scheduler : \Record{\alpha \eff \Co;\dec{SchedState}~\alpha~\Co} \Harrow^\param \List~\alpha\\
+    \scheduler : \Record{\alpha \eff \{\Co;\varepsilon\};\Sstate~\alpha~\varepsilon} \Harrow^\param \List~\alpha \eff \varepsilon\\
     \scheduler \defas
     \bl
-    \Record{ps;qs;done;pid;nextpid}.\\
+    st.\\
       \bl
-      \Return\;x \mapsto \Case\;qs \concat ps\;\{\\
+      \Return\;x \mapsto \\
       \quad\bl
-          \nil       \mapsto x \cons done\\
-          \Record{pid';qs';resume} \cons ps' \mapsto resume\,\Record{ps';qs';done;pid;nextpid}\}
-        \el\\
-          \OpCase{\UFork}{\Unit}{resume} \mapsto\\
-            \quad\bl
-              \Let\;ps' \revto \Record{nextpid;\nil;\lambda s.resume~\Record{0;s}} \cons ps\;\In\\
-              resume\,\Record{nextpid;\Record{ps';qs;done;pid;nextpid+1}}
-            \el\\
-         \OpCase{\Interrupt}{\Unit}{resume} \mapsto\\
-           \quad\bl\Let\;\Record{pid';qs';resume'} \cons ps' \revto ps \concat [\Record{pid;qs;\lambda s.resume\,\Record{\Unit;s}}]\;\In\\
-             resume'\,\Record{ps';qs';done;pid';nextpid}
+             \Let\;done' \revto x \cons st.done\;\In\\
+             \runNext\,\Record{st\;\With\;done = done'}
+           \el\\
+      \OpCase{\UFork}{\Unit}{resume} \mapsto\\
+      \quad\bl
+             \Let\;resume' \revto \lambda st.resume\,\Record{0;st}\;\In\\
+             \Let\;pid \revto st.pnext \;\In\\
+             \Let\;q' \revto  st.q \concat [\Record{pid;\Ready~resume'}]\;\In\\
+             \Let\;st' \revto \Record{st\;\With\;q = q'; pnext = pid + 1}\;\In\\
+             resume\,\Record{pid;st'}
+           \el\\
+      \OpCase{\Interrupt}{\Unit}{resume} \mapsto\\
+      \quad\bl
+             \Let\;resume' \revto \lambda st.resume\,\Record{\Unit;st}\;\In\\
+             \Let\;q' \revto st.q \concat [\Record{st.pid;\Ready~resume'}]\;\In\\
+             \runNext~\Record{st \;\With\; q = q'}
+           \el\\
+      \OpCase{\Wait}{pid}{resume} \mapsto\\
+      \quad\bl
+             \Let\;resume' \revto \lambda st.resume~\Record{\Unit;st}\;\In\\
+             \Let\;q' \revto
+             \bl
+             \If\;\dec{has}\,\Record{pid;st.q}\\
+             \Then\;st.q \concat [\Record{st.pid;\Blocked\,\Record{pid;resume'}}]\\
+             \Else\;st.q \concat [\Record{st.pid;\Ready~resume'}]
              \el\\
-         \OpCase{\Wait}{pid'}{resume} \mapsto\\
-           \quad\bl
-             \Let\; q \revto \Record{qs;\lambda s.resume\,\Record{\Unit;s}}\;\In\\
-             \Let\;\Record{qs';resume'} \revto \lookup\,\Record{pid';ps}\;\In\\
-             \Let\;p \revto \Record{\Record{pid;q} \cons qs;resume'}\;\In\\
-             \Let\;s \revto \modify\,\Record{pid';p;ps}\;\In\\
-             
+             \In\;\runNext\,\Record{st\;\With\;q = q'}
            \el
       \el
      \el
@@ -7637,10 +7669,60 @@ into the return case body $N$ for their respective binders.
     \timesharee : (\UnitType \to \alpha \eff \Co) \to \List~\alpha\\
     \timesharee~m \defas
       \bl
-        \ParamHandle\;m\,\Unit\;\With\; \scheduler~\Record{\nil;1;2}
+        \Let\;st_0 \revto \Record{q=\nil;done=\nil;pid=1;pnext=2}\;\In\\
+        \ParamHandle\;m\,\Unit\;\With\; \scheduler~st_0
       \el
   \el
 \]
+
+%
+\[
+  \ba{@{~}l@{~}l}
+    &\bl
+    \runState\,\Record{\dec{fs}_0;\fileIO\,(\lambda\Unit.\\
+         \quad\timesharee\,(\lambda\Unit.\\
+         \qquad\dec{interruptWrite}\,(\lambda\Unit.\\
+         \qquad\quad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
+         \qquad\qquad\status\,(\lambda\Unit.
+                       \init\,(\lambda\Unit.
+                  \ba[t]{@{}l}
+                  \Let\;pid \revto \Do\;\UFork\,\Unit\;\In\\
+                  \If\;pid = 0\\
+                  \Then\;\bl
+                         \su~\Alice; \Do\;\Wait~pid;
+                         \quoteRitchie\,\Unit; \exit~2
+                       \el\\
+                  \Else\; \su~\Bob; \quoteHamlet\,\Unit;\exit~3))})))}
+                 \ea
+     \el \smallskip\\
+     \reducesto^+&
+     \bl
+      \Record{
+       \ba[t]{@{}l}
+       [1;2;3];\\
+       \Record{
+         \ba[t]{@{}l}
+           dir=[\Record{\strlit{stdout};0}];\\
+           ilist=[\Record{0;\Record{lno=1;loc=0}}];\\
+           dreg=[
+             \ba[t]{@{}l}
+               \Record{0;
+                 \ba[t]{@{}l@{}l}
+                   \texttt{"}&\texttt{UNIX is basically a simple operating system, but }\\
+                             &\texttt{you have to be a genius to understand the simplicity.\nl}\\
+                             &\texttt{To be, or not to be,\nl{}that is the question:\nl{}}\\
+                             &\texttt{Whether 'tis nobler in the mind to suffer\nl{}"}}];
+                 \ea\\
+                lnext=1; inext=1}}\\
+           \ea
+         \ea
+       \ea\\
+       : \Record{\List~\Int; \FileSystem}
+     \el
+  \ea
+\]
+%
+
 
 \section{Related work}
 \label{sec:unix-related-work}
