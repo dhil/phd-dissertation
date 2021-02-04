@@ -5396,22 +5396,19 @@ some return value $\alpha$ and a set of effects $\varepsilon$ that the
 process may perform.
 %
 \[
-  \Pstate~\alpha~\varepsilon \defas \forall \theta.
-     \ba[t]{@{}l@{}l}
+  \Pstate~\alpha~\varepsilon~\theta \defas
+    \ba[t]{@{}l@{}l}
        [&\Done:\alpha;\\
-        &\Suspended:\UnitType \to \Pstate~\alpha~\varepsilon \eff \{\Interrupt:\theta;\varepsilon\} ]
+        &\Suspended:\UnitType \to \Pstate~\alpha~\varepsilon~\theta \eff \{\Interrupt:\theta;\varepsilon\} ]
      \ea
 \]
 %
-\dhil{Cite resumption monad}
-%
-The $\Done$-tag simply carries the return value of type $\alpha$. The
-$\Suspended$-tag carries a suspended computation, which returns
-another instance of $\Pstate$, and may or may not perform any further
-invocations of $\Interrupt$. Note that, the presence variable $\theta$
-in the effect row is universally quantified in the type alias
-definition. The reason for this particular definition is that the type
-of a value carried by $\Suspended$ is precisely the type of a
+This data type definition is an instance of the \emph{resumption
+  monad}~\cite{Papaspyrou01}. The $\Done$-tag simply carries the
+return value of type $\alpha$. The $\Suspended$-tag carries a
+suspended computation, which returns another instance of $\Pstate$,
+and may or may not perform any further invocations of
+$\Interrupt$. Payload type of $\Suspended$ is precisely the type of a
 resumption originating from a handler that handles only the operation
 $\Interrupt$ such as the following handler.
 %
@@ -5431,7 +5428,13 @@ $\Interrupt$ such as the following handler.
 %
 This handler tags and returns values with $\Done$. It also tags and
 returns the resumption provided by the $\Interrupt$-case with
-$\Suspended$. If we compose this handler with the nondeterminism
+$\Suspended$.
+%
+This particular implementation is amounts to a handler-based variation
+of \citeauthor{Harrison06}'s non-reactive resumption
+monad~\cite{Harrison06}.
+%
+If we compose this handler with the nondeterminism
 handler, then we obtain a term with the following type.
 %
 \[
@@ -5655,7 +5658,7 @@ readily be implemented with an effect handler~\cite{KammarLO13}.
 %
 It is a deliberate choice to leave state for last, because once you
 have state it is tempting to use it excessively --- to the extent it
-becomes platitudinous.
+becomes a cliche.
 %
 As demonstrated in the previous sections, it is possible to achieve
 many things that have a stateful flavour without explicit state by
@@ -7937,16 +7940,93 @@ complete is the $\init$ process.
 \section{Related work}
 \label{sec:unix-related-work}
 
-\subsection{Interleaving computation}
+\paragraph{Programming language support for handlers}
 
-\paragraph{The resumption monad} \citet{Milner75},
-\citet{Plotkin76}, \citet{Moggi90}, \citet{Papaspyrou01}, \citet{Harrison06}, \citet{AtkeyJ15}
+\paragraph{Effect-driven concurrency}
+In their tutorial of the Eff programming language \citet{BauerP15}
+implements a simple lightweight thread scheduler. It is different from
+the schedulers presented in this section as their scheduler only uses
+resumptions linearly. This is achieved by making the fork operation
+\emph{higher-order} such that the operation is parameterised by a
+computation. The computation is run under a fresh instance of the
+handler. On one hand this approach has the benefit of making threads
+cheap as it is no stack copying is necessary at runtime. On the other
+hand it loses the guarantee that every operation is handled uniformly
+(when in the setting of deep handlers) as every handler in between the
+fork operation invocation site and the scheduler handler needs to be
+manually reinstalled when the computation argument is
+run. Nevertheless, this is the approach to concurrency that
+\citet{DolanWSYM15} have adopted for Multicore
+OCaml~\citet{DolanWSYM15}.
+%
+In my MSc(R) dissertation I used a similar approach to implement a
+cooperative version of the actor concurrency model of Links with
+effect handlers~\cite{Hillerstrom16}.
+%
+This line of work was further explored by \citet{Convent17}, who
+implemented various cooperative actor-based concurrency abstractions
+using effect handlers in the Frank programming
+language. \citet{Poulson20} expanded upon this work by investigating
+ways to handle preemptive concurrency.
 
-\paragraph{Continuation-based interleaving}
-First implementation of `threads' is due to \citet{Burstall69}. \citet{Wand80} \citet{HaynesF84} \citet{GanzFW99} \citet{HiebD90}
+\citet{FowlerLMD19} used effect handlers in the setting of
+fault-tolerant distributed programming. They codified a distributed
+exception handling mechanism using a single exception-operation and a
+corresponding effect handler, which automatically closes open
+resources upon handling the exception-operation by \emph{aborting} the
+resumption of the operation, which would cause resource finalisers to
+run.
 
-\subsection{Effect-driven concurrency}
-\citet{BauerP15}, \citet{DolanWSYM15}, \citet{Hillerstrom16}, \citet{DolanEHMSW17}, \citet{Convent17}, \citet{Poulson20}
+\citet{DolanEHMSW17} and \citet{Leijen17a} gave two widely different
+implementations of the async/await idiom using effect
+handlers. \citeauthor{DolanEHMSW17}'s implementation is based on
+higher-order operations with linearly used resumptions, whereas
+\citeauthor{Leijen17a}'s implementation is based on first-order
+operations with multi-shot resumptions, and thus, it is close in the
+spirit to the schedulers we have considered in this chapter.
+
+\paragraph{Continuation-based interleaved computation}
+The very first implementation of `lightweight threads' using
+continuations can possibly be credited to
+\citet{Burstall69}. \citeauthor{Burstall69} used
+\citeauthor{Landin65}'s J operator to arrange tree-based search, where
+each branch would be reified as a continuation and put into a
+queue. \citet{Wand80} \citet{HaynesF84} \citet{GanzFW99}
+\citet{HiebD90}
+
+\paragraph{Resumption monad}
+The resumption monad is both a semantic and programmatic abstraction
+for interleaving computation. \citet{Papaspyrou01} applies a
+resumption monad transformer to construct semantic models of
+concurrent computation. A resumption monad transformer, i.e. a monad
+$T$ that transforms an arbitrary monad $M$ to a new monad $T~M$ with
+commands for interrupting computation.
+%
+\citet{Harrison06} demonstrates the resumption monad as a practical
+programming abstraction by implementing a small multi-tasking
+operating system. \citeauthor{Harrison06} implements two variations of
+the resumption monad: basic and reactive. The basic resumption monad
+is a closed environment for interleaving different strands of
+computations. It is closed in the sense that strands of computation
+cannot interact with the ambient context of their environment. The
+reactive resumption monad makes the environment open by essentially
+registering a callback with an interruption action. This provides a
+way to model system calls.
+
+The origins of the (semantic) resumption monad can be traced back to
+at least \citet{Moggi90}, who described a monad for modelling the
+interleaving semantics of \citeauthor{Milner75}'s \emph{calculus of
+  communicating systems}~\cite{Milner75}.
+
+The usage of \emph{resumption} in the name has a slightly different
+meaning than the term `resumption' we have been using throughout this
+chapter. We have used `resumption' to mean delimited continuation. In
+the setting of the resumption monad it has a precise domain-theoretic
+meaning. It is derived from \citeauthor{Plotkin76}'s domain of
+resumptions, which in turn is derived from \citeauthor{Milner75}'s
+domain of processes~\cite{Milner75,Plotkin76}.
+
+\citet{AtkeyJ15}
 
 \part{Implementation}
 
