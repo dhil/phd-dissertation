@@ -7498,7 +7498,10 @@ being handled. Semantically, parameterised handlers are defined as
 folds with state threading over computation trees.
 
 We take the deep handler calculus $\HCalc$ as our starting point and
-extend it with parameterised handlers to yield the calculus $\HPCalc$.
+extend it with parameterised handlers to yield the calculus
+$\HPCalc$. The parameterised handler extension interacts nicely with
+shallow handlers, and as such it can be added to $\SCalc$ with low
+effort.
 
 \subsection{Syntax and static semantics}
 In addition to a computation, a parameterised handler also take a
@@ -7506,21 +7509,31 @@ value as argument. This argument is the initial value of the state
 cell embedded inside the handler.
 %
 \begin{syntax}
-\slab{Handler\textrm{ }types}  & F          &::=& \cdots \mid \Record{C; A} \Rightarrow^\param D\\
+\slab{Handler\textrm{ }types}  & F &::=& \cdots \mid \Record{C; A} \Rightarrow^\param D\\
 \slab{Computations}   & M,N        &::=& \cdots \mid \ParamHandle\; M \;\With\; H^\param(W)\\
 \slab{Parameterised\textrm{ }definitions}   & H^\param   &::=& q^A.~H
 \end{syntax}
 %
-Figure~\ref{fig:param-syntax} extends the syntax of
-$\HCalc$ with parameterised handlers. Syntactically a parameterised
-handler is new binding form $(q^A.~H)$, where $q$ is the name of the
-parameter, whose type is $A$. The name is bound in the ordinary
-handler definition $H$. The elimination form
-($\ParamHandle\; M\;\With\;H^\param(W)$) is similar to the form for
-ordinary deep handlers, except that the parameterised handler
-definition is applied to a value $W$, which is the initial value of
-the parameter $q$.
+The syntactic category of handler types $F$ is extended with a new
+kind of handler arrow for parameterised handlers. The left hand side
+of the arrow is a pair, whose first component denotes the type of the
+input computation and the second component denotes the type of the
+handler parameter. The right hand side denotes the return type of the
+handler.
+%
+The computations category is extended with a new application form for
+handlers, which runs a computation $M$ under a parameterised handler
+$H$ applied to the value $W$.
+%
+Finally, a new category is added for parameterised handler
+definitions. A parameterised handler definition is a new binding form
+$(q^A.~H)$, where $q$ is the name of the parameter, whose type is $A$,
+and $H$ is an ordinary handler definition $H$. The parameter $q$ is
+accessible in the $\Return$ and operation clauses of $H$.
 
+As with ordinary deep handlers and shallow handlers, there are two
+typing rules: one for handler application and another for handler
+definitions.
 %
 \begin{mathpar}
   % Handle
@@ -7532,7 +7545,18 @@ the parameter $q$.
     \typ{\Gamma}{H^\param : \Record{C; A} \Harrow^\param D}
    }
    {\Gamma \vdash \ParamHandle \; M \; \With\; H^\param(W) : D}
-
+\end{mathpar}
+%
+The $\tylab{Handle^\param}$ rule is similar to the $\tylab{Handle}$
+and $\tylab{Handle^\dagger}$ rules, except that it has to account for
+the parameter $W$, whose type has to be compatible with the second
+component of the domain type of the handler definition $H^\param$.
+%
+The typing rule for parameterised handler definitions adapts the
+corresponding typing rule $\tylab{Handler}$ for ordinary deep handlers
+with the addition of a parameter.
+%
+\begin{mathpar}
 % Parameterised handler
   \inferrule*[Lab=\tylab{Handler^\param}]
     {{\bl
@@ -7546,54 +7570,63 @@ the parameter $q$.
     {\typ{\Delta;\Gamma}{(q^{A'} . H) : \Record{C;A'} \Harrow^\param D}}
 \end{mathpar}
 %%
-We require two additional rules to type parameterised handlers. The
-rules are given in Figure~\ref{fig:param-static-semantics}. The main
-differences between the \tylab{Handler} and \tylab{Handler^\param} are
-that in the latter the return and operation cases are typed with
-respect to the parameter $q$, and that resumptions $r$ have type
-$\Record{B_\ell;A'} \to D$, that is they accept a pair as
-input.
+The key differences between the \tylab{Handler} and
+\tylab{Handler^\param} rules are that in the latter the return and
+operation cases are typed with respect to the parameter $q$, and that
+resumptions $r_i$ have type $\Record{B_\ell;A'} \to D$, that is a
+parameterised resumption is a binary function, where the first
+argument is the interpretation of an operation and the second argument
+is the (updated) handler state. The return type of $r_i$ is the same
+as the return type of the handler, meaning that an invocation of $r_i$
+is guarded in the same way as an invocation of an ordinary deep
+resumption.
 
 \subsection{Dynamic semantics}
-Operationally, a parameterised resumption uses the first component as
-the return value of the operation, and the second component as the
-updated value of the handler parameter $q$.
+The two reduction rules for parameterised handlers adapt the reduction
+rules for ordinary deep handlers with a parameter.
 %
-This operational behaviour is formalised by following reduction rule
-$\semlab{Op^\param}$.
+\begin{reductions}
+\semlab{Ret^\param} &
+  \ParamHandle \; (\Return \; V) \; \With \; (q.H)(W) &\reducesto& N[V/x,W/q],\\
+  \multicolumn{4}{@{}r@{}}{
+    \hfill\text{where } \hret = \{ \Return \; x \mapsto N \}} \\
+\semlab{Op^\param} &
+  \ParamHandle \; \EC[\Do \; \ell \, V] \; \With \; (q.H)(W)
+                                                      &\reducesto& N[V/p,W/q,R/r],\\
+\multicolumn{4}{@{}r@{}}{
+  \hfill\ba[t]{@{~}r@{~}l}
+                   \text{where}& R = \lambda\Record{y;q'}.\ParamHandle\;\EC[\Return \; y]\;\With\;(q.H)(q')\\
+                   \text{and}  &\hell = \{ \OpCase{\ell}{p}{r} \mapsto N \}\\
+                   \text{and}  &\ell \notin \BL(\EC)
+              \ea
+}
+\end{reductions}
 %
-\[
-\ba{@{~}l@{~}l}
-  &\ParamHandle \; \EC[\Do \; \ell \; V] \; \With \; (q.~H)(W)\\
-  \reducesto&
-  N[V/p,W/q,\lambda \Record{y;q'}.\Handle \; \EC[\Return \; y] \; \With \; (q.~H)(q')/r]\\
-  & \text{ where } \ell \notin BL(\EC) \text{ and } \hell = \{ \OpCase{\ell}{p}{r} \mapsto N \}
-\ea
-\]
-%
-The parameter value $W$ is substituted for the parameter name $q$ into
-the operation case body $N$. As with ordinary deep handlers, the
-resumption rewraps its handler, but with the slight twist that the
-parameterised handler definition is applied to the updated parameter
-value $q'$ rather than the original value $W$. The reduction rule for
-handling the return of a computation is as follows.
-%
-\[
-  \ParamHandle \, (\Return \; V) \; \With \; (q.~H)(W) \reducesto N[V/x,W/q], \text{where } \hret = \{ \Return \; x \mapsto N \}
-\]
-%
-Both the return value $V$ and the parameter value $W$ are substituted
-into the return case body $N$ for their respective binders.
+The rule $\semlab{Ret^\param}$ handles the return value of a
+computation. Just like the rule $\semlab{Ret}$ the return value $V$ is
+substituted for the binder $x$ in the return case body
+$N$. Furthermore the value $W$ is substituted for the handler
+parameter $q$ in $N$, meaning the handler parameter is accessible in
+the return case.
+
+The $\semlab{Op^\param}$ handles an operation invocation. Both the
+operation payload $V$ and handler argument $W$ are accessible inside
+the case body $N$. As with ordinary deep handlers, the resumption
+rewraps its handler, but with the slight twist that the parameterised
+handler definition is applied to the updated parameter value $q'$
+rather than the original value $W$. This achieves the effect of state
+passing as the value of $q'$ becomes available upon the next
+activation of the handler.
 
 \subsection{Process synchronisation}
 
 \[
-  \Co \defas \{\UFork : \UnitType \opto \Int; \Wait : \Int \opto \UnitType; \Interrupt : \UnitType \opto \UnitType;\}
+  \Co \defas \{\UFork : \UnitType \opto \Int; \Wait : \Int \opto \UnitType; \Interrupt : \UnitType \opto \UnitType\}
 \]
 
 \[
   \ba{@{~}l@{~}l@{~}c@{~}l}
-    \Proc   &\alpha~\varepsilon   &\defas& \Sstate \to \alpha \eff \varepsilon\\
+    \Proc   &\alpha~\varepsilon   &\defas& \Sstate \to \List~\alpha \eff \varepsilon\\
     \Pstate &\alpha~\varepsilon &\defas& [\Ready:\Proc~\alpha~\varepsilon;\Blocked:\Record{\Int;\Proc~\alpha~\varepsilon}]\\
     \Sstate &\alpha~\varepsilon &\defas& \Record{q:\List\,\Record{\Int;\Pstate~\alpha~\varepsilon};done:\List~\alpha;pid:\Int;pnext:\Int}\\
   \ea
@@ -7642,12 +7675,6 @@ into the return case body $N$ for their respective binders.
              \Let\;st' \revto \Record{st\;\With\;q = q'; pnext = pid + 1}\;\In\\
              resume\,\Record{pid;st'}
            \el\\
-      \OpCase{\Interrupt}{\Unit}{resume} \mapsto\\
-      \quad\bl
-             \Let\;resume' \revto \lambda st.resume\,\Record{\Unit;st}\;\In\\
-             \Let\;q' \revto st.q \concat [\Record{st.pid;\Ready~resume'}]\;\In\\
-             \runNext~\Record{st \;\With\; q = q'}
-           \el\\
       \OpCase{\Wait}{pid}{resume} \mapsto\\
       \quad\bl
              \Let\;resume' \revto \lambda st.resume~\Record{\Unit;st}\;\In\\
@@ -7658,12 +7685,19 @@ into the return case body $N$ for their respective binders.
              \Else\;st.q \concat [\Record{st.pid;\Ready~resume'}]
              \el\\
              \In\;\runNext\,\Record{st\;\With\;q = q'}
+           \el\\
+      \OpCase{\Interrupt}{\Unit}{resume} \mapsto\\
+      \quad\bl
+             \Let\;resume' \revto \lambda st.resume\,\Record{\Unit;st}\;\In\\
+             \Let\;q' \revto st.q \concat [\Record{st.pid;\Ready~resume'}]\;\In\\
+             \runNext~\Record{st \;\With\; q = q'}
            \el
       \el
      \el
   \el
 \]
-
+%
+%
 \[
   \bl
     \timesharee : (\UnitType \to \alpha \eff \Co) \to \List~\alpha\\
@@ -7674,7 +7708,21 @@ into the return case body $N$ for their respective binders.
       \el
   \el
 \]
-
+%
+%
+\[
+  \bl
+    \init : (\Unit \to \alpha \eff \varepsilon) \to \alpha \eff \{\Co;\Exit : \Int \opto \ZeroType;\varepsilon\}\\
+    \init~main \defas
+      \bl
+        \Let\;pid \revto \Do\;\UFork~\Unit\;\In\\
+        \If\;pid = 0\\
+        \Then\;main\,\Unit\\
+        \Else\;\Do\;\Wait~pid; \exit~1
+      \el
+  \el
+\]
+%
 %
 \[
   \ba{@{~}l@{~}l}
@@ -7708,10 +7756,10 @@ into the return case body $N$ for their respective binders.
              \ba[t]{@{}l}
                \Record{0;
                  \ba[t]{@{}l@{}l}
-                   \texttt{"}&\texttt{UNIX is basically a simple operating system, but }\\
-                             &\texttt{you have to be a genius to understand the simplicity.\nl}\\
-                             &\texttt{To be, or not to be,\nl{}that is the question:\nl{}}\\
-                             &\texttt{Whether 'tis nobler in the mind to suffer\nl{}"}}];
+                   \texttt{"}&\texttt{To be, or not to be,\nl{}that is the question:\nl{}}\\
+                             &\texttt{Whether 'tis nobler in the mind to suffer\nl{}}\\
+                             &\texttt{UNIX is basically a simple operating system, but }\\
+                             &\texttt{you have to be a genius to understand the simplicity.\nl"}}];
                  \ea\\
                 lnext=1; inext=1}}\\
            \ea
