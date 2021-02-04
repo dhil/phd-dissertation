@@ -7730,13 +7730,18 @@ split on the process queue. There are three cases to consider.
 \begin{enumerate}
   \item The queue is empty. Then the function returns the list $done$,
     which is the list of process return values.
-  \item The next process is blocked. Then the process is moved to the
-    end of the queue, and the function is applied recursively to the
-    scheduler state with the updated queue.
+  \item The next process is blocked. Then the process is appended on
+    to the end of the queue, and $\runNext$ is applied recursively to
+    the scheduler state $st'$ with the updated queue.
   \item The next process is ready. Then the $q$ and $pid$ fields
-    within the scheduler state are updated accordingly. The updated
-    state is supplied as argument to the reified process.
+    within the scheduler state are updated accordingly. The reified
+    process $resume$ is applied to the updated scheduler state $st'$.
 \end{enumerate}
+%
+Evidently, this function may enter an infinite loop if every process
+is in blocked state. This may happen if we deadlock any two processes
+by having them wait on one another.  Using this function we can define
+a handler that implements a process scheduler.
 %
 \[
   \bl
@@ -7780,6 +7785,48 @@ split on the process queue. There are three cases to consider.
   \el
 \]
 %
+The handler definition $\scheduler$ takes as input a computation that
+computes a value of type $\alpha$ whilst making use of the concurrency
+operations from the $\Co$ signature. In addition it takes the initial
+scheduler state as input. Ultimately, the handler returns a
+computation that computes a list of $\alpha$s, where all the
+$\Co$-operations have been handled.
+%
+In the definition the scheduler state is bound by the name $st$.
+
+The $\return$ case is invoked when a process completes. The return
+value $x$ is consed onto the list $done$. Subsequently, the function
+$\runNext$ is invoked in order to the next ready process.
+
+The $\UFork$ case implements the semantics for process forking. First
+the child process is constructed by abstracting the parameterised
+resumption $resume$ such that it becomes an unary state-accepting
+function, which can be ascribed type $\Proc~\alpha~\varepsilon$. The
+parameterised resumption applied to the process identifier $0$, which
+lets the receiver know that it assumes the role of child in the
+parent-child relationship amongst the processes. The next line
+retrieves the unique process identifier for the child. Afterwards, the
+child process is pushed on to the queue in ready state. The next line
+updates the scheduler state with the new queue and a new unique
+identifier for the next process. Finally, the parameterised resumption
+is applied to the child process identifier and the updated scheduler
+state.
+
+The $\Wait$ case implements the synchronisation operation. The
+parameter $pid$ is the identifier of the process that the invoking
+process wants to wait on. First we construct an unary state-accepting
+function. Then we check whether there exists a process with identifier
+$pid$ in the queue. If there is one, then we enqueue the current
+process in blocked state. If no such process exists (e.g. it may
+already have finished), then we enqueue the current process in ready
+state. Finally, we invoke $\runNext$ with the scheduler state updated
+with the new process queue in order to run the next ready process.
+
+The $\Interrupt$ case suspends the current process by enqueuing it in
+ready state, and dequeuing the next ready process.
+
+Using this handler we can implement version 2 of the time-sharing
+system.
 %
 \[
   \bl
@@ -7792,6 +7839,18 @@ split on the process queue. There are three cases to consider.
   \el
 \]
 %
+The computation $m$, which may perform any of the concurrency
+operations, is handled by the parameterised handler $\scheduler$. The
+parameterised handler definition is applied to the initial scheduler
+state, which has an empty process queue, an empty done list, and it
+assigns the first process the identifier $1$, and sets up the
+identifier for the next process to be $2$.
+
+With $\UFork$ and $\Wait$ we can implement the \emph{init} process,
+which is the initial startup process in
+\UNIX{}~\cite{RitchieT74}. This process remains alive until the
+operating system is shutdown. It is the ancestor of every process
+created by the operating system.
 %
 \[
   \bl
@@ -7806,6 +7865,14 @@ split on the process queue. There are three cases to consider.
   \el
 \]
 %
+We implement $\init$ as a higher-order function. It takes a main
+routine that will be applied when the system has been started. The
+function first performs $\UFork$ to duplicate itself. The child branch
+executes the $main$ routine, whilst the parent branch waits on the
+child. We somewhat arbitrarily choose to exit the parent branch with
+code $1$ such that we can identify the process in the completion list.
+
+Now we can plug everything together.
 %
 \[
   \ba{@{~}l@{~}l}
@@ -7820,10 +7887,10 @@ split on the process queue. There are three cases to consider.
                   \Let\;pid \revto \Do\;\UFork\,\Unit\;\In\\
                   \If\;pid = 0\\
                   \Then\;\bl
-                         \su~\Alice; \Do\;\Wait~pid;
-                         \quoteRitchie\,\Unit; \exit~2
+                         \su~\Alice;
+                         \quoteRitchie\,\Unit; \exit~3
                        \el\\
-                  \Else\; \su~\Bob; \quoteHamlet\,\Unit;\exit~3))})))}
+                  \Else\; \su~\Bob; \Do\;\Wait~pid; \quoteHamlet\,\Unit;\exit~2))})))}
                  \ea
      \el \smallskip\\
      \reducesto^+&
@@ -7839,10 +7906,10 @@ split on the process queue. There are three cases to consider.
              \ba[t]{@{}l}
                \Record{0;
                  \ba[t]{@{}l@{}l}
-                   \texttt{"}&\texttt{To be, or not to be,\nl{}that is the question:\nl{}}\\
-                             &\texttt{Whether 'tis nobler in the mind to suffer\nl{}}\\
-                             &\texttt{UNIX is basically a simple operating system, but }\\
-                             &\texttt{you have to be a genius to understand the simplicity.\nl"}}];
+                   \texttt{"}&\texttt{UNIX is basically a simple operating system, but }\\
+                             &\texttt{you have to be a genius to understand the simplicity.\nl}\\
+                             &\texttt{To be, or not to be,\nl{}that is the question:\nl{}}\\
+                             &\texttt{Whether 'tis nobler in the mind to suffer\nl{}"}}]
                  \ea\\
                 lnext=1; inext=1}}\\
            \ea
@@ -7853,7 +7920,19 @@ split on the process queue. There are three cases to consider.
   \ea
 \]
 %
-
+The function provided to $\init$ forks itself. The child branch
+switches user to $\Alice$ and invokes the $\quoteRitchie$ process
+which writes to standard out. The process exits with status code
+$3$. The parent branch switches user to $\Bob$ and waits for the child
+process to complete before it invokes the $\quoteHamlet$ process which
+also writes to standard out, and finally exiting with status code $2$.
+%
+It is evident from looking at the file system state that the writes to
+standard out has not been interleaved as the contents of
+$\strlit{stdout}$ appear in order. We can also see from the process
+status list that Alice's process is the first to complete, and the
+second to complete is Bob's process, whilst the last process to
+complete is the $\init$ process.
 
 \section{Related work}
 \label{sec:unix-related-work}
