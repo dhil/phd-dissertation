@@ -7585,21 +7585,62 @@ handling the return of a computation is as follows.
 Both the return value $V$ and the parameter value $W$ are substituted
 into the return case body $N$ for their respective binders.
 
-\subsection{Lightweight concurrency}
+\subsection{Process scheduling}
 
-\begin{example}[Green threads]
-  \dhil{Example: Lightweight threads}
-\end{example}
+\[
+  \Co \defas \{\UFork : \UnitType \opto \Int; \Interrupt : \UnitType \opto \UnitType; \Wait : \Int \opto \UnitType\}
+\]
 
-% \section{Default handlers}
-% \label{sec:unary-default-handlers}
+\[
+  \bl
+    \dec{SchedState}~\alpha~\varepsilon \defas \Record{\List\,(\dec{Process}~\alpha~\varepsilon);\List~\alpha;\Int;\Int}\\
+    \dec{Process}~\alpha~\varepsilon \defas \dec{SchedState} \to \alpha \eff \varepsilon
+  \el
+\]
 
-% \chapter{N-ary handlers}
-% \label{ch:multi-handlers}
+\[
+  \bl
+    \scheduler : \Record{\alpha \eff \Co;\dec{SchedState}~\alpha~\Co} \Harrow^\param \List~\alpha\\
+    \scheduler \defas
+    \bl
+    \Record{ps;qs;done;pid;nextpid}.\\
+      \bl
+      \Return\;x \mapsto \Case\;qs \concat ps\;\{\\
+      \quad\bl
+          \nil       \mapsto x \cons done\\
+          \Record{pid';qs';resume} \cons ps' \mapsto resume\,\Record{ps';qs';done;pid;nextpid}\}
+        \el\\
+          \OpCase{\UFork}{\Unit}{resume} \mapsto\\
+            \quad\bl
+              \Let\;ps' \revto \Record{nextpid;\nil;\lambda s.resume~\Record{0;s}} \cons ps\;\In\\
+              resume\,\Record{nextpid;\Record{ps';qs;done;pid;nextpid+1}}
+            \el\\
+         \OpCase{\Interrupt}{\Unit}{resume} \mapsto\\
+           \quad\bl\Let\;\Record{pid';qs';resume'} \cons ps' \revto ps \concat [\Record{pid;qs;\lambda s.resume\,\Record{\Unit;s}}]\;\In\\
+             resume'\,\Record{ps';qs';done;pid';nextpid}
+             \el\\
+         \OpCase{\Wait}{pid'}{resume} \mapsto\\
+           \quad\bl
+             \Let\; q \revto \Record{qs;\lambda s.resume\,\Record{\Unit;s}}\;\In\\
+             \Let\;\Record{qs';resume'} \revto \lookup\,\Record{pid';ps}\;\In\\
+             \Let\;p \revto \Record{\Record{pid;q} \cons qs;resume'}\;\In\\
+             \Let\;s \revto \modify\,\Record{pid';p;ps}\;\In\\
+             
+           \el
+      \el
+     \el
+  \el
+\]
 
-% \section{Syntax and Static Semantics}
-% \section{Dynamic Semantics}
-% \section{Unifying deep and shallow handlers}
+\[
+  \bl
+    \timesharee : (\UnitType \to \alpha \eff \Co) \to \List~\alpha\\
+    \timesharee~m \defas
+      \bl
+        \ParamHandle\;m\,\Unit\;\With\; \scheduler~\Record{\nil;1;2}
+      \el
+  \el
+\]
 
 \section{Related work}
 \label{sec:unix-related-work}
