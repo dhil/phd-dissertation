@@ -7944,14 +7944,14 @@ complete is the $\init$ process.
 
 \paragraph{Effect-driven concurrency}
 In their tutorial of the Eff programming language \citet{BauerP15}
-implements a simple lightweight thread scheduler. It is different from
+implement a simple lightweight thread scheduler. It is different from
 the schedulers presented in this section as their scheduler only uses
 resumptions linearly. This is achieved by making the fork operation
 \emph{higher-order} such that the operation is parameterised by a
 computation. The computation is run under a fresh instance of the
 handler. On one hand this approach has the benefit of making threads
 cheap as it is no stack copying is necessary at runtime. On the other
-hand it loses the guarantee that every operation is handled uniformly
+hand it does not guarantee that every operation is handled uniformly
 (when in the setting of deep handlers) as every handler in between the
 fork operation invocation site and the scheduler handler needs to be
 manually reinstalled when the computation argument is
