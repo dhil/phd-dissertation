@@ -5466,7 +5466,7 @@ handled recursively.
 %
 \[
   \bl
-    \schedule : \List~(\Pstate~\alpha~\{\Fork:\Bool;\varepsilon\}) \to \List~\alpha \eff \varepsilon\\
+    \schedule : \List~(\Pstate~\alpha~\{\Fork:\Bool;\varepsilon\}~\theta) \to \List~\alpha \eff \varepsilon\\
     \schedule~ps \defas
        \ba[t]{@{}l}
          \Let\;run \revto
@@ -7940,7 +7940,86 @@ complete is the $\init$ process.
 \section{Related work}
 \label{sec:unix-related-work}
 
-\paragraph{Programming languages with handlers}
+\paragraph{Programming languages with handlers} The work presented in
+this chapter has been retrofitted on to the programming language
+Links~\cite{HillerstromL16,HillerstromL18}. A closely related
+programming language with handlers is \citeauthor{Leijen17}'s Koka,
+which has been retrofitted with ordinary deep and parameterised effect
+handlers~\cite{Leijen17}. In Koka effects are nominal, meaning an
+effect and its constructors must be declared before use, which is
+unlike the structural approach taken in this chapter. Koka also tracks
+effects via an effect system based on \citeauthor{Leijen05}-style row
+polymorphism~\cite{Leijen05,Leijen14}, where rows are interpreted as
+multisets which means an effect can occur multiple times in an effect
+row. The ability to repeat effects provide a form for effect scoping
+in the sense that an effect instance can shadow another. A handler
+handles only the first instance of a repeated effect, leaving the
+remaining instances for another handler. Consequently, the order of
+repeated effect instances matter and it can therefore be situational
+useful to manipulate the order of repeated instances by way of
+so-called \emph{effect masking}.
+%
+The notion of effect masking was formalised by \citet{BiernackiPPS18}
+and generalised by \citet{ConventLMM20}.
+%
+
+\citet{BiernackiPPS18} designed Helium, which is a programming
+language that features a rich module system, deep handlers, and
+\emph{lexical} handlers~\cite{BiernackiPPS20}. Lexical handlers
+\emph{bind} effectful operations to specific handler
+instances. Operations remain bound for the duration of
+computation. This makes the nature of lexical handlers more static
+than ordinary deep handlers, as for example it is not possible to
+dynamically overload the interpretation of residual effects of a
+resumption invocation as in Section~\ref{sec:tiny-unix-env}.
+%
+The mathematical foundations for lexical handlers has been developed
+by \citet{Geron19}.
+
+The design of the Effekt language by \citet{BrachthauserSO20b}
+resolves around the idea of lexical handlers for efficiency. Effekt
+takes advantage of the static nature of lexical handlers to eliminate
+the dynamic handler lookup at runtime by tying the correct handler
+instance directly to an operation
+invocation~\cite{BrachthauserS17,SchusterBO20}. The effect system of
+Effekt is based on intersection types, which provides a limited form
+of effect polymorphism~\cite{BrachthauserSO20b}. A design choice that
+means it does not feature first-class functions.
+
+The Frank language by \citet{LindleyMM17} is born and bred on shallow
+effect handlers. One of the key novelties of Frank is $n$-ary shallow
+handlers, which generalise ordinary unary shallow handlers to be able
+to handle multiple computations simultaneously. Another novelty is the
+effect system, which is based on a variation of
+\citeauthor{Leijen05}-style row polymorphism, where the programmer
+rarely needs to mention effect variables. This is achieved by
+insisting that the programmer annotates each input argument with the
+particular effects handled at the particular argument position as well
+as declaring what effects needs to be handled by the ambient
+context. Each annotation is essentially an incomplete row. They are
+made complete by concatenating them and inserting a fresh effect
+variable.
+
+\citeauthor{BauerP15}'s Eff language was the first programming
+language designed from the ground up with effect handlers in mind. It
+features only deep handlers~\cite{BauerP15}. A previous iteration of
+the language featured an explicit \emph{effect instance} system. An
+effect instance is a sort of generative interface, where the
+operations are unique to each instance. As a result it is possible to
+handle two distinct instances of the same effect differently in a
+single computation. Their system featured a type-and-effect system
+with support for effect inference~\cite{Pretnar13,BauerP13}, however,
+the effect instance system was later dropped to in favour of a vanilla
+nominal approach to effects and handlers.
+
+Multicore OCaml is, at the time of writing, an experimental branch of
+the OCaml programming language, which aims to extend OCaml with effect
+handlers for multicore and concurrent
+programming~\cite{DolanWM14,DolanWSYM15}. The current incarnation
+features untracked nominal effects and deep handlers with single-use
+resumptions.
+
+\dhil{Possibly move to the introduction or background}
 
 \paragraph{Effect-driven concurrency}
 In their tutorial of the Eff programming language \citet{BauerP15}
