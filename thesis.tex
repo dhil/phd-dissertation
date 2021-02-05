@@ -7940,7 +7940,7 @@ complete is the $\init$ process.
 \section{Related work}
 \label{sec:unix-related-work}
 
-\paragraph{Programming language support for handlers}
+\paragraph{Programming languages with handlers}
 
 \paragraph{Effect-driven concurrency}
 In their tutorial of the Eff programming language \citet{BauerP15}
@@ -7991,8 +7991,20 @@ continuations can possibly be credited to
 \citet{Burstall69}. \citeauthor{Burstall69} used
 \citeauthor{Landin65}'s J operator to arrange tree-based search, where
 each branch would be reified as a continuation and put into a
-queue. \citet{Wand80} \citet{HaynesF84} \citet{GanzFW99}
-\citet{HiebD90}
+queue.
+
+\citet{Wand80} implements a small multi-tasking kernel with support
+for mutual exclusion and data protection using undelimited
+continuations in the style of the catch operator of Scheme.
+\citet{HaynesFW86} codify coroutines as library using call/cc.
+\citet{DybvigH89} implements \emph{engines} using call/cc in Scheme
+--- an engine is a kind of process abstraction which support
+preemption. An engine runs a computation on some time budget. If
+computation exceeds the allotted time budget, then it is
+interrupted. They represent engines as reified continuations and use
+the macro system of Scheme to insert clock ticks at appropriate places
+in the code. \citet{HiebD90} also design the \emph{spawn-controller}
+operator for programming tree-based concurrency abstractions.
 
 \paragraph{Resumption monad}
 The resumption monad is both a semantic and programmatic abstraction
@@ -8004,9 +8016,9 @@ commands for interrupting computation.
 %
 \citet{Harrison06} demonstrates the resumption monad as a practical
 programming abstraction by implementing a small multi-tasking
-operating system. \citeauthor{Harrison06} implements two variations of
-the resumption monad: basic and reactive. The basic resumption monad
-is a closed environment for interleaving different strands of
+kernel. \citeauthor{Harrison06} implements two variations of the
+resumption monad: basic and reactive. The basic resumption monad is a
+closed environment for interleaving different strands of
 computations. It is closed in the sense that strands of computation
 cannot interact with the ambient context of their environment. The
 reactive resumption monad makes the environment open by essentially
