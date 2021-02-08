@@ -166,15 +166,25 @@
   programming with first-class control by separating control reifying
   operations from their handling.
 
-  In this thesis I develop operational foundations for programming and
-  implementing effect handlers.
+  This thesis is composed of three strands in which I develop
+  operational foundations for programming and implementing effect
+  handlers as well as investigating the expressive power of effect
+  handlers.
 
-  The first strand develops the core calculus of a programming
-  language with a \emph{structural} notion of effects, as opposed to
-  the dominant \emph{nominal} notion of effects.
-
-  By making crucial use of \emph{row polymorphism} to build and track
-  effect signatures.
+  The first strand develops the core calculus of a statically typed
+  programming language a \emph{structural} notion of effects, as
+  opposed to the dominant \emph{nominal} notion of effects.
+  %
+  With the structural approach, effects need not be declared before
+  use. The usual safety properties of statically typed programming are
+  retained by making crucial use of \emph{row polymorphism} to build
+  and track effect signatures.
+  %
+  The calculus features three forms of handlers: deep, shallow, and
+  parameterised. They each offer a different approach to manipulate
+  the control state of programs.
+  %
+  To demonstrate the usefulness of effect\dots
 
   The second strand studies \emph{continuation passing style} and
   \emph{abstract machine semantics}, which are foundational techniques
@@ -4717,7 +4727,7 @@ computation normal forms as there are now two ways in which a
 computation term can terminate: successfully returning a value or
 getting stuck on an unhandled operation.
 %
-\begin{definition}[Computation normal forms]
+\begin{definition}[Computation normal forms]\ref{def:comp-normal-form}
   We say that a computation term $N$ is normal with respect to an
   effect signature $E$, if $N$ is either of the form $\Return\;V$, or
   $\EC[\Do\;\ell\,W]$ where $\ell \in E$ and $\ell \notin \BL(\EC)$.
@@ -4728,12 +4738,19 @@ getting stuck on an unhandled operation.
   Suppose $\typ{}{M : C}$, then either there exists $\typ{}{N : C}$
   such that $M \reducesto^+ N$ and $N$ is normal, or $M$ diverges.
 \end{theorem}
-
 %
-\begin{theorem}[Preservation]
+\begin{proof}
+  By induction on typing derivations.
+\end{proof}
+%
+\begin{theorem}[Subject reduction]
   Suppose $\typ{\Gamma}{M : C}$ and $M \reducesto M'$, then
   $\typ{\Gamma}{M' : C}$.
 \end{theorem}
+%
+\begin{proof}
+  By induction on typing derivations.
+\end{proof}
 
 \section{Composing \UNIX{} with effect handlers}
 \label{sec:deep-handlers-in-action}
@@ -7083,6 +7100,27 @@ handler as in the setting of deep handlers, meaning is up to the
 programmer to supply the handler the next invocation of $\ell$ inside
 $\EC$. This handler may be different from $H$.
 
+The basic metatheoretic properties of $\SCalc$ are a carbon copy of
+the basic properties of $\HCalc$.
+%
+\begin{theorem}[Progress]
+  Suppose $\typ{}{M : C}$, then either there exists $\typ{}{N : C}$
+  such that $M \reducesto^+ N$ and $N$ is normal, or $M$ diverges.
+\end{theorem}
+%
+\begin{proof}
+  By induction on typing derivations.
+\end{proof}
+%
+\begin{theorem}[Subject reduction]
+  Suppose $\typ{\Gamma}{M : C}$ and $M \reducesto M'$, then
+  $\typ{\Gamma}{M' : C}$.
+\end{theorem}
+%
+\begin{proof}
+  By induction on typing derivations.
+\end{proof}
+
 \subsection{\UNIX{}-style pipes}
 \label{sec:pipes}
 
@@ -7621,6 +7659,25 @@ rather than the original value $W$. This achieves the effect of state
 passing as the value of $q'$ becomes available upon the next
 activation of the handler.
 
+The metatheoretic properties of $\HCalc$ carries over to $\HPCalc$.
+\begin{theorem}[Progress]
+  Suppose $\typ{}{M : C}$, then either there exists $\typ{}{N : C}$
+  such that $M \reducesto^+ N$ and $N$ is normal, or $M$ diverges.
+\end{theorem}
+%
+\begin{proof}
+  By induction on typing derivations.
+\end{proof}
+%
+\begin{theorem}[Subject reduction]
+  Suppose $\typ{\Gamma}{M : C}$ and $M \reducesto M'$, then
+  $\typ{\Gamma}{M' : C}$.
+\end{theorem}
+%
+\begin{proof}
+  By induction on typing derivations.
+\end{proof}
+
 \subsection{Process synchronisation}
 %
 In Section~\ref{sec:tiny-unix-time} we implemented a time-sharing
@@ -7936,6 +7993,33 @@ $\strlit{stdout}$ appear in order. We can also see from the process
 status list that Alice's process is the first to complete, and the
 second to complete is Bob's process, whilst the last process to
 complete is the $\init$ process.
+
+\paragraph{Retrofitting fork} In the previous program we replaced the
+original implementation of $\timeshare$
+(Section~\ref{sec:tiny-unix-time}), which handles invocations of
+$\Fork : \UnitType \opto \Bool$, by $\timesharee$, which handles the
+more general operation $\UFork : \UnitType \opto \Int$. In practice,
+we may be unable to dispense of the old interface so easily, meaning
+we have to retain support for, say, legacy reasons. As we have seen
+previously we can an operation in terms of another operation. Thus to
+retain support for $\Fork$ we simply have to insert a handler under
+$\timesharee$ which interprets $\Fork$ in terms of $\UFork$. The
+operation case of this handler would be akin to the following.
+%
+\[
+  \OpCase{\Fork}{\Unit}{resume} \mapsto
+    \bl
+      \Let\;pid \revto \Do\;\UFork~\Unit\;\In\\
+      resume\,(pid \neq 0)
+    \el
+\]
+%
+The interpretation of $\Fork$ inspects the process identifier returned
+by the $\UFork$ to determine the role of the current process in the
+parent-child relationship. If the identifier is nonzero, then the
+process is a parent, hence $\Fork$ should return $\True$ to its
+caller. Otherwise it should return $\False$. This preserves the
+functionality of the legacy code.
 
 \section{Related work}
 \label{sec:unix-related-work}
