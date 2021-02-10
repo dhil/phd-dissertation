@@ -7805,14 +7805,14 @@ a handler that implements a process scheduler.
 %
 \[
   \bl
-    \scheduler : \Record{\alpha \eff \{\Co;\varepsilon\};\Sstate~\alpha~\varepsilon} \Harrow^\param \List~\alpha \eff \varepsilon\\
+    \scheduler : \Record{\alpha \eff \{\Co;\varepsilon\};\Sstate~\alpha~\varepsilon} \Harrow^\param \List\,\Record{\Int;\alpha} \eff \varepsilon\\
     \scheduler \defas
     \bl
     st.\\
       \bl
       \Return\;x \mapsto \\
       \quad\bl
-             \Let\;done' \revto x \cons st.done\;\In\\
+             \Let\;done' \revto \Record{st.pid;x} \cons st.done\;\In\\
              \runNext\,\Record{st\;\With\;done = done'}
            \el\\
       \OpCase{\UFork}{\Unit}{resume} \mapsto\\
@@ -7855,7 +7855,8 @@ $\Co$-operations have been handled.
 In the definition the scheduler state is bound by the name $st$.
 
 The $\return$ case is invoked when a process completes. The return
-value $x$ is consed onto the list $done$. Subsequently, the function
+value $x$ is paired with the identifier of the currently executing
+process and consed onto the list $done$. Subsequently, the function
 $\runNext$ is invoked in order to the next ready process.
 
 The $\UFork$ case implements the semantics for process forking. First
@@ -7890,7 +7891,7 @@ system.
 %
 \[
   \bl
-    \timesharee : (\UnitType \to \alpha \eff \Co) \to \List~\alpha\\
+    \timesharee : (\UnitType \to \alpha \eff \Co) \to \List\,\Record{\Int;\alpha}\\
     \timesharee~m \defas
       \bl
         \Let\;st_0 \revto \Record{q=\nil;done=\nil;pid=1;pnext=2}\;\In\\
@@ -7914,13 +7915,13 @@ created by the operating system.
 %
 \[
   \bl
-    \init : (\Unit \to \alpha \eff \varepsilon) \to \alpha \eff \{\Co;\Exit : \Int \opto \ZeroType;\varepsilon\}\\
+    \init : (\Unit \to \alpha \eff \varepsilon) \to \alpha \eff \{\Co;\varepsilon\}\\
     \init~main \defas
       \bl
         \Let\;pid \revto \Do\;\UFork~\Unit\;\In\\
         \If\;pid = 0\\
         \Then\;main\,\Unit\\
-        \Else\;\Do\;\Wait~pid; \exit~1
+        \Else\;\Do\;\Wait~pid
       \el
   \el
 \]
@@ -7929,8 +7930,7 @@ We implement $\init$ as a higher-order function. It takes a main
 routine that will be applied when the system has been started. The
 function first performs $\UFork$ to duplicate itself. The child branch
 executes the $main$ routine, whilst the parent branch waits on the
-child. We somewhat arbitrarily choose to exit the parent branch with
-code $1$ such that we can identify the process in the completion list.
+child.
 
 Now we can plug everything together.
 %
@@ -7948,16 +7948,16 @@ Now we can plug everything together.
                   \If\;pid = 0\\
                   \Then\;\bl
                          \su~\Alice;
-                         \quoteRitchie\,\Unit; \exit~3
+                         \quoteRitchie\,\Unit
                        \el\\
-                  \Else\; \su~\Bob; \Do\;\Wait~pid; \quoteHamlet\,\Unit;\exit~2))})))}
+                  \Else\; \su~\Bob; \Do\;\Wait~pid; \quoteHamlet\,\Unit))})))}
                  \ea
      \el \smallskip\\
      \reducesto^+&
      \bl
       \Record{
        \ba[t]{@{}l}
-       [1;2;3];\\
+       [\Record{1;0};\Record{2;0};\Record{3;0}];\\
        \Record{
          \ba[t]{@{}l}
            dir=[\Record{\strlit{stdout};0}];\\
@@ -7975,24 +7975,27 @@ Now we can plug everything together.
            \ea
          \ea
        \ea\\
-       : \Record{\List~\Int; \FileSystem}
+       : \Record{\List\,\Record{\Int;\Int}; \FileSystem}
      \el
   \ea
 \]
 %
-The function provided to $\init$ forks itself. The child branch
-switches user to $\Alice$ and invokes the $\quoteRitchie$ process
-which writes to standard out. The process exits with status code
-$3$. The parent branch switches user to $\Bob$ and waits for the child
-process to complete before it invokes the $\quoteHamlet$ process which
-also writes to standard out, and finally exiting with status code $2$.
+Process number $1$ is $\init$, which forks itself to run its
+argument. The argument runs as process $2$, which also forks itself,
+thus creating a process $3$. Process $3$ executes the child branch,
+which switches user to $\Alice$ and invokes the $\quoteRitchie$
+process which writes to standard out. Process $2$ executes the parent
+branch, which switches user to $\Bob$ and waits for the child process
+to complete before it invokes the routine $\quoteHamlet$ which also
+writes to standard out.
 %
 It is evident from looking at the file system state that the writes to
 standard out has not been interleaved as the contents of
 $\strlit{stdout}$ appear in order. We can also see from the process
-status list that Alice's process is the first to complete, and the
-second to complete is Bob's process, whilst the last process to
-complete is the $\init$ process.
+completion list that Alice's process (pid $3$) is the first to
+complete with status $0$, and the second to complete is Bob's process
+(pid $2$) with status $0$, whilst the last process to complete is the
+$\init$ process (pid $1$) with status $0$.
 
 \paragraph{Retrofitting fork} In the previous program we replaced the
 original implementation of $\timeshare$
