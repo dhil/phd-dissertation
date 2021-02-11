@@ -159,8 +159,8 @@
   First-class control operators provide programmers with an expressive
   and efficient means for manipulating control through reification of
   the current control state as a first-class object, enabling
-  programmers to implement their own control idioms as shareable
-  libraries.
+  programmers to implement their own computational effects and control
+  idioms as shareable libraries.
   %
   Effect handlers provide a particularly structured approach to
   programming with first-class control by separating control reifying
@@ -171,9 +171,10 @@
   handlers as well as investigating the expressive power of effect
   handlers.
 
-  The first strand develops the core calculus of a statically typed
-  programming language a \emph{structural} notion of effects, as
-  opposed to the dominant \emph{nominal} notion of effects.
+  The first strand develops a fine-grain call-by-value core calculus
+  of a statically typed programming language a \emph{structural}
+  notion of effects, as opposed to the dominant \emph{nominal} notion
+  of effects in the literature.
   %
   With the structural approach, effects need not be declared before
   use. The usual safety properties of statically typed programming are
@@ -182,17 +183,43 @@
   %
   The calculus features three forms of handlers: deep, shallow, and
   parameterised. They each offer a different approach to manipulate
-  the control state of programs.
+  the control state of programs. Traditional deep handlers are defined
+  by folds over computation trees, and are the original con-struct
+  proposed by Plotkin and Pretnar. Shallow handlers are defined by
+  case splits (rather than folds) over computation
+  trees. Parameterised handlers are deep handlers extended with a
+  state value that is threaded through the folds over computation
+  trees.
   %
-  To demonstrate the usefulness of effect\dots
+  To demonstrate the usefulness of effects and handlers as a practical
+  programming abstraction I implement a small \UNIX{}-style operating
+  system complete with multi-user environment, time-sharing, and file
+  I/O.
 
-  The second strand studies \emph{continuation passing style} and
-  \emph{abstract machine semantics}, which are foundational techniques
-  that admit a unified basis for implementing deep, shallow, and
-  parameterised effect handlers in the same environment.
+  The second strand studies \emph{continuation passing style} (CPS)
+  and \emph{abstract machine semantics}, which are foundational
+  techniques that admit a unified basis for implementing deep,
+  shallow, and parameterised effect handlers in the same environment.
   %
-  Starting from a CPS translation basic Eventually leading to the
-  notion of \emph{generalised continuation}.
+  The CPS translation is obtained through a series refinements by
+  starting from a basic first-order CPS translation for a fine-grain
+  call-by-value language into an untyped language. The initial
+  refinement adds support for deep handlers by representing stacks of
+  continuations and handlers as a curried sequence of arguments.
+  %
+  The resulting translation is not \emph{properly tail-recursive},
+  meaning some function application terms do not appear in tail
+  position. To rectify this the CPS translation is refined once more
+  to obtain an uncurried representation of stacks of continuations and
+  handlers. Each refinement moves toward a more intensional
+  representation of continuations eventually leading to the notion of
+  \emph{generalised continuation}, which admit simultaneous support
+  for deep, shallow, and parameterised handlers. Finally, the
+  translation is made higher-order in order to contract administrative
+  redexes at translation time.
+  %
+  The generalised continuation representation is used to construct an
+  abstract machine that supports the three kinds of handlers.
 
   The third strand investigates the expressive power of effect
   handlers.
