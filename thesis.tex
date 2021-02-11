@@ -168,13 +168,13 @@
 
   This thesis is composed of three strands in which I develop
   operational foundations for programming and implementing effect
-  handlers as well as investigating the expressive power of effect
+  handlers as well as exploring the expressive power of effect
   handlers.
 
   The first strand develops a fine-grain call-by-value core calculus
   of a statically typed programming language a \emph{structural}
-  notion of effects, as opposed to the dominant \emph{nominal} notion
-  of effects in the literature.
+  notion of effects, as opposed to the \emph{nominal} notion of
+  effects that dominants the literature.
   %
   With the structural approach, effects need not be declared before
   use. The usual safety properties of statically typed programming are
@@ -192,9 +192,9 @@
   trees.
   %
   To demonstrate the usefulness of effects and handlers as a practical
-  programming abstraction I implement a small \UNIX{}-style operating
-  system complete with multi-user environment, time-sharing, and file
-  I/O.
+  programming abstraction I implement the essence of a small
+  \UNIX{}-style operating system complete with multi-user environment,
+  time-sharing, and file I/O.
 
   The second strand studies \emph{continuation passing style} (CPS)
   and \emph{abstract machine semantics}, which are foundational
@@ -212,7 +212,7 @@
   position. To rectify this the CPS translation is refined once more
   to obtain an uncurried representation of stacks of continuations and
   handlers. Each refinement moves toward a more intensional
-  representation of continuations eventually leading to the notion of
+  representation of continuations eventually arriving at the notion of
   \emph{generalised continuation}, which admit simultaneous support
   for deep, shallow, and parameterised handlers. Finally, the
   translation is made higher-order in order to contract administrative
@@ -221,8 +221,17 @@
   The generalised continuation representation is used to construct an
   abstract machine that supports the three kinds of handlers.
 
-  The third strand investigates the expressive power of effect
-  handlers.
+  The third strand explores the expressiveness of effect
+  handlers. First, I show that deep, shallow, and parameterised
+  notions of handlers are interdefinable by way of \emph{typed
+    macro-expressiveness}, which provides a syntactic notion of
+  expressiveness that merely affirms existence of encodings between
+  handlers, but it provides no information about the computational
+  content of the encodings. Second, using the semantic notion of
+  \emph{type-respecting expressiveness} I show that for a class of
+  programs a programming language with first-class (e.g. effect
+  handlers) admits asymptotically faster implementations than possible
+  in a language without first-class.
 %
 }
 
