@@ -4936,8 +4936,7 @@ returned along with the original result of $m$.
 %
 Intuitively, we may think of this implementation of $\Write$ as a
 peculiar instance of buffered writing, where the contents of the
-operation are committed to the file in last-in-first-out order,
-i.e. the contents of the last write will be committed first.
+operation are committed to the file when the computation $m$ finishes.
 
 Let us define an auxiliary function that writes a string to the
 $\stdout$ file.
@@ -5038,6 +5037,18 @@ example, where the computation gets terminated mid-way.
 \]
 %
 The (delimited) continuation of $\exit~1$ is effectively dead code.
+%
+Here, we have a choice as to how we compose the handlers. Swapping the
+order of handlers would cause the whole computation to return just
+$1 : \Int$, because the $\status$ handler discards the return value of
+its computation. Thus with the alternative layering of handlers the
+system would throw away the file state after the computation
+finishes. However, in this particular instance the semantics the
+(local) behaviour of the operations $\Write$ and $\Exit$ would be
+unaffected if the handlers were swapped. In general the behaviour of
+operations may be affected by the order of handlers. The canonical
+example of this phenomenon is the composition of nondeterminism and
+state, which we will discuss in Section~\ref{sec:tiny-unix-io}.
 
 \subsection{Dynamic binding: user-specific environments}
 \label{sec:tiny-unix-env}
@@ -5248,7 +5259,7 @@ the three user names.
 The above example demonstrates that we now have the basic building
 blocks to build a multi-user system.
 %
-\dhil{Remark on the concrete layering of handlers.}
+%\dhil{Remark on the concrete layering of handlers.}
 
 \subsection{Nondeterminism: time sharing}
 \label{sec:tiny-unix-time}
@@ -5688,9 +5699,10 @@ happens.
 Evidently, each write operation has been interleaved, resulting in a
 mishmash poetry of Shakespeare and \UNIX{}.
 %
-% To some this may be a shambolic treatment of classical arts, whilst to
-% others this may be a modern contemporaneous treatment. As the saying
-% goes: art is in the eye of the beholder.
+I will leave it to the reader to be the judge of whether this new
+poetry belongs under the category of either classic arts vandalism or
+novel contemporary reinterpretations.  As the idiom goes: \emph{art is
+  in the eye of the beholder}.
 
 \subsection{State: file i/o}
 \label{sec:tiny-unix-io}
@@ -5811,8 +5823,30 @@ invoking $\Get$ or $\Put$, the handler returns a function that accepts
 the initial state. The function gets bound to $run$ which is
 subsequently applied to the provided initial state $st_0$ which causes
 evaluation of the stateful fragment of $m$ to continue.
-%
-\dhil{Discuss briefly local vs global state~\cite{PauwelsSM19}}
+
+\paragraph{Local state vs global state} The meaning of stateful
+operations may depend on whether the ambient environment is
+nondeterministic.  Post-composing nondeterminism with state gives rise
+to the so-called \emph{local state} phenomenon, where state
+modifications are local to each strand of nondeterminism, that is each
+strand maintains its own copy of the state. Local state is also known
+as `backtrackable state' in the literature~\cite{GibbonsH11}, because
+returning back to a branch point restores the state as it were prior
+to the branch. In contrast, post-composing state with nondeterminism
+results in a \emph{global state} interpretation, where the state is
+shared across every strand of nondeterminism. In terms of backtracking
+this means the original state does not get restored upon a return to
+some branch point.
+
+For modelling the file system we opt for the global state
+interpretation such that changes made to file system are visible to
+all processes. The local state interpretation could prove useful if we
+were to model a virtual file system per process such that each process
+would have its own unique standard out file.
+
+The two state phenomena are inter-encodable. \citet{PauwelsSM19} give
+a systematic behaviour-preserving transformation for nondeterminism
+with local state into nondeterminism with global state and vice versa.
 
 
 \subsubsection{Basic serial file system}
