@@ -7792,25 +7792,26 @@ process in order to let another process run.
 
 The main idea is to use the state cell of a parameterised handler to
 manage the process queue and to keep track of the return values of
-completed processes. The scheduler will return the list of values when
-there are no more processes to be run. The process queue will consist
-of reified processes, which we will represent using parameterised
-resumptions. To make the type signatures understandable we will make
-use of three mutually recursive type aliases.
+completed processes. The scheduler will return an association list of
+process identifiers mapped to the return value of their respective
+process when there are no more processes to be run. The process queue
+will consist of reified processes, which we will represent using
+parameterised resumptions. To make the type signatures understandable
+we will make use of three mutually recursive type aliases.
 %
 \[
   \ba{@{~}l@{~}l@{~}c@{~}l}
-    \Proc   &\alpha~\varepsilon   &\defas& \Sstate~\alpha~\varepsilon \to \List~\alpha \eff \varepsilon\\
+    \Proc   &\alpha~\varepsilon   &\defas& \Sstate~\alpha~\varepsilon \to \List\,\Record{\Int;\alpha} \eff \varepsilon\\
     \Pstate &\alpha~\varepsilon &\defas& [\Ready:\Proc~\alpha~\varepsilon;\Blocked:\Record{\Int;\Proc~\alpha~\varepsilon}]\\
     \Sstate &\alpha~\varepsilon &\defas& \Record{q:\List\,\Record{\Int;\Pstate~\alpha~\varepsilon};done:\List~\alpha;pid:\Int;pnext:\Int}\\
   \ea
 \]
 %
 The $\Proc$ alias is the type of reified processes. It is defined as a
-function that takes the current scheduler state and returns a list of
-$\alpha$s. This is almost the type of a parameterised resumption as
-the only thing missing is the a component for the interpretation of an
-operation.
+function that takes the current scheduler state and returns an
+association list of $\alpha$s indexed by integers. This is almost the
+type of a parameterised resumption as the only thing missing is the a
+component for the interpretation of an operation.
 %
 The second alias $\Pstate$ enumerates the possible process
 states. Either a process is \emph{ready} to be run or it is
@@ -7821,12 +7822,12 @@ being waited on and the second component is the process to be
 continued when the other process has completed.
 %
 The third alias $\Sstate$ is the type of scheduler state. It is a
-quadruple, where the label $q$ is the process queue. It is implemented
-as an association list indexed by process identifiers. The label
-$done$ is used to store the return values of completed processes. The
-label $pid$ is used to remember the identifier of currently executing
-process, and finally $pnext$ is used to compute a unique identifier
-for new processes.
+quadruple, where the first label $q$ is the process queue. It is
+implemented as an association list indexed by process identifiers. The
+second label $done$ is used to store the return values of completed
+processes. The third label $pid$ is used to remember the identifier of
+currently executing process, and the fourth label $pnext$ is used to
+compute a unique identifier for new processes.
 
 We will abstract some of the scheduling logic into an auxiliary
 function $\runNext$, which is responsible for dequeuing and running
