@@ -8213,6 +8213,7 @@ corresponding effect handler, which automatically closes open
 resources upon handling the exception-operation by \emph{aborting} the
 resumption of the operation, which would cause resource finalisers to
 run.
+\dhil{Raising exceptions in a linear setting is not well-defined}
 
 \citet{DolanEHMSW17} and \citet{Leijen17a} gave two widely different
 implementations of the async/await idiom using effect
