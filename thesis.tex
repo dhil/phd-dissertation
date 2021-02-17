@@ -5394,7 +5394,7 @@ above computations are run concurrently.
            \qquad\qquad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
              \qquad\qquad\qquad\status\,(\lambda\Unit.
                  \ba[t]{@{}l}
-                   \If\;\fork~\Unit\;\Then\;
+                   \If\;\fork\,\Unit\;\Then\;
                        \su~\Alice;\,
                        \quoteRitchie~\Unit\\
                    \Else\;
@@ -5671,7 +5671,7 @@ happens.
          \qquad\qquad\qquad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
          \qquad\qquad\qquad\qquad\status\,(\lambda\Unit.
                  \ba[t]{@{}l}
-                   \If\;\fork~\Unit\;\Then\;
+                   \If\;\fork\,\Unit\;\Then\;
                        \su~\Alice;\,
                        \quoteRitchie~\Unit\\
                    \Else\;
@@ -6407,7 +6407,7 @@ system in action.
          \qquad\qquad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
          \qquad\qquad\quad\status\,(\lambda\Unit.
                  \ba[t]{@{}l}
-                   \If\;\fork~\Unit\;\Then\;
+                   \If\;\fork\,\Unit\;\Then\;
                        \su~\Alice;\,
                        \quoteRitchie~\redirect~\strlit{ritchie.txt}\\
                    \Else\;
@@ -6686,7 +6686,7 @@ We can now plug it all together.
          \qquad\quad\sessionmgr\,\Record{\Root;\lambda\Unit.\\
          \qquad\qquad\status\,(\lambda\Unit.
                  \ba[t]{@{}l}
-                   \If\;\fork~\Unit\;\\
+                   \If\;\fork\,\Unit\;\\
                    \Then\;
                      \bl
                        \su~\Alice;\,
