@@ -4383,7 +4383,7 @@ the programmer, from continuations in continuation passing style
 (Chapter~\ref{ch:cps}) and continuations in abstract machines
 (Chapter~\ref{ch:abstract-machine}). In the remainder of this
 dissertation I refer to programmatic continuations as `resumptions',
-and reserve the term `continuation' for continuations concerning the
+and reserve the term `continuation' for continuations concerning
 implementation details.
 
 \paragraph{Relation to prior work} The deep and shallow handler
@@ -5953,7 +5953,7 @@ essential administrative structures for file organisation.
   files. In general, a file may have multiple names. Each name is
   stored along with a pointer into the i-list.
   \item The \emph{i-list} is a collection of i-nodes. Each i-node
-  contains the meta-data for a file along with a pointer into the data
+  contains the meta data for a file along with a pointer into the data
   region.
   \item The \emph{data region} contains the actual file contents.
 \end{enumerate}
@@ -5963,7 +5963,7 @@ These structures make up the \fsname{}.
 Figure~\ref{fig:unix-mappings} depicts an example with the three
 structures and a mapping between them.
 %
-The only file metadata tracked by \fsname{} is the number of names for
+The only file meta data tracked by \fsname{} is the number of names for
 a file.
 %
 The three structures and their mappings can be implemented using
@@ -6612,7 +6612,7 @@ implementation of \fsname{}.
   \bl
     \FileIO \defas \{\FileRW;\FileCO;\FileLU\} \medskip\\
     \fileIO : (\UnitType \to \alpha \eff \FileIO) \to \alpha \eff \State~\FileSystem \\
-    \fileIO~m \defas \fileRW\,(\lambda\Unit. \fileAlloc\,(\lambda\Unit.\fileLU\,m))
+    \fileIO~m \defas \fileRW\,(\lambda\Unit. \fileAlloc\,(\lambda\Unit.\fileLU~m))
   \el
 \]
 %
