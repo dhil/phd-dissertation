@@ -5973,10 +5973,10 @@ have the advantage of having a simple, straightforward implementation.
 %
 \[
   \ba{@{~}l@{\qquad}c@{~}l}
-    \Directory \defas \List~\Record{\String;\Int} &&%
-    \DataRegion \defas \List~\Record{\Int;\UFile} \smallskip\\
+    \Directory \defas \List\,\Record{\String;\Int} &&%
+    \DataRegion \defas \List\,\Record{\Int;\UFile} \smallskip\\
     \INode \defas \Record{lno:\Int;loc:\Int}  &&%
-    \IList \defas \List~\Record{\Int;\INode}
+    \IList \defas \List\,\Record{\Int;\INode}
   \ea
 \]
 %
@@ -6147,7 +6147,7 @@ $\URead$ and $\UWrite$ operations.
                    \bl
                    \Let\;cs\revto \faild\,\Record{\None;\lambda\Unit.\\
                      \quad\Some\,(\fread\,\Record{ino;\Uget\,\Unit})}\\
-                     \In\;resume\,cs
+                     \In\;resume~cs
                    \el\\
                  \OpCase{\UWrite}{\Record{ino;cs}}{resume} &\mapsto&
                      \ba[t]{@{}l}
@@ -6172,7 +6172,7 @@ writing to a file. Again the file system state is retrieved using
 $\Uget$. The $\Uput$ operation is used to update the file system state
 with the state produced by the successful invocation of
 $\fwrite$. Failure is interpreted as unit, meaning that from the
-caller perspective the operation fails silently.
+caller's perspective the operation fails silently.
 
 \paragraph{File creation and opening}
 The signature of file creation and opening is unsurprisingly comprised
@@ -6212,7 +6212,7 @@ from the functions we already have at our disposal.
 %
 \[
   \bl
-    \dec{has} : \Record{\alpha;\List~\Record{\alpha;\beta}} \to \Bool\\
+    \dec{has} : \Record{\alpha;\List\,\Record{\alpha;\beta}} \to \Bool\\
     \dec{has}\,\Record{k;xs} \defas \faild\,\Record{\False;(\lambda\Unit.\lookup\,\Record{k;xs};\True)}
   \el
 \]
@@ -6297,13 +6297,13 @@ implementation of $\fileRW$.
                          \Let\;\Record{ino;fs} = \fcreate\,\Record{\,fname;\Uget\,\Unit}\\
                          \In\;\Uput~fs;\,\Some~ino}
                        \el\\
-                     \In\; resume\,ino
+                     \In\; resume~ino
                    \el\\
                  \OpCase{\UOpen}{fname}{resume} &\mapsto&
                    \ba[t]{@{}l}
                       \Let\; ino \revto \faild~\Record{\None; \lambda \Unit.\\
                         \quad\Some\,(\fopen\,\Record{fname;\Uget\,\Unit})}\\
-                      \In\;resume\,ino
+                      \In\;resume~ino
                    \ea
                \ea
          \ea
