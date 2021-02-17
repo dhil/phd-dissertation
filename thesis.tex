@@ -6269,11 +6269,11 @@ the new i-node. The last line returns the identifier for the i-node
 along with the modified file system, where the next location ($lnext$)
 and next i-node identifier ($inext$) have been incremented.
 %
-It is worth noting that the effect signature of $\dec{has}$ mentions
-$\Fail$ even though it will (most likely) never fail. It is present in
-the effect row due to the use of $\lookup$ in the $\Then$-branch. This
-application of $\lookup$ can only fail if the file system is in an
-inconsistent state, where the index $ino$ has become stale. The
+It is worth noting that the effect signature of $\fcreate$ mentions
+$\Fail$ even though it will never fail. It is present in the effect
+row due to the use of $\fopen$ and $\lookup$ in the
+$\Then$-branch. Either application can only fail if the file system is
+in an inconsistent state, where the index $ino$ has become stale. The
 $\dec{f}$-family of functions have been carefully engineered to always
 leave the file system in a consistent state.
 %
