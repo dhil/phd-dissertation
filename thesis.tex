@@ -8206,14 +8206,13 @@ using effect handlers in the Frank programming
 language. \citet{Poulson20} expanded upon this work by investigating
 ways to handle preemptive concurrency.
 
-\citet{FowlerLMD19} used effect handlers in the setting of
-fault-tolerant distributed programming. They codified a distributed
-exception handling mechanism using a single exception-operation and a
-corresponding effect handler, which automatically closes open
-resources upon handling the exception-operation by \emph{aborting} the
-resumption of the operation, which would cause resource finalisers to
-run.
-\dhil{Raising exceptions in a linear setting is not well-defined}
+\citet{FowlerLMD19} uses effect handlers in the setting of linearly
+typed fault-tolerant distributed programming. They use effect handlers
+to codify an exception handling mechanism, which automatically
+consumes linear resources. Exceptions are implemented as operations,
+that are handled by \emph{cancelling} their resumptions. Cancellation
+is a runtime primitive that gathers and closes active resources in the
+computation represented by some resumption.
 
 \citet{DolanEHMSW17} and \citet{Leijen17a} gave two widely different
 implementations of the async/await idiom using effect
