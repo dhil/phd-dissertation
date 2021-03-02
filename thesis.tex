@@ -4326,7 +4326,7 @@ The term `pure' is heavily overloaded in the programming literature.
 %   back to 2016 when Richard Eisenberg asked me about how we do effect
 %   inference in Links.}
 
-\chapter{Programming with control via effect handlers}
+\chapter{Effect handler oriented programming}
 \label{ch:unary-handlers}
 %
 Programming with effect handlers is a dichotomy of \emph{performing}
@@ -8289,7 +8289,7 @@ called the \emph{continuation}, which represents the next computation
 in evaluation position. CPS is canonical in the sense that it is
 definable in pure $\lambda$-calculus without any further
 primitives. As an informal illustration of CPS consider again the
-rudimentary factorial function from Section~\ref{sec:tracking-div}.
+ever-green factorial function from Section~\ref{sec:tracking-div}.
 %
 \[
   \bl
@@ -8335,52 +8335,72 @@ $\dec{fac}_{\dec{cps}}$.
 Firstly note that their type signatures differ. The CPS version has an
 additional formal parameter of type $\Int \to \alpha$ which is the
 continuation. By convention the continuation parameter is named $k$ in
-the implementation. The continuation captures the remainder of
-computation that ultimately produces a result of type $\alpha$, or put
+the implementation. As usual, the continuation represents the
+remainder of computation. In this specific instance $k$ represents the
+undelimited current continuation of an application of
+$\dec{fac}_{\dec{cps}}$, i.e. the computation to occur after
+evaluation of $\dec{fac}_{\dec{cps}}$. Given a value of type $\Int$,
+the continuation produces a result of type $\alpha$, or put
 differently: it determines what to do with the result returned by an
-invocation of $\dec{fac}_{\dec{cps}}$. Semantically the continuation corresponds
-to the surrounding evaluation
-context.
+invocation of $\dec{fac}_{\dec{cps}}$.
 %
 Secondly note that every $\Let$-binding in $\dec{fac}$ has become a
 function application in $\dec{fac}_{\dec{cps}}$. The functions
 $=_{\dec{cps}}$, $-_{\dec{cps}}$, and $*_{\dec{cps}}$ denote the CPS
 versions of equality testing, subtraction, and multiplication
-respectively. Moreover, the explicit $\Return~1$ in the true branch
-has been turned into an application of continuation $k$, and the
+respectively. Moreover, the explicit $\Return~1$ in the $\Then$-branch
+has been turned into an application of the continuation $k$, and the
 implicit return $n*m$ in the $\Else$-branch has been turned into an
-explicit application of the continuation.
+application of $*_{\dec{cps}}$, that receives the current continuation
+$k$ of $\dec{fac}_{\dec{cps}}$, which effectively delegates the
+responsibility of `returning' from $\dec{fac}_{\dec{cps}}$ to
+$*_{\dec{cps}}$.
 %
-Thirdly note every function application occurs in tail position. This
-is a characteristic property of CPS that makes CPS feasible as a
-practical implementation strategy since programs in CPS notation do
-not consume stack space.
+Thirdly note that every function application occurs in tail position
+(recall Definition~\ref{def:tail-comp}). This is a characteristic
+property of CPS transforms that make them feasible as a practical
+implementation strategy, since programs in CPS notation require only a
+constant amount of stack space to run, namely, a single activation
+frame~\cite{Appel92}.
 %
-\dhil{The focus of the introduction should arguably not be to explain CPS.}
-\dhil{Justify CPS as an implementation technique}
-\dhil{Give a side-by-side reduction example of $\dec{fac}$ and $\dec{fac}_{\dec{cps}}$.}
+%\dhil{The focus of the introduction should arguably not be to explain CPS.}
+%\dhil{Justify CPS as an implementation technique}
+%\dhil{Give a side-by-side reduction example of $\dec{fac}$ and $\dec{fac}_{\dec{cps}}$.}
 \dhil{Define desirable properties of a CPS translation: properly tail-recursive, no static administrative redexes}
 %
-\begin{definition}[Properly tail-recursive~\cite{Danvy06}]
- %
-  A CPS translation $\cps{-}$ is properly tail-recursive if the
-  continuation of every CPS transformed tail call $\cps{V\,W}$ within
-  $\cps{\lambda x.M}$ is $k$, where
-  \begin{equations}
-      \cps{\lambda x.M} &=& \lambda x.\lambda k.\cps{M}\\
-      \cps{V\,W} &=& \cps{V}\,\cps{W}\,k.
-    \end{equations}
-  \end{definition}
+% \begin{definition}[Properly tail-recursive~\cite{Danvy06}]
+%  %
+%   A CPS translation $\cps{-}$ is properly tail-recursive if the
+%   continuation of every CPS transformed tail call $\cps{V\,W}$ within
+%   $\cps{\lambda x.M}$ is $k$, where
+%   \begin{equations}
+%       \cps{\lambda x.M} &=& \lambda x.\lambda k.\cps{M}\\
+%       \cps{V\,W} &=& \cps{V}\,\cps{W}\,k.
+%     \end{equations}
+%   \end{definition}
 
-\[
-    \ba{@{~}l@{~}l}
-    \pcps{(\lambda x.(\lambda y.\Return\;y)\,x)\,\Unit} &= (\lambda x.(\lambda y.\lambda k.k\,y)\,x)\,\Unit\,(\lambda x.x)\\
-    &\reducesto ((\lambda y.\lambda k.k\,y)\,\Unit)\,(\lambda x.x)\\
-    &\reducesto (\lambda k.k\,\Unit)\,(\lambda x.x)\\
-    &\reducesto (\lambda x.x)\,\Unit\\
-    &\reducesto \Unit
-    \ea
-\]
+% \[
+%     \ba{@{~}l@{~}l}
+%     \pcps{(\lambda x.(\lambda y.\Return\;y)\,x)\,\Unit} &= (\lambda x.(\lambda y.\lambda k.k\,y)\,x)\,\Unit\,(\lambda x.x)\\
+%     &\reducesto ((\lambda y.\lambda k.k\,y)\,\Unit)\,(\lambda x.x)\\
+%     &\reducesto (\lambda k.k\,\Unit)\,(\lambda x.x)\\
+%     &\reducesto (\lambda x.x)\,\Unit\\
+%     &\reducesto \Unit
+%     \ea
+% \]
+
+\paragraph{Relation to prior work} This chapter is based on the
+following work.
+%
+\begin{enumerate}[i]
+    \item \bibentry{HillerstromLAS17}\label{en:ch-cps-HLAS17}
+    \item \bibentry{HillerstromL18}  \label{en:ch-cps-HL18}
+    \item \bibentry{HillerstromLA20} \label{en:ch-cps-HLA20}
+\end{enumerate}
+%
+Section~\ref{sec:higher-order-uncurried-deep-handlers-cps} is
+based on item \ref{en:ch-cps-HLAS17}, however, I have adapted it to
+follow the notation and style of item \ref{en:ch-cps-HLA20}.
 
 \section{Initial target calculus}
 \label{sec:target-cps}
@@ -8472,7 +8492,7 @@ term) to cope with the case of pattern matching failure.
   of treating them as primitive rather than syntactic sugar (target
   languages such as JavaScript has similar primitives).}
 
-\section{CPS transform for fine-grain call-by-value}
+\section{Transforming fine-grain call-by-value}
 \label{sec:cps-cbv}
 
 We start by giving a CPS translation of $\BCalc$ in
@@ -8528,7 +8548,7 @@ translate to value terms in the target.
 \label{fig:cps-cbv}
 \end{figure}
 
-\section{CPS transforming deep effect handlers}
+\section{Transforming deep effect handlers}
 \label{sec:fo-cps}
 
 The translation of a computation term by the basic CPS translation in
