@@ -9554,7 +9554,7 @@ If $M \reducesto N$ then $\pcps{M} \reducesto^+ \areducesto^* \pcps{N}$.
 % \end{proof}
 %
 
-\section{CPS transforming shallow effect handlers}
+\section{Transforming shallow effect handlers}
 \label{sec:cps-shallow}
 
 In this section we will continue to build upon the higher-order
@@ -10285,12 +10285,153 @@ result.
 %
 \begin{lemma}[Backwards simulation]
   If $\pcps{M} \reducesto^+ V$ then there exists $W$
-  such that $M \reducesto^* W$ and $\pcps{W} = V$.
+  such that $M \reducesto^\ast W$ and $\pcps{W} = V$.
 \end{lemma}
 %
 \begin{corollary}
 $M \reducesto^\ast V$ if and only if $\pcps{M} \reducesto^\ast \pcps{V}$.
 \end{corollary}
+
+\section{Transforming parameterised handlers}
+
+\begin{figure}[t]
+\textbf{Continuation reductions}
+%
+\begin{reductions}
+\usemlab{KAppNil} &
+  \kapp \; (\dRecord{\dnil, \dRecord{q, v, e}} \dcons \dhk) \, V &\reducesto& v \dapp \dRecord{q,V} \dapp \dhk \\
+\usemlab{KAppCons} &
+  \kapp \; (\dRecord{\dlf \dcons \dlk, h} \dcons \dhk) \, V   &\reducesto& \dlf \dapp V \dapp (\dRecord{\dlk, h} \dcons \dhk) \\
+\end{reductions}
+%
+\textbf{Resumption reductions}
+%
+\[
+\ba{@{}l@{\quad}l@{}}
+\usemlab{Res}^\ddag &
+\Let\;r=\Res(V_n \dcons \dots \dcons V_1 \dcons \dnil)\;\In\;N \reducesto \\
+&\quad N[\dlam x\,\dhk. \bl\Let\;\dRecord{fs, \dRecord{q,\vhret, \vhops}}\dcons \dhk' = \dhk\;\In\\
+                       \kapp\;(V_1 \dcons \dots \dcons V_n \dcons \dRecord{fs, \dRecord{q,\vhret, \vhops}} \dcons \dhk')\;x/r]\el
+\\
+\ea
+\]
+%
+\textbf{Computations}
+%
+\begin{equations}
+\cps{-}                     &:& \CompCat \to \UCompCat\\
+\cps{\Let~x \revto M~\In~N} &\defas&
+   \bl\slam \sRecord{\shf,  \sRecord{\xi, \svhret, \svhops}} \scons \shk.
+      \ba[t]{@{}l}
+         \cps{M} \sapp (\sRecord{\bl\reflect((\dlam x\,\dhk.\bl\Let\;(\dk \dcons \dhk') = \dhk\;\In\\
+         \cps{N} \sapp (\reflect\dk \scons \reflect \dhk')) \el\\
+         \dcons \reify\shf), \sRecord{\xi, \svhret, \svhops}} \scons \shk)\el
+      \ea
+  \el\\
+\cps{\Do\;\ell\;V} &\defas&
+  \slam \sRecord{\shf, \sRecord{\xi, \svhret, \svhops}} \scons \shk.\,
+  \reify\svhops \bl\dapp \dRecord{\reify\xi, \ell,
+    \dRecord{\bl
+      \cps{V}, \dRecord{\reify \shf, \dRecord{\reify\xi,\reify\svhret, \reify\svhops}}\\
+      \dcons \dnil}}
+  \dapp \reify \shk\el\el \\
+\end{equations}
+\begin{equations}
+\cps{\ParamHandle \, M \; \With \; (q.H)(W)} &\defas&
+\slam \shk . \cps{M} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{W},\reflect \cps{\hret}^{\ddag}_q, \reflect \cps{\hops}^{\ddag}_q}} \scons \shk) \\
+\end{equations}
+\textbf{Handler definitions}
+%
+\begin{equations}
+\cps{-}                    &:& \HandlerCat \times \UValCat \to \UValCat\\
+% \cps{H}^\depth &=& \sRecord{\reflect \cps{\hret}, \reflect \cps{\hops}^\depth}\\
+\cps{\{\Return \; x \mapsto N\}}^{\ddag}_q &\defas& \dlam \dRecord{q,x}\,\dhk.\Let\;(\dk \dcons \dhk') = \dhk\;\In\;\cps{N} \sapp (\reflect\dk \scons \reflect \dhk') \\
+\cps{\{(\ell \; p \; r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}}^{\ddag}_q
+&\defas&
+\dlam \dRecord{q,z,\dRecord{p,\dhkr}}\,\dhk.
+              \Case \;z\; \{
+               \ba[t]{@{}l@{}c@{~}l}
+                (&\ell &\mapsto
+                   \ba[t]{@{}l}
+                      \Let\;r=\Res^\ddag\,\dhkr\;\In\;  \\
+                      \Let\;(\dk \dcons \dhk') = \dhk\;\In\\
+                      \cps{N_{\ell}} \sapp (\reflect\dk \scons \reflect \dhk'))_{\ell \in \mathcal{L}}
+                    \ea\\
+                &y     &\mapsto \hforward((y, p, \dhkr), \dhk) \} \\
+                \ea \\
+\hforward((y, p, \dhkr), \dhk) &\defas& \bl
+              \Let\; \dRecord{fs, \dRecord{q, \vhret, \vhops}} \dcons \dhk' = \dhk \;\In \\
+              \vhops \dapp \dRecord{q, y,\dRecord{p, \dRecord{fs, \dRecord{q,\vhret, \vhops}} \dcons \dhkr}} \dapp \dhk' \\
+              \el
+\end{equations}
+
+\textbf{Top-level program}
+\begin{equations}
+\pcps{M} &=& \cps{M} \sapp (\sRecord{\dnil, \sRecord{\reflect\dRecord{},\reflect \dlam \dRecord{q,x}\,\dhk. x, \reflect \dlam \dRecord{q,z}\,\dhk.\Absurd~z}} \scons \snil) \\
+\end{equations}
+
+\caption{CPS translation for parameterised handlers.}
+\label{fig:param-cps}
+\end{figure}
+
+\paragraph{Continuation Passing Style} To accommodate parameterised
+handlers, we generalise the notion of continuations once more. A
+continuation becomes a triple consisting of a pure continuation,
+effect continuation, and the handler parameter. This effectively
+amounts to explicit state passing as the parameter value gets threaded
+through every function application. The pure continuation invocation
+rule $\usemlab{KAppNil}$ is slightly modified to account for the third
+component.
+%
+\[
+  \kapp \; (\dRecord{\dnil, \dRecord{\vhret, \vhops, q}} \dcons \dhk) \, V \reducesto \vhret \dapp \Record{V,q} \dapp \dhk
+\]
+%
+The pure continuation $v$ is now applied to a pair consisting of the
+return value $V$ and the current value of the handler parameter
+$q$. The resumption rule $\usemlab{Res}$ is adapted to update the
+value of the handler parameter.
+%
+\[
+  \bl
+  \Let\;r=\Res\,(\dRecord{\vhret,\vhops,\_} \dcons \dots \dcons \dhf_1 \dcons \dnil)\;\In\;N\reducesto\\
+  \qquad N[\lambda \Record{x,p}\,\dhk.\kapp\;(\dhf_1 \dcons \dots \dcons \dRecord{\vhret,\vhops,p} \dcons \dhk)\;x/r]
+  \el
+\]
+%
+Thus, the parameter of the top-most handler in the resumption stack is
+ignored and replaced by a new value $p$. The translation is updated
+accordingly to account for the triple structure. This involves
+updating all the parts that previously dynamically decomposed and
+statically recomposed frames to now include the additional state
+parameter. The key updated translation clauses are shown in
+Figure~\ref{fig:param-cps}.
+%
+The translation of $\Do$ invokes the effect continuation
+$\reify \svhops$ with a pair consisting of the operation and the value
+of the handler parameter. The parameter is also pushed onto the
+reversed resumption stack. This is necessary to account for the case
+where the effect continuation $\reify \svhops$ does not handle
+operation $\ell$.
+% An alternative option is to push the parameter back
+% on the resumption stack during effect forwarding. However that means
+% the resumption stack will be nonuniform as the top element sometimes
+% will be a pair.
+%
+
+The translation of the return and operation clauses yields functions
+that take a pair as input in addition to the current continuation. The
+forwarding case is adjusted in much the same way as the translation
+for $\Do$. The current continuation $k$ is destructed in order to
+identify the next effect continuation $\vhops$ and its parameter
+$q$. Then $\vhops$ is invoked with the updated resumption stack and
+the value of its parameter $q$.
+
+The amended CPS translation for parameterised handlers is not a zero
+cost translation for shallow and ordinary deep handlers as they will
+have to thread a ``dummy'' parameter value through. In contrast, the
+abstract machine implementation of parameterised handlers does not
+impose an overhead on shallow and deep handlers.
 
 \section{Related work}
 \label{sec:cps-related-work}
