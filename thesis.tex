@@ -10293,28 +10293,28 @@ $M \reducesto^\ast V$ if and only if $\pcps{M} \reducesto^\ast \pcps{V}$.
 \end{corollary}
 
 \section{Transforming parameterised handlers}
-
-\begin{figure}[t]
-\textbf{Continuation reductions}
 %
-\begin{reductions}
-\usemlab{KAppNil} &
-  \kapp \; (\dRecord{\dnil, \dRecord{q, v, e}} \dcons \dhk) \, V &\reducesto& v \dapp \dRecord{q,V} \dapp \dhk \\
-\usemlab{KAppCons} &
-  \kapp \; (\dRecord{\dlf \dcons \dlk, h} \dcons \dhk) \, V   &\reducesto& \dlf \dapp V \dapp (\dRecord{\dlk, h} \dcons \dhk) \\
-\end{reductions}
-%
-\textbf{Resumption reductions}
-%
-\[
-\ba{@{}l@{\quad}l@{}}
-\usemlab{Res}^\ddag &
-\Let\;r=\Res(V_n \dcons \dots \dcons V_1 \dcons \dnil)\;\In\;N \reducesto \\
-&\quad N[\dlam x\,\dhk. \bl\Let\;\dRecord{fs, \dRecord{q,\vhret, \vhops}}\dcons \dhk' = \dhk\;\In\\
-                       \kapp\;(V_1 \dcons \dots \dcons V_n \dcons \dRecord{fs, \dRecord{q,\vhret, \vhops}} \dcons \dhk')\;x/r]\el
-\\
-\ea
-\]
+\begin{figure}
+% \textbf{Continuation reductions}
+% %
+% \begin{reductions}
+% \usemlab{KAppNil} &
+%   \kapp \; (\dRecord{\dnil, \dRecord{q, v, e}} \dcons \dhk) \, V &\reducesto& v \dapp \dRecord{q,V} \dapp \dhk \\
+% \usemlab{KAppCons} &
+%   \kapp \; (\dRecord{\dlf \dcons \dlk, h} \dcons \dhk) \, V   &\reducesto& \dlf \dapp V \dapp (\dRecord{\dlk, h} \dcons \dhk) \\
+% \end{reductions}
+% %
+% \textbf{Resumption reductions}
+% %
+% \[
+% \ba{@{}l@{\quad}l@{}}
+% \usemlab{Res}^\ddag &
+% \Let\;r=\Res(V_n \dcons \dots \dcons V_1 \dcons \dnil)\;\In\;N \reducesto \\
+% &\quad N[\dlam x\,\dhk. \bl\Let\;\dRecord{fs, \dRecord{q,\vhret, \vhops}}\dcons \dhk' = \dhk\;\In\\
+%                        \kapp\;(V_1 \dcons \dots \dcons V_n \dcons \dRecord{fs, \dRecord{q,\vhret, \vhops}} \dcons \dhk')\;x/r]\el
+% \\
+% \ea
+% \]
 %
 \textbf{Computations}
 %
@@ -10374,64 +10374,86 @@ $M \reducesto^\ast V$ if and only if $\pcps{M} \reducesto^\ast \pcps{V}$.
 \label{fig:param-cps}
 \end{figure}
 
-\paragraph{Continuation Passing Style} To accommodate parameterised
-handlers, we generalise the notion of continuations once more. A
-continuation becomes a triple consisting of a pure continuation,
-effect continuation, and the handler parameter. This effectively
-amounts to explicit state passing as the parameter value gets threaded
-through every function application. The pure continuation invocation
-rule $\usemlab{KAppNil}$ is slightly modified to account for the third
-component.
+Generalised continuations provide a versatile implementation strategy
+for effect handlers as exemplified in the previous section. In this
+section we add further emphasis on the versatility of generalised
+continuations by demonstrating how to adapt the continuation structure
+to accommodate parameterised handlers. In order to support
+parameterised handlers, each effect continuation must store the
+current value of the handler parameter. Thus, an effect continuation
+becomes a triple consisting of the parameter, return clause, and
+operation clause(s). Furthermore, the return clause gets transformed
+into a binary function, that takes the current value of the handler
+parameter as its first argument and the return value of the handled
+computation as its second argument. Similarly, the operation clauses
+are transformed into a binary function, that takes the handler
+parameter first and the operation package second. This strategy
+effectively amounts to explicit state passing as the parameter value
+gets threaded through every handler continuation
+function. Operationally, the pure continuation invocation rule
+$\usemlab{KAppNil}$ requires a small adjustment to account for the
+handler parameter.
 %
 \[
-  \kapp \; (\dRecord{\dnil, \dRecord{\vhret, \vhops, q}} \dcons \dhk) \, V \reducesto \vhret \dapp \Record{V,q} \dapp \dhk
+  \kapp \; (\dRecord{\dnil, \dRecord{q, \vhret, \vhops}} \dcons \dhk) \, V \reducesto \vhret \dapp \Record{q,V} \dapp \dhk
 \]
 %
 The pure continuation $v$ is now applied to a pair consisting of the
-return value $V$ and the current value of the handler parameter
-$q$. The resumption rule $\usemlab{Res}$ is adapted to update the
-value of the handler parameter.
+current value of the handler parameter $q$ and the return value
+$V$. Similarly, the resumption rule $\usemlab{Res}$ must also be
+adapted to update the value of the handler parameter.
 %
 \[
   \bl
-  \Let\;r=\Res\,(\dRecord{\vhret,\vhops,\_} \dcons \dots \dcons \dhf_1 \dcons \dnil)\;\In\;N\reducesto\\
-  \qquad N[\lambda \Record{x,p}\,\dhk.\kapp\;(\dhf_1 \dcons \dots \dcons \dRecord{\vhret,\vhops,p} \dcons \dhk)\;x/r]
+  \Let\;r=\Res^\ddag\,(\dRecord{q,\vhret,\vhops} \dcons \dots \dcons V_1 \dcons \dnil)\;\In\;N\reducesto\\
+  \qquad N[\dlam \dRecord{q',x}\,\dhk.\kapp\;(V_1 \dcons \dots \dcons \dRecord{q',\vhret,\vhops} \dcons \dhk)\;x/r]
   \el
 \]
 %
-Thus, the parameter of the top-most handler in the resumption stack is
-ignored and replaced by a new value $p$. The translation is updated
-accordingly to account for the triple structure. This involves
-updating all the parts that previously dynamically decomposed and
-statically recomposed frames to now include the additional state
-parameter. The key updated translation clauses are shown in
-Figure~\ref{fig:param-cps}.
+The rule is not much different from the original $\usemlab{Res}$
+rule. The difference is that this rule unpacks the current handler
+parameter $q$ along with the return clause, $\vhret$, and operation
+clauses, $\vhops$. The reduction constructs a resumption function,
+whose first parameter $q'$ binds the updated value of the handler
+parameter. The $q'$ is packaged with the original $\vhret$ and
+$\vhops$ such that the next activation of the handler gets the
+parameter value $q'$ rather than $q$.
+
+The CPS translation is updated accordingly to account for the triple
+effect continuation structure. This involves updating all the parts
+that previously dynamically decomposed and statically recomposed
+effect continuation frames to now include the additional state
+parameter. The cases that need to be updated are shown in
+Figure~\ref{fig:param-cps}. We write $\xi$ to denote static handler
+parameters.
 %
-The translation of $\Do$ invokes the effect continuation
-$\reify \svhops$ with a pair consisting of the operation and the value
-of the handler parameter. The parameter is also pushed onto the
-reversed resumption stack. This is necessary to account for the case
-where the effect continuation $\reify \svhops$ does not handle
-operation $\ell$.
+The translation of $\Let$ unpacks and repacks the effect continuation
+to maintain the continuation length invariant.  The translation of
+$\Do$ invokes the effect continuation $\reify \svhops$ with a triple
+consisting of the value of the handler parameter, the operation, and
+the operation payload. The parameter is also pushed onto the reversed
+resumption stack. This is necessary to account for the case where the
+effect continuation $\reify \svhops$ does not handle operation $\ell$.
 % An alternative option is to push the parameter back
 % on the resumption stack during effect forwarding. However that means
 % the resumption stack will be nonuniform as the top element sometimes
 % will be a pair.
 %
 
-The translation of the return and operation clauses yields functions
-that take a pair as input in addition to the current continuation. The
-forwarding case is adjusted in much the same way as the translation
-for $\Do$. The current continuation $k$ is destructed in order to
-identify the next effect continuation $\vhops$ and its parameter
-$q$. Then $\vhops$ is invoked with the updated resumption stack and
-the value of its parameter $q$.
-
-The amended CPS translation for parameterised handlers is not a zero
-cost translation for shallow and ordinary deep handlers as they will
-have to thread a ``dummy'' parameter value through. In contrast, the
-abstract machine implementation of parameterised handlers does not
-impose an overhead on shallow and deep handlers.
+The translation of the return and operation clauses are parameterised
+by the name of the binder for the handler parameter. Each translation
+yields functions that take a pair as input in addition to the current
+continuation. The forwarding case is adjusted in the same way as the
+translation for $\Do$. The current continuation $k$ is deconstructed
+in order to identify the next effect continuation $\vhops$ and its
+parameter $q$. Then $\vhops$ is invoked with the updated resumption
+stack and the value of its parameter $q$.
+%
+The top-level translation adds a `dummy' unit value, which is ignored
+by both the pure continuation and effect continuation.%   The amended
+% CPS translation for parameterised handlers is not a zero cost
+% translation for shallow and ordinary deep handlers as they will have
+% to thread a ``dummy'' parameter value through.
 
 \section{Related work}
 \label{sec:cps-related-work}
