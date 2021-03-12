@@ -8296,12 +8296,13 @@ ever-green factorial function from Section~\ref{sec:tracking-div}.
     \dec{fac} : \Int \to \Int\\
     \dec{fac} \defas \lambda n.
        \ba[t]{@{}l}
-         \Let\;is\_zero \revto n = 0\;\In\\
-         \If\;is\_zero\;\Then\; \Return\;1\\
+         \Let\;isz \revto n = 0\;\In\\
+         \If\;isz\;\Then\; \Return\;1\\
          \Else\;\ba[t]{@{~}l}
                    \Let\; n' \revto n - 1 \;\In\\
-                   \Let\; m \revto f~n' \;\In\\
-                   n * m
+                   \Let\; m \revto \dec{fac}~n' \;\In\\
+                   \Let\;res \revto n * m \;\In\\
+                   \Return\;res
                  \ea
        \ea
   \el
@@ -8316,14 +8317,18 @@ implementation of this function changes as follows.
   \dec{fac}_{\dec{cps}} : \Int \to (\Int \to \alpha) \to \alpha\\
   \dec{fac}_{\dec{cps}} \defas \lambda n.\lambda k.
      (=_{\dec{cps}})~n~0~
-       (\lambda is\_zero.
+       (\lambda isz.
           \ba[t]{@{~}l}
-          \If\;is\_zero\;\Then\; k~1\\
+          \If\;isz\;\Then\; k~1\\
           \Else\;
-          (-_{\dec{cps}})~n~1~
+          (-_{\dec{cps}})~n~\bl 1\\
             (\lambda n'.
-               \dec{fac}_{\dec{cps}}~n'~
-                  (\lambda m. (*_{\dec{cps}})~n~m~k)))
+               \dec{fac}_{\dec{cps}}~\bl n'\\
+               (\lambda m. (*_{\dec{cps}})~n~\bl m\\
+               (\lambda res. k~res))))
+               \el
+               \el
+               \el
           \ea
   \el
 \]
@@ -8338,35 +8343,76 @@ continuation. By convention the continuation parameter is named $k$ in
 the implementation. As usual, the continuation represents the
 remainder of computation. In this specific instance $k$ represents the
 undelimited current continuation of an application of
-$\dec{fac}_{\dec{cps}}$, i.e. the computation to occur after
-evaluation of $\dec{fac}_{\dec{cps}}$. Given a value of type $\Int$,
-the continuation produces a result of type $\alpha$, or put
-differently: it determines what to do with the result returned by an
-invocation of $\dec{fac}_{\dec{cps}}$.
+$\dec{fac}_{\dec{cps}}$. Given a value of type $\Int$, the
+continuation produces a result of type $\alpha$, which is the
+\emph{answer type} of the entire program. Thus applying
+$\dec{fac}_{\dec{cps}}~3$ to the identity function ($\lambda x.x$)
+yields $6 : \Int$, whilst applying it to the predicate
+$\lambda x. x > 2$ yields $\True : \Bool$.
+% or put differently: it determines what to do with the result
+% returned by an invocation of $\dec{fac}_{\dec{cps}}$.
 %
+
 Secondly note that every $\Let$-binding in $\dec{fac}$ has become a
-function application in $\dec{fac}_{\dec{cps}}$. The functions
-$=_{\dec{cps}}$, $-_{\dec{cps}}$, and $*_{\dec{cps}}$ denote the CPS
-versions of equality testing, subtraction, and multiplication
-respectively. Moreover, the explicit $\Return~1$ in the $\Then$-branch
-has been turned into an application of the continuation $k$, and the
-implicit return $n*m$ in the $\Else$-branch has been turned into an
-application of $*_{\dec{cps}}$, that receives the current continuation
-$k$ of $\dec{fac}_{\dec{cps}}$, which effectively delegates the
-responsibility of `returning' from $\dec{fac}_{\dec{cps}}$ to
-$*_{\dec{cps}}$.
+function application in $\dec{fac}_{\dec{cps}}$. The binding sequence
+in the $\Else$-branch has been turned into a series of nested function
+applications. The functions $=_{\dec{cps}}$, $-_{\dec{cps}}$, and
+$*_{\dec{cps}}$ denote the CPS versions of equality testing,
+subtraction, and multiplication respectively.
+%
+For clarity, I have meticulously written each continuation function on
+a newline. For instance, the continuation of the
+$-_{\dec{cps}}$-application is another application of
+$\dec{fac}_{\dec{cps}}$, whose continuation is an application of
+$*_{\dec{cps}}$, and its continuation is an application of the current
+continuation, $k$, of $\dec{fac}_{\dec{cps}}$.
+%
+Each $\Return$-computation has been turned into an application of the
+current continuation $k$. In the $\Then$-branch the continuation
+applied to $1$, whilst in the $\Else$-branch the continuation is
+applied to the result obtained by multiplying $n$ and $m$.
+
 %
 Thirdly note that every function application occurs in tail position
 (recall Definition~\ref{def:tail-comp}). This is a characteristic
 property of CPS transforms that make them feasible as a practical
 implementation strategy, since programs in CPS notation require only a
 constant amount of stack space to run, namely, a single activation
-frame~\cite{Appel92}.
+frame~\cite{Appel92}. Although, the pervasiveness of closures in CPS
+means that CPS programs make heavy use of the heap for closure
+allocation.
+%
+Some care must be taken when CPS transforming a program as if done
+naïvely the image may be inflated with extraneous
+terms~\cite{DanvyN05}. For example in $\dec{fac}_{\dec{cps}}$ the
+continuation term $(\lambda res.k~res)$ is redundant as it is simply
+an eta expansion of the continuation $k$. A more optimal transform
+would simply pass $k$. Extraneous terms can severely impact the
+runtime performance of a CPS program. A smart CPS transform recognises
+and eliminates extraneous terms at translation
+time~\cite{DanvyN03}. Extraneous terms come in various disguises as we
+shall see later in this chapter.
+
+The purpose of this chapter is to use the CPS formalism to develop a
+universal implementation strategy for deep, shallow, and parameterised
+effect handlers. Section~\ref{sec:target-cps} defines a suitable
+target calculus $\UCalc$ for CPS transformed
+programs. Section~\ref{sec:cps-cbv} demonstrates how to CPS transform
+$\BCalc$-programs to $\UCalc$-programs. In Section~\ref{sec:fo-cps}
+develop a CPS transform for deep handlers through step-wise refinement
+of the initial CPS transform for $\BCalc$. The resulting CPS transform
+is adapted in Section~\ref{sec:cps-shallow} to support for shallow
+handlers. As a by-product we develop the notion of \emph{generalised
+  continuation}, which provides a versatile abstraction for
+implementing effect handlers. We use generalised continuations to
+implement parameterised handlers in Section~\ref{sec:cps-param}.
+%
+
 %
 %\dhil{The focus of the introduction should arguably not be to explain CPS.}
 %\dhil{Justify CPS as an implementation technique}
 %\dhil{Give a side-by-side reduction example of $\dec{fac}$ and $\dec{fac}_{\dec{cps}}$.}
-\dhil{Define desirable properties of a CPS translation: properly tail-recursive, no static administrative redexes}
+% \dhil{Define desirable properties of a CPS translation: properly tail-recursive, no static administrative redexes}
 %
 % \begin{definition}[Properly tail-recursive~\cite{Danvy06}]
 %  %
@@ -10330,6 +10376,7 @@ $M \reducesto^\ast V$ if and only if $\pcps{M} \reducesto^\ast \pcps{V}$.
 \end{corollary}
 
 \section{Transforming parameterised handlers}
+\label{sec:cps-param}
 %
 \begin{figure}
 % \textbf{Continuation reductions}
