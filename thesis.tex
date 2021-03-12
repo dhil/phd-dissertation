@@ -8450,38 +8450,7 @@ follow the notation and style of item \ref{en:ch-cps-HLA20}.
 
 \section{Initial target calculus}
 \label{sec:target-cps}
-
-The syntax, semantics, and syntactic sugar for the target calculus
-$\UCalc$ is given in Figure~\ref{fig:cps-cbv-target}. The calculus
-largely amounts to an untyped variation of $\BCalc$, specifically
-we retain the syntactic distinction between values ($V$) and
-computations ($M$).
 %
-The values ($V$) comprise lambda abstractions ($\lambda x.M$),
-% recursive functions ($\Rec\,g\,x.M$),
-empty tuples ($\Record{}$), pairs ($\Record{V,W}$), and first-class
-labels ($\ell$).
-%
-Computations ($M$) comprise values ($V$), applications ($M~V$), pair
-elimination ($\Let\; \Record{x, y} = V \;\In\; N$), label elimination
-($\Case\; V \;\{\ell \mapsto M; x \mapsto N\}$), and explicit marking
-of unreachable code ($\Absurd$). A key difference from $\BCalcRec$ is
-that the function position of an application is allowed to be a
-computation (i.e., the application form is $M~W$ rather than
-$V~W$). Later, when we refine the initial CPS translation we will be
-able to rule out this relaxation.
-
-We give a standard small-step evaluation context-based reduction
-semantics. Evaluation contexts comprise the empty context and function
-application.
-
-To make the notation more lightweight, we define syntactic sugar for
-variant values, record values, list values, let binding, variant
-eliminators, and record eliminators. We use pattern matching syntax
-for deconstructing variants, records, and lists. For desugaring
-records, we assume a failure constant $\ell_\bot$ (e.g. a divergent
-term) to cope with the case of pattern matching failure.
-
 \begin{figure}
   \flushleft
   \textbf{Syntax}
@@ -8533,10 +8502,41 @@ term) to cope with the case of pattern matching failure.
 \caption{Untyped target calculus for the CPS translations.}
 \label{fig:cps-cbv-target}
 \end{figure}
+%
+The syntax, semantics, and syntactic sugar for the target calculus
+$\UCalc$ is given in Figure~\ref{fig:cps-cbv-target}. The calculus
+largely amounts to an untyped variation of $\BCalc$, specifically
+we retain the syntactic distinction between values ($V$) and
+computations ($M$).
+%
+The values ($V$) comprise lambda abstractions ($\lambda x.M$),
+% recursive functions ($\Rec\,g\,x.M$),
+empty tuples ($\Record{}$), pairs ($\Record{V,W}$), and first-class
+labels ($\ell$).
+%
+Computations ($M$) comprise values ($V$), applications ($M~V$), pair
+elimination ($\Let\; \Record{x, y} = V \;\In\; N$), label elimination
+($\Case\; V \;\{\ell \mapsto M; x \mapsto N\}$), and explicit marking
+of unreachable code ($\Absurd$). A key difference from $\BCalcRec$ is
+that the function position of an application is allowed to be a
+computation (i.e., the application form is $M~W$ rather than
+$V~W$). Later, when we refine the initial CPS translation we will be
+able to rule out this relaxation.
 
-\dhil{Most of the primitives are Church encodable. Discuss the value
-  of treating them as primitive rather than syntactic sugar (target
-  languages such as JavaScript has similar primitives).}
+The reduction semantics follows the trend of the previous reduction
+semantics in the sense that it is a small-step context-based reduction
+semantics. Evaluation contexts comprise the empty context and function
+application.
+
+To make the notation more lightweight, we define syntactic sugar for
+variant values, record values, list values, let binding, variant
+eliminators, and record eliminators. We use pattern matching syntax
+for deconstructing variants, records, and lists. For desugaring
+records, we assume a failure constant $\ell_\bot$ (e.g. a divergent
+term) to cope with the case of pattern matching failure.
+% \dhil{Most of the primitives are Church encodable. Discuss the value
+%   of treating them as primitive rather than syntactic sugar (target
+%   languages such as JavaScript has similar primitives).}
 
 \section{Transforming fine-grain call-by-value}
 \label{sec:cps-cbv}
@@ -8627,7 +8627,8 @@ operation and its argument. The effect continuation then either
 handles the operation, invoking the resumption as appropriate, or
 forwards the operation to an outer handler. In the latter case, the
 resumption is modified to ensure that the context of the original
-operation invocation can be reinstated when the resumption is invoked.
+operation invocation can be reinstated upon invocation of the
+resumption.
 %
 
 \subsection{Curried translation}
@@ -8699,11 +8700,13 @@ translation also suffers two displeasing properties which makes it
 unviable in practice.
 
 \begin{enumerate}
-  \item The image of the translation is not \emph{properly
-    tail-recursive}~\citep{DanvyF92,Steele78}, and as a result the
-    image is not stackless, meaning it cannot readily be used as the
-    basis for an implementation. This deficiency is essentially due to
-    the curried representation of the continuation stack.
+\item The image of the translation is not \emph{properly
+    tail-recursive}~\citep{Danvy06,DanvyF92,Steele78}, meaning not
+  every function application occur in tail position in the image, and
+  thus the image is not stackless. Consequently, the translation
+  cannot readily be used as the basis for an implementation. This
+  deficiency is essentially due to the curried representation of the
+  continuation stack.
 
   \item The image of the translation yields static administrative
     redexes, i.e. redexes that could be reduced statically. This is a
@@ -8806,9 +8809,9 @@ As a first step we may restrict the syntax of the target calculus such
 that the term in function position must be a value. With this
 restriction the syntax of $\UCalc$ implements the property that any
 term constructor features at most one computation term, and this
-computation term always appears in tail position. Thus this
-restriction suffices to ensure that every function application will be
-in tail position.
+computation term always appears in tail position. This restriction
+suffices to ensure that every function application will be in tail
+position.
 %
 Figure~\ref{fig:refined-cps-cbv-target} contains the adjustments to
 syntax and semantics of $\UCalc$. The target calculus now supports
@@ -8816,13 +8819,12 @@ both unary and binary application forms. As we shall see shortly,
 binary application turns out be convenient when we enrich the notion
 of continuation. Both application forms are comprised only of value
 terms. As a result the dynamic semantics of $\UCalc$ no longer makes
-use of evaluation contexts, hence we remove them altogether. The
-reduction rule $\usemlab{App_1}$ applies to unary application and it
-is the same as the $\usemlab{App}$-rule in
-Figure~\ref{fig:cps-cbv-target}. The new $\usemlab{App_2}$-rule
-applies to binary application: it performs a simultaneous substitution
-of the arguments $V$ and $W$ for the parameters $x$ and $y$,
-respectively, in the function body $M$.
+use of evaluation contexts. The reduction rule $\usemlab{App_1}$
+applies to unary application and it is the same as the
+$\usemlab{App}$-rule in Figure~\ref{fig:cps-cbv-target}. The new
+$\usemlab{App_2}$-rule applies to binary application: it performs a
+simultaneous substitution of the arguments $V$ and $W$ for the
+parameters $x$ and $y$, respectively, in the function body $M$.
 %
 
 These changes to $\UCalc$ immediately invalidate the curried
@@ -8844,7 +8846,7 @@ representation of the runtime handler stack.
 The change of continuation representation means the CPS translation
 for effect handlers is no longer a conservative extension. The
 translation is adjusted as follows to account for the new
-representation of continuations.
+representation.
 %
 \begin{equations}
 \cps{-} &:& \CompCat \to \UCompCat\\
@@ -8962,7 +8964,7 @@ a more clever implementation of resumptions.
 \subsection{Resumptions as explicit reversed stacks}
 \label{sec:first-order-explicit-resump}
 %
-\dhil{Show an example involving administrative redexes produced by resumptions}
+% \dhil{Show an example involving administrative redexes produced by resumptions}
 %
 Thus far resumptions have been represented as functions, and
 forwarding has been implemented using function composition. The
@@ -8970,10 +8972,68 @@ composition of resumption gives rise to unnecessary dynamic
 administrative redexes as function composition necessitates the
 introduction of an additional lambda abstraction.
 %
+As an illustration of how and where these administrative redexes arise
+let us consider an example with an operation $\Ask : \Unit \opto \Int$
+and two handlers $H_\Reader$ and $H_\Other$ such that
+$H_\Reader^\Ask = \{\OpCase{\Ask}{\Unit}{r} \mapsto r~42\}$ whilst
+$\Ask \not\in \dom(H_\Other)$. We denote the top-level continuation by
+$ks_\top$.
+%
+% \[
+%   \bl
+%     \Reader \defas \{\Ask : \Unit \opto \Int\} \smallskip\\
+%     H_{\Reader} : \alpha \eff \Reader \Harrow \alpha, \{ \OpCase{\Ask}{\Unit}{r} \mapsto r~42 \} \in H_{\Reader}\\
+%     H_{\Other} : \alpha \eff \varepsilon \Harrow \alpha, \Ask \not\in \dom(H_{\Reader})
+%   \el
+% \]
+%
+\begin{derivation}
+  &\pcps{\Handle\; (\Handle\; \Do\;\Ask\,\Unit\;\With\;H_{\Other})\;\With\;H_{\Reader}}\\
+  % =& \reason{definition of $\cps{-}$}\\
+  % % &\lambda ks.\cps{\Handle\; \Do\;\Ask\,\Unit\;\With\;H_{\Other}}(\cps{H_{\Reader}^\mret} \cons H_{\Reader}^\mops \cons ks)\\
+  % % =& \reason{}\\
+  % &(\lambda ks.(\lambda ks'.\cps{\Do\;\Ask\,\Unit}(\cps{H_{\Other}^\mret} \cons \cps{H_{\Other}^\mops} \cons ks'))(\cps{H_{\Reader}^\mret} \cons H_{\Reader}^\mops \cons ks))\,ks_\top\\
+  =& \reason{definition of $\pcps{-}$}\\
+  &(\lambda ks.
+    \bl
+      (\lambda ks'.
+       \bl
+        (\lambda (k \cons h \cons ks'').h\,\Record{\Ask,\Record{\Unit,\lambda x.\lambda ks'''.k~x~(h \cons ks''')}}\,ks'')\\
+        (\cps{H_{\Other}^\mret} \cons \cps{H_{\Other}^\mops} \cons ks'))
+      \el\\
+    (\cps{H_{\Reader}^\mret} \cons H_{\Reader}^\mops \cons ks))\,ks_\top
+   \el\\
+  % \reducesto^\ast& \reason{apply continuation}\\
+  % & (\lambda (k \cons h \cons ks'').h\,\Record{\Ask,\Record{\Unit,\lambda x.\lambda ks'''.k~x~(h \cons ks''')}})(\cps{H_{\Other}^\mret} \cons \cps{H_{\Other}^\mops} \cons \cps{H_{\Reader}^\mret} \cons H_{\Reader}^\mops \cons ks_\top)\\
+   \reducesto^\ast & \reason{multiple applications of \usemlab{App}, activation of $H_\Other$}\\
+   & \cps{H_{\Other}^\mops}\,\Record{\Ask,\Record{\Unit,\lambda x.\lambda ks'''.\cps{H_{\Other}^\mret}~x~(\cps{H_{\Other}^\mops} \cons ks''')}}\,(\cps{H_{\Reader}^\mret} \cons H_{\Reader}^\mops \cons ks_\top)\\
+   \reducesto^\ast & \reason{effect forwarding to $H_\Reader$}\\
+   & \bl
+   H_{\Reader}^\mops\,\Record{\Ask,\Record{\Unit,\lambda x.\lambda ks''. r_\dec{admin}~x~(H_{\Reader}^\mret \cons H_{\Reader}^\mops \cons ks'')}}\,ks_\top\\
+   \where~r_\dec{admin} \defas \lambda x.\lambda
+   ks'''.\cps{H_{\Other}^\mret}~x~(\cps{H_{\Other}^\mops} \cons ks''')
+   \el\\
+   \reducesto^\ast & \reason{invocation of the administrative resumption} \\
+   & r_\dec{admin}~42~(H_{\Reader}^\mret \cons H_{\Reader}^\mops \cons ks_\top)\\
+   \reducesto^\ast & \reason{invocation of the resumption of the operation invocation site}\\
+   & \cps{H_{\Other}^\mret}~42~(\cps{H_{\Other}^\mops} \cons
+   H_{\Reader}^\mret \cons H_{\Reader}^\mops \cons ks_\top)
+\end{derivation}
+%
+Effect forwarding introduces the administrative abstraction
+$r_{\dec{admin}}$, whose sole purpose is to forward the interpretation
+of the operation to the operation invocation site. In a certain sense
+$r_{\dec{admin}}$ is a sort of identity frame. The insertion of
+identities ought to always trigger the alarm bells as an identity
+computation is typically extraneous.
+%
+The amount of identity frames being generated scales linearly with the
+number of handlers the operation needs to pass through before reaching
+a suitable handler.
 
-We can avoid generating these administrative redexes by applying a
-variation of the technique that we used in the previous section to
-uncurry the curried CPS translation.
+We can avoid generating these administrative resumption redexes by
+applying a variation of the technique that we used in the previous
+section to uncurry the curried CPS translation.
 %
 Rather than representing resumptions as functions, we move to an
 explicit representation of resumptions as \emph{reversed} stacks of
