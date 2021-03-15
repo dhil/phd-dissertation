@@ -9817,18 +9817,17 @@ forwards every operation, and the pure continuation $\rid$ is an
 identity clause. Thus every operation and the return value will
 effectively be handled by the next handler.
 %
-Unfortunately, inserting such dummy handlers lead to memory
-leaks.
+Unfortunately, insertion of such identity handlers lead to memory
+leaks~\cite{Kiselyov12,HillerstromL18}.
 %
-\dhil{Give the counting example}
+% \dhil{Give the counting example}
 %
 
-The use of dummy handlers is symptomatic for the need of a more
-general notion of resumptions. Upon resumption invocation the dangling
-pure continuation should be composed with the current pure
+The use of identity handlers is symptomatic for the need of a more
+general notion of resumptions. During resumption invocation the
+dangling pure continuation should be composed with the current pure
 continuation which suggests the need for a shallow variation of the
-resumption construction primitive $\Res$ that behaves along the
-following lines.
+resumption construction primitive $\Res$.
 %
 \[
   \bl
@@ -9981,7 +9980,10 @@ macro-expressible in terms of the existing constructs.
 I choose here to treat them as primitives in order to keep the
 presentation relatively concise.
 
-\dhil{Remark that a `generalised continuation' is a defunctionalised continuation.}
+Essentially, a generalised continuation amounts to a sort of
+\emph{defunctionalised} continuation, where $\kapp$ acts as an
+interpreter for the continuation
+structure~\cite{Reynolds98a,DanvyN01}.
 
 \subsection{Dynamic terms: the target calculus revisited}
 \label{sec:target-calculus-revisited}
@@ -10606,8 +10608,67 @@ time an effect continuation frame is deconstructed.
 \section{Related work}
 \label{sec:cps-related-work}
 
-\paragraph{Plotkin's colon translation}
+\paragraph{CPS transforms for effect handlers}
+%
+The one-pass higher-order CPS translation for deep, shallow, and
+parameterised handlers draws on insights from the literature on CPS
+translations for delimited control operators such as shift and
+reset~\citep{DanvyF90,DanvyF92,DanvyN03,MaterzokB12}.
+%
+% \citet{DybvigJS07} develop a lean monadic framework for implementing
+% multi-prompt delimited continuations.
+% \paragraph{CPS translations for handlers}
+%
+Other CPS translations for handlers use a monadic approach. For
+example, \citet{Leijen17} implements deep and parameterised handlers
+in Koka~\citep{Leijen14} by translating them into a free monad
+primitive in the runtime. \citeauthor{Leijen17} uses a selective CPS
+translation to lift code into the monad. The selective aspect is
+important in practice to avoid overhead in code that does not use
+effect handlers.
+%
+Scala Effekt~\citep{BrachthauserS17,BrachthauserSO20} provides an
+implementation of effect handlers as a library for the Scala
+programming language. The implementation is based closely on the
+monadic delimited control framework of \citet{DybvigJS07}.
+%
+A variation of the Scala Effekt library is used to implement effect
+handlers as an interface for programming with delimited continuations
+in Java~\citep{BrachthauserSO18}. The implementation of delimited
+continuations depend on special byte code instructions, inserted via a
+selective type-driven CPS translation.
 
+The Effekt language (which is distinct from the Effekt library)
+implements handlers by a translation into capability-passing style,
+which may more informatively be dubbed \emph{handler-passing style} as
+handlers are passed downwards to the invocation sites of their
+respective operations~\cite{SchusterBO20,BrachthauserSO20b}. The
+translation into capability-passing style is realised by way of a
+effect-type directed iterated CPS transform, which introduces a
+continuation argument per handler in scope~\cite{SchusterBO20}. The
+idea of iterated CPS is due to \citet{DanvyF90}, who used it to give
+develop a CPS transform for shift and reset.
+%
+\citet{XieBHSL20} has devised an \emph{evidence-passing translation}
+for deep effect handlers. The basic idea is similar to
+capability-passing style as evidence for handlers are passed downwards
+to their operations in shape of a vector containing the handlers in
+scope through computations.
+
+There are clear connections between the CPS translations presented in
+this chapter and the continuation monad implementation of
+\citet{KammarLO13}. Whereas \citeauthor{KammarLO13} present a
+practical Haskell implementation depending on sophisticated features
+such as type classes, which to some degree obscures the essential
+structure, here we have focused on a foundational formal treatment.
+%
+\citeauthor{KammarLO13} obtain impressive performance results by
+taking advantage of the second class nature of type classes in Haskell
+coupled with the aggressive fusion optimisations GHC
+performs~\citep{WuS15}.
+
+\paragraph{Plotkin's colon translation}
+%
 The original method for proving the correctness of a CPS
 translation is by way of a simulation result. Simulation states that
 every reduction sequence in a given source program is mimicked by its
@@ -10633,7 +10694,7 @@ The colon translation captures precisely the intuition that drives CPS
 transforms, namely, that if in the source $M \reducesto^\ast \Return\;V$
 then in the image $\cps{M}\,k \reducesto^\ast k\,\cps{V}$.
 
-\dhil{Check whether the first pass marks administrative redexes}
+%\dhil{Check whether the first pass marks administrative redexes}
 
 
 % CPS The colon translation captures the
@@ -10667,9 +10728,9 @@ then in the image $\cps{M}\,k \reducesto^\ast k\,\cps{V}$.
 % translation that contracts all administrative redexes at translation
 % time.
 
-\paragraph{Iterated CPS transform}
+% \paragraph{Partial evaluation}
 
-\paragraph{Partial evaluation}
+\paragraph{Selective CPS transforms}
 
 \chapter{Abstract machine semantics}
 \label{ch:abstract-machine}
