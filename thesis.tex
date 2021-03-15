@@ -3022,22 +3022,22 @@ Section~\ref{sec:base-language-type-rules}.
 % %\slab{Type variables} &\alpha, \rho, \theta& \\
 % \slab{Type environments} &\Gamma &::=& \cdot \mid \Gamma, x:A \\
 % \slab{Kind environments} &\Delta &::=& \cdot \mid \Delta, \alpha:K
-\slab{Value types}    &A,B \in \ValTypeCat  &::= & A \to C
+\slab{Value\mathrm{~}types}    &A,B \in \ValTypeCat  &::= & A \to C
                              \mid  \forall \alpha^K.C
                              \mid   \Record{R} \mid [R]
                              \mid  \alpha \\
-\slab{Computation types\!\!}
+\slab{Computation\mathrm{~}types\!\!}
                       &C,D \in \CompTypeCat   &::= & A \eff E \\
-\slab{Effect types}   &E \in \EffectCat   &::= & \{R\}\\
-\slab{Row types}      &R \in \RowCat      &::= & \ell : P;R \mid \rho \mid \cdot \\
-\slab{Presence types\!\!\!\!\!} &P \in \PresenceCat  &::= & \Pre{A} \mid \Abs \mid \theta\\
+\slab{Effect\mathrm{~}types}   &E \in \EffectCat   &::= & \{R\}\\
+\slab{Row\mathrm{~}types}      &R \in \RowCat      &::= & \ell : P;R \mid \rho \mid \cdot \\
+\slab{Presence\mathrm{~}types\!\!\!\!\!} &P \in \PresenceCat  &::= & \Pre{A} \mid \Abs \mid \theta\\
 \\
 \slab{Types}          &T \in \TypeCat    &::= & A \mid C \mid E \mid R \mid P \\
 \slab{Kinds}          &K \in \KindCat    &::= & \Type \mid \Comp \mid \Effect \mid \Row_\mathcal{L} \mid \Presence \\
-\slab{Label sets}     &\mathcal{L} \in \LabelCat &::=& \emptyset \mid \{\ell\} \uplus \mathcal{L}\\\\
+\slab{Label\mathrm{~}sets}     &\mathcal{L} \in \LabelCat &::=& \emptyset \mid \{\ell\} \uplus \mathcal{L}\\\\
 
-\slab{Type environments} &\Gamma \in \TyEnvCat   &::=& \cdot \mid \Gamma, x:A \\
-\slab{Kind environments} &\Delta \in \KindEnvCat &::=& \cdot \mid \Delta, \alpha:K \\
+\slab{Type\mathrm{~}environments} &\Gamma \in \TyEnvCat   &::=& \cdot \mid \Gamma, x:A \\
+\slab{Kind\mathrm{~}environments} &\Delta \in \KindEnvCat &::=& \cdot \mid \Delta, \alpha:K \\
 \end{syntax}
   \caption{Syntax of types, kinds, and their environments.}
   \label{fig:base-language-types}
@@ -10649,11 +10649,12 @@ continuation argument per handler in scope~\cite{SchusterBO20}. The
 idea of iterated CPS is due to \citet{DanvyF90}, who used it to give
 develop a CPS transform for shift and reset.
 %
-\citet{XieBHSL20} has devised an \emph{evidence-passing translation}
+\citet{XieBHSL20} have devised an \emph{evidence-passing translation}
 for deep effect handlers. The basic idea is similar to
 capability-passing style as evidence for handlers are passed downwards
 to their operations in shape of a vector containing the handlers in
-scope through computations.
+scope through computations. \citet{XieL20} have realised handlers by
+evidence-passing style as a Haskell library.
 
 There are clear connections between the CPS translations presented in
 this chapter and the continuation monad implementation of
@@ -10730,7 +10731,10 @@ then in the image $\cps{M}\,k \reducesto^\ast k\,\cps{V}$.
 
 % \paragraph{Partial evaluation}
 
+\paragraph{ANF vs CPS}
+
 \paragraph{Selective CPS transforms}
+\citet{Nielsen01} \citet{DanvyH92} \citet{DanvyH93} \citet{Leijen17}
 
 \chapter{Abstract machine semantics}
 \label{ch:abstract-machine}
@@ -11349,7 +11353,7 @@ If $\typc{}{M : A}{E}$ and $M \reducesto^+ N \not\reducesto$, then $M
 
 
 \part{Expressiveness}
-\chapter{Interdefinability of deep and shallow handlers}
+\chapter{Interdefinability of effect handlers}
 \label{ch:deep-vs-shallow}
 
 In this section we show that shallow handlers and general recursion
@@ -11373,18 +11377,34 @@ resumption has its body wrapped in a call to this recursive function.
 %
 Formally, the translation $\dstrans{-}$ is defined as the homomorphic
 extension of the following equations to all terms.
-\begin{equations}
-\dstrans{\Handle \; M \; \With \; H} &=&
-    (\Rec~h~f.\ShallowHandle\; f\,\Unit \; \With \; \dstrans{H} h)\,(\lambda \Unit{}.\dstrans{M}) \\
-\dstrans{H}h &=& \dstrans{\hret}h \uplus \dstrans{\hops}h \\
-\dstrans{\{ \Return \; x \mapsto N\}} h &=&
-  \{ \Return \; x \mapsto \dstrans{N} \}\\
-\dstrans{\{ \ell \; p \; r \mapsto N_\ell \}_{\ell \in \mathcal{L}}} h &=&
-  \{ \ell \; p \; r \mapsto
-      \Let \; r \revto \Return \; \lambda x.h\,(\lambda \Unit{}.r\,x) \; \In \;
-         \dstrans{N_\ell} \}_{\ell \in \mathcal{L}}
-\end{equations}
-
+%
+\[
+\bl
+  \dstrans{-} : \CompCat \to \CompCat\\
+  \dstrans{\Handle \; M \; \With \; H} \defas
+      (\Rec~h~f.\ShallowHandle\; f\,\Unit \; \With \; \dstrans{H}_h)\,(\lambda \Unit{}.\dstrans{M}) \medskip\\
+    % \dstrans{H}h &=& \dstrans{\hret}h \uplus \dstrans{\hops}h \\
+  \dstrans{-} : \HandlerCat \times \ValCat \to \HandlerCat\\
+  \ba{@{}l@{~}c@{~}l}
+    \dstrans{\{ \Return \; x \mapsto N\}}_h &\defas&
+      \{ \Return \; x \mapsto \dstrans{N} \}\\
+    \dstrans{\{ \OpCase{\ell}{p}{r} \mapsto N_\ell \}_{\ell \in \mathcal{L}}}_h &\defas&
+      \{ \OpCase{\ell}{p}{r} \mapsto
+           \bl
+             \Let \; r \revto \Return \; \lambda x.h\,(\lambda \Unit{}.r\,x)\\
+             \In\;\dstrans{N_\ell} \}_{\ell \in \mathcal{L}}
+           \el
+  \ea
+\el
+\]
+%
+The translation of $\Handle$ uses a $\Rec$-abstraction to introduce a
+fresh name $h$ for the handler $H$. This name is used by the
+translation of the handler definitions. The translation of
+$\Return$-clauses is the identity, and thus ignores the handler
+name. However, the translation of operation clauses uses the name to
+simulate a deep resumption by guarding invocations of the shallow
+resumption $r$ with $h$.
 % \paragraph{Example} We illustrate the translation $\dstrans{-}$ on the
 % EXAMPLE handler from Section~\ref{sec:strategies} (recall that the
 % variable $m$ is bound to the input computation). The example here is
@@ -11467,28 +11487,36 @@ translation on handler types as well as handler terms.
 Formally, the translation $\sdtrans{-}$ is defined as the homomorphic
 extension of the following equations to all types, terms, and type
 environments.
-\begin{equations}
-  \sdtrans{C \Rightarrow D} &=&
-    \sdtrans{C} \Rightarrow \Record{\UnitType \to \sdtrans{C}; \UnitType \to \sdtrans{D}} \medskip \\
-  \sdtrans{\ShallowHandle \; M \; \With \; H} &=&
+%
+\[
+  \bl
+  \sdtrans{-} : \TypeCat \to \TypeCat\\
+  \sdtrans{C \Rightarrow D} \defas
+  \sdtrans{C} \Rightarrow \Record{\UnitType \to \sdtrans{C}; \UnitType \to \sdtrans{D}} \medskip \medskip\\
+  \sdtrans{-} : \CompCat \to \CompCat\\
+  \sdtrans{\ShallowHandle \; M \; \With \; H} \defas
       \ba[t]{@{}l}
       \Let\;z \revto \Handle \; \sdtrans{M} \; \With \; \sdtrans{H} \; \In\\
       \Let\;\Record{f; g} = z \;\In\;
       g\,\Unit
-      \ea \\
-  \sdtrans{H} &=& \sdtrans{\hret} \uplus \sdtrans{\hops} \\
-  \sdtrans{\{\Return \; x \mapsto N\}} &=&
-    \{\Return \; x \mapsto \Return\; \Record{\lambda \Unit.\Return\; x; \lambda \Unit.\sdtrans{N}}\} \\
-  \sdtrans{\{\ell\; p\; r \mapsto N\}_{\ell \in \mathcal{L}}} &=& \{
+      \ea \medskip\\
+  \sdtrans{-} : \HandlerCat \to \HandlerCat\\
+  % \sdtrans{H} &=& \sdtrans{\hret} \uplus \sdtrans{\hops} \\
+  \ba{@{}l@{~}c@{~}l}
+    \sdtrans{\{\Return \; x \mapsto N\}} &\defas&
+      \{\Return \; x \mapsto \Return\; \Record{\lambda \Unit.\Return\; x; \lambda \Unit.\sdtrans{N}}\} \\
+      \sdtrans{\{\OpCase{\ell}{p}{r} \mapsto N\}_{\ell \in \mathcal{L}}} &\defas& \{
     \bl
-    \ell\; p\; r \mapsto \\
-    \quad \Let \;r \revto
-       \lambda x. \Let\; z \revto r\,x\; \In\;
-                  \Let\; \Record{f; g} = z\; \In\; f\,\Unit
-    \; \In\\
-    \quad \Return\;\Record{\lambda \Unit.\Let\; x \revto \Do\;\ell\,p\; \In\; r\,x; \lambda \Unit.\sdtrans{N}}\}_{\ell \in \mathcal{L}}
+    \OpCase{\ell}{p}{r} \mapsto\\
+    \qquad\bl\Let \;r \revto
+       \lambda x. \Let\; z \revto r~x\;\In\;
+                  \Let\; \Record{f; g} = z\; \In\; f\,\Unit\;\In\\
+       \Return\;\Record{\lambda \Unit.\Let\; x \revto \Do\;\ell~p\; \In\; r~x; \lambda \Unit.\sdtrans{N}}\}_{\ell \in \mathcal{L}}
     \el
-\end{equations}
+    \el
+    \ea
+    \el
+\]
 %
 Each shallow handler is encoded as a deep handler that returns a pair
 of thunks. The first forwards all operations, acting as the identity
@@ -11625,6 +11653,58 @@ Lemma~\ref{lem:sdtrans-admin}. The interesting case is
 $\semlab{Op^\dagger}$, which uses Lemma~\ref{lem:sdtrans-admin} to
 approximate the body of the resumption up to administrative reduction.
 \end{proof}
+
+\section{Parameterised handlers as ordinary deep handlers}
+\label{sec:param-desugaring}
+\newcommand{\PD}[1]{\mathcal{P}\cps{#1}}
+%
+As mentioned in Section~\ref{sec:unary-parameterised-handlers},
+parameterised handlers codify the parameter-passing idiom. They may be
+seen as an optimised form of parameter-passing deep handlers. We now
+show formally that parameterised handlers are special instances of
+ordinary deep handlers.
+%
+We define a local transformation $\PD{-}$ which translates
+parameterised handlers into ordinary deep handlers. We omit the
+homomorphic cases and show only the interesting cases.
+%
+\[
+  \bl
+  \PD{-} : \TypeCat \to \TypeCat\\
+  \PD{\Record{C, A} \Rightarrow^\param B \eff E} \defas \PD{C} \Rightarrow (\PD{A} \to \PD{B \eff E})\eff \PD{E} \medskip\\
+  \PD{-} : \CompCat \to \CompCat\\
+  \PD{\ParamHandle\;M\;\With\;(q.\,H)(W)} \defas \left(\Handle\; \PD{M}\; \With\; \PD{H}_q\right)~\PD{W} \medskip\\
+  \PD{-} : \HandlerCat \times \ValCat \to \HandlerCat\\
+  \ba{@{}l@{~}c@{~}l}
+  \PD{\{\Return\;x \mapsto M\}}_q &\defas& \{\Return\;x \mapsto \lambda q. \PD{M}\}\\
+  \PD{\{\OpCase{\ell}{p}{r} \mapsto M\}}_q &\defas&
+      \{\OpCase{\ell}{p}{r} \mapsto \lambda q.
+        \Let\; r \revto \Return\;\lambda \Record{x,q'}. r~x~q'\;
+        \In\; \PD{M}\}
+  \ea
+ \el
+\]
+%
+The parameterised $\ParamHandle$ construct becomes an application of a
+$\Handle$ construct to the translation of the parameter. The bodies of
+return and operation clauses are each enclosed in a lambda abstraction
+whose formal parameter is the handler parameter $q$. As a result the
+ordinary deep resumption $r$ is a curried function. However, the uses
+of $r$ in $M$ expects a binary function. To repair this discrepancy,
+we construct an uncurried interface of $r$ via the function $r'$.
+
+This translation of parameterised handlers simulates the native
+semantics. As with the simulation of deep handlers via shallow
+handlers in Section~\ref{sec:deep-as-shallow}, this simulation is only up
+to congruence due to the need for an application of a pure function to
+a variable to be reduced. The interesting cases of the proof appear in
+Appendix~\ref{sec:param-proof}.
+
+\begin{theorem}[Simulation of parameterised handlers by deep
+  handlers]
+  \label{thm:param-simulation}
+  If $M \reducesto N$ then $\PD{M} \reducesto^+_{\mathrm{cong}} \PD{N}$.
+\end{theorem}
 
 % \chapter{Computability, complexity, and expressivness}
 % \label{ch:expressiveness}
