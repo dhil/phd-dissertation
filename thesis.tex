@@ -2686,7 +2686,8 @@ continuations to represent strands of computation and timer interrupts
 to suspend continuations.
 %
 \citet{KiselyovS07a} used delimited continuations to explain various
-phenomena of operating systems, including multi-tasking.
+phenomena of operating systems, including multi-tasking and file
+systems.
 %
 On the web, \citet{Queinnec04} used continuations to model the
 client-server interactions. This model was adapted by
@@ -2696,6 +2697,12 @@ concurrency model~\cite{ArmstrongVW93}.
 \citet{Leijen17a} and \citet{DolanEHMSW17} gave two different ways of
 implementing the asynchronous programming operator async/await as a
 user-definable library.
+%
+In the setting of distributed programming, \citet{BracevacASEEM18}
+describe a modular event correlation system that makes crucial use of
+effect handlers.  \citeauthor{Bracevec19}'s PhD dissertation
+explicates the theory, design, and implementation of event correlation
+by way of effect handlers~\cite{Bracevec19}.
 
 Continuations have also been used in meta-programming to speed up
 partial evaluation and
@@ -4763,7 +4770,7 @@ computation normal forms as there are now two ways in which a
 computation term can terminate: successfully returning a value or
 getting stuck on an unhandled operation.
 %
-\begin{definition}[Computation normal forms]\ref{def:comp-normal-form}
+\begin{definition}[Computation normal forms]\label{def:comp-normal-form}
   We say that a computation term $N$ is normal with respect to an
   effect signature $E$, if $N$ is either of the form $\Return\;V$, or
   $\EC[\Do\;\ell\,W]$ where $\ell \in E$ and $\ell \notin \BL(\EC)$.
@@ -11363,6 +11370,18 @@ latter construction generalises the example of pipes implemented using
 deep handlers that we gave in
 Section~\ref{sec:pipes}.
 %
+\paragraph{Relation to prior work} The results in this chapter has
+been published previously in the following papers.
+%
+\begin{enumerate}[i]
+    \item \bibentry{HillerstromL18}  \label{en:ch-def-HL18}
+    \item \bibentry{HillerstromLA20} \label{en:ch-def-HLA20}
+\end{enumerate}
+%
+The results of Sections~\ref{sec:deep-as-shallow} and
+\ref{sec:shallow-as-deep} appear in item \ref{en:ch-def-HL18}, whilst
+the result of Section~\ref{sec:param-desugaring} appear in item
+\ref{en:ch-def-HLA20}.
 
 \section{Deep as shallow}
 \label{sec:deep-as-shallow}
@@ -11444,9 +11463,13 @@ resumption $r$ with $h$.
 % \]\\
 
 \begin{theorem}
-If $\Delta; \Gamma \vdash M : C$ then $\Delta; \Gamma \vdash
-\dstrans{M} : C$.
+If $\Delta; \Gamma \vdash M : C$ then $\dstrans{\Delta}; \dstrans{\Gamma} \vdash
+\dstrans{M} : \dstrans{C}$.
 \end{theorem}
+%
+\begin{proof}
+  By induction on typing derivations.
+\end{proof}
 
 In order to obtain a simulation result, we allow reduction in the
 simulated term to be performed under lambda abstractions (and indeed
@@ -11475,7 +11498,7 @@ If $M \reducesto N$ then $\dstrans{M} \reducesto_{\mathrm{cong}}^+
 \end{proof}
 
 \section{Shallow as deep}
-
+\label{sec:shallow-as-deep}
 \newcommand{\sdtrans}[1]{\mathcal{D}\llbracket #1 \rrbracket}
 
 Implementing shallow handlers in terms of deep handlers is slightly
@@ -11568,7 +11591,10 @@ reverting to forwarding.
 If $\Delta; \Gamma \vdash M : C$ then $\sdtrans{\Delta};
 \sdtrans{\Gamma} \vdash \sdtrans{M} : \sdtrans{C}$.
 \end{theorem}
-
+%
+\begin{proof}
+  By induction on typing derivations.
+\end{proof}
 
 \newcommand{\admin}{admin}
 \newcommand{\approxa}{\gtrsim}
@@ -11693,6 +11719,15 @@ ordinary deep resumption $r$ is a curried function. However, the uses
 of $r$ in $M$ expects a binary function. To repair this discrepancy,
 we construct an uncurried interface of $r$ via the function $r'$.
 
+\begin{theorem}
+If $\Delta; \Gamma \vdash M : C$ then $\PD{\Delta};
+\sdtrans{\Gamma} \vdash \PD{M} : \PD{C}$.
+\end{theorem}
+%
+\begin{proof}
+  By induction on typing derivations.
+\end{proof}
+
 This translation of parameterised handlers simulates the native
 semantics. As with the simulation of deep handlers via shallow
 handlers in Section~\ref{sec:deep-as-shallow}, this simulation is only up
@@ -11705,6 +11740,10 @@ Appendix~\ref{sec:param-proof}.
   \label{thm:param-simulation}
   If $M \reducesto N$ then $\PD{M} \reducesto^+_{\mathrm{cong}} \PD{N}$.
 \end{theorem}
+
+\section{Related work}
+
+\citet{ForsterKLP17,ForsterKLP19} \citet{PirogPS19}, \citet{Shan04}
 
 % \chapter{Computability, complexity, and expressivness}
 % \label{ch:expressiveness}
