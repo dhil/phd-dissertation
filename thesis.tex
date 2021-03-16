@@ -9,6 +9,10 @@
 \usepackage{url}
 \usepackage[sort&compress,square,numbers]{natbib}    % Bibliography
 \usepackage{bibentry}         % Print bibliography entries inline.
+\makeatletter                 % Redefine bibentry to omit hyperrefs
+\renewcommand\bibentry[1]{\nocite{#1}{\frenchspacing
+     \@nameuse{BR@r@#1\@extra@b@citeb}}}
+\makeatother
 \nobibliography*              % use the bibliographic data from the standard BibTeX setup.
 \usepackage{breakurl}
 \usepackage{amsmath}          % Mathematics library
@@ -11513,9 +11517,11 @@ environments.
 %
 \[
   \bl
-  \sdtrans{-} : \TypeCat \to \TypeCat\\
-  \sdtrans{C \Rightarrow D} \defas
-  \sdtrans{C} \Rightarrow \Record{\UnitType \to \sdtrans{C}; \UnitType \to \sdtrans{D}} \medskip \medskip\\
+  \sdtrans{-} : \HandlerTypeCat \to \HandlerTypeCat\\
+  \sdtrans{A\eff E_1 \Rightarrow B\eff E_2} \defas
+  \sdtrans{A\eff E_1} \Rightarrow \Record{\UnitType \to \sdtrans{C \eff E_1}; \UnitType \to \sdtrans{B \eff E_2}} \eff \sdtrans{E_2} \medskip \medskip\\
+  % \sdtrans{C \Rightarrow D} \defas
+  % \sdtrans{C} \Rightarrow \Record{\UnitType \to \sdtrans{C}; \UnitType \to \sdtrans{D}} \medskip \medskip\\
   \sdtrans{-} : \CompCat \to \CompCat\\
   \sdtrans{\ShallowHandle \; M \; \With \; H} \defas
       \ba[t]{@{}l}
@@ -11545,7 +11551,67 @@ Each shallow handler is encoded as a deep handler that returns a pair
 of thunks. The first forwards all operations, acting as the identity
 on computations. The second interprets a single operation before
 reverting to forwarding.
+%
+The following example illustrates an application of the translation on
+the $\Pipe$ operator from Section~\ref{sec:pipes} applied to the
+producer and consumer pair
+$\Record{\Rec\;ones\,\Unit.\Do\;\Yield~1;ones\,\Unit;\lambda\Unit.\Do\;\Await\,\Unit
+  + \Do\;\Await}$
+%
+\[
+  \ba{@{~}l@{~}l}
+  &\mathcal{D}\left\llbracket
+    \ba[m]{@{}l}
+      \ShallowHandle\;(\lambda\Unit.\Do\;\Await\,\Unit + \Do\;\Await\,\Unit)\,\Unit\;\With\\
+        \quad\ba[m]{@{~}l@{~}c@{~}l}
+           \Return\;x &\mapsto& \Return\;x\\
+           \OpCase{\Await}{\Unit}{r} &\mapsto& \Copipe\,\Record{r;\Rec\;ones\,\Unit.\Do\;\Yield~1;ones\,\Unit}
+         \ea
+    \ea
+  \right\rrbracket \medskip\\
+  =& \bl
+       \Let\;z \revto \bl
+            \Handle\;(\lambda\Unit.\Do\;\Await\,\Unit + \Do\;\Await\,\Unit)\,\Unit\;\With\\
+              \quad\ba[t]{@{~}l@{~}c@{~}l}
+                 \Return\;x &\mapsto& \Return\;\Record{\lambda\Unit.\Return\;x;\lambda\Unit.\Return\;x}\\
+                 \OpCase{\Await}{\Unit}{r} &\mapsto&\\
+                 \multicolumn{3}{l}{
+                   \quad\bl
+                     \Let\;r \revto \lambda x.\Let\;z \revto r~x\;\In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit\;\In\\
+                     \Return\;\Record{\bl
+                       \lambda\Unit.\Let\;x \revto \Do\;\ell~p\;\In\;r~x;\\
+                       \lambda\Unit. \sdtrans{\Copipe}\,\Record{r;\Rec\;ones\,\Unit.\Do\;\Yield~1;ones\,\Unit}}\el
+                   \el}
+              \ea
+              \el\\
+              \In\;\Let\;\Record{f;g} = z\;\In\;g\,\Unit
+      \el
+  \ea
+\]
+%
+Evaluation of both the left hand side and right hand side of the
+equals sign yields the value $2 : \Int$. The $\Return$-case in the
+image contains a redundant pair, because the $\Return$-case of $\Pipe$
+is the identity. The translation of the $\Await$-case sets up the
+forwarding component and handling component of the pair of thunks.
 
+The translation commutes with substitution and preserves typability.
+%
+\begin{lemma}\label{lem:sdtrans-subst}
+  Let $\sigma$ denote a substitution. The translation $\sdtrans{-}$
+  commutes with substitution, i.e.
+  %
+  \[
+    \sdtrans{V}\sdtrans{\sigma} = \sdtrans{V\sigma},\quad
+    \sdtrans{M}\sdtrans{\sigma} = \sdtrans{M\sigma},\quad
+    \sdtrans{H}\sdtrans{\sigma} = \sdtrans{H\sigma}.
+  \]
+  %
+\end{lemma}
+%
+\begin{proof}
+  By induction on the structures of $V$, $M$, and $H$.
+\end{proof}
 % \paragraph{Example} We demonstrate the translation $\sdtrans{-}$ on
 % the $\Pipe$ handler from Section~\ref{sec:shallow-handlers-tutorial}
 % (recall that the variables $c$ and $p$ are bound to the consumer and
@@ -11556,11 +11622,11 @@ reverting to forwarding.
 %   \ba{@{~}l@{~}l@{}l}
 %   &\mathcal{D}&\left\llbracket
 %     \ba[m]{@{~}l}
-%        \ShallowHandle\; c\,\Unit \;\With\; \\
+%        \lambda\Record{p;c}.\ShallowHandle\; c\,\Unit \;\With\; \\
 %        \quad
 %         \ba[m]{@{}l@{~}c@{~}l@{}}
 %            \Return~x &\mapsto& \Return\; x \\
-%            \Await~\Unit~resume  &\mapsto& \Copipe\; \Record{resume; p} \\
+%            \OpCase{\Await}{\Unit}{r} &\mapsto& \Copipe\; \Record{r;p} \\
 %         \ea \\
 %       \ea\right\rrbracket = \\
 %     &
@@ -11586,7 +11652,6 @@ reverting to forwarding.
 %   \ea
 % \]
 %
-
 \begin{theorem}
 If $\Delta; \Gamma \vdash M : C$ then $\sdtrans{\Delta};
 \sdtrans{\Gamma} \vdash \sdtrans{M} : \sdtrans{C}$.
@@ -11600,18 +11665,20 @@ If $\Delta; \Gamma \vdash M : C$ then $\sdtrans{\Delta};
 \newcommand{\approxa}{\gtrsim}
 
 As with the implementation of deep handlers as shallow handlers, the
-implementation is again given by a local translation. However, this
-time the administrative overhead is more significant. Reduction up to
-congruence is insufficient and we require a more semantic notion of
-administrative reduction.
+implementation is again given by a typability-preserving local
+translation. However, this time the administrative overhead is more
+significant. Reduction up to congruence is insufficient and we require
+a more semantic notion of administrative reduction.
 
 \begin{definition}[Administrative evaluation contexts]
-An evaluation context $\EC$ is administrative, $\admin(\EC)$, iff
+  An evaluation context $\EC \in \EvalCat$ is administrative,
+  $\admin(\EC)$, when the following two criteria hold.
 \begin{enumerate}
-\item For all values $V$, we have: $\EC[\Return\;V] \reducesto^\ast
+\item For all values $V \in \ValCat$, we have: $\EC[\Return\;V] \reducesto^\ast
   \Return\;V$
-\item For all evaluation contexts $\EC'$, operations $\ell \in BL(\EC)
-  \backslash BL(\EC')$, values $V$:
+\item For all evaluation contexts $\EC' \in \EvalCat$, operations
+  $\ell \in \BL(\EC) \backslash \BL(\EC')$, and values
+  $V \in \ValCat$:
 %
 \[
   \EC[\EC'[\Do\;\ell\;V]] \reducesto^\ast \Let\; x \revto \Do\;\ell\;V \;\In\; \EC[\EC'[\Return\;x]].
@@ -11658,16 +11725,19 @@ that administrative reduction may occur anywhere within a term.
 %
 The following lemma states that the forwarding component of the
 translation is administrative.
+%
 \begin{lemma}\label{lem:sdtrans-admin}
 For all shallow handlers $H$, the following context is administrative:
-\begin{displaymath}
-\Let\; z \revto
+%
+\[
+     \Let\; z \revto
                \Handle\; [~] \;\With\; \sdtrans{H}\;
                    \In\;
                    \Let\; \Record{f;\_} = z\; \In\; f\,\Unit.
-\end{displaymath}
+\]
+                 %
 \end{lemma}
-
+%
 \begin{theorem}[Simulation up to administrative reduction]
 If $M' \approxa \sdtrans{M}$ and $M \reducesto N$ then there exists
 $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
@@ -11696,8 +11766,8 @@ homomorphic cases and show only the interesting cases.
 %
 \[
   \bl
-  \PD{-} : \TypeCat \to \TypeCat\\
-  \PD{\Record{C, A} \Rightarrow^\param B \eff E} \defas \PD{C} \Rightarrow (\PD{A} \to \PD{B \eff E})\eff \PD{E} \medskip\\
+  \PD{-} : \HandlerTypeCat \to \HandlerTypeCat\\
+  \PD{\Record{C; A} \Rightarrow^\param B \eff E} \defas \PD{C} \Rightarrow (\PD{A} \to \PD{B \eff E})\eff \PD{E} \medskip\\
   \PD{-} : \CompCat \to \CompCat\\
   \PD{\ParamHandle\;M\;\With\;(q.\,H)(W)} \defas \left(\Handle\; \PD{M}\; \With\; \PD{H}_q\right)~\PD{W} \medskip\\
   \PD{-} : \HandlerCat \times \ValCat \to \HandlerCat\\
@@ -11705,20 +11775,74 @@ homomorphic cases and show only the interesting cases.
   \PD{\{\Return\;x \mapsto M\}}_q &\defas& \{\Return\;x \mapsto \lambda q. \PD{M}\}\\
   \PD{\{\OpCase{\ell}{p}{r} \mapsto M\}}_q &\defas&
       \{\OpCase{\ell}{p}{r} \mapsto \lambda q.
-        \Let\; r \revto \Return\;\lambda \Record{x,q'}. r~x~q'\;
+        \Let\; r \revto \Return\;\lambda \Record{x;q'}. r~x~q'\;
         \In\; \PD{M}\}
   \ea
  \el
 \]
 %
 The parameterised $\ParamHandle$ construct becomes an application of a
-$\Handle$ construct to the translation of the parameter. The bodies of
-return and operation clauses are each enclosed in a lambda abstraction
-whose formal parameter is the handler parameter $q$. As a result the
-ordinary deep resumption $r$ is a curried function. However, the uses
-of $r$ in $M$ expects a binary function. To repair this discrepancy,
-we construct an uncurried interface of $r$ via the function $r'$.
+$\Handle$ construct to the translation of the parameter. The
+translation of $\Return$ and operation clauses are parameterised by
+the name of the handler parameter as each clause body is enclosed in a
+$\lambda$-abstraction whose formal parameter is the handler parameter
+$q$. As a result the ordinary deep resumption $r$ is a curried
+function. However, the uses of $r$ in $M$ expects a binary
+function. To repair this discrepancy, we construct an uncurried
+interface of $r$ by embedding it under a binary $\lambda$-abstraction.
+%
 
+To illustrate the translation in action consider the following example
+program that adds the results obtained by performing two invocations
+of some stateful operation $\dec{Incr} : \UnitType \opto \Int$, which
+increments some global counter and returns its prior value.
+%
+\[
+  \ba{@{~}l@{~}l}
+  &\mathcal{P}\left\llbracket
+    \ba[m]{@{}l}
+      \ParamHandle\;\Do\;\dec{Incr}\,\Unit + \Do\;\dec{Incr}\,\Unit\;\With\\
+      \left( q.\ba[m]{@{~}l@{~}c@{~}l}
+                \Return\;x &\mapsto& \Return\;\Record{x;q}\\
+                \OpCase{\dec{Incr}}{\Unit}{r} &\mapsto& r\,\Record{q;q+1}
+            \ea\right)~40
+    \ea
+  \right\rrbracket \medskip\\
+  =& \left(
+       \ba[m]{@{}l}
+       \Handle\;\Do\;\dec{Incr}\,\Unit + \Do\;\dec{Incr}\,\Unit\;\With\\
+           \quad\ba[t]{@{~}l@{~}c@{~}l}
+                 \Return\;x &\mapsto& \lambda q.\Return\;\Record{x;q}\\
+                 \OpCase{\dec{Incr}}{\Unit}{r} &\mapsto& \lambda q. \Let\;r \revto \Return\;\lambda\Record{x;q}.r~x~q\;\In\;r\,\Record{q;q+1}
+           \ea
+     \ea\right)~40
+  \ea
+\]
+%
+Evaluation of the program on either side of the equals sign yields
+$\Record{81;42} : \Int$. The translation desugars the parameterised
+handler into an ordinary deep handler that makes use of the
+parameter-passing idiom to maintain the state of the handled
+computation~\cite{Pretnar15}.
+
+The translation commutes with substitution and preserves typability.
+%
+\begin{lemma}\label{lem:pd-subst}
+  Let $\sigma$ denote a substitution. The translation $\sdtrans{-}$
+  commutes with substitution, i.e.
+  %
+  \[
+    \sdtrans{V}\sdtrans{\sigma} = \sdtrans{V\sigma},\quad
+    \sdtrans{M}\sdtrans{\sigma} = \sdtrans{M\sigma},\quad
+    \sdtrans{H}\sdtrans{\sigma} = \sdtrans{(q.\,H)\sigma}.
+  \]
+  %
+\end{lemma}
+%
+\begin{proof}
+  By induction on the structures of $V$, $M$, and $q.H$.
+\end{proof}
+%
 \begin{theorem}
 If $\Delta; \Gamma \vdash M : C$ then $\PD{\Delta};
 \sdtrans{\Gamma} \vdash \PD{M} : \PD{C}$.
@@ -11727,20 +11851,71 @@ If $\Delta; \Gamma \vdash M : C$ then $\PD{\Delta};
 \begin{proof}
   By induction on typing derivations.
 \end{proof}
-
+%
 This translation of parameterised handlers simulates the native
 semantics. As with the simulation of deep handlers via shallow
-handlers in Section~\ref{sec:deep-as-shallow}, this simulation is only up
-to congruence due to the need for an application of a pure function to
-a variable to be reduced. The interesting cases of the proof appear in
-Appendix~\ref{sec:param-proof}.
-
+handlers in Section~\ref{sec:deep-as-shallow}, this simulation is only
+up to congruence due to the need for an application of a pure function
+to a variable to be reduced.
+%
 \begin{theorem}[Simulation of parameterised handlers by deep
   handlers]
   \label{thm:param-simulation}
   If $M \reducesto N$ then $\PD{M} \reducesto^+_{\mathrm{cong}} \PD{N}$.
 \end{theorem}
-
+%
+\begin{proof}
+  By induction on $M$. There are only two interesting cases to
+  consider.
+  \begin{description}
+  \item[Case]
+    $M = \ParamHandle\; \Return\;V\;\With\;(q.~H)(W) \reducesto
+    N[V/x,W/q]$, where $\hret = \{ \Return\; x \mapsto N \}$.
+    %
+    \begin{derivation}
+      &\PD{\ParamHandle\;\Return\;V\;\With\;(q.~H)(W)}\\
+      =& \reason{definition of $\PD{-}$}\\
+      &(\Handle\;\Return\;\PD{V}\;\With\;\PD{H}_q)~\PD{W}\\
+      \reducesto& \reason{$\semlab{Ret}$ with $\PD{\hret}_q = \{\Return~x \mapsto \lambda q. \PD{N}\}$}\\
+      &(\lambda q. \PD{N}[\PD{V}/x])~\PD{W}\\
+      \reducesto& \reason{$\semlab{App}$}\\
+      &\PD{N}[\PD{V}/x,\PD{W}/q]\\
+      =& \reason{lemma~\ref{lem:pd-subst}}\\
+      &\PD{N[V/x,W/q]}
+    \end{derivation}
+  \item[Case] $M = \ParamHandle\; \EC[\Do\;\ell~V]\;\With\;(q.~H)(W) \reducesto \\
+    \qquad
+    N[V/p,W/q,\lambda \Record{x,q'}. \ParamHandle\;\EC[\Return\;x]\;\With\;(q.~H)(q')/r]$, where $\hell = \{ \OpCase{\ell}{p}{r} \mapsto N \}$.
+    \begin{derivation}
+      &\PD{\ParamHandle\;\EC[\Do\;\ell~V]\;\With\;(q.~H)(W)}\\
+      =& \reason{definition of $\PD{-}$}\\
+      &(\Handle\;\EC[\Do\;\ell~\PD{V}]\;\With\;\PD{H}_q)~\PD{W}\\
+      \reducesto& \reason{$\semlab{Op}$ with $\PD{\hell}_q = \{\ell~p~r \mapsto \lambda q. \Let\,r' \revto \lambda \Record{x,q'}. r~x~q\,\In\, \PD{N}[r'/r]\}$}\\
+      &((\lambda q. \bl
+                    \Let\;r' \revto \lambda \Record{x,q'}. r~x~q\; \In \\
+                    \PD{N}[r'/r])[\PD{V}/p,\lambda x.\Handle\;\EC[\Return\;x]\;\With\;\PD{H}_q)~\PD{W}\\
+                    \el \\
+      =& \reason{definition of $[-]$}\\
+      &(\lambda q. \bl
+                   \Let\; r' \revto \lambda \Record{x,q'}. (\lambda x. \Handle\;\EC[\Return\;x]\;\With\; \PD{H}_q)~x~q'\;\In \\
+                   \PD{N}[\PD{V}/p,r'/r])\\
+                   \el \\
+      \reducesto& \reason{$\semlab{App}$}\\
+      &\Let\;r' \revto \lambda \Record{x,q'}. r~x~q'\; \In\; \PD{N}[r'/r,\PD{V}/p,\PD{V}/q]\\
+      \reducesto& \reason{$\semlab{Let}$}\\
+      &\PD{N}[\bl
+              \PD{V}/p,\PD{W}/q, \\
+              \lambda \Record{x,q'}. (\lambda x. \Handle\;\EC[\Return\;x]\;\With\; \PD{H}_q)~x~q'/r]\\
+              \el \\
+      \reducesto_{\mathrm{cong}}& \reason{$\semlab{App}$}\\
+      &\PD{N}[\PD{V}/p,\PD{W}/q,\lambda \Record{x,q'}. (\Handle\;\EC[\Return\;x]\;\With\; \PD{H}_q)~q'/r]\\
+      =& \reason{definition of $\PD{-}$}\\
+      &\PD{N}[\PD{V}/p,\PD{W}/q,\lambda \Record{x,q'}. \PD{\ParamHandle\;\EC[\Return\;x]\;\With\;(q.~H)(q')}/r]\\
+      =& \reason{lemma~\ref{lem:pd-subst}}\\
+      &\PD{N[V/p,W/q,\lambda \Record{x,q'}. \ParamHandle\;\EC[\Return\;x]\;\With\; (q.~H)(q')/r]}
+    \end{derivation}
+  \end{description}
+\end{proof}
 \section{Related work}
 
 \citet{ForsterKLP17,ForsterKLP19} \citet{PirogPS19}, \citet{Shan04}
