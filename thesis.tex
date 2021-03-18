@@ -11483,14 +11483,14 @@ the resumption to wrap the handler around its body.
 Nevertheless, the simulation proof makes minimal use of this power,
 merely using it to rename a single variable.
 %
-We write $R_{\mathrm{cong}}$ for the compatible closure of relation
+We write $R_{\Cong}$ for the compatible closure of relation
 $R$, that is the smallest relation including $R$ and closed under term
 constructors for $\SCalc$.
 %% , otherwise known as \emph{reduction up to
 %%   congruence}.
 
 \begin{theorem}[Simulation up to congruence]
-If $M \reducesto N$ then $\dstrans{M} \reducesto_{\mathrm{cong}}^+
+If $M \reducesto N$ then $\dstrans{M} \reducesto_{\Cong}^+
 \dstrans{N}$.
 \end{theorem}
 
@@ -11670,7 +11670,7 @@ translation. However, this time the administrative overhead is more
 significant. Reduction up to congruence is insufficient and we require
 a more semantic notion of administrative reduction.
 
-\begin{definition}[Administrative evaluation contexts]
+\begin{definition}[Administrative evaluation contexts]\label{def:admin-eval}
   An evaluation context $\EC \in \EvalCat$ is administrative,
   $\admin(\EC)$, when the following two criteria hold.
 \begin{enumerate}
@@ -11681,7 +11681,7 @@ a more semantic notion of administrative reduction.
   $V \in \ValCat$:
 %
 \[
-  \EC[\EC'[\Do\;\ell\;V]] \reducesto^\ast \Let\; x \revto \Do\;\ell\;V \;\In\; \EC[\EC'[\Return\;x]].
+  \EC[\EC'[\Do\;\ell\;V]] \reducesto_\Cong^\ast \Let\; x \revto \Do\;\ell\;V \;\In\; \EC[\EC'[\Return\;x]].
 \]
 \end{enumerate}
 \end{definition}
@@ -11698,7 +11698,7 @@ forwarded.
 %% the second property in a uniform way by ensuring that the operation is
 %% handled at least once.
 
-\begin{definition}[Approximation up to administrative reduction]
+\begin{definition}[Approximation up to administrative reduction]\label{def:approx-admin}
 Define $\approxa$ as the compatible closure of the following inference
 rules.
 %
@@ -11708,7 +11708,7 @@ rules.
     {M \approxa M}
 
   \inferrule*
-    {M \reducesto M' \\ M' \approxa N}
+    {M \reducesto_\Cong M' \\ M' \approxa N}
     {M \approxa N}
 
   \inferrule*
@@ -11727,7 +11727,7 @@ The following lemma states that the forwarding component of the
 translation is administrative.
 %
 \begin{lemma}\label{lem:sdtrans-admin}
-For all shallow handlers $H$, the following context is administrative:
+For all shallow handlers $H$, the following context is administrative
 %
 \[
      \Let\; z \revto
@@ -11738,13 +11738,142 @@ For all shallow handlers $H$, the following context is administrative:
                  %
 \end{lemma}
 %
+\begin{proof}
+  We need to check both conditions of Definition~\ref{def:admin-eval}.
+  \begin{enumerate}
+  \item We need to show that for all $V \in \ValCat$
+    %
+    \[
+      \Let\; z \revto
+               \Handle\; \Return\;V \;\With\; \sdtrans{H}\;
+                   \In\;
+                   \Let\; \Record{f;\_} = z\; \In\; f\,\Unit \reducesto^\ast \Return\;V.
+    \]
+    %
+    We show this by direct calculation using the assumption $\hret = \{\Return\;x \mapsto N\}$.
+    \begin{derivation}
+      &\Let\; z \revto
+               \Handle\; \Return\;V \;\With\; \sdtrans{H}\;
+                   \In\;
+                   \Let\; \Record{f;\_} = z\; \In\; f\,\Unit\\
+    \reducesto^+& \reason{\semlab{Lift}, \semlab{Ret}, \semlab{Let}, \semlab{Split}}\\
+    % &\Let\;\Record{f;\_} = \Record{\lambda\Unit.\Return\;x;\lambda\Unit.\sdtrans{N}}\;\In\;f\,\Unit
+      & (\lambda\Unit.\Return\;V)\,\Unit \reducesto \Return\;V
+    \end{derivation}
+  \item We need to show that for all evaluation contexts
+    $\EC' \in \EvalCat$, operations
+    $\ell \in \BL(\EC) \backslash \BL(\EC')$, and values
+    $V \in \ValCat$
+    %
+    \[
+      \ba{@{~}l@{~}l}
+         &\Let\; z \revto
+             \Handle\; \EC'[\Do\;\ell\;V]\;\With\;\sdtrans{H} \;\In\;\Record{f;\_} = z\;\In\;f\,\Unit\\
+             \reducesto_\Cong^\ast& \Let\; x \revto \Do\;\ell\;V \;\In\; \Let\; z \revto \Handle\; \EC'[\Return\;x]\;\With\;\sdtrans{H}\;\In\;\Let\;\Record{f;\_} = z\;\In\;f\,\Unit
+      \ea
+    \]
+    %
+    We show this by direct calculation using the assumption that
+    $\ell \notin \BL(\EC')$.
+    \begin{derivation}
+             &\Let\; z \revto
+               \Handle\; \EC'[\Do\;\ell\;V]\;\With\;\sdtrans{H}\;\In\;
+               \Let\;\Record{f;\_} = z\;\In\;f\,\Unit\\
+             \reducesto^+& \reason{\semlab{Lift}, \semlab{Op} using assumption $\ell \notin \EC'$}\\
+             &\bl \Let\; z \revto
+             \bl
+               \Let\;r\revto
+                 \lambda x.\bl\Let\;z \revto (\lambda x.\Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H})~x\\
+                        \In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit
+                        \el\\
+                        \In\;\Return\;\Record{\lambda\Unit.\Let\;x\revto \Do\;\ell~V\;\In\;r~x;\lambda\Unit.\sdtrans{N}}
+            \el\\
+          \In\;\Record{f;\_} = z\;\In\;f\,\Unit
+          \el\\
+          \reducesto^+& \reason{\semlab{Lift}, \semlab{Let}, \semlab{Split}, \semlab{App}}\\
+          &(\Let\;x\revto \Do\;\ell~V\;\In\;r~x)[(\lambda x.\bl
+                      \Let\;z \revto (\lambda x.\Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H})\,x\\
+                      \In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit)/r]\el\\
+          \reducesto_\Cong &\reason{\semlab{App} tail position reduction}\\
+        &\bl
+        \Let\;x \revto \Do\;\ell~V\;\In\;\Let\;z \revto (\lambda x.\Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H})\,x\; \In\\\Let\;\Record{f;g} = z\;\In\;f\,\Unit
+        \el\\
+        \reducesto_\Cong& \reason{\semlab{App} reduction under binder}\\
+        &\bl \Let\;x \revto \Do\;\ell~V\;\In\;\Let\;z \revto \Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H}\; \In\\\Let\;\Record{f;g} = z\;\In\;f\,\Unit\el
+    \end{derivation}
+    % The proof proceeds by induction on the structure of $\EC'$.
+    % %
+    % \begin{description}
+    %   \item[Base step] $\EC' = [\,]$. The proof proceeds by direct calculation.
+    %     \begin{derivation}
+    %       &\Let\; z \revto
+    %       \Handle\; \Do\;\ell\;V\;\With\;\sdtrans{H} \;\In\;\Record{f;\_} = z\;\In\;f\,\Unit\\
+    %       \reducesto^+& \reason{\semlab{Lift}, \semlab{Op}}\\
+    %       &\bl \Let\; z \revto
+    %          \bl
+    %            \Let\;r\revto
+    %              \lambda x.\bl\Let\;z \revto (\lambda x.\Handle\;\Return\;x\;\With\;\sdtrans{H})~x\\
+    %                     \In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit
+    %                     \el\\
+    %                     \In\;\Return\;\Record{\lambda\Unit.\Let\;x\revto \Do\;\ell~V\;\In\;r~x;\lambda\Unit.\sdtrans{N}}
+    %         \el\\
+    %       \In\;\Record{f;\_} = z\;\In\;f\,\Unit
+    %       \el\\
+    %     \reducesto^+ & \reason{\semlab{Lift}, \semlab{Let}, \semlab{Split}, \semlab{App}}\\
+    %     &(\Let\;x\revto \Do\;\ell~V\;\In\;r~x)[(\lambda x.\bl
+    %                   \Let\;z \revto (\lambda x.\Handle\;\Return\;x\;\With\;\sdtrans{H})\,x\\
+    %                   \In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit)/r]\el\\
+    %     \reducesto_\Cong& \reason{\semlab{App} tail position reduction}\\
+    %     &\bl
+    %     \Let\;x \revto \Do\;\ell~V\;\In\;\Let\;z \revto (\lambda x.\Handle\;\Return\;x\;\With\;\sdtrans{H})\,x\; \In\\\Let\;\Record{f;g} = z\;\In\;f\,\Unit
+    %     \el\\
+    %     \reducesto_\Cong& \reason{\semlab{App} reduction under binder}\\
+    %     &\bl \Let\;x \revto \Do\;\ell~V\;\In\;\Let\;z \revto \Handle\;\Return\;x\;\With\;\sdtrans{H}\; \In\\\Let\;\Record{f;g} = z\;\In\;f\,\Unit\el
+    %   \end{derivation}
+    %  \item[Inductive step] There are two subcases to consider.
+    %    \begin{enumerate}[1)]
+    %      \item $\EC' = \Let\;y \revto \EC''\;\In\;N$.
+    %      \item $\EC' = \Handle\;\EC''\;\With\;\sdtrans{H'}$
+    %        \begin{derivation}
+    %          &\bl
+    %            \Let\; z \revto
+    %            \Handle\; (\Handle\;\EC''[\Do\;\ell\;V]\;\With\;\sdtrans{H'})\;\With\;\sdtrans{H}\;\In\\
+    %            \Let\;\Record{f;\_} = z\;\In\;f\,\Unit
+    %            \el\\
+    %          \reducesto^+& \reason{\semlab{Lift}, \semlab{Op} using assumptions $\ell \notin \EC''$ and $H'^\ell = \emptyset$}\\
+    %          &\bl \Let\; z \revto
+    %          \bl
+    %            \Let\;r\revto
+    %              \lambda x.\bl\Let\;z \revto (\lambda x.\Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H})~x\\
+    %                     \In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit
+    %                     \el\\
+    %                     \In\;\Return\;\Record{\lambda\Unit.\Let\;x\revto \Do\;\ell~V\;\In\;r~x;\lambda\Unit.\sdtrans{N}}
+    %         \el\\
+    %       \In\;\Record{f;\_} = z\;\In\;f\,\Unit
+    %       \el\\
+    %       \reducesto^+& \reason{\semlab{Lift}, \semlab{Let}, \semlab{Split}, \semlab{App}}\\
+    %       &(\Let\;x\revto \Do\;\ell~V\;\In\;r~x)[(\lambda x.\bl
+    %                   \Let\;z \revto (\lambda x.\Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H})\,x\\
+    %                   \In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit)/r]\el\\
+    %       \reducesto_\Cong &\reason{\semlab{App} tail position reduction}\\
+    %     &\bl
+    %     \Let\;x \revto \Do\;\ell~V\;\In\;\Let\;z \revto (\lambda x.\Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H})\,x\; \In\\\Let\;\Record{f;g} = z\;\In\;f\,\Unit
+    %     \el\\
+    %     \reducesto_\Cong& \reason{\semlab{App} reduction under binder}\\
+    %     &\bl \Let\;x \revto \Do\;\ell~V\;\In\;\Let\;z \revto \Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H}\; \In\\\Let\;\Record{f;g} = z\;\In\;f\,\Unit\el
+    %        \end{derivation}
+    %    \end{enumerate}
+    % \end{description}
+  \end{enumerate}
+\end{proof}
+%
 \begin{theorem}[Simulation up to administrative reduction]
 If $M' \approxa \sdtrans{M}$ and $M \reducesto N$ then there exists
 $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
 \end{theorem}
 %
 \begin{proof}
-By induction on $\reducesto$ using a substitution lemma and
+By induction on $\reducesto$ using Lemma~\ref{lem:sdtrans-subst} and
 Lemma~\ref{lem:sdtrans-admin}. The interesting case is
 $\semlab{Op^\dagger}$, which uses Lemma~\ref{lem:sdtrans-admin} to
 approximate the body of the resumption up to administrative reduction.
@@ -11858,10 +11987,9 @@ handlers in Section~\ref{sec:deep-as-shallow}, this simulation is only
 up to congruence due to the need for an application of a pure function
 to a variable to be reduced.
 %
-\begin{theorem}[Simulation of parameterised handlers by deep
-  handlers]
+\begin{theorem}[Simulation up to congruence]
   \label{thm:param-simulation}
-  If $M \reducesto N$ then $\PD{M} \reducesto^+_{\mathrm{cong}} \PD{N}$.
+  If $M \reducesto N$ then $\PD{M} \reducesto^+_{\Cong} \PD{N}$.
 \end{theorem}
 %
 \begin{proof}
@@ -11907,7 +12035,7 @@ to a variable to be reduced.
               \PD{V}/p,\PD{W}/q, \\
               \lambda \Record{x,q'}. (\lambda x. \Handle\;\EC[\Return\;x]\;\With\; \PD{H}_q)~x~q'/r]\\
               \el \\
-      \reducesto_{\mathrm{cong}}& \reason{$\semlab{App}$}\\
+      \reducesto_{\Cong}& \reason{$\semlab{App}$}\\
       &\PD{N}[\PD{V}/p,\PD{W}/q,\lambda \Record{x,q'}. (\Handle\;\EC[\Return\;x]\;\With\; \PD{H}_q)~q'/r]\\
       =& \reason{definition of $\PD{-}$}\\
       &\PD{N}[\PD{V}/p,\PD{W}/q,\lambda \Record{x,q'}. \PD{\ParamHandle\;\EC[\Return\;x]\;\With\;(q.~H)(q')}/r]\\
