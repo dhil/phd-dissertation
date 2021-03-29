@@ -4129,7 +4129,7 @@ realisable function in \BCalc{} is effect-free and total.
 \end{theorem}
 %
 \begin{proof}
-  By induction on typing derivations.
+  By induction on the typing derivations.
 \end{proof}
 %
 % \begin{corollary}
@@ -4146,7 +4146,7 @@ some other computation $M'$, then $M'$ is also well typed.
 \end{theorem}
 %
 \begin{proof}
-  By induction on typing derivations.
+  By induction on the typing derivations.
 \end{proof}
 
 \section{A primitive effect: recursion}
@@ -4787,7 +4787,7 @@ getting stuck on an unhandled operation.
 \end{theorem}
 %
 \begin{proof}
-  By induction on typing derivations.
+  By induction on the typing derivations.
 \end{proof}
 %
 \begin{theorem}[Subject reduction]
@@ -4796,7 +4796,7 @@ getting stuck on an unhandled operation.
 \end{theorem}
 %
 \begin{proof}
-  By induction on typing derivations.
+  By induction on the typing derivations.
 \end{proof}
 
 \section{Composing \UNIX{} with effect handlers}
@@ -7190,7 +7190,7 @@ the basic properties of $\HCalc$.
 \end{theorem}
 %
 \begin{proof}
-  By induction on typing derivations.
+  By induction on the typing derivations.
 \end{proof}
 %
 \begin{theorem}[Subject reduction]
@@ -7199,7 +7199,7 @@ the basic properties of $\HCalc$.
 \end{theorem}
 %
 \begin{proof}
-  By induction on typing derivations.
+  By induction on the typing derivations.
 \end{proof}
 
 \subsection{\UNIX{}-style pipes}
@@ -7747,7 +7747,7 @@ The metatheoretic properties of $\HCalc$ carries over to $\HPCalc$.
 \end{theorem}
 %
 \begin{proof}
-  By induction on typing derivations.
+  By induction on the typing derivations.
 \end{proof}
 %
 \begin{theorem}[Subject reduction]
@@ -7756,7 +7756,7 @@ The metatheoretic properties of $\HCalc$ carries over to $\HPCalc$.
 \end{theorem}
 %
 \begin{proof}
-  By induction on typing derivations.
+  By induction on the typing derivations.
 \end{proof}
 
 \subsection{Process synchronisation}
@@ -11367,12 +11367,35 @@ If $\typc{}{M : A}{E}$ and $M \reducesto^+ N \not\reducesto$, then $M
 \chapter{Interdefinability of effect handlers}
 \label{ch:deep-vs-shallow}
 
-In this section we show that shallow handlers and general recursion
+On the surface, shallow handlers seem to offer more flexibility than
+deep handlers as they do not enforce a particular recursion scheme
+over effectful computations. An interesting hypothesis worth
+investigating is whether this flexibility is a mere programming
+convenience or whether it enables shallow handlers to implement
+programs that would otherwise be impossible to implement with deep
+handlers. Put slightly different, the hypothesis to test is whether
+handlers can implement one another. To test this sort of hypothesis we
+first need to pin down what it means for `something to be able to
+implement something else'.
+%
+For example in Section~\ref{sec:pipes} I asserted that shallow
+handlers provide the natural basis for implementing pipes, suggesting
+that an implementation based on deep handlers would be fiddly. It
+turns out that deep handlers offer a direct implementation of pipes by
+shifting recursion from terms to the level of types (the interested
+reader may consult either \citet{KammarLO13} or \citet{HillerstromL18}
+for more details).
+
+Through the lens of \emph{typability-preserving macro-expressiveness},
+which, in our particular setting, asks whether there exists a local
+transformation that can transform one kind of handler into another
+kind of handler, whilst preserving typability in the image.
+
+In this chapter we show that shallow handlers and general recursion
 can simulate deep handlers up to congruence, and that deep handlers
-can simulate shallow handlers up to administrative reductions. The
-latter construction generalises the example of pipes implemented using
-deep handlers that we gave in
-Section~\ref{sec:pipes}.
+can simulate shallow handlers up to administrative reductions. % The
+% latter construction generalises the example of pipes implemented
+% using deep handlers that we gave in Section~\ref{sec:pipes}.
 %
 \paragraph{Relation to prior work} The results in this chapter has
 been published previously in the following papers.
@@ -11428,43 +11451,60 @@ $\Return$-clauses is the identity, and thus ignores the handler
 name. However, the translation of operation clauses uses the name to
 simulate a deep resumption by guarding invocations of the shallow
 resumption $r$ with $h$.
-% \paragraph{Example} We illustrate the translation $\dstrans{-}$ on the
-% EXAMPLE handler from Section~\ref{sec:strategies} (recall that the
-% variable $m$ is bound to the input computation). The example here is
-% reproduced in ANF notation.
-% \[
-%  \ba{@{~}l@{~}l@{}l}
-%   &\mathcal{S}&\left\llbracket
-%     \ba[m]{@{~}l}
-%         \Handle\; m~\Unit\; \With\\
-%         \quad
-%           \ba{@{}l@{~}c@{~}l}
-%              \Return~x &\mapsto& \Return\;x\\
-%              \Move~\Record{\_;n}~resume &\mapsto& \Let\;y \revto ps~n\;\In\; resume~y
-%           \ea
-%     \ea\right\rrbracket =\\\\
-%   &
-%   &\ba[m]{@{}l}
-%   \hspace{-1ex}
-%   \left(
-%     \ba[m]{@{~}l}
-%     \Rec~h~f.
-%     \ba[t]{@{~}l}
-%      \ShallowHandle\; f~\Unit\; \With\\
-%        \quad
-%          \ba{@{}l@{~}c@{~}l}
-%             \Return~x &\mapsto& \Return\; x\\
-%             \Move~\Record{\_;n}~resume &\mapsto&\\
-%              \quad\ba[t]{@{~}l@{}}
-%                 \Let\; r \revto \Return\; \lambda x. h (\lambda\Unit.resume~x)\;\In\\
-%                 \Let\; y \revto ps~n\; \In\; r~y
-%               \ea
-%          \ea
-%        \ea
-%       \ea\right)~(\lambda \Unit. m~\Unit)
-%     \ea
-%   \ea
-% \]\\
+
+In order to exemplify the translation, let us consider a variation of
+the $\environment$ handler from Section~\ref{sec:tiny-unix-env}, which
+handles an operation $\Ask : \UnitType \opto \Int$.
+%
+\[
+  \ba{@{~}l@{~}l}
+  &\mathcal{D}\left\llbracket
+    \ba[m]{@{}l}
+      \Handle\;\Do\;\Ask\,\Unit + \Do\;\Ask\,\Unit\;\With\\
+        \quad\ba[m]{@{~}l@{~}c@{~}l}
+           \Return\;x &\mapsto& \Return\;x\\
+           \OpCase{\Ask}{\Unit}{r} &\mapsto& r~42
+         \ea
+    \ea
+  \right\rrbracket \medskip\\
+  =& \bl
+    (\Rec\;env~f.
+      \bl
+         \ShallowHandle\;f\,\Unit\;\With\\
+         \quad\ba[t]{@{~}l@{~}c@{~}l}
+           \Return\;x &\mapsto& \Return\;x\\
+           \OpCase{\Ask}{\Unit}{r} &\mapsto&
+             \bl
+             \Let\;r \revto \Return\;\lambda x.env~(\lambda\Unit.r~x)\;\In\\
+             r~42)~(\lambda\Unit.\Do\;\Ask\,\Unit + \Do\;\Ask\,\Unit)
+             \el
+         \ea
+         \el
+     \el
+  \ea
+\]
+%
+The deep semantics are simulated by generating the name $env$ for the
+shallow handlers and recursively apply the handler under the modified
+resumption.
+
+The translation commutes with substitution and preserves typability.
+%
+\begin{lemma}\label{lem:dstrans-subst}
+  Let $\sigma$ denote a substitution. The translation $\dstrans{-}$
+  commutes with substitution, i.e.
+  %
+  \[
+    \dstrans{V}\dstrans{\sigma} = \dstrans{V\sigma},\quad
+    \dstrans{M}\dstrans{\sigma} = \dstrans{M\sigma},\quad
+    \dstrans{H}\dstrans{\sigma} = \dstrans{H\sigma}.
+  \]
+  %
+\end{lemma}
+%
+\begin{proof}
+  By induction on the structures of $V$, $M$, and $H$.
+\end{proof}
 
 \begin{theorem}
 If $\Delta; \Gamma \vdash M : C$ then $\dstrans{\Delta}; \dstrans{\Gamma} \vdash
@@ -11472,7 +11512,7 @@ If $\Delta; \Gamma \vdash M : C$ then $\dstrans{\Delta}; \dstrans{\Gamma} \vdash
 \end{theorem}
 %
 \begin{proof}
-  By induction on typing derivations.
+  By induction on the typing derivations.
 \end{proof}
 
 In order to obtain a simulation result, we allow reduction in the
@@ -11547,22 +11587,26 @@ environments.
     \el
 \]
 %
-Each shallow handler is encoded as a deep handler that returns a pair
-of thunks. The first forwards all operations, acting as the identity
-on computations. The second interprets a single operation before
-reverting to forwarding.
+As evident from the translation of handler types, each shallow handler
+is encoded as a deep handler that returns a pair of thunks. It is
+worth noting that the handler construction is actually pure, yet we
+need to annotate the pair with the translated effect signature
+$\sdtrans{E_2}$, because the calculus has no notion of effect
+subtyping. The first component of the pair forwards all operations,
+acting as the identity on computations. The second component
+interprets a single operation before reverting to forwarding.
 %
-The following example illustrates an application of the translation on
-the $\Pipe$ operator from Section~\ref{sec:pipes} applied to the
-producer and consumer pair
-$\Record{\Rec\;ones\,\Unit.\Do\;\Yield~1;ones\,\Unit;\lambda\Unit.\Do\;\Await\,\Unit
-  + \Do\;\Await}$
+The following example illustrates the translation on an instance of
+the $\Pipe$ operator from Section~\ref{sec:pipes} using the consumer
+computation $\Do\;\Await\,\Unit + \Do\;\Await\,\Unit$ and the
+suspended producer computation
+$\Rec\;ones\,\Unit.\Do\;\Yield~1;ones\,\Unit$.
 %
 \[
   \ba{@{~}l@{~}l}
   &\mathcal{D}\left\llbracket
     \ba[m]{@{}l}
-      \ShallowHandle\;(\lambda\Unit.\Do\;\Await\,\Unit + \Do\;\Await\,\Unit)\,\Unit\;\With\\
+      \ShallowHandle\;\Do\;\Await\,\Unit + \Do\;\Await\,\Unit\;\With\\
         \quad\ba[m]{@{~}l@{~}c@{~}l}
            \Return\;x &\mapsto& \Return\;x\\
            \OpCase{\Await}{\Unit}{r} &\mapsto& \Copipe\,\Record{r;\Rec\;ones\,\Unit.\Do\;\Yield~1;ones\,\Unit}
@@ -11612,45 +11656,6 @@ The translation commutes with substitution and preserves typability.
 \begin{proof}
   By induction on the structures of $V$, $M$, and $H$.
 \end{proof}
-% \paragraph{Example} We demonstrate the translation $\sdtrans{-}$ on
-% the $\Pipe$ handler from Section~\ref{sec:shallow-handlers-tutorial}
-% (recall that the variables $c$ and $p$ are bound to the consumer and
-% producer functions respectively). The example is reproduced in ANF
-% notation.
-% %
-% \[
-%   \ba{@{~}l@{~}l@{}l}
-%   &\mathcal{D}&\left\llbracket
-%     \ba[m]{@{~}l}
-%        \lambda\Record{p;c}.\ShallowHandle\; c\,\Unit \;\With\; \\
-%        \quad
-%         \ba[m]{@{}l@{~}c@{~}l@{}}
-%            \Return~x &\mapsto& \Return\; x \\
-%            \OpCase{\Await}{\Unit}{r} &\mapsto& \Copipe\; \Record{r;p} \\
-%         \ea \\
-%       \ea\right\rrbracket = \\
-%     &
-%     &\ba[t]{@{~}l}
-%     \Let\; z \revto
-%        \ba[t]{@{~}l}
-%           \Handle\; c~\Unit \; \With\\
-%           \quad \ba[m]{@{~}l}
-%              \ba[m]{@{~}l@{~}l}
-%                 \Return~x      &\mapsto \Return\; \Record{\lambda\Unit. \Return\; x; \lambda\Unit. \Return\;x}\\
-%                 \Await~\Unit~resume &\mapsto
-%              \ea\\
-%                \qquad\ba[t]{@{~}l}
-%                 \Let\;r \revto \lambda x.\Let\; z \revto resume~x\;
-%                                          \In\; \Let\; \Record{f; g} = z \;\In\; f~\Unit\; \In\\
-%                 \Return\;\Record{\lambda \Unit. \Let\; x \revto \Do\; \ell~p \;\In\; r~x;
-%                                  \lambda\Unit.\sdtrans{\Copipe}\Record{r; p}}
-%              \ea
-%             \ea
-%       \ea\\
-%     \In\;\Let\;\Record{f; g} = z\; \In\; g~\Unit
-%     \ea
-%   \ea
-% \]
 %
 \begin{theorem}
 If $\Delta; \Gamma \vdash M : C$ then $\sdtrans{\Delta};
@@ -11658,7 +11663,7 @@ If $\Delta; \Gamma \vdash M : C$ then $\sdtrans{\Delta};
 \end{theorem}
 %
 \begin{proof}
-  By induction on typing derivations.
+  By induction on the typing derivations.
 \end{proof}
 
 \newcommand{\admin}{admin}
@@ -11873,10 +11878,20 @@ $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
 \end{theorem}
 %
 \begin{proof}
-By induction on $\reducesto$ using Lemma~\ref{lem:sdtrans-subst} and
-Lemma~\ref{lem:sdtrans-admin}. The interesting case is
-$\semlab{Op^\dagger}$, which uses Lemma~\ref{lem:sdtrans-admin} to
-approximate the body of the resumption up to administrative reduction.
+  By induction on $\reducesto$ using Lemma~\ref{lem:sdtrans-subst} and
+  Lemma~\ref{lem:sdtrans-admin}. We show only the interesting case
+  $\semlab{Op^\dagger}$, which uses Lemma~\ref{lem:sdtrans-admin} to
+  approximate the body of the resumption up to administrative
+  reduction.
+  % $\ShallowHandle\;\EC[\Do\;\ell~V]\;\With\;H \reducesto
+  % N_\ell[V/p,\lambda y.\EC[\Return\;y]/r]$ where
+  % $\ell \notin \BL(\EC)$ and
+  % $H^\ell = \{\OpCase{\ell}{p}{r} \mapsto N_\ell\}$.
+  % %
+  % \begin{derivation}
+    
+  % \end{derivation}
+  %
 \end{proof}
 
 \section{Parameterised handlers as ordinary deep handlers}
@@ -11978,7 +11993,7 @@ If $\Delta; \Gamma \vdash M : C$ then $\PD{\Delta};
 \end{theorem}
 %
 \begin{proof}
-  By induction on typing derivations.
+  By induction on the typing derivations.
 \end{proof}
 %
 This translation of parameterised handlers simulates the native
