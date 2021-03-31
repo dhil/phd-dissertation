@@ -11377,23 +11377,38 @@ handlers. Put slightly different, the hypothesis to test is whether
 handlers can implement one another. To test this sort of hypothesis we
 first need to pin down what it means for `something to be able to
 implement something else'.
-%
+
 For example in Section~\ref{sec:pipes} I asserted that shallow
 handlers provide the natural basis for implementing pipes, suggesting
-that an implementation based on deep handlers would be fiddly. It
-turns out that deep handlers offer a direct implementation of pipes by
-shifting recursion from terms to the level of types (the interested
-reader may consult either \citet{KammarLO13} or \citet{HillerstromL18}
-for more details).
+that an implementation based on deep handlers would be fiddly. If we
+were to consider the wider design space of programming language
+features, then it turns out that deep handlers offer a direct
+implementation of pipes by shifting recursion from terms to the level
+of types (the interested reader may consult either \citet{KammarLO13}
+or \citet{HillerstromL18} for the precise details). Thus in some sense
+pipes are implementable with deep handlers, however, this particular
+implementation strategy is not realisable in the $\HCalc$-calculus
+since it has no notion of recursive types, meaning we cannot use this
+strategy to argue that deep handlers can implement pipes in our
+setting.
+%
 
-Through the lens of \emph{typability-preserving macro-expressiveness},
-which, in our particular setting, asks whether there exists a local
+We will restrict our attention to the calculi $\HCalc$, $\SCalc$, and
+$\HPCalc$ and use the notion of \emph{typability-preserving
+  macro-expressiveness} to determine whether handlers are
+interdefinable. In our particular setting, typability-preserving
+macro-expressiveness asks whether there exists a \emph{local}
 transformation that can transform one kind of handler into another
-kind of handler, whilst preserving typability in the image.
-
-In this chapter we show that shallow handlers and general recursion
-can simulate deep handlers up to congruence, and that deep handlers
-can simulate shallow handlers up to administrative reductions. % The
+kind of handler, whilst preserving typability in the image of the
+transformation. By mandating that the transform is local we rule out
+the possibility of rewriting the entire program in, say, CPS notation
+to implement deep and shallow handlers as in Chapter~\ref{ch:cps}.
+%
+In this chapter we use the notion of typability-preserving
+macro-expressiveness to show that shallow handlers and general
+recursion can simulate deep handlers up to congruence, and that deep
+handlers can simulate shallow handlers up to administrative
+reductions. % The
 % latter construction generalises the example of pipes implemented
 % using deep handlers that we gave in Section~\ref{sec:pipes}.
 %
@@ -11523,9 +11538,9 @@ the resumption to wrap the handler around its body.
 Nevertheless, the simulation proof makes minimal use of this power,
 merely using it to rename a single variable.
 %
-We write $R_{\Cong}$ for the compatible closure of relation
-$R$, that is the smallest relation including $R$ and closed under term
-constructors for $\SCalc$.
+% We write $R_{\Cong}$ for the compatible closure of relation
+% $R$, that is the smallest relation including $R$ and closed under term
+% constructors for $\SCalc$.
 %% , otherwise known as \emph{reduction up to
 %%   congruence}.
 
@@ -11535,10 +11550,27 @@ If $M \reducesto N$ then $\dstrans{M} \reducesto_{\Cong}^+
 \end{theorem}
 
 \begin{proof}
-  By induction on $\reducesto$ using a substitution lemma. The
-  interesting case is $\semlab{Op}$, which is where we apply a single
-  $\beta$-reduction, renaming a variable, under the lambda abstraction
-  representing the resumption.
+  By induction on $\reducesto$ using
+  Lemma~\ref{lem:dstrans-subst}. The interesting case is
+  $\semlab{Op}$, which is where we apply a single $\beta$-reduction,
+  renaming a variable, under the $\lambda$-abstraction representing
+  the resumption. The proof of this case is as follows.
+  %
+  \begin{derivation}
+    & \dstrans{\Handle\;\EC[\Do\;\ell~V]\;\With\;H}\\
+    =& \reason{definition of $\dstrans{-}$}\\
+    & (\Rec\;h\;f.\ShallowHandle\;f\,\Unit\;\With\;\dstrans{H}_h)\,(\lambda\Unit.\dstrans{\EC}[\Do\;\ell~\dstrans{V}])\\
+    \reducesto^+& \reason{\semlab{Rec}, \semlab{App}, \semlab{Op^\dagger} with $\hell = \{\OpCase{\ell}{p}{r} \mapsto N\}$}\\
+    & (\Let\;r \revto \Return\;\lambda x.h\,(\lambda\Unit.r~x)\;\In\;\dstrans{N})[\lambda y.\dstrans{\EC}[\Return\;y]/r,\dstrans{V}/p]\\
+    =& \reason{definition of [-]}\\
+    &(\Let\;r \revto \Return\;\lambda x.h\,(\lambda\Unit.(\lambda y.\dstrans{\EC}[\Return\;y])~x)\;\In\;\dstrans{N}[\dstrans{V}/p]\\
+    \reducesto_\Cong & \reason{\semlab{App} reduction under $\lambda x.\cdots$}\\
+    &(\Let\;r \revto \Return\;\lambda x.h\,(\lambda\Unit.\dstrans{\EC}[\Return\;x])\;\In\;\dstrans{N}[\dstrans{V}/p]\\
+    \reducesto& \reason{\semlab{Let} and Lemma~\ref{lem:dstrans-subst}}\\
+    % & \dstrans{N}[\dstrans{V}/p,\lambda x.h\,(\lambda\Unit.\dstrans{\EC}[\Return\;x])/r]\\
+    % =& \reason{}\\
+    &\dstrans{N[V/p,\lambda x.h\,(\lambda\Unit.\EC[\Return\;x])/r]}
+  \end{derivation}
 \end{proof}
 
 \section{Shallow as deep}
@@ -11592,9 +11624,15 @@ is encoded as a deep handler that returns a pair of thunks. It is
 worth noting that the handler construction is actually pure, yet we
 need to annotate the pair with the translated effect signature
 $\sdtrans{E_2}$, because the calculus has no notion of effect
-subtyping. The first component of the pair forwards all operations,
-acting as the identity on computations. The second component
-interprets a single operation before reverting to forwarding.
+subtyping. Technically we could insert an administrative identity
+handler to coerce the effect signature. There are practical reasons
+for avoiding administrative handlers, though, as we shall discuss
+momentarily the inordinate administrative overhead of this
+transformation might conceal the additional overhead incurred by the
+introduction of administrative identity handlers. The first component
+of the pair forwards all operations, acting as the identity on
+computations. The second component interprets a single operation
+before reverting to forwarding.
 %
 The following example illustrates the translation on an instance of
 the $\Pipe$ operator from Section~\ref{sec:pipes} using the consumer
@@ -11638,6 +11676,32 @@ equals sign yields the value $2 : \Int$. The $\Return$-case in the
 image contains a redundant pair, because the $\Return$-case of $\Pipe$
 is the identity. The translation of the $\Await$-case sets up the
 forwarding component and handling component of the pair of thunks.
+
+The distinction between deep and shallow handlers is that the latter
+is discharged after handling a single operation, whereas the former is
+persistent and apt for continual operation interpretations. The
+persistence of deep handlers means that any handler in the image of
+the translation remains in place for the duration of the handled
+computation after handling a single operation, which has noticeable
+asymptotic performance implications. Each activation of a handler in
+the image introduces another layer of indirection that any subsequent
+operation invocation have to follow. Supposing some source program
+contains $n$ handlers and performs $k$ operation invocations, then the
+image introduces $k$ additional handlers, meaning the total amount of
+handlers in the image is $n+k$. Viewed through the practical lens of
+the CPS translation (Chapter~\ref{ch:cps}) or abstract machine
+(Chapter~\ref{ch:abstract-machine}) it means that in the worst case
+handler lookup takes $\BigO(n+k)$ time. For example, consider the
+extreme case where $n = 1$, that is, the handler lookup takes
+$\BigO(1)$ time in the source, but in the image it takes $\BigO(k)$
+time.
+%
+Thus this translation is more of theoretical significance than
+practical interest. It also demonstrates that typability-preserving
+macro-expressiveness is rather coarse-grained notion of
+expressiveness, as it blindly considers whether some construct is
+computable using another construct without considering the
+computational cost.
 
 The translation commutes with substitution and preserves typability.
 %
@@ -11744,41 +11808,42 @@ For all shallow handlers $H$, the following context is administrative
 \end{lemma}
 %
 \begin{proof}
-  We need to check both conditions of Definition~\ref{def:admin-eval}.
+  We have to check both conditions of Definition~\ref{def:admin-eval}.
   \begin{enumerate}
-  \item We need to show that for all $V \in \ValCat$
+    \item Follows by direct calculation.
+  % \item We need to show that for all $V \in \ValCat$
+  %   %
+  %   \[
+  %     \Let\; z \revto
+  %              \Handle\; \Return\;V \;\With\; \sdtrans{H}\;
+  %                  \In\;
+  %                  \Let\; \Record{f;\_} = z\; \In\; f\,\Unit \reducesto^\ast \Return\;V.
+  %   \]
+  %   %
+  %   We show this by direct calculation using the assumption $\hret = \{\Return\;x \mapsto N\}$.
+  %   \begin{derivation}
+  %     &\Let\; z \revto
+  %              \Handle\; \Return\;V \;\With\; \sdtrans{H}\;
+  %                  \In\;
+  %                  \Let\; \Record{f;\_} = z\; \In\; f\,\Unit\\
+  %   \reducesto^+& \reason{\semlab{Lift}, \semlab{Ret}, \semlab{Let}, \semlab{Split}}\\
+  %   % &\Let\;\Record{f;\_} = \Record{\lambda\Unit.\Return\;x;\lambda\Unit.\sdtrans{N}}\;\In\;f\,\Unit
+  %     & (\lambda\Unit.\Return\;V)\,\Unit \reducesto \Return\;V
+  %   \end{derivation}
+  \item % We need to show that for all evaluation contexts
+    % $\EC' \in \EvalCat$, operations
+    % $\ell \in \BL(\EC) \backslash \BL(\EC')$, and values
+    % $V \in \ValCat$
+    % %
+    % \[
+    %   \ba{@{~}l@{~}l}
+    %      &\Let\; z \revto
+    %          \Handle\; \EC'[\Do\;\ell\;V]\;\With\;\sdtrans{H} \;\In\;\Record{f;\_} = z\;\In\;f\,\Unit\\
+    %          \reducesto_\Cong^\ast& \Let\; x \revto \Do\;\ell\;V \;\In\; \Let\; z \revto \Handle\; \EC'[\Return\;x]\;\With\;\sdtrans{H}\;\In\;\Let\;\Record{f;\_} = z\;\In\;f\,\Unit
+    %   \ea
+    % \]
     %
-    \[
-      \Let\; z \revto
-               \Handle\; \Return\;V \;\With\; \sdtrans{H}\;
-                   \In\;
-                   \Let\; \Record{f;\_} = z\; \In\; f\,\Unit \reducesto^\ast \Return\;V.
-    \]
-    %
-    We show this by direct calculation using the assumption $\hret = \{\Return\;x \mapsto N\}$.
-    \begin{derivation}
-      &\Let\; z \revto
-               \Handle\; \Return\;V \;\With\; \sdtrans{H}\;
-                   \In\;
-                   \Let\; \Record{f;\_} = z\; \In\; f\,\Unit\\
-    \reducesto^+& \reason{\semlab{Lift}, \semlab{Ret}, \semlab{Let}, \semlab{Split}}\\
-    % &\Let\;\Record{f;\_} = \Record{\lambda\Unit.\Return\;x;\lambda\Unit.\sdtrans{N}}\;\In\;f\,\Unit
-      & (\lambda\Unit.\Return\;V)\,\Unit \reducesto \Return\;V
-    \end{derivation}
-  \item We need to show that for all evaluation contexts
-    $\EC' \in \EvalCat$, operations
-    $\ell \in \BL(\EC) \backslash \BL(\EC')$, and values
-    $V \in \ValCat$
-    %
-    \[
-      \ba{@{~}l@{~}l}
-         &\Let\; z \revto
-             \Handle\; \EC'[\Do\;\ell\;V]\;\With\;\sdtrans{H} \;\In\;\Record{f;\_} = z\;\In\;f\,\Unit\\
-             \reducesto_\Cong^\ast& \Let\; x \revto \Do\;\ell\;V \;\In\; \Let\; z \revto \Handle\; \EC'[\Return\;x]\;\With\;\sdtrans{H}\;\In\;\Let\;\Record{f;\_} = z\;\In\;f\,\Unit
-      \ea
-    \]
-    %
-    We show this by direct calculation using the assumption that
+    Follows by direct calculation using the assumption that
     $\ell \notin \BL(\EC')$.
     \begin{derivation}
              &\Let\; z \revto
@@ -12008,60 +12073,74 @@ to a variable to be reduced.
 \end{theorem}
 %
 \begin{proof}
-  By induction on $M$. There are only two interesting cases to
-  consider.
-  \begin{description}
-  \item[Case]
-    $M = \ParamHandle\; \Return\;V\;\With\;(q.~H)(W) \reducesto
-    N[V/x,W/q]$, where $\hret = \{ \Return\; x \mapsto N \}$.
-    %
-    \begin{derivation}
-      &\PD{\ParamHandle\;\Return\;V\;\With\;(q.~H)(W)}\\
-      =& \reason{definition of $\PD{-}$}\\
-      &(\Handle\;\Return\;\PD{V}\;\With\;\PD{H}_q)~\PD{W}\\
-      \reducesto& \reason{$\semlab{Ret}$ with $\PD{\hret}_q = \{\Return~x \mapsto \lambda q. \PD{N}\}$}\\
-      &(\lambda q. \PD{N}[\PD{V}/x])~\PD{W}\\
-      \reducesto& \reason{$\semlab{App}$}\\
-      &\PD{N}[\PD{V}/x,\PD{W}/q]\\
-      =& \reason{lemma~\ref{lem:pd-subst}}\\
-      &\PD{N[V/x,W/q]}
-    \end{derivation}
-  \item[Case] $M = \ParamHandle\; \EC[\Do\;\ell~V]\;\With\;(q.~H)(W) \reducesto \\
-    \qquad
-    N[V/p,W/q,\lambda \Record{x,q'}. \ParamHandle\;\EC[\Return\;x]\;\With\;(q.~H)(q')/r]$, where $\hell = \{ \OpCase{\ell}{p}{r} \mapsto N \}$.
+  By induction on $M$. The interesting case is \semlab{Op^\param},
+  which is where we need to reduce under the $\lambda$-abstraction
+  representing the resumption.
+  % \begin{description}
+  % \item[Case]
+  %   $M = \ParamHandle\; \Return\;V\;\With\;(q.~H)(W) \reducesto
+  %   N[V/x,W/q]$, where $\hret = \{ \Return\; x \mapsto N \}$.
+  %   %
+  %   \begin{derivation}
+  %     &\PD{\ParamHandle\;\Return\;V\;\With\;(q.~H)(W)}\\
+  %     =& \reason{definition of $\PD{-}$}\\
+  %     &(\Handle\;\Return\;\PD{V}\;\With\;\PD{H}_q)~\PD{W}\\
+  %     \reducesto& \reason{$\semlab{Ret}$ with $\PD{\hret}_q = \{\Return~x \mapsto \lambda q. \PD{N}\}$}\\
+  %     &(\lambda q. \PD{N}[\PD{V}/x])~\PD{W}\\
+  %     \reducesto& \reason{$\semlab{App}$}\\
+  %     &\PD{N}[\PD{V}/x,\PD{W}/q]\\
+  %     =& \reason{lemma~\ref{lem:pd-subst}}\\
+  %     &\PD{N[V/x,W/q]}
+  %   \end{derivation}
+  % \item[Case] $M = \ParamHandle\; \EC[\Do\;\ell~V]\;\With\;(q.~H)(W) \reducesto \\
+  %   \qquad
+  %   N[V/p,W/q,\lambda \Record{x,q'}. \ParamHandle\;\EC[\Return\;x]\;\With\;(q.~H)(q')/r]$, where $\hell = \{ \OpCase{\ell}{p}{r} \mapsto N \}$.
     \begin{derivation}
       &\PD{\ParamHandle\;\EC[\Do\;\ell~V]\;\With\;(q.~H)(W)}\\
       =& \reason{definition of $\PD{-}$}\\
-      &(\Handle\;\EC[\Do\;\ell~\PD{V}]\;\With\;\PD{H}_q)~\PD{W}\\
-      \reducesto& \reason{$\semlab{Op}$ with $\PD{\hell}_q = \{\ell~p~r \mapsto \lambda q. \Let\,r' \revto \lambda \Record{x,q'}. r~x~q\,\In\, \PD{N}[r'/r]\}$}\\
+      &(\Handle\;\PD{\EC}[\Do\;\ell~\PD{V}]\;\With\;\PD{H}_q)~\PD{W}\\
+      \reducesto& \reason{$\semlab{Op}$ with $\hell = \{\OpCase{\ell}{p}{r} \mapsto N\}$}\\
       &((\lambda q. \bl
-                    \Let\;r' \revto \lambda \Record{x,q'}. r~x~q\; \In \\
-                    \PD{N}[r'/r])[\PD{V}/p,\lambda x.\Handle\;\EC[\Return\;x]\;\With\;\PD{H}_q)~\PD{W}\\
+                    \Let\;r \revto \lambda \Record{x;q'}. r~x~q\;\In \\
+                    \PD{N})[\PD{V}/p,\lambda x.\Handle\;\PD{\EC}[\Return\;x]\;\With\;\PD{H}_q/r])~\PD{W}\\
                     \el \\
       =& \reason{definition of $[-]$}\\
       &(\lambda q. \bl
-                   \Let\; r' \revto \lambda \Record{x,q'}. (\lambda x. \Handle\;\EC[\Return\;x]\;\With\; \PD{H}_q)~x~q'\;\In \\
-                   \PD{N}[\PD{V}/p,r'/r])\\
+                   \Let\; r \revto \lambda \Record{x,q'}. (\lambda x. \Handle\;\PD{\EC}[\Return\;x]\;\With\; \PD{H}_q)~x~q'\;\In \\
+                   \PD{N}[\PD{V}/p])\,\PD{W}\\
                    \el \\
-      \reducesto& \reason{$\semlab{App}$}\\
-      &\Let\;r' \revto \lambda \Record{x,q'}. r~x~q'\; \In\; \PD{N}[r'/r,\PD{V}/p,\PD{V}/q]\\
-      \reducesto& \reason{$\semlab{Let}$}\\
+     \reducesto& \reason{\semlab{App}}\\
+     &\bl
+       \Let\; r \revto \lambda \Record{x;q'}. (\lambda x. \Handle\;\PD{\EC}[\Return\;x]\;\With\; \PD{H}_q)~x~q'\;\In\\
+       \PD{N}[\PD{V}/p,\PD{W}/q]
+      \el\\
+      \reducesto_\Cong& \reason{\semlab{App} under $\lambda\Record{x;q'}.\cdots$}\\
+      &\bl
+       \Let\; r \revto \lambda \Record{x;q'}.(\Handle\;\PD{\EC}[\Return\;x]\;\With\; \PD{H}_q)~q'\;\In\\
+       \PD{N}[\PD{V}/p,\PD{W}/q]
+       \el\\
+      \reducesto& \reason{\semlab{Let}}\\
       &\PD{N}[\bl
               \PD{V}/p,\PD{W}/q, \\
-              \lambda \Record{x,q'}. (\lambda x. \Handle\;\EC[\Return\;x]\;\With\; \PD{H}_q)~x~q'/r]\\
+              \lambda \Record{x,q'}. (\Handle\;\PD{\EC}[\Return\;x]\;\With\; \PD{H}_q)~q'/r]\\
               \el \\
-      \reducesto_{\Cong}& \reason{$\semlab{App}$}\\
-      &\PD{N}[\PD{V}/p,\PD{W}/q,\lambda \Record{x,q'}. (\Handle\;\EC[\Return\;x]\;\With\; \PD{H}_q)~q'/r]\\
-      =& \reason{definition of $\PD{-}$}\\
-      &\PD{N}[\PD{V}/p,\PD{W}/q,\lambda \Record{x,q'}. \PD{\ParamHandle\;\EC[\Return\;x]\;\With\;(q.~H)(q')}/r]\\
-      =& \reason{lemma~\ref{lem:pd-subst}}\\
+      =& \reason{definition of $\PD{-}$ and Lemma~\ref{lem:pd-subst}}\\
       &\PD{N[V/p,W/q,\lambda \Record{x,q'}. \ParamHandle\;\EC[\Return\;x]\;\With\; (q.~H)(q')/r]}
     \end{derivation}
-  \end{description}
+  % \end{description}
 \end{proof}
 \section{Related work}
 
-\citet{ForsterKLP17,ForsterKLP19} \citet{PirogPS19}, \citet{Shan04}
+Precisely how effect handlers fit into the landscape of programming
+language features is largely unexplored in the literature. The most
+notable work in this area is due to \citet{ForsterKLP17}, who
+investigate various relationships between effect handlers, delimited
+control in the form of shift/reset, and monadic reflection using the
+notions of typability-preserving macro-expressiveness and untyped
+macro-expressiveness~\cite{ForsterKLP17,ForsterKLP19}. \citet{PirogPS19}
+build upon the work of \citeauthor{ForsterKLP17} as they show that
+with sufficient polymorphism effect handlers and delimited control á
+la shift/reset can simulate one another. \citet{Shan04}
 
 % \chapter{Computability, complexity, and expressivness}
 % \label{ch:expressiveness}
