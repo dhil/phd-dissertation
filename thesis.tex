@@ -11948,14 +11948,18 @@ $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
   $\semlab{Op^\dagger}$, which uses Lemma~\ref{lem:sdtrans-admin} to
   approximate the body of the resumption up to administrative
   reduction.
-  % $\ShallowHandle\;\EC[\Do\;\ell~V]\;\With\;H \reducesto
-  % N_\ell[V/p,\lambda y.\EC[\Return\;y]/r]$ where
-  % $\ell \notin \BL(\EC)$ and
-  % $H^\ell = \{\OpCase{\ell}{p}{r} \mapsto N_\ell\}$.
-  % %
+  \begin{description}
+    \item[Case]
+  $\ShallowHandle\;\EC[\Do\;\ell~V]\;\With\;H \reducesto
+  N_\ell[V/p,\lambda y.\EC[\Return\;y]/r]$ where
+  $\ell \notin \BL(\EC)$ and
+  $H^\ell = \{\OpCase{\ell}{p}{r} \mapsto N_\ell\}$.
+  %
   % \begin{derivation}
     
   % \end{derivation}
+  \dhil{Write the proof sketch}
+  \end{description}
   %
 \end{proof}
 
@@ -12153,8 +12157,9 @@ setting. The work in this chapter has a similar flavour to
 static control facility and shallow handlers as a kind of dynamic
 control facility. In order to simulate dynamic control using static
 control, \citeauthor{Shan04}'s translation makes use of recursive
-delimited continuations, which allow the captured context and
-continuation invocation context to coincide.
+delimited continuations to construct the dynamic context surrounding
+and including the invocation context. A recursive continuation allows
+the captured context and continuation invocation context to coincide.
 
 % \chapter{Computability, complexity, and expressivness}
 % \label{ch:expressiveness}
