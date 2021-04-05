@@ -12133,23 +12133,34 @@ to a variable to be reduced.
 
 Precisely how effect handlers fit into the landscape of programming
 language features is largely unexplored in the literature. The most
-notable work in this area is due to \citet{ForsterKLP17}, who
+relevant work in this area is due to \citet{ForsterKLP17}, who
 investigate various relationships between effect handlers, delimited
 control in the form of shift/reset, and monadic reflection using the
 notions of typability-preserving macro-expressiveness and untyped
-macro-expressiveness~\cite{ForsterKLP17,ForsterKLP19}. \citet{PirogPS19}
-build upon the work of \citeauthor{ForsterKLP17} as they show that
-with sufficient polymorphism effect handlers and delimited control á
-la shift/reset can simulate one another. \citet{Shan04}
+macro-expressiveness~\cite{ForsterKLP17,ForsterKLP19}. They show that
+in an untyped setting all three are interdefinable, whereas in a
+simply typed setting effect handlers cannot macro-express
+either. \citet{PirogPS19} build upon the work of
+\citeauthor{ForsterKLP17} as they show that with sufficient
+polymorphism effect handlers and delimited control can simulate one
+another.
+
+The work of \citet{Shan04,Shan07} is related in spirit to the work
+presented in this chapter. \citeauthor{Shan04} shows that static and
+dynamic notions of delimited control are interdefinable in an untyped
+setting. The work in this chapter has a similar flavour to
+\citeauthor{Shan04}'s work as we can view deep handlers as a kind of
+static control facility and shallow handlers as a kind of dynamic
+control facility. In order to simulate dynamic control using static
+control, \citeauthor{Shan04}'s translation makes use of recursive
+delimited continuations, which allow the captured context and
+continuation invocation context to coincide.
 
 % \chapter{Computability, complexity, and expressivness}
 % \label{ch:expressiveness}
 % \section{Notions of expressiveness}
 % Felleisen's macro-expressiveness, Longley's type-respecting
 % expressiveness, Kammar's typability-preserving expressiveness.
-
-% \section{Interdefinability of deep and shallow Handlers}
-% \section{Encoding parameterised handlers}
 
 \chapter{Asymptotic speedup with first-class control}
 \label{ch:handlers-efficiency}
