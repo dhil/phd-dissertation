@@ -10749,15 +10749,35 @@ then in the image $\cps{M}\,k \reducesto^\ast k\,\cps{V}$.
 
 \chapter{Abstract machine semantics}
 \label{ch:abstract-machine}
-\dhil{The text is this chapter needs to be reworked}
+%\dhil{The text is this chapter needs to be reworked}
 
-In this chapter we develop an abstract machine that supports deep and
-shallow handlers \emph{simultaneously}, using the generalised
-continuation structure we identified in the previous section for the
-CPS translation. We also build upon prior work~\citep{HillerstromL16}
-that developed an abstract machine for deep handlers by generalising
-the continuation structure of a CEK machine (Control, Environment,
-Kontinuation)~\citep{FelleisenF86}.
+In this chapter we will demonstrate an application of generalised
+continuations (Section~\ref{sec:generalised-continuations}) to
+\emph{abstract machines}. An abstract machine is a model of
+computation that makes program control more apparent than standard
+reduction semantics. Abstract machines come in different styles and
+flavours, though, a common trait is that they closely model how an
+actual computer might go about executing a program.
+
+\paragraph{Relation to prior work} The work in this chapter is based
+on work in the following previously published papers.
+%
+\begin{enumerate}[i]
+    \item \bibentry{HillerstromL16}  \label{en:ch-am-HL16}
+    \item \bibentry{HillerstromL18}  \label{en:ch-am-HL18}
+    \item \bibentry{HillerstromLA20} \label{en:ch-am-HLA20}
+\end{enumerate}
+%
+The particular presentation in this chapter closely follows that of
+item~\ref{en:ch-am-HLA20}.
+
+% In this chapter we develop an abstract machine that supports deep and
+% shallow handlers \emph{simultaneously}, using the generalised
+% continuation structure we identified in the previous section for the
+% CPS translation. We also build upon prior work~\citep{HillerstromL16}
+% that developed an abstract machine for deep handlers by generalising
+% the continuation structure of a CEK machine (Control, Environment,
+% Kontinuation)~\citep{FelleisenF86}.
 %
 % \citet{HillerstromL16} sketched an adaptation for shallow handlers. It
 % turns out that this adaptation had a subtle flaw, similar to the flaw
@@ -10766,7 +10786,8 @@ Kontinuation)~\citep{FelleisenF86}.
 % a full development of shallow handlers along with a statement of the
 % correctness property.
 
-\section{Syntax and semantics}
+\section{Machine configurations}
+\label{sec:machine-configurations}
 The abstract machine syntax is given in
 Figure~\ref{fig:abstract-machine-syntax}.
 % A machine continuation is a list of handler frames. A handler frame is
@@ -10805,9 +10826,9 @@ Figure~\ref{fig:abstract-machine-syntax}.
 \begin{figure}[t]
 \flushleft
 \begin{syntax}
-\slab{Configurations}           & \conf &::= & \cek{M \mid \env \mid \shk \circ \shk'} \\
-\slab{Value environments}       &\env   &::= & \emptyset \mid \env[x \mapsto v] \\
-\slab{Values}                   &v, w   &::= & (\env, \lambda x^A . M) \mid (\env, \Lambda \alpha^K . M) \\
+\slab{Configurations}           & \conf \in \MConfCat &::= & \cek{M \mid \env \mid \shk \circ \shk'} \\
+\slab{Value\textrm{ }environments}       &\env \in \MEnvCat  &::= & \emptyset \mid \env[x \mapsto v] \\
+\slab{Values}                   &v, w \in \MValCat  &::= & (\env, \lambda x^A . M) \mid (\env, \Lambda \alpha^K . M) \\
                                 &       &\mid& \Record{} \mid \Record{\ell = v; w} \mid (\ell\, v)^R \mid \shk^A \mid (\shk, \slk)^A \medskip\\
 % \end{syntax}
 % \begin{displaymath}
@@ -10818,11 +10839,11 @@ Figure~\ref{fig:abstract-machine-syntax}.
 % \ea
 % \end{displaymath}
 % \begin{syntax}
-\slab{Continuations}            &\shk   &::= & \nil \mid \shf \cons \shk \\
-\slab{Continuation frames}      &\shf   &::= & (\slk, \chi) \\
-\slab{Pure continuations}       &\slk   &::= & \nil \mid \slf \cons \slk \\
-\slab{Pure continuation frames} &\slf   &::= & (\env, x, N) \\
-\slab{Handler closures}         &\chi   &::= & (\env, H) \mid (\env, H)^\dagger \medskip \\
+\slab{Continuations}            &\shk \in \MGContCat &::= & \nil \mid \shf \cons \shk \\
+\slab{Continuation\textrm{ }frames}      &\shf \in \MGFrameCat  &::= & (\slk, \chi) \\
+\slab{Pure\textrm{ }continuations}       &\slk \in \MPContCat  &::= & \nil \mid \slf \cons \slk \\
+\slab{Pure\textrm{ }continuation\textrm{ }frames} &\slf \in \MPFrameCat &::= & (\env, x, N) \\
+\slab{Handler\textrm{ }closures}         &\chi \in \MHCloCat  &::= & (\env, H) \mid (\env, H)^\dagger \medskip \\
 \end{syntax}
 
 \caption{Abstract machine syntax.}
@@ -10844,11 +10865,11 @@ Figure~\ref{fig:abstract-machine-syntax}.
 %% \shk_0 = [(\nil, (\emptyset, \{\Return\;x \mapsto x\}))]
 %% \]
 
-\textbf{Transition function}
+\textbf{Transition function} $~~\stepsto~ \subseteq \MConfCat \times \MConfCat$
 \begin{displaymath}
-\bl
+  \bl
 \ba{@{}l@{~}r@{~}c@{~}l@{\quad}l@{}}
-\mlab{Init} & \multicolumn{4}{@{}c@{}}{M \stepsto \cek{M \mid \emptyset \mid [(\nil, (\emptyset, \{\Return\;x \mapsto \Return\;x\}))]}} \\[1ex]
+% \mlab{Init} & M &\stepsto& \cek{M \mid \emptyset \mid [(\nil, (\emptyset, \{\Return\;x \mapsto \Return\;x\}))]} \\[1ex]
 % App
 \mlab{AppClosure} & \cek{ V\;W \mid \env \mid \shk}
     &\stepsto& \cek{ M \mid \env'[x \mapsto \val{W}{\env}] \mid \shk},
@@ -10859,11 +10880,11 @@ Figure~\ref{fig:abstract-machine-syntax}.
       &\text{if }\val{V}{\env} = (\env', \Rec\,g^{A \to C}\,x.M) \\
 
 % App - continuation
-\mlab{AppCont} & \cek{ V\;W \mid \env \mid \shk}
+\mlab{Resume} & \cek{ V\;W \mid \env \mid \shk}
     &\stepsto& \cek{ \Return \; W \mid \env \mid \shk' \concat \shk},
        &\text{if }\val{V}{\env} = (\shk')^A \\
 
-\mlab{AppCont^\dagger} & \cek{ V\,W \mid \env \mid (\slk, \chi) \cons \shk}
+\mlab{Resume^\dagger} & \cek{ V\,W \mid \env \mid (\slk, \chi) \cons \shk}
   &\stepsto&
   \cek{\Return\; W \mid \env \mid \shk' \concat ((\slk' \concat \slk, \chi) \cons \shk)},
      &\text{if } \val{V}{\env} = (\shk', \slk')^A \\
@@ -10899,14 +10920,14 @@ Figure~\ref{fig:abstract-machine-syntax}.
        &\stepsto& \cek{ M \mid \env \mid (\nil, (\env, H)^\depth) \cons \shk} \\[1ex]
 
 % Return - let binding
-\mlab{RetCont} &\cek{ \Return \; V \mid \env \mid ((\env',x,N) \cons \slk, \chi) \cons \shk}
+\mlab{AppPureCont} &\cek{ \Return \; V \mid \env \mid ((\env',x,N) \cons \slk, \chi) \cons \shk}
           &\stepsto& \cek{ N \mid \env'[x \mapsto \val{V}{\env}] \mid (\slk, \chi) \cons \shk} \\
 
 % Return - handler
 \mlab{RetHandler} & \cek{ \Return \; V \mid \env \mid (\nil, (\env',H)) \cons \shk}
            &\stepsto& \cek{ M \mid \env'[x \mapsto \val{V}{\env}] \mid \shk},
             & \text{if } \hret = \{\Return\; x \mapsto M\} \\
-\mlab{RetTop} & \cek{\Return\;V \mid \env \mid \nil} &\stepsto& \val{V}{\env} \\[1ex]
+% \mlab{RetTop} & \cek{\Return\;V \mid \env \mid \nil} &\stepsto& \val{V}{\env} \\[1ex]
 
 % Deep
 \mlab{Do} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env', H)) \cons \shk) \circ \shk'}
@@ -10927,7 +10948,7 @@ Figure~\ref{fig:abstract-machine-syntax}.
 \el
 \end{displaymath}
 
-\textbf{Value interpretation}
+\textbf{Value interpretation} $~\val{-} : \ValCat \times \MEnvCat \to \MValCat$
 \begin{displaymath}
 \ba{@{}r@{~}c@{~}l@{}}
 \val{x}{\env}                    &=& \env(x) \\
@@ -10991,6 +11012,8 @@ pushing $x$ on top of stack $s$, and $s \concat s'$ for the
 concatenation of stack $s$ on top of $s'$. We use pattern matching to
 deconstruct stacks.
 
+\section{Machine transitions}
+\label{sec:machine-transitions}
 The abstract machine semantics defining the transition function $\stepsto$ is given in
 Fig.~\ref{fig:abstract-machine-semantics}.
 %
@@ -11191,13 +11214,13 @@ transitioning to the following final configuration.
 %% \newcommand{\contapp}[2]{#1\mathbin{@}#2}
 %% \newcommand{\contappp}[2]{#1\mathbin{@}(#2)}
 %
-Configurations
+\textbf{Configurations}
 \begin{displaymath}
 \inv{\cek{M \mid \env \mid \shk \circ \shk'}} = \contappp{\inv{\shk' \concat \shk}}{\inv{M}\env}
                                               = \contappp{\inv{\shk'}}{\contapp{\inv{\shk}}{\inv{M}\env}}
 \end{displaymath}
 
-Pure continuations
+\textbf{Pure continuations}
 \begin{displaymath}
 \contapp{\inv{[]}}{M} = M \qquad \contapp{\inv{((\env, x, N) \cons \slk)}}{M}
   = \contappp{\inv{\slk}}{\Let\; x \revto M \;\In\; \inv{N}(\env \res \{x\})}
@@ -11209,7 +11232,7 @@ Pure continuations
 %%   &=& \contappp{\inv{\slk}}{\Let\; x \revto M \;\In\; \inv{N}(\env \res \{x\})} \\
 %% \end{equations}
 
-Continuations
+\textbf{Continuations}
 \begin{displaymath}
 \contapp{\inv{[]}}{M}
   = M \qquad
@@ -11223,7 +11246,7 @@ Continuations
 %%   &=& \contapp{\inv{\shk}}{(\contappp{\inv{\chi}}{\contappp{\inv{\slk}}{M}})} \\
 %% \end{equations}
 
-Handler closures
+\textbf{Handler closures}
 \begin{displaymath}
 \contapp{\inv{(\env, H)}^\depth}{M}
   = \Handle^\depth\;M\;\With\;\inv{H}\env
@@ -11235,7 +11258,7 @@ Handler closures
 %%   &=& \ShallowHandle\;M\;\With\;\inv{H}\env \\
 %% \end{equations}
 
-Computation terms
+\textbf{Computation terms}
 \begin{equations}
 \inv{V\,W}\env &=& \inv{V}\env\,\inv{W}{\env} \\
 \inv{V\,T}\env &=& \inv{V}\env\,T \\
@@ -11252,7 +11275,7 @@ Computation terms
   &=& \Handle^\depth\;\inv{M}\env\;\With\;\inv{H}\env \\
 \end{equations}
 
-Handler definitions
+\textbf{Handler definitions}
 \begin{equations}
 \inv{\{\Return\;x \mapsto M\}}\env
   &=& \{\Return\;x \mapsto \inv{M}(\env \res \{x\})\} \\
@@ -11260,7 +11283,7 @@ Handler definitions
   &=& \{\ell\;x\;k \mapsto \inv{M}(\env \res \{x, k\}\} \uplus \inv{H}\env \\
 \end{equations}
 
-Value terms and values
+\textbf{Value terms and values}
 \begin{displaymath}
 \ba{@{}c@{}}
 \begin{eqs}
@@ -11437,7 +11460,7 @@ recursion. Each handler is wrapped in a recursive function and each
 resumption has its body wrapped in a call to this recursive function.
 %
 Formally, the translation $\dstrans{-}$ is defined as the homomorphic
-extension of the following equations to all terms.
+extension of the following equations to all terms and substitutions.
 %
 \[
 \bl
@@ -11522,7 +11545,7 @@ The translation commutes with substitution and preserves typability.
 \end{proof}
 
 \begin{theorem}
-If $\Delta; \Gamma \vdash M : C$ then $\dstrans{\Delta}; \dstrans{\Gamma} \vdash
+If $\Delta; \Gamma \vdash M : C$ then $\Delta; \Gamma \vdash
 \dstrans{M} : \dstrans{C}$.
 \end{theorem}
 %
@@ -11584,8 +11607,8 @@ It amounts to the encoding of a case split by a fold and involves a
 translation on handler types as well as handler terms.
 %
 Formally, the translation $\sdtrans{-}$ is defined as the homomorphic
-extension of the following equations to all types, terms, and type
-environments.
+extension of the following equations to all types, terms, type
+environments, and substitutions.
 %
 \[
   \bl
@@ -11777,7 +11800,7 @@ rules.
     {M \approxa M}
 
   \inferrule*
-    {M \reducesto_\Cong M' \\ M' \approxa N}
+    {M \reducesto M' \\ M' \approxa N}
     {M \approxa N}
 
   \inferrule*
@@ -11849,7 +11872,7 @@ For all shallow handlers $H$, the following context is administrative
              &\Let\; z \revto
                \Handle\; \EC'[\Do\;\ell\;V]\;\With\;\sdtrans{H}\;\In\;
                \Let\;\Record{f;\_} = z\;\In\;f\,\Unit\\
-             \reducesto^+& \reason{\semlab{Lift}, \semlab{Op} using assumption $\ell \notin \EC'$}\\
+             \reducesto& \reason{\semlab{Op} using assumption $\ell \notin \EC'$}\\
              &\bl \Let\; z \revto
              \bl
                \Let\;r\revto
@@ -11860,7 +11883,7 @@ For all shallow handlers $H$, the following context is administrative
             \el\\
           \In\;\Record{f;\_} = z\;\In\;f\,\Unit
           \el\\
-          \reducesto^+& \reason{\semlab{Lift}, \semlab{Let}, \semlab{Split}, \semlab{App}}\\
+          \reducesto^+& \reason{\semlab{Let}, \semlab{Split}, \semlab{App}}\\
           &(\Let\;x\revto \Do\;\ell~V\;\In\;r~x)[(\lambda x.\bl
                       \Let\;z \revto (\lambda x.\Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H})\,x\\
                       \In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit)/r]\el\\
@@ -11871,69 +11894,6 @@ For all shallow handlers $H$, the following context is administrative
         \reducesto_\Cong& \reason{\semlab{App} reduction under binder}\\
         &\bl \Let\;x \revto \Do\;\ell~V\;\In\;\Let\;z \revto \Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H}\; \In\\\Let\;\Record{f;g} = z\;\In\;f\,\Unit\el
     \end{derivation}
-    % The proof proceeds by induction on the structure of $\EC'$.
-    % %
-    % \begin{description}
-    %   \item[Base step] $\EC' = [\,]$. The proof proceeds by direct calculation.
-    %     \begin{derivation}
-    %       &\Let\; z \revto
-    %       \Handle\; \Do\;\ell\;V\;\With\;\sdtrans{H} \;\In\;\Record{f;\_} = z\;\In\;f\,\Unit\\
-    %       \reducesto^+& \reason{\semlab{Lift}, \semlab{Op}}\\
-    %       &\bl \Let\; z \revto
-    %          \bl
-    %            \Let\;r\revto
-    %              \lambda x.\bl\Let\;z \revto (\lambda x.\Handle\;\Return\;x\;\With\;\sdtrans{H})~x\\
-    %                     \In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit
-    %                     \el\\
-    %                     \In\;\Return\;\Record{\lambda\Unit.\Let\;x\revto \Do\;\ell~V\;\In\;r~x;\lambda\Unit.\sdtrans{N}}
-    %         \el\\
-    %       \In\;\Record{f;\_} = z\;\In\;f\,\Unit
-    %       \el\\
-    %     \reducesto^+ & \reason{\semlab{Lift}, \semlab{Let}, \semlab{Split}, \semlab{App}}\\
-    %     &(\Let\;x\revto \Do\;\ell~V\;\In\;r~x)[(\lambda x.\bl
-    %                   \Let\;z \revto (\lambda x.\Handle\;\Return\;x\;\With\;\sdtrans{H})\,x\\
-    %                   \In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit)/r]\el\\
-    %     \reducesto_\Cong& \reason{\semlab{App} tail position reduction}\\
-    %     &\bl
-    %     \Let\;x \revto \Do\;\ell~V\;\In\;\Let\;z \revto (\lambda x.\Handle\;\Return\;x\;\With\;\sdtrans{H})\,x\; \In\\\Let\;\Record{f;g} = z\;\In\;f\,\Unit
-    %     \el\\
-    %     \reducesto_\Cong& \reason{\semlab{App} reduction under binder}\\
-    %     &\bl \Let\;x \revto \Do\;\ell~V\;\In\;\Let\;z \revto \Handle\;\Return\;x\;\With\;\sdtrans{H}\; \In\\\Let\;\Record{f;g} = z\;\In\;f\,\Unit\el
-    %   \end{derivation}
-    %  \item[Inductive step] There are two subcases to consider.
-    %    \begin{enumerate}[1)]
-    %      \item $\EC' = \Let\;y \revto \EC''\;\In\;N$.
-    %      \item $\EC' = \Handle\;\EC''\;\With\;\sdtrans{H'}$
-    %        \begin{derivation}
-    %          &\bl
-    %            \Let\; z \revto
-    %            \Handle\; (\Handle\;\EC''[\Do\;\ell\;V]\;\With\;\sdtrans{H'})\;\With\;\sdtrans{H}\;\In\\
-    %            \Let\;\Record{f;\_} = z\;\In\;f\,\Unit
-    %            \el\\
-    %          \reducesto^+& \reason{\semlab{Lift}, \semlab{Op} using assumptions $\ell \notin \EC''$ and $H'^\ell = \emptyset$}\\
-    %          &\bl \Let\; z \revto
-    %          \bl
-    %            \Let\;r\revto
-    %              \lambda x.\bl\Let\;z \revto (\lambda x.\Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H})~x\\
-    %                     \In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit
-    %                     \el\\
-    %                     \In\;\Return\;\Record{\lambda\Unit.\Let\;x\revto \Do\;\ell~V\;\In\;r~x;\lambda\Unit.\sdtrans{N}}
-    %         \el\\
-    %       \In\;\Record{f;\_} = z\;\In\;f\,\Unit
-    %       \el\\
-    %       \reducesto^+& \reason{\semlab{Lift}, \semlab{Let}, \semlab{Split}, \semlab{App}}\\
-    %       &(\Let\;x\revto \Do\;\ell~V\;\In\;r~x)[(\lambda x.\bl
-    %                   \Let\;z \revto (\lambda x.\Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H})\,x\\
-    %                   \In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit)/r]\el\\
-    %       \reducesto_\Cong &\reason{\semlab{App} tail position reduction}\\
-    %     &\bl
-    %     \Let\;x \revto \Do\;\ell~V\;\In\;\Let\;z \revto (\lambda x.\Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H})\,x\; \In\\\Let\;\Record{f;g} = z\;\In\;f\,\Unit
-    %     \el\\
-    %     \reducesto_\Cong& \reason{\semlab{App} reduction under binder}\\
-    %     &\bl \Let\;x \revto \Do\;\ell~V\;\In\;\Let\;z \revto \Handle\;\EC'[\Return\;x]\;\With\;\sdtrans{H}\; \In\\\Let\;\Record{f;g} = z\;\In\;f\,\Unit\el
-    %        \end{derivation}
-    %    \end{enumerate}
-    % \end{description}
   \end{enumerate}
 \end{proof}
 %
@@ -11974,8 +11934,10 @@ show formally that parameterised handlers are special instances of
 ordinary deep handlers.
 %
 We define a local transformation $\PD{-}$ which translates
-parameterised handlers into ordinary deep handlers. We omit the
-homomorphic cases and show only the interesting cases.
+parameterised handlers into ordinary deep handlers. As with the two
+previous translations it is formally defined on terms, types, type
+environments, and substitutions. We omit the homomorphic cases and
+show only the interesting cases.
 %
 \[
   \bl
@@ -12041,13 +12003,13 @@ computation~\cite{Pretnar15}.
 The translation commutes with substitution and preserves typability.
 %
 \begin{lemma}\label{lem:pd-subst}
-  Let $\sigma$ denote a substitution. The translation $\sdtrans{-}$
+  Let $\sigma$ denote a substitution. The translation $\PD{-}$
   commutes with substitution, i.e.
   %
   \[
-    \sdtrans{V}\sdtrans{\sigma} = \sdtrans{V\sigma},\quad
-    \sdtrans{M}\sdtrans{\sigma} = \sdtrans{M\sigma},\quad
-    \sdtrans{H}\sdtrans{\sigma} = \sdtrans{(q.\,H)\sigma}.
+    \PD{V}\PD{\sigma} = \PD{V\sigma},\quad
+    \PD{M}\PD{\sigma} = \PD{M\sigma},\quad
+    \PD{(q.\,H)}\PD{\sigma} = \PD{(q.\,H)\sigma}.
   \]
   %
 \end{lemma}
