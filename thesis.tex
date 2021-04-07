@@ -10757,7 +10757,9 @@ continuations (Section~\ref{sec:generalised-continuations}) to
 computation that makes program control more apparent than standard
 reduction semantics. Abstract machines come in different styles and
 flavours, though, a common trait is that they closely model how an
-actual computer might go about executing a program.
+actual computer might go about executing a program, meaning they
+embody some high-level abstract models of main memory and the
+instruction fetch-execute cycle of processors~\cite{BryantO03}.
 
 \paragraph{Relation to prior work} The work in this chapter is based
 on work in the following previously published papers.
@@ -10768,7 +10770,7 @@ on work in the following previously published papers.
     \item \bibentry{HillerstromLA20} \label{en:ch-am-HLA20}
 \end{enumerate}
 %
-The particular presentation in this chapter closely follows that of
+The particular presentation in this chapter follows closely that of
 item~\ref{en:ch-am-HLA20}.
 
 % In this chapter we develop an abstract machine that supports deep and
@@ -10864,52 +10866,52 @@ Figure~\ref{fig:abstract-machine-syntax}.
 %% \[
 %% \shk_0 = [(\nil, (\emptyset, \{\Return\;x \mapsto x\}))]
 %% \]
-
-\textbf{Transition function} $~~\stepsto~ \subseteq \MConfCat \times \MConfCat$
-\begin{displaymath}
-  \bl
+%\textbf{Initialisation} $~~\stepsto \subseteq \CompCat \times \MConfCat$
+%
+\[
 \ba{@{}l@{~}r@{~}c@{~}l@{\quad}l@{}}
-% \mlab{Init} & M &\stepsto& \cek{M \mid \emptyset \mid [(\nil, (\emptyset, \{\Return\;x \mapsto \Return\;x\}))]} \\[1ex]
+  \mlab{Init} & M &\stepsto& \cek{M \mid \emptyset \mid [(\nil, (\emptyset, \{\Return\;x \mapsto \Return\;x\}))]} \\
+%
+%\textbf{Finalisation} $~~\stepsto \subseteq \MConfCat \times \CompCat$
+%
+\mlab{Halt} & \cek{\Return\;V \mid \env \mid \nil} &\stepsto& \val{V}{\env}\\
+%
+%\textbf{Transition function} $~~\stepsto~ \subseteq \MConfCat \times \MConfCat$
 % App
 \mlab{AppClosure} & \cek{ V\;W \mid \env \mid \shk}
     &\stepsto& \cek{ M \mid \env'[x \mapsto \val{W}{\env}] \mid \shk},
-       &\text{if }\val{V}{\env} = (\env', \lambda x^A.M) \\
+       \text{if }\val{V}{\env} = (\env', \lambda x^A.M) \\
 
 \mlab{AppRec} & \cek{ V\;W \mid \env \mid \shk}
     &\stepsto& \cek{ M \mid \env'[g \mapsto (\env', \Rec\,g^{A \to C}\,x.M), x \mapsto \val{W}{\env}] \mid \shk},
-      &\text{if }\val{V}{\env} = (\env', \Rec\,g^{A \to C}\,x.M) \\
+      \text{if }\val{V}{\env} = (\env', \Rec\,g^{A \to C}\,x.M) \\
 
 % App - continuation
 \mlab{Resume} & \cek{ V\;W \mid \env \mid \shk}
     &\stepsto& \cek{ \Return \; W \mid \env \mid \shk' \concat \shk},
-       &\text{if }\val{V}{\env} = (\shk')^A \\
+       \text{if }\val{V}{\env} = (\shk')^A \\
 
 \mlab{Resume^\dagger} & \cek{ V\,W \mid \env \mid (\slk, \chi) \cons \shk}
   &\stepsto&
   \cek{\Return\; W \mid \env \mid \shk' \concat ((\slk' \concat \slk, \chi) \cons \shk)},
-     &\text{if } \val{V}{\env} = (\shk', \slk')^A \\
+     \text{if } \val{V}{\env} = (\shk', \slk')^A \\
 
 % TyApp
 \mlab{AppType} & \cek{ V\,T \mid \env \mid \shk}
       &\stepsto& \cek{ M[T/\alpha] \mid \env' \mid \shk},
-          &\text{if }\val{V}{\env} = (\env', \Lambda \alpha^K . \, M) \\[1ex]
-\ea \\
-\ba{@{}l@{}r@{~}c@{~}l@{\quad}l@{}}
+          \text{if }\val{V}{\env} = (\env', \Lambda \alpha^K . \, M) \\[1ex]
+
 \mlab{Split} & \cek{ \Let \; \Record{\ell = x;y} = V \; \In \; N \mid \env \mid \shk}
       &\stepsto& \cek{ N \mid \env[x \mapsto v, y \mapsto w] \mid \shk},
-                  & \text {if }\val{V}{\env} = \Record{\ell=v; w} \\
+                   \text {if }\val{V}{\env} = \Record{\ell=v; w} \\
 
 % Case
 \mlab{Case} & \cek{ \Case\; V\, \{ \ell~x \mapsto M; y \mapsto N\} \mid \env \mid \shk}
-         &\stepsto& \left\{\ba{@{}l@{}}
-                           \cek{ M \mid \env[x \mapsto v] \mid \shk}, \\
-                           \cek{ N \mid \env[y \mapsto \ell'\, v] \mid \shk}, \\
-                           \ea \right.
-                           &
-                           \ba{@{}l@{}}
-                             \text{if }\val{V}{\env} = \ell\, v \\
+         &\stepsto& \begin{cases}
+                           \cek{ M \mid \env[x \mapsto v] \mid \shk}, & \text{if }\val{V}{\env} = \ell\, v \\
+                           \cek{ N \mid \env[y \mapsto \ell'\, v] \mid \shk},
                              \text{if }\val{V}{\env} = \ell'\, v \text{ and } \ell \neq \ell' \\
-                           \ea \\[2ex]
+                    \end{cases}\\
 
 % Let - eval M
 \mlab{Let} & \cek{ \Let \; x \revto M \; \In \; N \mid \env \mid (\slk, \chi) \cons \shk}
@@ -10924,29 +10926,26 @@ Figure~\ref{fig:abstract-machine-syntax}.
           &\stepsto& \cek{ N \mid \env'[x \mapsto \val{V}{\env}] \mid (\slk, \chi) \cons \shk} \\
 
 % Return - handler
-\mlab{RetHandler} & \cek{ \Return \; V \mid \env \mid (\nil, (\env',H)) \cons \shk}
+\mlab{AppGenCont} & \cek{ \Return \; V \mid \env \mid (\nil, (\env',H)) \cons \shk}
            &\stepsto& \cek{ M \mid \env'[x \mapsto \val{V}{\env}] \mid \shk},
-            & \text{if } \hret = \{\Return\; x \mapsto M\} \\
-% \mlab{RetTop} & \cek{\Return\;V \mid \env \mid \nil} &\stepsto& \val{V}{\env} \\[1ex]
+            \text{if } \hret = \{\Return\; x \mapsto M\} \\
 
 % Deep
 \mlab{Do} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env', H)) \cons \shk) \circ \shk'}
-          &\stepsto& \multicolumn{2}{@{}l@{}}{\cek{M \mid \env'[x \mapsto \val{V}{\env},
-                                                                r \mapsto (\shk' \concat [(\slk, (\env', H))])^B] \mid \shk},} \\
-&&& \multicolumn{2}{@{}r@{}}{\text{if } \ell : A \to B \in E \text{ and } \hell = \{\ell\; x \; r \mapsto M\}} \\
+          &\stepsto& \cek{M \mid \env'[x \mapsto \val{V}{\env},
+                                       r \mapsto (\shk' \concat [(\slk, (\env', H))])^B] \mid \shk}, \\
+&& \multicolumn{2}{@{}r@{}}{\text{if } \ell : A \to B \in E \text{ and } \hell = \{\ell\; x \; r \mapsto M\}} \\
 
 % Shallow
 \mlab{Do^\dagger} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\gamma', H)^\dagger) \cons \shk) \circ \shk'} &\stepsto&
-  \multicolumn{2}{@{}l@{}}{\cek{M \mid \env'[x \mapsto \val{V}{\env}, r \mapsto (\shk', \slk)^B] \mid \shk},}\\
-&&&\multicolumn{2}{@{}r@{}}{\text{if } \ell : A \to B \in E \text{ and } \hell = \{\ell\; x \; r \mapsto M\}} \\
+  \cek{M \mid \env'[x \mapsto \val{V}{\env}, r \mapsto (\shk', \slk)^B] \mid \shk},\\
+&&\multicolumn{2}{@{}r@{}}{\text{if } \ell : A \to B \in E \text{ and } \hell = \{\ell\; x \; r \mapsto M\}} \\
 
 % Forward
 \mlab{Forward} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env', H)^\depth) \cons \shk) \circ \shk'}
-           &\stepsto& \cek{ (\Do \; \ell \; V)^E \mid \env \mid \shk \circ (\shk' \concat [(\slk, (\env', H)^\depth)])},
-                      & \text{if } \hell = \emptyset \\
-\ea \\
-\el
-\end{displaymath}
+           &\stepsto& \cek{ (\Do \; \ell \; V)^E \mid \env \mid \shk \circ (\shk' \concat [(\slk, (\env', H)^\depth)])}, \text{if } \hell = \emptyset \\
+\ea
+\]
 
 \textbf{Value interpretation} $~\val{-} : \ValCat \times \MEnvCat \to \MValCat$
 \begin{displaymath}
@@ -11573,7 +11572,7 @@ If $M \reducesto N$ then $\dstrans{M} \reducesto_{\Cong}^+
 \end{theorem}
 
 \begin{proof}
-  By induction on $\reducesto$ using
+  By case analysis on $\reducesto$ using
   Lemma~\ref{lem:dstrans-subst}. The interesting case is
   $\semlab{Op}$, which is where we apply a single $\beta$-reduction,
   renaming a variable, under the $\lambda$-abstraction representing
@@ -11903,24 +11902,105 @@ $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
 \end{theorem}
 %
 \begin{proof}
-  By induction on $\reducesto$ using Lemma~\ref{lem:sdtrans-subst} and
-  Lemma~\ref{lem:sdtrans-admin}. We show only the interesting case
+  By case analysis on $\reducesto$ using Lemma~\ref{lem:sdtrans-subst}
+  and Lemma~\ref{lem:sdtrans-admin}. We show only the interesting case
   $\semlab{Op^\dagger}$, which uses Lemma~\ref{lem:sdtrans-admin} to
   approximate the body of the resumption up to administrative
-  reduction.
-  \begin{description}
-    \item[Case]
-  $\ShallowHandle\;\EC[\Do\;\ell~V]\;\With\;H \reducesto
+  reduction.\smallskip
+
+  \noindent\textbf{Case} $\ShallowHandle\;\EC[\Do\;\ell~V]\;\With\;H \reducesto
   N_\ell[V/p,\lambda y.\EC[\Return\;y]/r]$ where
   $\ell \notin \BL(\EC)$ and
-  $H^\ell = \{\OpCase{\ell}{p}{r} \mapsto N_\ell\}$.
+  $H^\ell = \{\OpCase{\ell}{p}{r} \mapsto N_\ell\}$. \smallskip\\
   %
-  % \begin{derivation}
-    
-  % \end{derivation}
-  \dhil{Write the proof sketch}
-  \end{description}
+  Pick $M' =
+  \sdtrans{\ShallowHandle\;\EC[\Do\;\ell~V]\;\With\;H}$. Clearly
+  $M' \approxa \sdtrans{M}$. We compute $N'$ via reduction as follows.
+  \begin{derivation}
+    & \sdtrans{\ShallowHandle\;\EC[\Do\;\ell~V]\;\With\;H}\\
+    =& \reason{definition of $\sdtrans{-}$}\\
+    &\bl
+      \Let\;z \revto \Handle\;\sdtrans{\EC}[\Do\;\ell~\sdtrans{V}]\;\With\;\sdtrans{H}\;\In\\
+      \Let\;\Record{f;g} = z\;\In\;g\,\Unit
+     \el\\
+     \reducesto^+& \reason{\semlab{Op} using assumption $\ell \notin \BL(\sdtrans{\EC})$, \semlab{Let}, \semlab{Let}}\\
+   % &\bl
+   %    \Let\;z \revto
+   %     (\bl
+   %       \Let\;r \revto \lambda x.\Let\;z \revto r~x\;\In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit\;\In\\
+   %       \Return\;\Record{
+   %         \bl
+   %         \lambda\Unit.\Let\;x \revto \Do\;\ell~p\;\In\;r~x;\\
+   %         \lambda\Unit.\sdtrans{N_\ell}})[
+   %           \bl
+   %             \sdtrans{V}/p,\\
+   %             \lambda y.\Handle\;\sdtrans{\EC}[\Return\;y]\;\With\;\sdtrans{H}/r]
+   %           \el
+   %       \el
+   %       \el\\
+   %   \In\;\Let\;\Record{f;g} = z\;\In\;g\,\Unit
+   %   \el\\
+   % \reducesto^+& \reason{\semlab{Let}, \semlab{Let}}\\
+   &\bl
+   \Let\;\Record{f;g} = \Record{
+     \bl
+     \lambda\Unit.\Let\;x \revto \Do\;\ell~\sdtrans{V}\;\In\;r~x;\\
+     \lambda\Unit.\sdtrans{N_\ell}}[\lambda x.
+             \bl
+             \Let\;z \revto (\lambda y.\Handle\;\sdtrans{E}[\Return\;y]\;\With\;\sdtrans{H})~x\;\In\\
+             \Let\;\Record{f;g} = z\;\In\;f\,\Unit/r,\sdtrans{V}/p]\;\In\; g\,\Unit
+             \el
+     \el\\
+     \el\\
+  \reducesto^+ &\reason{\semlab{Split}, \semlab{App}}\\
+  &\sdtrans{N_\ell}[\lambda x.
+             \bl
+             \Let\;z \revto (\lambda y.\Handle\;\sdtrans{E}[\Return\;y]\;\With\;\sdtrans{H})~x\;\In\\
+             \Let\;\Record{f;g} = z\;\In\;f\,\Unit/r,\sdtrans{V}/p]
+             \el\\
+  =& \reason{by Lemma~\ref{lem:sdtrans-subst}}\\
+   &\sdtrans{N_\ell[\lambda x.
+             \bl
+             \Let\;z \revto (\lambda y.\Handle\;E[\Return\;y]\;\With\;H)~x\;\In\\
+             \Let\;\Record{f;g} = z\;\In\;f\,\Unit/r,V/p]}
+             \el
+  \end{derivation}
   %
+  We take the above computation term to be our $N'$. If
+  $r \notin \FV(N_\ell)$ then the two terms $N'$ and
+  $\sdtrans{N_\ell[V/p,\lambda y.\EC[\Return\;y]/r]}$ are the
+  identical, and thus by reflexivity of the $\approxa$-relation it
+  follows that
+  $N' \approxa \sdtrans{N_\ell[V/p,\lambda
+    y.\EC[\Return\;y]/r]}$. Otherwise $N'$ approximates
+  $N_\ell[V/p,\lambda y.\EC[\Return\;y]/r]$ at least up to a use of
+  $r$. We need to show that the approximation remains faithful during
+  any application of $r$. Specifically, we proceed to show that for
+  any value $W \in \ValCat$
+  %
+  \[
+    (\bl
+     \lambda x.\Let\;z \revto (\lambda y.\Handle\;\sdtrans{E}[\Return\;y]\;\With\;\sdtrans{H})~x\;\In\\
+    \Let\;\Record{f;g} = z \;\In\;f\,\Unit)~W \approxa (\lambda y.\sdtrans{\EC}[\Return\;y])~W.
+    \el
+  \]
+  %
+  The right hand side reduces to $\sdtrans{\EC}[\Return\;W]$. Two
+  applications of \semlab{App} on the left hand side yield the term
+  %
+  \[
+    \Let\;z \revto \Handle\;\sdtrans{E}[\Return\;W]\;\With\;\sdtrans{H}\;\In\;\Let\;\Record{f;g} = z \;\In\;f\,\Unit.
+  \]
+  %
+  Define
+  %
+  $\EC' \defas \Let\;z \revto \Handle\; [\,]\;\With\;\sdtrans{H}\;\In\;\Let\;\Record{f;g} = z \;\In\;f\,\Unit$
+  %
+  such that $\EC'$ is an administrative evaluation context by
+  Lemma~\ref{lem:sdtrans-admin}. Then it follows by
+  Defintion~\ref{def:approx-admin} that
+  $\EC'[\sdtrans{\EC}[\Return\;W]] \approxa
+  \sdtrans{\EC}[\Return\;W]$.
 \end{proof}
 
 \section{Parameterised handlers as ordinary deep handlers}
@@ -11934,10 +12014,10 @@ show formally that parameterised handlers are special instances of
 ordinary deep handlers.
 %
 We define a local transformation $\PD{-}$ which translates
-parameterised handlers into ordinary deep handlers. As with the two
-previous translations it is formally defined on terms, types, type
-environments, and substitutions. We omit the homomorphic cases and
-show only the interesting cases.
+parameterised handlers into ordinary deep handlers. Formally, the
+translation is defined on terms, types, environments, and
+substitutions. We omit the homomorphic cases and show only the
+interesting cases.
 %
 \[
   \bl
@@ -12029,9 +12109,10 @@ If $\Delta; \Gamma \vdash M : C$ then $\PD{\Delta};
 %
 This translation of parameterised handlers simulates the native
 semantics. As with the simulation of deep handlers via shallow
-handlers in Section~\ref{sec:deep-as-shallow}, this simulation is only
-up to congruence due to the need for an application of a pure function
-to a variable to be reduced.
+handlers in Section~\ref{sec:deep-as-shallow}, this simulation is not
+quite on the nose as the image simulates the source only up to
+congruence due to the need for an application of a pure function to a
+variable to be reduced.
 %
 \begin{theorem}[Simulation up to congruence]
   \label{thm:param-simulation}
@@ -12039,9 +12120,10 @@ to a variable to be reduced.
 \end{theorem}
 %
 \begin{proof}
-  By induction on $M$. The interesting case is \semlab{Op^\param},
-  which is where we need to reduce under the $\lambda$-abstraction
-  representing the resumption.
+  By case analysis on the relation $\reducesto$ using
+  Lemma~\ref{lem:pd-subst}. The interesting case is
+  \semlab{Op^\param}, which is where we need to reduce under the
+  $\lambda$-abstraction representing the parameterised resumption.
   % \begin{description}
   % \item[Case]
   %   $M = \ParamHandle\; \Return\;V\;\With\;(q.~H)(W) \reducesto
@@ -12099,7 +12181,9 @@ to a variable to be reduced.
 
 Precisely how effect handlers fit into the landscape of programming
 language features is largely unexplored in the literature. The most
-relevant work in this area is due to \citet{ForsterKLP17}, who
+relevant related work in this area is due to my collaborators and
+myself on the inherited efficiency of effect handlers
+(c.f. Chapter~\ref{ch:handlers-efficiency}) and \citet{ForsterKLP17}, who
 investigate various relationships between effect handlers, delimited
 control in the form of shift/reset, and monadic reflection using the
 notions of typability-preserving macro-expressiveness and untyped
