@@ -10859,59 +10859,73 @@ Figure~\ref{fig:abstract-machine-syntax}.
 % notion of continuation to accommodate handlers.
 %
 %
-\begin{figure}[p]
-\dhil{Fix figure formatting}
-\begin{minipage}{0.90\textheight}%
-%% Identity continuation
-%% \[
-%% \shk_0 = [(\nil, (\emptyset, \{\Return\;x \mapsto x\}))]
-%% \]
-%\textbf{Initialisation} $~~\stepsto \subseteq \CompCat \times \MConfCat$
-%
+\begin{figure}
 \[
-\ba{@{}l@{~}r@{~}c@{~}l@{\quad}l@{}}
-  \mlab{Init} & M &\stepsto& \cek{M \mid \emptyset \mid [(\nil, (\emptyset, \{\Return\;x \mapsto \Return\;x\}))]} \\
+\bl
+\multicolumn{1}{c}{\val{-} : \ValCat \times \MEnvCat \to \MValCat}\\[1ex]
+\ba[t]{@{}r@{~}c@{~}l@{}}
+\val{x}{\env}                    &\defas& \env(x) \\
+\val{\lambda x^A.M}{\env}        &\defas& (\env, \lambda x^A.M) \\
+\val{\Rec\,g^{A \to C}\,x.M}{\env} &\defas& (\env, \Rec\,g^{A \to C}\,x.M) \\
+\val{\Lambda \alpha^K.M}{\env}   &\defas& (\env, \Lambda \alpha^K.M) \\
+\ea
+\qquad
+\ba[t]{@{}r@{~}c@{~}l@{}}
+\val{\Record{}}{\env}            &\defas& \Record{} \\
+\val{\Record{\ell = V; W}}{\env} &\defas& \Record{\ell = \val{V}{\env}; \val{W}{\env}} \\
+\val{(\ell\, V)^R}{\env}         &\defas& (\ell\, \val{V}{\env})^R \\
+\ea
+\el
+\]
+  \caption{Value interpretation definition.}
+  \label{fig:abstract-machine-val-interp}
+\end{figure}
 %
-%\textbf{Finalisation} $~~\stepsto \subseteq \MConfCat \times \CompCat$
-%
-\mlab{Halt} & \cek{\Return\;V \mid \env \mid \nil} &\stepsto& \val{V}{\env}\\
-%
-%\textbf{Transition function} $~~\stepsto~ \subseteq \MConfCat \times \MConfCat$
+\begin{figure}[p]
+\rotatebox{90}{
+\begin{minipage}{0.99\textheight}%
+\[
+\bl
+\multicolumn{1}{c}{\stepsto \subseteq \MConfCat \times \MConfCat}\\[1ex]
+\ba{@{}l@{\quad}r@{~}c@{~}l@{\quad}l@{}}
+% \mlab{Init} & \multicolumn{3}{@{}c@{}}{M \stepsto \cek{M \mid \emptyset \mid [(\nil, (\emptyset, \{\Return\;x \mapsto \Return\;x\}))]}} \\[1ex]
 % App
-\mlab{AppClosure} & \cek{ V\;W \mid \env \mid \shk}
+\mlab{App} & \cek{ V\;W \mid \env \mid \shk}
     &\stepsto& \cek{ M \mid \env'[x \mapsto \val{W}{\env}] \mid \shk},
-       \text{if }\val{V}{\env} = (\env', \lambda x^A.M) \\
+       &\text{if }\val{V}{\env} = (\env', \lambda x^A.M) \\
 
 \mlab{AppRec} & \cek{ V\;W \mid \env \mid \shk}
     &\stepsto& \cek{ M \mid \env'[g \mapsto (\env', \Rec\,g^{A \to C}\,x.M), x \mapsto \val{W}{\env}] \mid \shk},
-      \text{if }\val{V}{\env} = (\env', \Rec\,g^{A \to C}\,x.M) \\
+      &\text{if }\val{V}{\env} = (\env', \Rec\,g^{A \to C}\,x.M) \\
 
-% App - continuation
+% Deep resumption application
 \mlab{Resume} & \cek{ V\;W \mid \env \mid \shk}
-    &\stepsto& \cek{ \Return \; W \mid \env \mid \shk' \concat \shk},
-       \text{if }\val{V}{\env} = (\shk')^A \\
+           &\stepsto& \cek{ \Return \; W \mid \env \mid \shk' \concat \shk},
+              &\text{if }\val{V}{\env} = (\shk')^A \\
 
+% Shallow resumption application
 \mlab{Resume^\dagger} & \cek{ V\,W \mid \env \mid (\slk, \chi) \cons \shk}
   &\stepsto&
   \cek{\Return\; W \mid \env \mid \shk' \concat ((\slk' \concat \slk, \chi) \cons \shk)},
-     \text{if } \val{V}{\env} = (\shk', \slk')^A \\
+     &\text{if } \val{V}{\env} = (\shk', \slk')^A \\
 
 % TyApp
 \mlab{AppType} & \cek{ V\,T \mid \env \mid \shk}
       &\stepsto& \cek{ M[T/\alpha] \mid \env' \mid \shk},
-          \text{if }\val{V}{\env} = (\env', \Lambda \alpha^K . \, M) \\[1ex]
-
+          &\text{if }\val{V}{\env} = (\env', \Lambda \alpha^K . \, M) \\[2ex]
+%
 \mlab{Split} & \cek{ \Let \; \Record{\ell = x;y} = V \; \In \; N \mid \env \mid \shk}
       &\stepsto& \cek{ N \mid \env[x \mapsto v, y \mapsto w] \mid \shk},
-                   \text {if }\val{V}{\env} = \Record{\ell=v; w} \\
+                  &\text{if }\val{V}{\env} = \Record{\ell=v; w} \\
 
 % Case
 \mlab{Case} & \cek{ \Case\; V\, \{ \ell~x \mapsto M; y \mapsto N\} \mid \env \mid \shk}
-         &\stepsto& \begin{cases}
-                           \cek{ M \mid \env[x \mapsto v] \mid \shk}, & \text{if }\val{V}{\env} = \ell\, v \\
-                           \cek{ N \mid \env[y \mapsto \ell'\, v] \mid \shk},
-                             \text{if }\val{V}{\env} = \ell'\, v \text{ and } \ell \neq \ell' \\
-                    \end{cases}\\
+                        &\stepsto& \begin{cases}
+                                  \cek{ M \mid \env[x \mapsto v] \mid \shk}, &
+                                       \text{ if }\val{V}{\env} = \ell\, v\\
+                                  \cek{ N \mid \env[y \mapsto \ell'\, v] \mid \shk}, &
+                                  \text{ if }\val{V}{\env} = \ell'\, v \text{ and } \ell \neq \ell'
+                                  \end{cases}\\[2ex]
 
 % Let - eval M
 \mlab{Let} & \cek{ \Let \; x \revto M \; \In \; N \mid \env \mid (\slk, \chi) \cons \shk}
@@ -10922,56 +10936,58 @@ Figure~\ref{fig:abstract-machine-syntax}.
        &\stepsto& \cek{ M \mid \env \mid (\nil, (\env, H)^\depth) \cons \shk} \\[1ex]
 
 % Return - let binding
-\mlab{AppPureCont} &\cek{ \Return \; V \mid \env \mid ((\env',x,N) \cons \slk, \chi) \cons \shk}
+\mlab{PureCont} &\cek{ \Return \; V \mid \env \mid ((\env',x,N) \cons \slk, \chi) \cons \shk}
           &\stepsto& \cek{ N \mid \env'[x \mapsto \val{V}{\env}] \mid (\slk, \chi) \cons \shk} \\
 
 % Return - handler
-\mlab{AppGenCont} & \cek{ \Return \; V \mid \env \mid (\nil, (\env',H)) \cons \shk}
+\mlab{GenCont} & \cek{ \Return \; V \mid \env \mid (\nil, (\env',H)) \cons \shk}
            &\stepsto& \cek{ M \mid \env'[x \mapsto \val{V}{\env}] \mid \shk},
-            \text{if } \hret = \{\Return\; x \mapsto M\} \\
+            &\text{if } \hret = \{\Return\; x \mapsto M\} \\[2ex]
+% \mlab{Halt} & \cek{\Return\;V \mid \env \mid \nil} &\stepsto& \val{V}{\env} \\[1ex]
 
 % Deep
 \mlab{Do} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env', H)) \cons \shk) \circ \shk'}
-          &\stepsto& \cek{M \mid \env'[x \mapsto \val{V}{\env},
-                                       r \mapsto (\shk' \concat [(\slk, (\env', H))])^B] \mid \shk}, \\
-&& \multicolumn{2}{@{}r@{}}{\text{if } \ell : A \to B \in E \text{ and } \hell = \{\ell\; x \; r \mapsto M\}} \\
+               &\stepsto& \cek{M \mid \env'[p \mapsto \val{V}{\env},
+                                            r \mapsto (\shk' \concat [(\slk, (\env', H))])^B] \mid \shk},\\
+&&&\quad\text{if } \ell : A \to B \in E \text{ and } \hell = \{\OpCase{\ell}{p}{r} \mapsto M\} \\
 
 % Shallow
-\mlab{Do^\dagger} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\gamma', H)^\dagger) \cons \shk) \circ \shk'} &\stepsto&
-  \cek{M \mid \env'[x \mapsto \val{V}{\env}, r \mapsto (\shk', \slk)^B] \mid \shk},\\
-&&\multicolumn{2}{@{}r@{}}{\text{if } \ell : A \to B \in E \text{ and } \hell = \{\ell\; x \; r \mapsto M\}} \\
+\mlab{Do^\dagger} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\gamma', H)^\dagger) \cons \shk) \circ \shk'} &\stepsto& \cek{M \mid \env'[p \mapsto \val{V}{\env},
+                                             r \mapsto (\shk', \slk)^B] \mid \shk},\\
+         &&&\quad\text{if } \ell : A \to B \in E \text{ and } \hell = \{\OpCase{\ell}{p}{r} \mapsto M\} \\
 
 % Forward
 \mlab{Forward} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env', H)^\depth) \cons \shk) \circ \shk'}
-           &\stepsto& \cek{ (\Do \; \ell \; V)^E \mid \env \mid \shk \circ (\shk' \concat [(\slk, (\env', H)^\depth)])}, \text{if } \hell = \emptyset \\
+           &\stepsto& \cek{ (\Do \; \ell \; V)^E \mid \env \mid \shk \circ (\shk' \concat [(\slk, (\env', H)^\depth)])},
+           &\text{if } \hell = \emptyset
 \ea
+\el
 \]
-
-\textbf{Value interpretation} $~\val{-} : \ValCat \times \MEnvCat \to \MValCat$
-\begin{displaymath}
-\ba{@{}r@{~}c@{~}l@{}}
-\val{x}{\env}                    &=& \env(x) \\
-\val{\Record{}}{\env}            &=& \Record{} \\
-\ea
-\qquad
-\ba{@{}r@{~}c@{~}l@{}}
-\val{\lambda x^A.M}{\env}        &=& (\env, \lambda x^A.M) \\
-\val{\Record{\ell = V; W}}{\env} &=& \Record{\ell = \val{V}{\env}; \val{W}{\env}} \\
-\ea
-\qquad
-\ba{@{}r@{~}c@{~}l@{}}
-\val{\Lambda \alpha^K.M}{\env}   &=& (\env, \Lambda \alpha^K.M) \\
-\val{(\ell\, V)^R}{\env}         &=& (\ell\; \val{V}{\env})^R \\
-\ea
-\qquad
-\val{\Rec\,g^{A \to C}\,x.M}{\env} = (\env, \Rec\,g^{A \to C}\,x.M) \\
-\end{displaymath}
-
-\caption{Abstract machine semantics.}
+\caption{Abstract machine transitions.}
 \label{fig:abstract-machine-semantics}
 \end{minipage}
+}
 \end{figure}
 %
+\begin{figure}
+\[
+\bl
+\ba{@{~}l@{\quad}l@{~}l}
+   \multicolumn{2}{l}{\textbf{Identity continuation}}\\
+   \multicolumn{3}{l}{\quad\shk_0 \defas [(\nil, (\emptyset, \{\Return\;x \mapsto x\}))]}
+\medskip\\
+%
+  \textbf{Initialisation} & \stepsto \subseteq \CompCat \times \MConfCat\\
+  \quad\mlab{Init} & \multicolumn{2}{l}{\quad M \stepsto \cek{M \mid \emptyset \mid \shk_0}}
+\medskip\\
+%
+  \textbf{Finalisation} & \stepsto \subseteq \MConfCat \times \ValCat\\
+  \quad\mlab{Halt} & \multicolumn{2}{l}{\quad\cek{\Return\;V \mid \env \mid \nil} \stepsto \val{V}\env}
+\ea
+\el
+\]
+\caption{Machine initialisation and finalisation.}
+\end{figure}
 %
 A configuration $\conf = \cek{M \mid \env \mid \shk \circ \shk'}$
 of our abstract machine is a quadruple of a computation term ($M$), an
