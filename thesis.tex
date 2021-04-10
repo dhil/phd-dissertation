@@ -11887,7 +11887,7 @@ For all shallow handlers $H$, the following context is administrative
              &\Let\; z \revto
                \Handle\; \EC'[\Do\;\ell\;V]\;\With\;\sdtrans{H}\;\In\;
                \Let\;\Record{f;\_} = z\;\In\;f\,\Unit\\
-             \reducesto& \reason{\semlab{Op} using assumption $\ell \notin \EC'$}\\
+             \reducesto& \reason{\semlab{Op} using assumption $\ell \notin \BL(\EC')$}\\
              &\bl \Let\; z \revto
              \bl
                \Let\;r\revto
@@ -11963,7 +11963,7 @@ $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
      \lambda\Unit.\Let\;x \revto \Do\;\ell~\sdtrans{V}\;\In\;r~x;\\
      \lambda\Unit.\sdtrans{N_\ell}}[\lambda x.
              \bl
-             \Let\;z \revto (\lambda y.\Handle\;\sdtrans{E}[\Return\;y]\;\With\;\sdtrans{H})~x\;\In\\
+             \Let\;z \revto (\lambda y.\Handle\;\sdtrans{\EC}[\Return\;y]\;\With\;\sdtrans{H})~x\;\In\\
              \Let\;\Record{f;g} = z\;\In\;f\,\Unit/r,\sdtrans{V}/p]\;\In\; g\,\Unit
              \el
      \el\\
@@ -11971,13 +11971,13 @@ $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
   \reducesto^+ &\reason{\semlab{Split}, \semlab{App}}\\
   &\sdtrans{N_\ell}[\lambda x.
              \bl
-             \Let\;z \revto (\lambda y.\Handle\;\sdtrans{E}[\Return\;y]\;\With\;\sdtrans{H})~x\;\In\\
+             \Let\;z \revto (\lambda y.\Handle\;\sdtrans{\EC}[\Return\;y]\;\With\;\sdtrans{H})~x\;\In\\
              \Let\;\Record{f;g} = z\;\In\;f\,\Unit/r,\sdtrans{V}/p]
              \el\\
   =& \reason{by Lemma~\ref{lem:sdtrans-subst}}\\
    &\sdtrans{N_\ell[\lambda x.
              \bl
-             \Let\;z \revto (\lambda y.\Handle\;E[\Return\;y]\;\With\;H)~x\;\In\\
+             \Let\;z \revto (\lambda y.\Handle\;\EC[\Return\;y]\;\With\;H)~x\;\In\\
              \Let\;\Record{f;g} = z\;\In\;f\,\Unit/r,V/p]}
              \el
   \end{derivation}
@@ -11996,7 +11996,7 @@ $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
   %
   \[
     (\bl
-     \lambda x.\Let\;z \revto (\lambda y.\Handle\;\sdtrans{E}[\Return\;y]\;\With\;\sdtrans{H})~x\;\In\\
+     \lambda x.\Let\;z \revto (\lambda y.\Handle\;\sdtrans{\EC}[\Return\;y]\;\With\;\sdtrans{H})~x\;\In\\
     \Let\;\Record{f;g} = z \;\In\;f\,\Unit)~W \approxa (\lambda y.\sdtrans{\EC}[\Return\;y])~W.
     \el
   \]
@@ -12005,7 +12005,7 @@ $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
   applications of \semlab{App} on the left hand side yield the term
   %
   \[
-    \Let\;z \revto \Handle\;\sdtrans{E}[\Return\;W]\;\With\;\sdtrans{H}\;\In\;\Let\;\Record{f;g} = z \;\In\;f\,\Unit.
+    \Let\;z \revto \Handle\;\sdtrans{\EC}[\Return\;W]\;\With\;\sdtrans{H}\;\In\;\Let\;\Record{f;g} = z \;\In\;f\,\Unit.
   \]
   %
   Define
