@@ -10751,15 +10751,62 @@ then in the image $\cps{M}\,k \reducesto^\ast k\,\cps{V}$.
 \label{ch:abstract-machine}
 %\dhil{The text is this chapter needs to be reworked}
 
-In this chapter we will demonstrate an application of generalised
+Abstract machine semantics are an operational semantics that makes
+program control more apparent than context-based reduction
+semantics. In a some sense abstract machine semantics are a lower
+level semantics than reduction semantics as it provides a model of
+computation based on an \emph{abstract machine}, which captures some
+core aspects of how an actual computer might go about executing a
+program.
+%
+Abstract machines come in different style and flavours, though, a
+common trait is that they are defined in terms of
+\emph{configurations}. A configuration includes the essentials to
+describe the machine state as it were, i.e. some abstract notion of
+call stack, memory, program counter, etc.
+
+In this chapter I will demonstrate an application of generalised
 continuations (Section~\ref{sec:generalised-continuations}) to
-\emph{abstract machines}. An abstract machine is a model of
-computation that makes program control more apparent than standard
-reduction semantics. Abstract machines come in different styles and
-flavours, though, a common trait is that they closely model how an
-actual computer might go about executing a program, meaning they
-embody some high-level abstract models of main memory and the
-instruction fetch-execute cycle of processors~\cite{BryantO03}.
+abstract machines that emphasises the usefulness of generalised
+continuations to implement various kinds of effect handlers. The key
+takeaway from this application is that it is possible to plug the
+generalised continuation structure into a standard framework to
+achieve a simultaneous implementation of deep, shallow, and
+parameterised effect handlers.
+%
+Specifically I will change the continuation structure of a standard
+\citeauthor{FelleisenF86} style \emph{CEK machine} to fit generalised
+continuations.
+
+The CEK machine (CEK is an acronym for Control, Environment,
+Kontinuation~\cite{FelleisenF86}) is an abstract machine with an
+explicit environment, which models the idea that processor registers
+name values as an environment associates names with values. Thus by
+using the CEK formalism we depart from the substitution-based model of
+computation used in the preceding chapters and move towards a more
+`realistic' model of computation (realistic in the sense of emulating
+how a computer executes a program).
+%
+Formally, the CEK machine comprises three components: 1) the control
+component, which focuses the term currently being evaluated; 2) the
+environment component, which maps free variables to machine values,
+and 3) the continuation component, which describes what to evaluate
+next (some literature uses the term `control string' in lieu of
+continuation to disambiguate it from programmatic continuations in the
+source language).
+%
+Intuitively, the continuation component captures the idea of call
+stack from actual programming language implementations.
+
+% In this chapter we will demonstrate an application of generalised
+% continuations (Section~\ref{sec:generalised-continuations}) to
+% \emph{abstract machines}. An abstract machine is a model of
+% computation that makes program control more apparent than standard
+% reduction semantics. Abstract machines come in different styles and
+% flavours, though, a common trait is that they closely model how an
+% actual computer might go about executing a program, meaning they
+% embody some high-level abstract models of main memory and the
+% instruction fetch-execute cycle of processors~\cite{BryantO03}.
 
 \paragraph{Relation to prior work} The work in this chapter is based
 on work in the following previously published papers.
@@ -10770,60 +10817,57 @@ on work in the following previously published papers.
     \item \bibentry{HillerstromLA20} \label{en:ch-am-HLA20}
 \end{enumerate}
 %
-The particular presentation in this chapter follows closely that of
+The particular presentation in this chapter is adapted from
 item~\ref{en:ch-am-HLA20}.
-
-% In this chapter we develop an abstract machine that supports deep and
-% shallow handlers \emph{simultaneously}, using the generalised
-% continuation structure we identified in the previous section for the
-% CPS translation. We also build upon prior work~\citep{HillerstromL16}
-% that developed an abstract machine for deep handlers by generalising
-% the continuation structure of a CEK machine (Control, Environment,
-% Kontinuation)~\citep{FelleisenF86}.
-%
-% \citet{HillerstromL16} sketched an adaptation for shallow handlers. It
-% turns out that this adaptation had a subtle flaw, similar to the flaw
-% in the sketched implementation of a CPS translation for shallow
-% handlers given by \citet{HillerstromLAS17}. We fix the flaw here with
-% a full development of shallow handlers along with a statement of the
-% correctness property.
 
 \section{Machine configurations}
 \label{sec:machine-configurations}
-The abstract machine syntax is given in
+The abstract machine is formally defined in terms of configurations. A
+configuration $\cek{M \mid \env \mid \shk \circ \shk'}$ is a triple
+consisting of a computation term $M \in \CompCat$, an environment
+$\env \in \MEnvCat$, and a two generalised continuations
+$\kappa,\kappa' \in \MGContCat$.
+%
+The complete abstract machine syntax is given in
 Figure~\ref{fig:abstract-machine-syntax}.
-% A machine continuation is a list of handler frames. A handler frame is
-% a pair of a \emph{handler closure} (handler definition) and a
-% \emph{pure continuation} (a sequence of let bindings), analogous to
-% the structured frames used in the CPS translation in
-% \Sec\ref{sec:higher-order-uncurried-cps}.
-% %
-% Handling an operation amounts to searching through the continuation
-% for a matching handler.
-% %
-% The resumption is constructed during the search by reifying each
-% handler frame. As in the CPS translation, the resumption is assembled
-% in one of two ways depending on whether the matching handler is deep
-% or shallow.
-% %
-% For a deep handler, the current handler closure is included, and a deep
-% resumption is a reified continuation.
-% %
-% An invocation of a deep resumption amounts to concatenating it with
-% the current machine continuation.
-% %
-% For a shallow handler, the current handler closure must be discarded
-% leaving behind a dangling pure continuation, and a shallow resumption
-% is a pair of this pure continuation and the remaining reified
-% continuation.
-% %
-% (By contrast, the prior flawed adaptation prematurely precomposed the
-% pure continuation with the outer handler in the current resumption.)
-% %
-% An invocation of a shallow resumption again amounts to concatenating
-% it with the current machine continuation, but taking care to
-% concatenate the dangling pure continuation with that of the next
-% frame.
+%
+The control and environment components are completely standard as they
+are similar to the components in \citeauthor{FelleisenF86}'s original
+CEK machine modulo the syntax of the source language.
+%
+The structure of the continuation component is new. This component
+comprises two generalised continuations, where the latter continuation
+is an entirely administrative object that only manifests during effect
+forwarding.  The continuation component The latter continuation is
+always the identity, except when forwarding an operation, in which
+case it is used to keep track of the extent to which the operation has
+been forwarded.
+%
+We write $\cek{M \mid \env \mid \shk}$ as syntactic sugar for $\cek{M
+  \mid \env \mid \shk \circ []}$ where $[]$ is the identity
+continuation.
+%
+
+Values consist of function closures, type function closures, records,
+variants, and captured continuations.
+%
+A continuation $\shk$ is a stack of frames $[\shf_1, \dots,
+\shf_n]$. We annotate captured continuations with input types in order
+to make the results of Section~\ref{subsec:machine-correctness} easier
+to state. Each frame $\shf = (\slk, \chi)$ represents pure
+continuation $\slk$, corresponding to a sequence of let bindings,
+inside handler closure $\chi$.
+%
+A pure continuation is a stack of pure frames. A pure frame $(\env, x,
+N)$ closes a let-binding $\Let \;x=[~] \;\In\;N$ over environment
+$\env$. A handler closure $(\env, H)$ closes a handler definition $H$
+over environment $\env$.
+%
+We write $\nil$ for an empty stack, $x \cons s$ for the result of
+pushing $x$ on top of stack $s$, and $s \concat s'$ for the
+concatenation of stack $s$ on top of $s'$. We use pattern matching to
+deconstruct stacks.
+%
 %
 \begin{figure}[t]
 \flushleft
@@ -10832,32 +10876,16 @@ Figure~\ref{fig:abstract-machine-syntax}.
 \slab{Value\textrm{ }environments}       &\env \in \MEnvCat  &::= & \emptyset \mid \env[x \mapsto v] \\
 \slab{Values}                   &v, w \in \MValCat  &::= & (\env, \lambda x^A . M) \mid (\env, \Lambda \alpha^K . M) \\
                                 &       &\mid& \Record{} \mid \Record{\ell = v; w} \mid (\ell\, v)^R \mid \shk^A \mid (\shk, \slk)^A \medskip\\
-% \end{syntax}
-% \begin{displaymath}
-% \ba{@{}l@{~~}r@{~}c@{~}l@{\quad}l@{~~}r@{~}c@{~}l@{}}
-% \slab{Continuations}            &\shk   &::= & \nil \mid \shf \cons \shk & \slab{Continuation frames}      &\shf   &::= & (\slk, \chi) \\
-%                                 &       &    &                           & \slab{Handler closures}         &\chi   &::= & (\env, H)^\depth \smallskip \\
-% \slab{Pure continuations}       &\slk   &::= & \nil \mid \slf \cons \slk & \slab{Pure continuation frames} &\slf   &::= & (\env, x, N) \\
-% \ea
-% \end{displaymath}
-% \begin{syntax}
 \slab{Continuations}            &\shk \in \MGContCat &::= & \nil \mid \shf \cons \shk \\
 \slab{Continuation\textrm{ }frames}      &\shf \in \MGFrameCat  &::= & (\slk, \chi) \\
 \slab{Pure\textrm{ }continuations}       &\slk \in \MPContCat  &::= & \nil \mid \slf \cons \slk \\
 \slab{Pure\textrm{ }continuation\textrm{ }frames} &\slf \in \MPFrameCat &::= & (\env, x, N) \\
-\slab{Handler\textrm{ }closures}         &\chi \in \MHCloCat  &::= & (\env, H) \mid (\env, H)^\dagger \medskip \\
+\slab{Handler\textrm{ }closures}         &\chi \in \MHCloCat  &::= & (\env, H) \mid (\env, H)^\dagger \mid (\env, (q.\,H)) \medskip \\
 \end{syntax}
 
 \caption{Abstract machine syntax.}
 \label{fig:abstract-machine-syntax}
 \end{figure}
-
-%% A CEK machine~\citep{FelleisenF86} operates on configurations, which
-%% are (Control, Environment, Continuation) triples.
-%% %
-% Our machine, like Hillerström and Lindley's, generalises the usual
-% notion of continuation to accommodate handlers.
-%
 %
 \begin{figure}
 \[
@@ -10881,15 +10909,20 @@ Figure~\ref{fig:abstract-machine-syntax}.
   \label{fig:abstract-machine-val-interp}
 \end{figure}
 %
+
+\section{Machine transitions}
+\label{sec:machine-transitions}
+%
 \begin{figure}[p]
 \rotatebox{90}{
 \begin{minipage}{0.99\textheight}%
 \[
 \bl
-\multicolumn{1}{c}{\stepsto \subseteq \MConfCat \times \MConfCat}\\[1ex]
+%\multicolumn{1}{c}{\stepsto \subseteq \MConfCat \times \MConfCat}\\[1ex]
 \ba{@{}l@{\quad}r@{~}c@{~}l@{\quad}l@{}}
 % \mlab{Init} & \multicolumn{3}{@{}c@{}}{M \stepsto \cek{M \mid \emptyset \mid [(\nil, (\emptyset, \{\Return\;x \mapsto \Return\;x\}))]}} \\[1ex]
 % App
+&&\multicolumn{2}{@{}l}{\stepsto \subseteq \MConfCat \times \MConfCat}\\
 \mlab{App} & \cek{ V\;W \mid \env \mid \shk}
     &\stepsto& \cek{ M \mid \env'[x \mapsto \val{W}{\env}] \mid \shk},
        &\text{if }\val{V}{\env} = (\env', \lambda x^A.M) \\
@@ -10907,12 +10940,17 @@ Figure~\ref{fig:abstract-machine-syntax}.
 \mlab{Resume^\dagger} & \cek{ V\,W \mid \env \mid (\slk, \chi) \cons \shk}
   &\stepsto&
   \cek{\Return\; W \mid \env \mid \shk' \concat ((\slk' \concat \slk, \chi) \cons \shk)},
-     &\text{if } \val{V}{\env} = (\shk', \slk')^A \\
+       &\text{if } \val{V}{\env} = (\shk', \slk')^A \\
+
+% Deep resumption application
+\mlab{Resume^\param} & \cek{ V\,\Record{W;W'} \mid \env \mid \shk}
+           &\stepsto& \cek{ \Return \; W \mid \env \mid (\sigma,(\env'[q \mapsto \val{W'}\env],q.\,H)) \cons \shk' \concat \shk},
+              &\text{if }\val{V}{\env} = (\sigma,(\env',q.\,H)) \cons \shk')^A \\
 
 % TyApp
 \mlab{AppType} & \cek{ V\,T \mid \env \mid \shk}
       &\stepsto& \cek{ M[T/\alpha] \mid \env' \mid \shk},
-          &\text{if }\val{V}{\env} = (\env', \Lambda \alpha^K . \, M) \\[2ex]
+          &\text{if }\val{V}{\env} = (\env', \Lambda \alpha^K . \, M) \\
 %
 \mlab{Split} & \cek{ \Let \; \Record{\ell = x;y} = V \; \In \; N \mid \env \mid \shk}
       &\stepsto& \cek{ N \mid \env[x \mapsto v, y \mapsto w] \mid \shk},
@@ -10925,41 +10963,43 @@ Figure~\ref{fig:abstract-machine-syntax}.
                                        \text{ if }\val{V}{\env} = \ell\, v\\
                                   \cek{ N \mid \env[y \mapsto \ell'\, v] \mid \shk}, &
                                   \text{ if }\val{V}{\env} = \ell'\, v \text{ and } \ell \neq \ell'
-                                  \end{cases}\\[2ex]
+                                  \end{cases}\\
 
 % Let - eval M
 \mlab{Let} & \cek{ \Let \; x \revto M \; \In \; N \mid \env \mid (\slk, \chi) \cons \shk}
     &\stepsto& \cek{ M \mid \env \mid ((\env,x,N) \cons \slk, \chi) \cons \shk} \\
 
 % Handle
-\mlab{Handle} & \cek{ \Handle^\depth \, M \; \With \; H \mid \env \mid \shk}
-       &\stepsto& \cek{ M \mid \env \mid (\nil, (\env, H)^\depth) \cons \shk} \\[1ex]
+\mlab{Handle^\depth} & \cek{ \Handle^\depth \, M \; \With \; H^\depth \mid \env \mid \shk}
+      &\stepsto& \cek{ M \mid \env \mid (\nil, (\env, H)^\depth) \cons \shk} \\
+
+\mlab{Handle^\param} & \cek{ \Handle^\param \, M \; \With \; (q.\,H)(W) \mid \env \mid \shk}
+       &\stepsto& \cek{ M \mid \env \mid (\nil, (\env[q \mapsto \val{W}\env], H)) \cons \shk} \\
 
 % Return - let binding
-\mlab{PureCont} &\cek{ \Return \; V \mid \env \mid ((\env',x,N) \cons \slk, \chi) \cons \shk}
-          &\stepsto& \cek{ N \mid \env'[x \mapsto \val{V}{\env}] \mid (\slk, \chi) \cons \shk} \\
+\mlab{PureCont} &\cek{ \Return \; V \mid \env \mid ((\env_H,x,N) \cons \slk, \chi) \cons \shk}
+          &\stepsto& \cek{ N \mid \env_H[x \mapsto \val{V}{\env}] \mid (\slk, \chi) \cons \shk} \\
 
 % Return - handler
-\mlab{GenCont} & \cek{ \Return \; V \mid \env \mid (\nil, (\env',H)) \cons \shk}
-           &\stepsto& \cek{ M \mid \env'[x \mapsto \val{V}{\env}] \mid \shk},
-            &\text{if } \hret = \{\Return\; x \mapsto M\} \\[2ex]
-% \mlab{Halt} & \cek{\Return\;V \mid \env \mid \nil} &\stepsto& \val{V}{\env} \\[1ex]
+\mlab{GenCont} & \cek{ \Return \; V \mid \env \mid (\nil, (\env_H,H^\delta)) \cons \shk}
+           &\stepsto& \cek{ M \mid \env_H[x \mapsto \val{V}{\env}] \mid \shk},
+            &\text{if } \hret = \{\Return\; x \mapsto M\} \\
 
 % Deep
-\mlab{Do} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env', H)) \cons \shk) \circ \shk'}
-               &\stepsto& \cek{M \mid \env'[p \mapsto \val{V}{\env},
-                                            r \mapsto (\shk' \concat [(\slk, (\env', H))])^B] \mid \shk},\\
+\mlab{Do^\depth} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env_H, H^\depth)) \cons \shk) \circ \shk'}
+                &\stepsto& \cek{M \mid \env_H[p \mapsto \val{V}{\env},
+                                             r \mapsto (\shk' \concat [(\slk, (\env_H, H^\depth))])^B] \mid \shk},\\
 &&&\quad\text{if } \ell : A \to B \in E \text{ and } \hell = \{\OpCase{\ell}{p}{r} \mapsto M\} \\
 
 % Shallow
-\mlab{Do^\dagger} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\gamma', H)^\dagger) \cons \shk) \circ \shk'} &\stepsto& \cek{M \mid \env'[p \mapsto \val{V}{\env},
+\mlab{Do^\dagger} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env_H, H)^\dagger) \cons \shk) \circ \shk'} &\stepsto& \cek{M \mid \env_H[p \mapsto \val{V}{\env},
                                              r \mapsto (\shk', \slk)^B] \mid \shk},\\
          &&&\quad\text{if } \ell : A \to B \in E \text{ and } \hell = \{\OpCase{\ell}{p}{r} \mapsto M\} \\
 
 % Forward
-\mlab{Forward} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env', H)^\depth) \cons \shk) \circ \shk'}
-           &\stepsto& \cek{ (\Do \; \ell \; V)^E \mid \env \mid \shk \circ (\shk' \concat [(\slk, (\env', H)^\depth)])},
-           &\text{if } \hell = \emptyset
+\mlab{Forward} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid (\theta \cons \shk) \circ \shk'}
+           &\stepsto& \cek{ (\Do \; \ell \; V)^E \mid \env \mid \shk \circ (\shk' \concat [\theta])},
+           &\text{if } \gell = \emptyset
 \ea
 \el
 \]
@@ -10989,46 +11029,6 @@ Figure~\ref{fig:abstract-machine-syntax}.
 \caption{Machine initialisation and finalisation.}
 \end{figure}
 %
-A configuration $\conf = \cek{M \mid \env \mid \shk \circ \shk'}$
-of our abstract machine is a quadruple of a computation term ($M$), an
-environment ($\env$) mapping free variables to values, and two
-continuations ($\shk$) and ($\shk'$).
-%
-The latter continuation is always the identity, except when forwarding
-an operation, in which case it is used to keep track of the extent to
-which the operation has been forwarded.
-%
-We write $\cek{M \mid \env \mid \shk}$ as syntactic sugar for $\cek{M
-  \mid \env \mid \shk \circ []}$ where $[]$ is the identity
-continuation.
-%
-%% Our continuations differ from the standard machine. On the one hand,
-%% they are somewhat simplified, due to our strict separation between
-%% computations and values. On the other hand, they have considerably
-%% more structure in order to accommodate effects and handlers.
-
-Values consist of function closures, type function closures, records,
-variants, and captured continuations.
-%
-A continuation $\shk$ is a stack of frames $[\shf_1, \dots,
-\shf_n]$. We annotate captured continuations with input types in order
-to make the results of Section~\ref{subsec:machine-correctness} easier
-to state. Each frame $\shf = (\slk, \chi)$ represents pure
-continuation $\slk$, corresponding to a sequence of let bindings,
-inside handler closure $\chi$.
-%
-A pure continuation is a stack of pure frames. A pure frame $(\env, x,
-N)$ closes a let-binding $\Let \;x=[~] \;\In\;N$ over environment
-$\env$. A handler closure $(\env, H)$ closes a handler definition $H$
-over environment $\env$.
-%
-We write $\nil$ for an empty stack, $x \cons s$ for the result of
-pushing $x$ on top of stack $s$, and $s \concat s'$ for the
-concatenation of stack $s$ on top of $s'$. We use pattern matching to
-deconstruct stacks.
-
-\section{Machine transitions}
-\label{sec:machine-transitions}
 The abstract machine semantics defining the transition function $\stepsto$ is given in
 Fig.~\ref{fig:abstract-machine-semantics}.
 %
