@@ -10863,9 +10863,12 @@ the value interpretation function, which turns any source language
 value into a corresponding machine value.
 %
 A continuation $\shk$ is a stack of generalised continuation frames
-$[\shf_1, \dots, \shf_n]$. Each frame $\shf = (\slk, \chi)$ represents
-pure continuation $\slk$, corresponding to a sequence of let bindings,
-inside handler closure $\chi$.
+$[\shf_1, \dots, \shf_n]$. As in
+Section~\ref{sec:generalised-continuations} each continuation frame
+$\shf = (\slk, \chi)$ consists of a pure continuation $\slk$,
+corresponding to a sequence of let bindings, interpreted under some
+handler, which in this context is represented by the handler closure
+$\chi$.
 %
 A pure continuation is a stack of pure frames. A pure frame
 $(\env, x, N)$ closes a let-binding $\Let \;x=[~] \;\In\;N$ over
@@ -10964,6 +10967,11 @@ Section~\ref{subsec:machine-correctness} easier to state.
     &\stepsto& \cek{ M \mid \env'[g \mapsto (\env', \Rec\,g^{A \to C}\,x.M), x \mapsto \val{W}{\env}] \mid \shk},
       &\text{if }\val{V}{\env} = (\env', \Rec\,g^{A \to C}\,x.M) \\
 
+% TyApp
+\mlab{AppType} & \cek{ V\,T \mid \env \mid \shk}
+      &\stepsto& \cek{ M[T/\alpha] \mid \env' \mid \shk},
+          &\text{if }\val{V}{\env} = (\env', \Lambda \alpha^K . \, M) \\
+
 % Deep resumption application
 \mlab{Resume} & \cek{ V\;W \mid \env \mid \shk}
            &\stepsto& \cek{ \Return \; W \mid \env \mid \shk' \concat \shk},
@@ -10979,11 +10987,6 @@ Section~\ref{subsec:machine-correctness} easier to state.
 \mlab{Resume^\param} & \cek{ V\,\Record{W;W'} \mid \env \mid \shk}
            &\stepsto& \cek{ \Return \; W \mid \env \mid (\sigma,(\env'[q \mapsto \val{W'}\env],q.\,H)) \cons \shk' \concat \shk},
               &\text{if }\val{V}{\env} = (\sigma,(\env',q.\,H)) \cons \shk')^A \\
-
-% TyApp
-\mlab{AppType} & \cek{ V\,T \mid \env \mid \shk}
-      &\stepsto& \cek{ M[T/\alpha] \mid \env' \mid \shk},
-          &\text{if }\val{V}{\env} = (\env', \Lambda \alpha^K . \, M) \\
 %
 \mlab{Split} & \cek{ \Let \; \Record{\ell = x;y} = V \; \In \; N \mid \env \mid \shk}
       &\stepsto& \cek{ N \mid \env[x \mapsto v, y \mapsto w] \mid \shk},
@@ -10991,12 +10994,15 @@ Section~\ref{subsec:machine-correctness} easier to state.
 
 % Case
 \mlab{Case} & \cek{ \Case\; V\, \{ \ell~x \mapsto M; y \mapsto N\} \mid \env \mid \shk}
-                        &\stepsto& \begin{cases}
-                                  \cek{ M \mid \env[x \mapsto v] \mid \shk}, &
-                                       \text{ if }\val{V}{\env} = \ell\, v\\
-                                  \cek{ N \mid \env[y \mapsto \ell'\, v] \mid \shk}, &
-                                  \text{ if }\val{V}{\env} = \ell'\, v \text{ and } \ell \neq \ell'
-                                  \end{cases}\\
+         &\stepsto& \left\{\ba{@{}l@{}}
+                           \cek{ M \mid \env[x \mapsto v] \mid \shk}, \\
+                           \cek{ N \mid \env[y \mapsto \ell'\, v] \mid \shk}, \\
+                           \ea \right.
+                           &
+                           \ba{@{}l@{}}
+                             \text{if }\val{V}{\env} = \ell\, v \\
+                             \text{if }\val{V}{\env} = \ell'\, v \text{ and } \ell \neq \ell' \\
+                           \ea \\
 
 % Let - eval M
 \mlab{Let} & \cek{ \Let \; x \revto M \; \In \; N \mid \env \mid (\slk, \chi) \cons \shk}
@@ -11010,22 +11016,22 @@ Section~\ref{subsec:machine-correctness} easier to state.
        &\stepsto& \cek{ M \mid \env \mid (\nil, (\env[q \mapsto \val{W}\env], H)) \cons \shk} \\
 
 % Return - let binding
-\mlab{PureCont} &\cek{ \Return \; V \mid \env \mid ((\env_H,x,N) \cons \slk, \chi) \cons \shk}
-          &\stepsto& \cek{ N \mid \env_H[x \mapsto \val{V}{\env}] \mid (\slk, \chi) \cons \shk} \\
+\mlab{PureCont} &\cek{ \Return \; V \mid \env \mid ((\env',x,N) \cons \slk, \chi) \cons \shk}
+          &\stepsto& \cek{ N \mid \env'[x \mapsto \val{V}{\env}] \mid (\slk, \chi) \cons \shk} \\
 
 % Return - handler
-\mlab{GenCont} & \cek{ \Return \; V \mid \env \mid (\nil, (\env_H,H^\delta)) \cons \shk}
-           &\stepsto& \cek{ M \mid \env_H[x \mapsto \val{V}{\env}] \mid \shk},
+\mlab{GenCont} & \cek{ \Return \; V \mid \env \mid (\nil, (\env',H^\delta)) \cons \shk}
+           &\stepsto& \cek{ M \mid \env'[x \mapsto \val{V}{\env}] \mid \shk},
             &\text{if } \hret = \{\Return\; x \mapsto M\} \\
 
 % Deep
-\mlab{Do^\depth} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env_H, H^\depth)) \cons \shk) \circ \shk'}
-                &\stepsto& \cek{M \mid \env_H[p \mapsto \val{V}{\env},
-                                             r \mapsto (\shk' \concat [(\slk, (\env_H, H^\depth))])^B] \mid \shk},\\
+\mlab{Do^\depth} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env', H^\depth)) \cons \shk) \circ \shk'}
+                &\stepsto& \cek{M \mid \env'[p \mapsto \val{V}{\env},
+                                             r \mapsto (\shk' \concat [(\slk, (\env', H^\depth))])^B] \mid \shk},\\
 &&&\quad\text{if } \ell : A \to B \in E \text{ and } \hell = \{\OpCase{\ell}{p}{r} \mapsto M\} \\
 
 % Shallow
-\mlab{Do^\dagger} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env_H, H)^\dagger) \cons \shk) \circ \shk'} &\stepsto& \cek{M \mid \env_H[p \mapsto \val{V}{\env},
+\mlab{Do^\dagger} & \cek{ (\Do \; \ell \; V)^E \mid \env \mid ((\slk, (\env', H)^\dagger) \cons \shk) \circ \shk'} &\stepsto& \cek{M \mid \env'[p \mapsto \val{V}{\env},
                                              r \mapsto (\shk', \slk)^B] \mid \shk},\\
          &&&\quad\text{if } \ell : A \to B \in E \text{ and } \hell = \{\OpCase{\ell}{p}{r} \mapsto M\} \\
 
@@ -11062,23 +11068,75 @@ Section~\ref{subsec:machine-correctness} easier to state.
 \caption{Machine initialisation and finalisation.}
 \end{figure}
 %
-The abstract machine semantics defining the transition function $\stepsto$ is given in
-Fig.~\ref{fig:abstract-machine-semantics}.
+The semantics of the abstract machine is defined in terms of a
+transition relation $\stepsto \subseteq \MConfCat \times \MConfCat$ on
+machine configurations. The definition of the transition relation is
+given in Figure~\ref{fig:abstract-machine-semantics}.
 %
-We write $\nil$ for an empty stack, $x \cons s$ for the result of
-pushing $x$ on top of stack $s$, and $s \concat s'$ for the
-concatenation of stack $s$ on top of $s'$. We use pattern matching to
-deconstruct stacks.
+A fair amount of the transition rules involve manipulating the
+continuation. We adopt the same stack notation conventions used in the
+CPS translation with generalised continuations
+(Section~\ref{sec:cps-gen-conts}) and write $\nil$ for an empty stack,
+$x \cons s$ for the result of pushing $x$ on top of stack $s$, and
+$s \concat s'$ for the concatenation of stack $s$ on top of $s'$. We
+use pattern matching to deconstruct stacks.
 %
 % It depends on an interpretation function $\val{-}$ for values.
 %
-The machine is initialised (\mlab{Init}) by placing a term in a
-configuration alongside the empty environment and identity
-continuation.
+% The machine is initialised (\mlab{Init}) by placing a term in a
+% configuration alongside the empty environment and identity
+% continuation.
 %
-The rules (\mlab{AppClosure}), (\mlab{AppRec}), (\mlab{AppCont}),
-(\mlab{AppCont^\dagger}), (\mlab{AppType}), (\mlab{Split}), and
-(\mlab{Case}) enact the elimination of values.
+
+The first eight rules \mlab{App}, \mlab{AppRec}, \mlab{AppType},
+\mlab{Resume}, \mlab{Resume}, \mlab{Resume^\param}, \mlab{Split}, and
+\mlab{Case} enact the elimination of values.
+%
+The closure rules (\mlab{App}, \mlab{AppRec}, \mlab{AppType}) all
+essentially work the same by interpreting the abstractor $V$ in
+environment $\env$ using the value interpretation function $\val{-}$
+to obtain the closure. The body $M$ of closure gets put into the
+control component. Before the closure environment $\env'$ gets
+installed as the new machine environment, it gets extended with a
+binding of the formal parameter of the abstraction to the
+interpretation of argument $W$ in the previous environment $\env$
+(except in the case of $\mlab{AppType}$ where the argument is a type
+$T$ which gets substituted directly into the body). Note that in
+either rule continuation component remains untouched.
+
+The resumption rules (\mlab{Resume}, \mlab{Resume^\dagger},
+\mlab{Resume^\param}), however, manipulate the continuation component
+as they implement the context restorative behaviour of deep, shallow,
+and parameterised resumption application respectively. The shape of a
+deep resumption is the same as the machine continuation as it is a
+reified segment of some machine continuation, hence deep resumption
+invocation is realised by concatenating the reified continuation
+$\kappa'$ with the current machine continuation $\kappa$. A shallow
+resumption is a pair consisting of some dangling pure continuation
+$\sigma'$ and reified continuation $\kappa'$. During shallow
+resumption invocation the dangling pure continuation gets appended
+onto the pure continuation of the current machine continuation. A
+parameterised resumption is similar to an ordinary deep resumption,
+except that the handler closure contains a parameterised handler
+definition. During invocation the handler parameter $q$ gets rebound
+to the interpretation of the argument $W'$ in the handler closure
+environment $\env'$ to make the updated parameter value available
+during the next activation of the handler. Following the environment
+update the reified continuation gets reconstructed and appended onto
+the current machine continuation.
+
+The rules $\mlab{Split}$ and $\mlab{Case}$ concern record destructing
+and variant scrutinising, respectively. Record destructing binds both
+the variable $x$ to the value $v$ at label $\ell$ in the record $V$
+and the variable $y$ to the tail of the record in current environment
+$\env$.
+%
+Case splitting dispatches to the first branch with the variable $x$
+bound to the variant payload in the environment if the label of the
+variant $V$ matches $\ell$, otherwise it dispatches to the second
+branch with the variable $y$ bound to the interpretation of $V$ in the
+environment.
+
 %
 The rules (\mlab{Let}) and (\mlab{Handle}) extend the current
 continuation with let bindings and handlers respectively.
