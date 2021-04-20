@@ -11010,7 +11010,7 @@ Section~\ref{subsec:machine-correctness} easier to state.
 
 % Handle
 \mlab{Handle^\depth} & \cek{ \Handle^\depth \, M \; \With \; H^\depth \mid \env \mid \shk}
-      &\stepsto& \cek{ M \mid \env \mid (\nil, (\env, H)^\depth) \cons \shk} \\
+      &\stepsto& \cek{ M \mid \env \mid (\nil, (\env, H^\depth)) \cons \shk} \\
 
 \mlab{Handle^\param} & \cek{ \Handle^\param \, M \; \With \; (q.\,H)(W) \mid \env \mid \shk}
        &\stepsto& \cek{ M \mid \env \mid (\nil, (\env[q \mapsto \val{W}\env], H)) \cons \shk} \\
@@ -11066,6 +11066,7 @@ Section~\ref{subsec:machine-correctness} easier to state.
 \el
 \]
 \caption{Machine initialisation and finalisation.}
+\label{fig:machine-init-final}
 \end{figure}
 %
 The semantics of the abstract machine is defined in terms of a
@@ -11080,50 +11081,58 @@ CPS translation with generalised continuations
 $x \cons s$ for the result of pushing $x$ on top of stack $s$, and
 $s \concat s'$ for the concatenation of stack $s$ on top of $s'$. We
 use pattern matching to deconstruct stacks.
-%
-% It depends on an interpretation function $\val{-}$ for values.
-%
-% The machine is initialised (\mlab{Init}) by placing a term in a
-% configuration alongside the empty environment and identity
-% continuation.
-%
 
-The first eight rules \mlab{App}, \mlab{AppRec}, \mlab{AppType},
-\mlab{Resume}, \mlab{Resume}, \mlab{Resume^\param}, \mlab{Split}, and
-\mlab{Case} enact the elimination of values.
+The first eight rules enact the elimination of values.
 %
-The closure rules (\mlab{App}, \mlab{AppRec}, \mlab{AppType}) all
-essentially work the same by interpreting the abstractor $V$ in
-environment $\env$ using the value interpretation function $\val{-}$
-to obtain the closure. The body $M$ of closure gets put into the
-control component. Before the closure environment $\env'$ gets
-installed as the new machine environment, it gets extended with a
-binding of the formal parameter of the abstraction to the
-interpretation of argument $W$ in the previous environment $\env$
-(except in the case of $\mlab{AppType}$ where the argument is a type
-$T$ which gets substituted directly into the body). Note that in
-either rule continuation component remains untouched.
+The first three rules concern closures (\mlab{App}, \mlab{AppRec},
+\mlab{AppType}); they all essentially work the same. For example, the
+\mlab{App} uses the value interpretation function $\val{-}$ to
+interpret the abstractor $V$ in the machine environment $\env$ to
+obtain the closure. The body $M$ of closure gets put into the control
+component. Before the closure environment $\env'$ gets installed as
+the new machine environment, it gets extended with a binding of the
+formal parameter of the abstraction to the interpretation of argument
+$W$ in the previous environment $\env$. The rule \mlab{AppRec} behaves
+the almost the same, the only difference is that it binds the variable
+$g$ to the recursive closure in the environment. The rule
+\mlab{AppType} does not extend the environment, instead the type is
+substituted directly into the body. In either rule continuation
+component remains untouched.
 
 The resumption rules (\mlab{Resume}, \mlab{Resume^\dagger},
 \mlab{Resume^\param}), however, manipulate the continuation component
 as they implement the context restorative behaviour of deep, shallow,
-and parameterised resumption application respectively. The shape of a
-deep resumption is the same as the machine continuation as it is a
-reified segment of some machine continuation, hence deep resumption
-invocation is realised by concatenating the reified continuation
-$\kappa'$ with the current machine continuation $\kappa$. A shallow
-resumption is a pair consisting of some dangling pure continuation
-$\sigma'$ and reified continuation $\kappa'$. During shallow
-resumption invocation the dangling pure continuation gets appended
-onto the pure continuation of the current machine continuation. A
-parameterised resumption is similar to an ordinary deep resumption,
-except that the handler closure contains a parameterised handler
-definition. During invocation the handler parameter $q$ gets rebound
-to the interpretation of the argument $W'$ in the handler closure
-environment $\env'$ to make the updated parameter value available
-during the next activation of the handler. Following the environment
-update the reified continuation gets reconstructed and appended onto
-the current machine continuation.
+and parameterised resumption application respectively. The
+\mlab{Resume} rule handles deep resumption invocations. A deep
+resumption is syntactically a generalised continuation, and therefore
+it can be directly composed with the machine continuation. Following a
+deep resumption invocation the argument gets placed in the control
+component, whilst the reified continuation $\kappa'$ representing the
+resumptions gets appended onto the machine continuation $\kappa$ in
+order to restore the captured context.
+%
+The rule \mlab{Resume^\dagger} realises shallow resumption
+invocations. Syntactically, a shallow resumption consists of a pair
+whose first component is a dangling pure continuation $\sigma'$, which
+is leftover after removal of its nearest enclosing handler, and the
+second component contains a reified generalised continuation
+$\kappa'$. The dangling pure continuation gets adopted by the top-most
+handler $\chi$ as $\sigma'$ gets appended onto the pure continuation
+$\sigma$ running under $\chi$. The resulting continuation gets
+composed with the reified continuation $\kappa'$.
+%
+The rule \mlab{Resume^\param} implements the behaviour of
+parameterised resumption invocations. Syntactically, a parameterised
+resumption invocation is generalised continuation just like an
+ordinary deep resumption. The primary difference between \mlab{Resume}
+and \mlab{Resume^\param} is that in the latter rule the top-most frame
+of $\kappa'$ contains a parameterised handler definition, whose
+parameter $q$ needs to be updated following an invocation. The handler
+closure environment $\env'$ gets extended by a mapping of $q$ to the
+interpretation of the argument $W'$ such that this value of $q$ is
+available during the next activation of the handler. Following the
+environment update the reified continuation gets reconstructed and
+appended onto the current machine continuation.
 
 The rules $\mlab{Split}$ and $\mlab{Case}$ concern record destructing
 and variant scrutinising, respectively. Record destructing binds both
@@ -11137,37 +11146,58 @@ variant $V$ matches $\ell$, otherwise it dispatches to the second
 branch with the variable $y$ bound to the interpretation of $V$ in the
 environment.
 
+The rules \mlab{Let}, \mlab{Handle^\depth}, and \mlab{Handle^\param}
+extend the current continuation with let bindings and handlers. The
+rule \mlab{Let} puts the computation $M$ of a let expression into the
+control component and extends the current pure continuation with the
+closure of the (source) continuation of the let expression.
 %
-The rules (\mlab{Let}) and (\mlab{Handle}) extend the current
-continuation with let bindings and handlers respectively.
+The \mlab{Handle^\depth} rule covers both ordinary deep and shallow
+handler installation. The computation $M$ is placed in the control
+component, whilst the continuation is extended by an additional
+generalised frame with an empty pure continuation and the closure of
+the handler $H$.
 %
-The rule (\mlab{RetCont}) binds a returned value if there is a pure
-continuation in the current continuation frame;
+The rule \mlab{Handle^\param} covers installation of parameterised
+handlers. The only difference here is that the parameter $q$ is
+initialised to the interpretation of $W$ in handler environment
+$\env'$.
+
+The current continuation gets shrunk by rules \mlab{PureCont} and
+\mlab{GenCont}. If the current pure continuation is nonempty then the
+rule \mlab{PureCont} binds a returned value, otherwise the rule
+\mlab{GenCont} invokes the return clause of a handler if the pure
+continuation is empty.
+
+The forwarding continuation is used by rules \mlab{Do^\depth},
+\mlab{Do^\dagger}, and \mlab{Forward}. The rule \mlab{Do^\depth}
+covers operation invocations under deep and parameterised handlers. If
+the top-most handler handles the operation $\ell$, then corresponding
+clause computation $M$ gets placed in the control component, and the
+handler environment $\env'$ is installed with bindings of the
+operation payload and the resumption. The resumption is the forwarding
+continuation $\kappa'$ extended by the current generalised
+continuation frame.
 %
-(\mlab{RetHandler}) invokes the return clause of a handler if the pure
-continuation is empty; and (\mlab{RetTop}) returns a final value if
-the continuation is empty.
-%
-%% The rule (\mlab{Op}) switches to a special four place configuration in
-%% order to handle an operation. The fourth component of the
-%% configuration is an auxiliary forwarding continuation, which keeps
-%% track of the continuation frames through which the operation has been
-%% forwarded. It is initialised to be empty.
-%% %
-The rule (\mlab{Do}) applies the current handler to an operation if
-the label matches one of the operation clauses. The captured
-continuation is assigned the forwarding continuation with the current
-frame appended to the end of it.
-%
-The rule (\mlab{Do^\dagger}) is much like (\mlab{Do}), except it
+The rule \mlab{Do^\dagger} is much like \mlab{Do^\depth}, except it
 constructs a shallow resumption, discarding the current handler but
 keeping the current pure continuation.
 %
-The rule (\mlab{Forward}) appends the current continuation
+The rule \mlab{Forward} appends the current continuation
 frame onto the end of the forwarding continuation.
-%
-The (\mlab{Init}) rule provides a canonical way to map a computation
-term onto a configuration.
+
+As a slight abuse of notation, we overload $\stepsto$ to inject
+computation terms into an initial machine configuration as well as
+projecting values. Figure~\ref{fig:machine-init-final} depicts the
+structure of the initial machine continuation and two additional
+pseudo transitions.  The initial continuation consists of a single
+generalised continuation frame with an empty pure continuation running
+under an identity handler. The \mlab{Init} rule provides a canonical
+way to map a computation term onto a configuration, whilst \mlab{Halt}
+provides a way to extract the final value of some computation from a
+configuration.
+
+\subsection{Putting the machine into action}
 
 \newcommand{\Chiid}{\ensuremath{\Chi_{\text{id}}}}
 \newcommand{\kappaid}{\ensuremath{\kappa_{\text{id}}}}
@@ -11317,114 +11347,6 @@ transitioning to the following final configuration.
 \end{derivation}
 %
 %\env_\top[c \mapsto (\env_\Copipe, \lambda\Unit.w_\Await~1),p \mapsto (\nil, [(\env_{\Ones}, \_, ones~\Unit)])]
-\begin{figure}[t]
-\flushleft
-\newcommand{\contapp}[2]{#1 #2}
-\newcommand{\contappp}[2]{#1(#2)}
-%% \newcommand{\contapp}[2]{#1[#2]}
-%% \newcommand{\contapp}[2]{#1\mathbin{@}#2}
-%% \newcommand{\contappp}[2]{#1\mathbin{@}(#2)}
-%
-\textbf{Configurations}
-\begin{displaymath}
-\inv{\cek{M \mid \env \mid \shk \circ \shk'}} = \contappp{\inv{\shk' \concat \shk}}{\inv{M}\env}
-                                              = \contappp{\inv{\shk'}}{\contapp{\inv{\shk}}{\inv{M}\env}}
-\end{displaymath}
-
-\textbf{Pure continuations}
-\begin{displaymath}
-\contapp{\inv{[]}}{M} = M \qquad \contapp{\inv{((\env, x, N) \cons \slk)}}{M}
-  = \contappp{\inv{\slk}}{\Let\; x \revto M \;\In\; \inv{N}(\env \res \{x\})}
-\end{displaymath}
-%% \begin{equations}
-%% \contapp{\inv{[]}}{M}
-%%   &=& M \\
-%% \contapp{\inv{((\env, x, N) \cons \slk)}}{M}
-%%   &=& \contappp{\inv{\slk}}{\Let\; x \revto M \;\In\; \inv{N}(\env \res \{x\})} \\
-%% \end{equations}
-
-\textbf{Continuations}
-\begin{displaymath}
-\contapp{\inv{[]}}{M}
-  = M \qquad
-\contapp{\inv{(\slk, \chi) \cons \shk}}{M}
-  = \contapp{\inv{\shk}}{(\contappp{\inv{\chi}}{\contappp{\inv{\slk}}{M}})}
-\end{displaymath}
-%% \begin{equations}
-%% \contapp{\inv{[]}}{M}
-%%   &=& M \\
-%% \contapp{\inv{(\slk, \chi) \cons \shk}}{M}
-%%   &=& \contapp{\inv{\shk}}{(\contappp{\inv{\chi}}{\contappp{\inv{\slk}}{M}})} \\
-%% \end{equations}
-
-\textbf{Handler closures}
-\begin{displaymath}
-\contapp{\inv{(\env, H)}^\depth}{M}
-  = \Handle^\depth\;M\;\With\;\inv{H}\env
-\end{displaymath}
-%% \begin{equations}
-%% \contapp{\inv{(\env, H)}}{M}
-%%   &=& \Handle\;M\;\With\;\inv{H}\env \\
-%% \contapp{\inv{(\env, H)^\dagger}}{M}
-%%   &=& \ShallowHandle\;M\;\With\;\inv{H}\env \\
-%% \end{equations}
-
-\textbf{Computation terms}
-\begin{equations}
-\inv{V\,W}\env &=& \inv{V}\env\,\inv{W}{\env} \\
-\inv{V\,T}\env &=& \inv{V}\env\,T \\
-\inv{\Let\;\Record{\ell = x; y} = V \;\In\;N}\env
-  &=& \Let\;\Record{\ell = x; y} =\inv{V}\env \;\In\; \inv{N}(\env \res \{x, y\}) \\
-\inv{\Case\;V\,\{\ell\;x \mapsto M; y \mapsto N\}}\env
-  &=& \Case\;\inv{V}\env \,\{\ell\;x \mapsto \inv{M}(\env \res \{x\}); y \mapsto \inv{N}(\env \res \{y\})\} \\
-\inv{\Return\;V}\env &=& \Return\;\inv{V}\env \\
-\inv{\Let\;x \revto M \;\In\;N}\env
-  &=& \Let\;x \revto\inv{M}\env \;\In\; \inv{N}(\env \res \{x\}) \\
-\inv{\Do\;\ell\;V}\env
-  &=& \Do\;\ell\;\inv{V}\env \\
-\inv{\Handle^\depth\;M\;\With\;H}\env
-  &=& \Handle^\depth\;\inv{M}\env\;\With\;\inv{H}\env \\
-\end{equations}
-
-\textbf{Handler definitions}
-\begin{equations}
-\inv{\{\Return\;x \mapsto M\}}\env
-  &=& \{\Return\;x \mapsto \inv{M}(\env \res \{x\})\} \\
-\inv{\{\ell\;x\;k \mapsto M\} \uplus H}\env
-  &=& \{\ell\;x\;k \mapsto \inv{M}(\env \res \{x, k\}\} \uplus \inv{H}\env \\
-\end{equations}
-
-\textbf{Value terms and values}
-\begin{displaymath}
-\ba{@{}c@{}}
-\begin{eqs}
-\inv{x}\env                  &=& \inv{v}, \quad \text{ if }\env(x) = v \\
-\inv{x}\env                  &=& x, \quad \text{ if }x \notin dom(\env) \\
-\inv{\lambda x^A.M}\env      &=& \lambda x^A.\inv{M}(\env \res \{x\}) \\
-\inv{\Lambda \alpha^K.M}\env &=& \Lambda \alpha^K.\inv{M}\env \\
-\inv{\Record{}}\env          &=& \Record{} \\
-\inv{\Record{\ell=V; W}}\env &=& \Record{\ell=\inv{V}\env; \inv{W}\env} \\
-\inv{(\ell\;V)^R}\env        &=& (\ell\;\inv{V}\env)^R \\
-\end{eqs}
-\quad
-\begin{eqs}
-\inv{\shk^A} &=& \lambda x^A.\inv{\shk}(\Return\;x) \\
-\inv{(\shk, \slk)^A} &=& \lambda x^A.\inv{\slk}(\inv{\shk}(\Return\;x)) \\
-\inv{(\env, \lambda x^A.M)}      &=& \lambda x^A.\inv{M}(\env \res \{x\}) \\
-\inv{(\env, \Lambda \alpha^K.M)} &=& \Lambda \alpha^K.\inv{M}\env \\
-\inv{\Record{}}                &=& \Record{} \\
-\inv{\Record{\ell=v; w}}       &=& \Record{\ell=\inv{v}; \inv{w}} \\
-\inv{(\ell\;v)^R}              &=& (\ell\;\inv{v})^R \\
-\end{eqs} \smallskip\\
-\inv{\Rec\,g^{A \to C}\,x.M}\env = \Rec\,g^{A \to C}\,x.\inv{M}(\env \res \{g, x\})
-                                = \inv{(\env, \Rec\,g^{A \to C}\,x.M)} \\
-\ea
-\end{displaymath}
-
-\caption{Mapping from abstract machine configurations to terms.}
-\label{fig:config-to-term}
-\end{figure}
-
 
 \paragraph{Remark} If the main continuation is empty then the machine gets
 stuck. This occurs when an operation is unhandled, and the forwarding
@@ -11438,35 +11360,130 @@ type $A$, or get stuck failing to handle an operation appearing in
 $E$. We now make the correspondence between the operational semantics
 and the abstract machine more precise.
 
-\section{Machine correctness}
-\label{subsec:machine-correctness}
+\section{Realisability and asymptotic cost implications}
+\label{subsec:machine-realisability}
 
-Fig.~\ref{fig:config-to-term} defines an inverse mapping $\inv{-}$
+A practical benefit of an abstract machine semantics over a
+context-based reduction semantics is that it provides a blueprint for
+either a high-level interpreter-based implementation or a low-level
+implementation based on stack manipulations.
+
+\section{Simulation of reduction semantics}
+\label{subsec:machine-correctness}
+\begin{figure}[t]
+\flushleft
+\newcommand{\contapp}[2]{#1 #2}
+\newcommand{\contappp}[2]{#1(#2)}
+%% \newcommand{\contapp}[2]{#1[#2]}
+%% \newcommand{\contapp}[2]{#1\mathbin{@}#2}
+%% \newcommand{\contappp}[2]{#1\mathbin{@}(#2)}
+%
+\textbf{Configurations}
+\begin{displaymath}
+\inv{\cek{M \mid \env \mid \shk \circ \shk'}} \defas \contappp{\inv{\shk' \concat \shk}}{\inv{M}\env}
+                                              \defas \contappp{\inv{\shk'}}{\contapp{\inv{\shk}}{\inv{M}\env}}
+\end{displaymath}
+%
+\textbf{Pure continuations}
+\begin{displaymath}
+\contapp{\inv{[]}}{M} \defas M \qquad \contapp{\inv{((\env, x, N) \cons \slk)}}{M}
+  \defas \contappp{\inv{\slk}}{\Let\; x \revto M \;\In\; \inv{N}(\env \res \{x\})}
+\end{displaymath}
+%
+\textbf{Continuations}
+\begin{displaymath}
+\contapp{\inv{[]}}{M}
+  \defas M \qquad
+\contapp{\inv{(\slk, \chi) \cons \shk}}{M}
+  \defas \contapp{\inv{\shk}}{(\contappp{\inv{\chi}}{\contappp{\inv{\slk}}{M}})}
+\end{displaymath}
+%
+\textbf{Handler closures}
+\begin{displaymath}
+\contapp{\inv{(\env, H^\depth)}}{M}
+  \defas \Handle^\depth\;M\;\With\;\inv{H^\depth}\env
+\end{displaymath}
+%
+\textbf{Computation terms}
+\begin{equations}
+\inv{V\,W}\env &\defas& \inv{V}\env\,\inv{W}{\env} \\
+\inv{V\,T}\env &\defas& \inv{V}\env\,T \\
+\inv{\Let\;\Record{\ell = x; y} = V \;\In\;N}\env
+  &\defas& \Let\;\Record{\ell = x; y} =\inv{V}\env \;\In\; \inv{N}(\env \res \{x, y\}) \\
+\inv{\Case\;V\,\{\ell\;x \mapsto M; y \mapsto N\}}\env
+  &\defas& \Case\;\inv{V}\env \,\{\ell\;x \mapsto \inv{M}(\env \res \{x\}); y \mapsto \inv{N}(\env \res \{y\})\} \\
+\inv{\Return\;V}\env &\defas& \Return\;\inv{V}\env \\
+\inv{\Let\;x \revto M \;\In\;N}\env
+  &\defas& \Let\;x \revto\inv{M}\env \;\In\; \inv{N}(\env \res \{x\}) \\
+\inv{\Do\;\ell\;V}\env
+  &\defas& \Do\;\ell\;\inv{V}\env \\
+\inv{\Handle^\depth\;M\;\With\;H}\env
+  &\defas& \Handle^\depth\;\inv{M}\env\;\With\;\inv{H}\env \\
+\end{equations}
+
+\textbf{Handler definitions}
+\begin{equations}
+\inv{\{\Return\;x \mapsto M\}}\env
+  &\defas& \{\Return\;x \mapsto \inv{M}(\env \res \{x\})\} \\
+\inv{\{\ell\;x\;k \mapsto M\} \uplus H^\depth}\env
+  &\defas& \{\OpCase{\ell}{p}{r} \mapsto \inv{M}(\env \res \{p, r\}\} \uplus \inv{H^\depth}\env \\
+\end{equations}
+
+\textbf{Value terms and values}
+\begin{displaymath}
+\ba{@{}c@{}}
+\begin{eqs}
+\inv{x}\env                  &\defas& \inv{v}, \quad \text{ if }\env(x) = v \\
+\inv{x}\env                  &\defas& x, \quad \text{ if }x \notin \dom(\env) \\
+\inv{\lambda x^A.M}\env      &\defas& \lambda x^A.\inv{M}(\env \res \{x\}) \\
+\inv{\Lambda \alpha^K.M}\env &\defas& \Lambda \alpha^K.\inv{M}\env \\
+\inv{\Record{}}\env          &\defas& \Record{} \\
+\inv{\Record{\ell=V; W}}\env &\defas& \Record{\ell=\inv{V}\env; \inv{W}\env} \\
+\inv{(\ell\;V)^R}\env        &\defas& (\ell\;\inv{V}\env)^R \\
+\end{eqs}
+\quad
+\begin{eqs}
+\inv{\shk^A} &\defas& \lambda x^A.\inv{\shk}(\Return\;x) \\
+\inv{(\shk, \slk)^A} &\defas& \lambda x^A.\inv{\slk}(\inv{\shk}(\Return\;x)) \\
+\inv{(\env, \lambda x^A.M)}      &\defas& \lambda x^A.\inv{M}(\env \res \{x\}) \\
+\inv{(\env, \Lambda \alpha^K.M)} &\defas& \Lambda \alpha^K.\inv{M}\env \\
+\inv{\Record{}}                &\defas& \Record{} \\
+\inv{\Record{\ell=v; w}}       &\defas& \Record{\ell=\inv{v}; \inv{w}} \\
+\inv{(\ell\;v)^R}              &\defas& (\ell\;\inv{v})^R \\
+\end{eqs} \smallskip\\
+\inv{\Rec\,g^{A \to C}\,x.M}\env \defas \Rec\,g^{A \to C}\,x.\inv{M}(\env \res \{g, x\})
+                                \defas \inv{(\env, \Rec\,g^{A \to C}\,x.M)} \\
+\ea
+\end{displaymath}
+
+\caption{Mapping from abstract machine configurations to terms.}
+\label{fig:config-to-term}
+\end{figure}
+%
+Figure~\ref{fig:config-to-term} defines an inverse mapping $\inv{-}$
 from configurations to computation terms via a collection of mutually
 recursive functions defined on configurations, continuations,
 computation terms, handler definitions, value terms, and values.
 %
-We write $dom(\gamma)$ for the domain of $\gamma$ and $\gamma \res
+We write $\dom(\gamma)$ for the domain of $\gamma$ and $\gamma \res
 \{x_1, \dots, x_n\}$ for the restriction of environment $\gamma$ to
-$dom(\gamma) \res \{x_1, \dots, x_n\}$.
+$\dom(\gamma) \res \{x_1, \dots, x_n\}$.
 %
 The $\inv{-}$ function enables us to classify the abstract machine
 reduction rules by how they relate to the operational
 semantics.
 %
-The rules (\mlab{Init}) and (\mlab{RetTop}) concern only initial
-input and final output, neither a feature of the operational
-semantics.
+The rules \mlab{Init} and \mlab{Halt} concern only initial input and
+final output, neither a feature of the operational semantics.
 %
-The rules (\mlab{AppCont^\depth}), (\mlab{Let}), (\mlab{Handle}),
-and (\mlab{Forward}) are administrative in that $\inv{-}$ is invariant
-under them.
+The rules \mlab{Resume^\depth}, \mlab{Resume^\param}, \mlab{Let},
+\mlab{Handle^\depth}, \mlab{Handle^\param}, and \mlab{Forward} are
+administrative in that $\inv{-}$ is invariant under them.
 %
-This leaves $\beta$-rules (\mlab{AppClosure}), (\mlab{AppRec}),
-(\mlab{AppType}), (\mlab{Split}), (\mlab{Case}), (\mlab{RetCont}),
-(\mlab{RetHandler}), (\mlab{Do}), and (\mlab{Do^\dagger}),
-each of which corresponds directly to performing a reduction in the
-operational semantics.
+This leaves $\beta$-rules \mlab{App}, \mlab{AppRec}, \mlab{AppType},
+\mlab{Split}, \mlab{Case}, \mlab{PureCont}, \mlab{GenCont},
+\mlab{Do^\depth}, and \mlab{Do^\dagger}, each of which corresponds
+directly to performing a reduction in the operational semantics.
 %
 We write $\stepsto_a$ for administrative steps, $\stepsto_\beta$ for
 $\beta$-steps, and $\Stepsto$ for a sequence of steps of the form
@@ -11474,9 +11491,9 @@ $\stepsto_a^* \stepsto_\beta$.
 
 Each reduction in the operational semantics is simulated by a sequence
 of administrative steps followed by a single $\beta$-step in the
-abstract machine. The $Id$ handler (\S\ref{subsec:terms})
+abstract machine. The $Id$ handler (Section~\ref{subsec:terms})
 implements the top-level identity continuation.
-\\
+%
 \begin{theorem}[Simulation]
 \label{lem:simulation}
 If $M \reducesto N$, then for any $\conf$ such that $\inv{\conf} =
@@ -11486,7 +11503,7 @@ $\inv{\conf'} = Id(N)$.
 %% there exists $\conf'$ such that $\conf \Stepsto \conf'$ and
 %% $\inv{\conf'} = N$.
 \end{theorem}
-
+%
 \begin{proof}
 By induction on the derivation of $M \reducesto N$.
 \end{proof}
@@ -11497,6 +11514,146 @@ If $\typc{}{M : A}{E}$ and $M \reducesto^+ N \not\reducesto$, then $M
 \end{corollary}
 
 \section{Related work}
+The literature on abstract machines is vast and rich. I describe here
+the basic structure of some selected abstract machines from the
+literature.
+
+\paragraph{Handler machines} Chronologically, the machine presented in
+this chapter was the first abstract machine specifically designed for
+effect handlers to appear in the literature. Subsequently, this
+machine has been extended and used to explain the execution model for
+the Multicore OCaml
+implementation~\cite{SivaramakrishnanDWKJM21}. Their primary extension
+captures the finer details of the OCaml runtime as it models the
+machine continuation as a heterogeneous sequence consisting of
+interleaved OCaml and C frames.
+
+An alternative machine has been developed by \citet{BiernackiPPS19}
+for the Helium language. Although, their machine is based on
+\citeauthor{BiernackaBD05}'s definitional abstract machine for the
+control operators shift and reset~\cite{BiernackaBD05}, the
+continuation structure of the resulting machine is essentially the
+same as that of a generalised continuation. The primary difference is
+that in their presentation a generalised frame is either pair
+consisting of a handler closure and a pure continuation (as in the
+presentation in this chapter) or a coercion paired with a pure
+continuation.
+
+\paragraph{SECD machine} \citeauthor{Landin64}'s SECD machine was the
+first abstract machine for $\lambda$-calculus viewed as a programming
+language~\cite{Landin64,Danvy04}. The machine is named after its
+structure as it consists of a \emph{stack} component,
+\emph{environment} component, \emph{control} component, and a
+\emph{dump} component. The stack component maintains a list of
+intermediate value. The environment maps free variables to values. The
+control component holds a list of directives that manipulate the stack
+component. The dump acts as a caller-saved register as it maintains a
+list of partial machine state snapshots. Prior to a closure
+application, the machine snapshots the state of the stack,
+environment, and control components such that this state can be
+restored once the stack has been reduced to a single value and the
+control component is empty. The structure of the SECD machine lends
+itself to a simple realisation of the semantics of
+\citeauthor{Landin98}'s the J operator as its behaviour can realised
+by reifying the dump the as value.
+%
+\citet{Plotkin75} proved the correctness of the machine in style of a
+simulation result with respect to a reduction
+semantics~\cite{AgerBDM03}.
+
+The SECD machine is a precursor to the CEK machine as the latter can
+be viewed as a streamlined variation of the SECD machine, where the
+continuation component unifies stack and dump components of the SECD
+machine.
+%
+For a deep dive into the operational details of
+\citeauthor{Landin64}'s SECD machine, the reader may consult
+\citet{Danvy04}, who dissects the SECD machine, and as a follow up on
+that work \citet{DanvyM08} perform several rational deconstructions
+and reconstructions of the SECD machine with the J operator.
+
+\paragraph{Krivine machine} The \citeauthor{Krivine07} machine takes
+its name after its designer \citet{Krivine07}. It is designed for
+call-by-name $\lambda$-calculus computation as it performs reduction
+to weak head normal form~\cite{Krivine07,Leroy90}.
+%
+The structure of the \citeauthor{Krivine07} machine is similar to that
+of the CEK machine as it features a control component, which focuses
+the current term under evaluation; an environment component, which
+binds variables to closures; and a stack component, which contains a
+list of closures.
+%
+Evaluation of an application term pushes the argument along with the
+current environment onto the stack and continues to evaluate the
+abstractor term. Dually evaluation of a $\lambda$-abstraction places
+the body in the control component, subsequently it pops the top most
+closure from the stack and extends the current environment with this
+closure~\cite{DouenceF07}.
+
+\citet{Krivine07} has also designed a variation of the machine which
+supports a call-by-name variation of the callcc control operator. In
+this machine continuations have the same representation as the stack
+component, and they can be stored on the stack. Then the continuation
+capture mechanism of callcc can be realised by popping and installing
+the top-most closure from the stack, and then saving the tail of the
+stack as the continuation object, which is to be placed on top of the
+stack. An application of a continuation can be realised by replacing
+the current stack with the stack embedded inside the continuation
+object~\cite{Krivine07}.
+
+
+\paragraph{ZINC machine} The ZINC machine is a strict variation of
+\citeauthor{Krivine07}'s machine, though it was designed independently
+by \citet{Leroy90}. The machine is used as the basis for the OCaml
+byte code interpreter~\cite{Leroy90,LeroyDFGRV20}.
+%
+There are some cosmetic difference between \citeauthor{Krivine07}'s
+machine and the ZINC machine. For example, the latter decomposes the
+stack component into an argument stack, holding arguments to function
+calls, and a return stack, which holds closures.
+%
+A peculiar implementation detail of the ZINC machine that affects the
+semantics of the OCaml language is that for $n$-ary function
+application to be efficient, function arguments are evaluated
+right-to-left rather than left-to-right as customary in call-by-value
+language~\cite{Leroy90}. The OCaml manual leaves the evaluation order
+for function arguments unspecified~\cite{LeroyDFGRV20}. However, for a
+long time the native code compiler for OCaml would emit code utilised
+left-to-right evaluation order for function arguments, consequently
+the compilation method could affect the semantics of a program, as the
+evaluation order could be observed using effects, e.g. by raising an
+exception~\cite{CartwrightF92}. Anecdotally, Damien Doligez told me in
+person at ICFP 2017 that unofficially the compiler has been aligned
+with the byte code interpreter such that code running on either
+implementation exhibits the same semantics. Even though the evaluation
+order remains unspecified in the manual any other observable order
+than right-to-left evaluation order is now considered a bug (subject
+to some exceptions, notably short-circuiting logical and/or
+functions).
+
+\paragraph{Mechanic machine derivations}
+%
+There are deep mathematical connections between environment-based
+abstract machine semantics and standard reduction semantics with
+explicit substitutions.
+%
+For example, \citet{AgerBDM03,AgerDM04,AgerBDM03a} relate abstract
+machines and functional evaluators by way of a two-way derivation that
+consists of closure conversion, transformation into CPS, and
+defunctionalisation of continuations.
+%
+\citet{BiernackaD07} demonstrate how to formally derive an abstract
+machine from a small-step reduction strategy. Their presentation has
+been formalised by \citet{Swierstra12} in the dependently-typed
+programming language Agda.
+%
+\citet{HuttonW04} demonstrate how to calculate a
+correct-by-construction abstract machine from a given specification
+using structural induction. Notably, their example machine supports a
+basic notion of exceptions.
+%
+Derivations of abstract machines for languages with computational
+effects were also explored by \citet{AgerDM05}.
 
 
 \part{Expressiveness}
