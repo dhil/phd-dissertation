@@ -2948,6 +2948,7 @@ readily be implemented with a trampoline~\cite{GanzFW99}. Alas, at the
 cost of the indirection induced by the trampoline.
 
 \part{Design}
+\label{p:design}
 
 \chapter{An ML-flavoured programming language based on rows}
 \label{ch:base-language}
@@ -8289,6 +8290,7 @@ domain of processes~\cite{Milner75,Plotkin76}.
 \dhil{Briefly mention \citet{AtkeyJ15}}
 
 \part{Implementation}
+\label{p:implementation}
 
 \chapter{Continuation-passing style}
 \label{ch:cps}
@@ -11698,6 +11700,7 @@ machines from monadic-style effectful evaluators.
 
 
 \part{Expressiveness}
+\label{p:expressiveness}
 \chapter{Interdefinability of effect handlers}
 \label{ch:deep-vs-shallow}
 
@@ -12549,13 +12552,93 @@ Describe the methodology\dots
 % \section{Effect system}
 
 \part{Conclusions}
+\label{p:conclusions}
 
-\chapter{Conclusions}
+\chapter{Conclusions and future work}
 \label{ch:conclusions}
-Some profound conclusions\dots
+%
+I will begin this chapter with a brief summary of this
+dissertation. The following sections each elaborates and spells out
+directions for future work.
 
-\chapter{Future Work}
-\label{ch:future-work}
+In Part~\ref{p:background} of this dissertation I have compiled an
+extensive survey of first-class control. In this survey I characterise
+the various kinds of control phenomena that appear in the literature
+as well as providing an overview of the operational characteristics of
+control operators appearing in the literature. To the best of my
+knowledge this survey is the only of its kind in the present
+literature.
+
+In Part~\ref{p:design} I have presented the design of a ML-like
+programming language equipped an effect-and-type system and a
+structural notion of effectful operations and effect handlers. In this
+language I have demonstrated how to implement the essence of a
+\UNIX{}-like operating system by making, almost, zealous use of deep,
+shallow, and parameterised effect handlers.
+
+In Part~\ref{p:implementation} I have devised two canonical
+implementation strategies for the language, one based an
+transformation into continuation passing style, and another based on
+abstract machine semantics. Both strategies make key use of the notion
+of generalised continuations, which
+
+In Part~\ref{p:expressiveness} I have explored how effect handlers fit
+into the wider landscape of programming abstractions.
+
+\section{Effect handler-oriented programming}
+In Chapters~\ref{ch:base-language} and \ref{ch:unary-handlers} I
+explored the design space of programming languages with effect
+handlers. My design differentiates itself from others in the literature
+with respect to the kind of programming language considered. I have
+focused a language with structural data and effects, whereas others
+have focused on nominal data and effects. An effect system is
+necessary to ensure safety and soundness in a structural
+setting. Although, an effect system is informative, it is not strictly
+necessary in a nominal setting.
+%
+Another point of emphasis is that my design incorporates deep,
+shallow, and parameterised variations of effect handlers into a single
+programming language. I have demonstrated applications that each kind
+of handler is uniquely suited for by way of the case study of
+Section~\ref{sec:deep-handlers-in-action}.
+
+
+\subsection{Future work}
+\begin{itemize}
+  \item Efficiency of nested handlers.
+  \item Effect-based optimisations.
+  \item Equational theories.
+  \item Signal handling.
+  \item Implement an actual operation system using handlers.
+  \item Re-implement the case study in other programming languages.
+  \item Parallel and distributed programming with effect handlers.
+  \item Multi-handlers.
+\end{itemize}
+
+\section{Implementation strategies for effect handlers}
+
+\subsection{Future work}
+\begin{itemize}
+  \item Formally relate the CPS translation and the abstract machine.
+  \item Type the CPS translation.
+  \item Simulate generalised continuations with other programming facilities.
+  \item Abstracting continuations.
+  \item Multi-handlers.
+\end{itemize}
+
+\section{On the expressive power of effect handlers}
+
+\subsection{Future work}
+\begin{itemize}
+  \item Investigate whether there exists efficient encodings of shallow
+    handlers in terms of deep handlers.
+  \item Establish a hierarchy of asymptotic efficiency for control
+    structures (iteration, recursion, backtracking, first-class
+    control).
+  \item Investigate how to adapt the asymptotic result to a setting
+    with effect tracking.
+  \item Extend the result to linear effect handlers.
+\end{itemize}
 
 %%
 %% Appendices
