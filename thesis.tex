@@ -11425,8 +11425,9 @@ implementation based on stack manipulations.
 \begin{equations}
 \inv{\{\Return\;x \mapsto M\}}\env
   &\defas& \{\Return\;x \mapsto \inv{M}(\env \res \{x\})\} \\
-\inv{\{\ell\;x\;k \mapsto M\} \uplus H^\depth}\env
+\inv{\{\OpCase{\ell}{p}{r} \mapsto M\} \uplus H^\depth}\env
   &\defas& \{\OpCase{\ell}{p}{r} \mapsto \inv{M}(\env \res \{p, r\}\} \uplus \inv{H^\depth}\env \\
+\inv{(q.\,H)}\env &\defas& \inv{H}(\env \res \{q\})
 \end{equations}
 
 \textbf{Value terms and values}
@@ -11460,58 +11461,98 @@ implementation based on stack manipulations.
 \label{fig:config-to-term}
 \end{figure}
 %
-Figure~\ref{fig:config-to-term} defines an inverse mapping $\inv{-}$
-from configurations to computation terms via a collection of mutually
-recursive functions defined on configurations, continuations,
-computation terms, handler definitions, value terms, and values.
+We now show that the base abstract machine is correct with respect to
+the combined context-based small-step semantics of $\HCalc$, $\SCalc$,
+and $\HPCalc$ via a simulation result.
+
+Initial states provide a canonical way to map a computation term onto
+the abstract machine.
 %
-We write $\dom(\gamma)$ for the domain of $\gamma$ and $\gamma \res
-\{x_1, \dots, x_n\}$ for the restriction of environment $\gamma$ to
-$\dom(\gamma) \res \{x_1, \dots, x_n\}$.
+A more interesting question is how to map an arbitrary configuration
+to a computation term.
+%
+Figure~\ref{fig:config-to-term} describes such a mapping $\inv{-}$
+from configurations to terms via a collection of mutually recursive
+functions defined on configurations, continuations, handler closures,
+computation terms, handler definitions, value terms, and machine
+values. The mapping makes use of a domain operation and a restriction
+operation on environments.
+%
+\begin{definition}
+  The domain of an environment is defined recursively as follows.
+  %
+  \[
+    \bl
+    \dom : \MEnvCat \to \VarCat\\
+    \ba{@{}l@{~}c@{~}l}
+      \dom(\emptyset) &\defas& \emptyset\\
+      \dom(\env[x \mapsto v]) &\defas& \{x\} \cup \dom(\env)
+    \ea
+    \el
+  \]
+  %
+  We write $\env \res \{x_1, \dots, x_n\}$ for the restriction of
+  environment $\env$ to $\dom(\env) \res \{x_1, \dots, x_n\}$.
+\end{definition}
 %
 The $\inv{-}$ function enables us to classify the abstract machine
-reduction rules by how they relate to the operational
-semantics.
+reduction rules according to how they relate to the context-based
+small-step semantics.
 %
-The rules \mlab{Init} and \mlab{Halt} concern only initial input and
-final output, neither a feature of the operational semantics.
+Both the rules \mlab{Let} and \mlab{Forward} are administrative in the
+sense that $\inv{-}$ is invariant under either rule.
 %
-The rules \mlab{Resume^\depth}, \mlab{Resume^\param}, \mlab{Let},
-\mlab{Handle^\depth}, \mlab{Handle^\param}, and \mlab{Forward} are
-administrative in that $\inv{-}$ is invariant under them.
+This leaves the $\beta$-rules \mlab{App}, \mlab{AppRec}, \mlab{TyApp},
+\mlab{Resume^\delta}, \mlab{Split}, \mlab{Case}, \mlab{PureCont}, and
+\mlab{GenCont}. Each of these corresponds directly with performing a
+reduction in the small-step semantics. We extend the notion of
+transition to account for administrative steps.
 %
-This leaves $\beta$-rules \mlab{App}, \mlab{AppRec}, \mlab{AppType},
-\mlab{Split}, \mlab{Case}, \mlab{PureCont}, \mlab{GenCont},
-\mlab{Do^\depth}, and \mlab{Do^\dagger}, each of which corresponds
-directly to performing a reduction in the operational semantics.
+\begin{definition}[Auxiliary reduction relations]
+  We write $\stepsto_{\textrm{a}}$ for administrative steps and
+  $\simeq_{\textrm{a}}$ for the symmetric closure of
+  $\stepsto_{\textrm{a}}^*$. We write $\stepsto_\beta$ for
+  $\beta$-steps and $\Stepsto$ for a sequence of steps of the form
+  $\stepsto_{\textrm{a}}^\ast \stepsto_\beta$.
+\end{definition}
 %
-We write $\stepsto_a$ for administrative steps, $\stepsto_\beta$ for
-$\beta$-steps, and $\Stepsto$ for a sequence of steps of the form
-$\stepsto_a^* \stepsto_\beta$.
-
-Each reduction in the operational semantics is simulated by a sequence
-of administrative steps followed by a single $\beta$-step in the
-abstract machine. The $Id$ handler (Section~\ref{subsec:terms})
-implements the top-level identity continuation.
+The following lemma describes how we can simulate each reduction in
+the small-step reduction semantics by a sequence of administrative
+steps followed by one $\beta$-step in the abstract machine.
 %
-\begin{theorem}[Simulation]
-\label{lem:simulation}
-If $M \reducesto N$, then for any $\conf$ such that $\inv{\conf} =
-Id(M)$ there exists $\conf'$ such that $\conf \Stepsto \conf'$ and
-$\inv{\conf'} = Id(N)$.
-%% If $M \reducesto N$, then for any $\conf$ such that $\inv{\conf} = M$
-%% there exists $\conf'$ such that $\conf \Stepsto \conf'$ and
-%% $\inv{\conf'} = N$.
-\end{theorem}
+\begin{lemma}
+\label{lem:machine-simulation}
+Suppose $M$ is a computation and $\conf$ is configuration such that
+$\inv{\conf} = M$, then if $M \reducesto N$ there exists $\conf'$ such
+that $\conf \Stepsto \conf'$ and $\inv{\conf'} = N$, or if
+$M \not\reducesto$ then $\conf \not\Stepsto$.
+\end{lemma}
 %
 \begin{proof}
 By induction on the derivation of $M \reducesto N$.
 \end{proof}
-
-\begin{corollary}
-If $\typc{}{M : A}{E}$ and $M \reducesto^+ N \not\reducesto$, then $M
-\stepsto^+ \conf$ with $\inv{\conf} = N$.
-\end{corollary}
+%
+The correspondence here is rather strong: there is a one-to-one
+mapping between $\reducesto$ and the quotient relation of $\Stepsto$
+and $\simeq_{\textrm{a}}$. % The inverse of the lemma is straightforward
+% as the semantics is deterministic.
+%
+Notice that Lemma~\ref{lem:machine-simulation} does not require that
+$M$ be well-typed. This is mostly a convenience to simplify the
+lemma. The lemma is used in the following theorem where it is being
+applied only on well-typed terms.
+%
+\begin{theorem}[Simulation]\label{thm:handler-simulation}
+  If $\typc{}{M : A}{E}$ and $M \reducesto^+ N$ such that $N$ is
+  normal with respect to $E$, then
+  $\cek{M \mid \emptyset \mid \kappa_0} \stepsto^+ \conf$ such that
+  $\inv{\conf} = N$, or $M \not\reducesto$ then
+  $\cek{M \mid \emptyset \mid \kappa_0} \not\stepsto$.
+\end{theorem}
+%
+\begin{proof}
+By repeated application of Lemma~\ref{lem:machine-simulation}.
+\end{proof}
 
 \section{Related work}
 The literature on abstract machines is vast and rich. I describe here
@@ -11631,7 +11672,7 @@ than right-to-left evaluation order is now considered a bug (subject
 to some exceptions, notably short-circuiting logical and/or
 functions).
 
-\paragraph{Mechanic machine derivations}
+\paragraph{Mechanical machine derivations}
 %
 There are deep mathematical connections between environment-based
 abstract machine semantics and standard reduction semantics with
@@ -11649,11 +11690,11 @@ programming language Agda.
 %
 \citet{HuttonW04} demonstrate how to calculate a
 correct-by-construction abstract machine from a given specification
-using structural induction. Notably, their example machine supports a
-basic notion of exceptions.
+using structural induction. Notably, their example machine supports
+basic computational effects in the form of exceptions.
 %
-Derivations of abstract machines for languages with computational
-effects were also explored by \citet{AgerDM05}.
+\citet{AgerDM05} also extended their technique to derive abstract
+machines from monadic-style effectful evaluators.
 
 
 \part{Expressiveness}
