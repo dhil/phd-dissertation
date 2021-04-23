@@ -11366,9 +11366,16 @@ and the abstract machine more precise.
 \label{subsec:machine-realisability}
 
 A practical benefit of an abstract machine semantics over a
-context-based reduction semantics is that it provides a blueprint for
-either a high-level interpreter-based implementation or a low-level
-implementation based on stack manipulations.
+context-based reduction semantics with explicit substitutions is that
+it provides either a blueprint for a high-level interpreter-based
+implementation or an outline for how stacks should be manipulated in a
+low-level implementation.
+
+The definition of abstract machine in this chapter is highly
+suggestive of the choice of data structures required for a realisation
+of the machine. The machine presented in this chapter can readily be
+realised using standard functional data structures such as lists and
+maps~\cite{Okasaki99}.
 
 \section{Simulation of reduction semantics}
 \label{subsec:machine-correctness}
@@ -12585,7 +12592,7 @@ of generalised continuations, which
 In Part~\ref{p:expressiveness} I have explored how effect handlers fit
 into the wider landscape of programming abstractions.
 
-\section{Effect handler-oriented programming}
+\section{Programming with effect handlers}
 In Chapters~\ref{ch:base-language} and \ref{ch:unary-handlers} I
 explored the design space of programming languages with effect
 handlers. My design differentiates itself from others in the literature
@@ -12615,7 +12622,7 @@ Section~\ref{sec:deep-handlers-in-action}.
   \item Multi-handlers.
 \end{itemize}
 
-\section{Implementation strategies for effect handlers}
+\section{Canonical implementation strategies for handlers}
 
 \subsection{Future work}
 \begin{itemize}
