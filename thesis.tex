@@ -11110,8 +11110,8 @@ resumption is syntactically a generalised continuation, and therefore
 it can be directly composed with the machine continuation. Following a
 deep resumption invocation the argument gets placed in the control
 component, whilst the reified continuation $\kappa'$ representing the
-resumptions gets appended onto the machine continuation $\kappa$ in
-order to restore the captured context.
+resumptions gets concatenated with the machine continuation $\kappa$
+in order to restore the captured context.
 %
 The rule \mlab{Resume^\dagger} realises shallow resumption
 invocations. Syntactically, a shallow resumption consists of a pair
@@ -11149,7 +11149,7 @@ branch with the variable $y$ bound to the interpretation of $V$ in the
 environment.
 
 The rules \mlab{Let}, \mlab{Handle^\depth}, and \mlab{Handle^\param}
-extend the current continuation with let bindings and handlers. The
+augment the current continuation with let bindings and handlers. The
 rule \mlab{Let} puts the computation $M$ of a let expression into the
 control component and extends the current pure continuation with the
 closure of the (source) continuation of the let expression.
@@ -11362,22 +11362,113 @@ type $A$, or get stuck failing to handle an operation appearing in
 $E$. We now make the correspondence between the operational semantics
 and the abstract machine more precise.
 
-\section{Realisability and asymptotic cost implications}
+\section{Realisability and efficiency implications}
 \label{subsec:machine-realisability}
 
-A practical benefit of an abstract machine semantics over a
-context-based reduction semantics with explicit substitutions is that
-it provides either a blueprint for a high-level interpreter-based
-implementation or an outline for how stacks should be manipulated in a
-low-level implementation.
+A practical benefit of the abstract machine semantics over the
+context-based small-step reduction semantics with explicit
+substitutions is that it provides either a blueprint for a high-level
+interpreter-based implementation or an outline for how stacks should
+be manipulated in a low-level implementation along with a more
+practical and precise cost model. The cost model is more practical in
+the sense of modelling how actual hardware might go about executing
+instructions, and it is more precise as it eliminates the declarative
+aspect of the contextual semantics induced by the \semlab{Lift}
+rule. For example, the asymptotic cost of handler lookup is unclear in
+the contextual semantics, whereas the abstract machine clearly tells
+us that handler lookup involves a linear search through the machine
+continuation.
 
-The definition of abstract machine in this chapter is highly
-suggestive of the choice of data structures required for a realisation
-of the machine. The machine presented in this chapter can readily be
-realised using standard functional data structures such as lists and
-maps~\cite{Okasaki99}.
+The abstract machine is readily realisable using standard persistent
+functional data structures such as lists and
+maps~\cite{Okasaki99}. The concrete choice of data structures required
+to realise the abstract machine is not set in stone, although, its
+definition is suggestive about the choice of data structures it leaves
+space for interpretation.
+%
+For example, generalised continuations can be implemented using lists,
+arrays, or even heaps. However, the concrete choice of data structure
+is going to impact the asymptotic time and space complexity of the
+primitive operations on continuations: continuation augmentation
+($\cons$) and concatenation ($\concat$).
+%
+For instance, a linked list provides a fast constant time
+implementations of either operation, whereas a fixed-size array can
+only provide implementations of either operation that run in linear
+time due to the need to resize and copy contents in the extreme case.
+%
+An implementation based on a singly-linked list admits constant time
+for both continuation augmentation as this operation corresponds
+directly to list cons. However, it admits only a linear time
+implementation for continuation concatenation. Alternatively, an
+implementation based on a \citeauthor{Hughes86} list~\cite{Hughes86}
+reverses the cost as a \citeauthor{Hughes86} list uses functions to
+represent cons cells, thus meaning concatenation is simply function
+composition, but accessing any element, including the head, always
+takes linear time in the size of the list. In practice, this
+difference in efficiency means we can either trade-off fast
+interpretation of $\Let$-bindings and $\Handle$-computations for
+`slow' handling and context restoration or vice versa depending on
+what we expect to occur more frequently.
 
-\section{Simulation of reduction semantics}
+The pervasiveness of $\Let$-bindings in fine-grain call-by-value means
+that the top-most pure continuation is likely to be augmented and
+shrunk repeatedly, thus it is a sensible choice to simply represent
+generalisation continuations as singly linked list in order to provide
+constant time pure continuation augmentation (handler installation
+would be constant time too). However, the continuation component
+contains two generalisation continuations. In the rule \mlab{Forward}
+the forwarding continuation is extended using concatenation, thus we
+may choose to represent the forwarding continuation as a
+\citeauthor{Hughes86} list for greater efficiency. A consequence of
+this choice is that upon resumption invocation we must convert the
+forwarding continuation into singly linked list such that it can be
+concatenated with the program continuation. Both the conversion and
+the concatenation require a full linear traversal of the forwarding
+continuation.
+%
+A slightly clever choice is to represent both continuations using
+\citeauthor{Huet97}'s Zipper data structure~\cite{Huet97}, which
+essentially boils down to using a pair of singly linked lists, where
+the first component contains the program continuation, and the second
+component contains the forwarding continuation. We can make a
+non-asymptotic improvement by representing the forwarding continuation
+as a reversed continuation such that we may interpret the
+concatenation operation ($\concat$) in \mlab{Forward} as regular cons
+($\cons$). In the \mlab{Resume^\delta} rules we must then interpret
+concatenation as reverse append, which needs to traverse the
+forwarding continuation only once.
+
+\paragraph{Continuation copying}
+A convenient consequence of using persistent functional data structure
+to realise the abstract machine is that multi-shot resumptions become
+efficiency as continuation copying becomes a constant time
+operation. However, if we were only interested one-shot or linearly
+used resumptions, then we may wish to use in-place mutations to
+achieve greater efficiency. In-place mutations do not exclude support
+for multi-shot resumptions, however, with mutable data structures the
+resumptions needs to be copied before use. One possible way to copy
+resumptions is to expose an explicit copy instruction in the source
+language. Alternatively, if the source language is equipped with a
+linear type system, then the linear type information can be leveraged
+to provide an automatic insertion of copy instructions prior to
+resumption invocations.
+
+% The structure of a generalised continuation lends itself to a
+% straightforward implementation using a persistent singly-linked
+% list. A particularly well-suited data structure for the machine
+% continuation is \citeauthor{Huet97}'s Zipper data
+% structure~\cite{Huet97}, which is essentially a pair of lists.
+
+% copy-on-write environments
+
+% The definition of abstract machine in this chapter is highly
+% suggestive of the choice of data structures required for a realisation
+% of the machine. The machine presented in this chapter can readily be
+% realised using standard functional data structures such as lists and
+% maps~\cite{Okasaki99}.
+
+\section{Simulation of the context-based reduction semantics}
 \label{subsec:machine-correctness}
 \begin{figure}[t]
 \flushleft
