@@ -7224,7 +7224,7 @@ operator as two mutually recursive handlers.
 %
 \[
 \bl
-   \Pipe   : \Record{\UnitType \to \alpha \eff \{ \Yield : \beta \opto \UnitType \}, \UnitType \to \alpha\eff\{ \Await : \UnitType \opto \beta \}}          \to \alpha \\
+   \Pipe   : \Record{\UnitType \to \alpha \eff \{ \Yield : \beta \opto \UnitType \}; \UnitType \to \alpha\eff\{ \Await : \UnitType \opto \beta \}}          \to \alpha \\
    \Pipe\, \Record{p; c} \defas
         \bl
           \ShallowHandle\; c\,\Unit \;\With\; \\
@@ -7234,7 +7234,7 @@ operator as two mutually recursive handlers.
             \ea
         \el\medskip\\
 
-   \Copipe : \Record{\beta \to \alpha\eff\{ \Await : \UnitType \opto \beta\},    \UnitType \to \alpha\eff\{ \Yield : \beta \opto \UnitType\}} \to \alpha \\
+   \Copipe : \Record{\beta \to \alpha\eff\{ \Await : \UnitType \opto \beta\};    \UnitType \to \alpha\eff\{ \Yield : \beta \opto \UnitType\}} \to \alpha \\
    \Copipe\, \Record{c; p} \defas
       \bl
          \ShallowHandle\; p\,\Unit \;\With\; \\
@@ -11200,167 +11200,269 @@ provides a way to extract the final value of some computation from a
 configuration.
 
 \subsection{Putting the machine into action}
-
 \newcommand{\Chiid}{\ensuremath{\Chi_{\text{id}}}}
 \newcommand{\kappaid}{\ensuremath{\kappa_{\text{id}}}}
-
-\paragraph{Example} To make the transition rules in
-Figure~\ref{fig:abstract-machine-semantics} concrete we give an
-example of the abstract machine in action. We reuse the small producer
-and consumer from Section~\ref{sec:shallow-handlers-tutorial}. We
-reproduce their definitions here in ANF.
+\newcommand{\incr}{\dec{incr}}
+\newcommand{\Incr}{\dec{Incr}}
+%
+To better understand how the abstract machine concretely transitions
+between configurations we will consider a small program consisting of
+a deep, parameterised, and shallow handler.
 %
 \[
-\bl
-\Ones \defas \Rec\;ones~\Unit. \Do\; \Yield~1; ones~\Unit \\
-\AddTwo \defas
-      \lambda \Unit.
-         \Let\; x \revto \Do\;\Await~\Unit \;\In\;
-         \Let\; y \revto \Do\;\Await~\Unit \;\In\;
-         x + y \\
-\el
-\]%
-%
-Let $N_x$ denote the term $\Let\;x \revto \Do\;\Await~\Unit\;\In\;N_y$
-and $N_y$ the term $\Let\;y \revto \Do\;\Await~\Unit\;\In\;x+y$.
-%
-%% For clarity, we annotate each bound variable $resume$ with a subscript
-%% $\Await$ or $\Yield$ according to whether it was captured by a
-%% consumer or a producer.
-%
-Suppose $\Ones$, $\AddTwo$, $\Pipe$, and $\Copipe$ are bound in
-$\env_\top$. Furthermore, let $H_\Pipe$ and $H_\Copipe$ denote the
-pipe and copipe handler definitions. The machine begins by applying
-$\Pipe$.
-%
-\begin{derivation}
-  &\cek{\Pipe~\Record{\Ones, \AddTwo} \mid \env_\top \mid \kappaid}\\
-  \stepsto& \reason{apply $\Pipe$}\\
-  &\cek{\ShallowHandle\;c~\Unit\;\With\;H_\Pipe \mid \env_\top[c \mapsto (\emptyset, \AddTwo), p \mapsto (\emptyset, \Ones)] \mid \kappaid}\\
-  \stepsto& \reason{install $H_\Pipe$ with $\env_\Pipe = \env_\top[c \mapsto (\emptyset, \AddTwo), p \mapsto (\emptyset, \Ones)]$}\\
-  &\cek{c~\Unit \mid \env_\Pipe \mid (\nil, (\env_\Pipe, H_\Pipe)) \cons \kappaid}\\
-  \stepsto& \reason{apply $c$ and $\val{c}\env_\Pipe = (\emptyset, \AddTwo)$}\\
-  &\cek{N_x \mid \emptyset \mid (\nil, (\env_\Pipe, H_\Pipe)) \cons \kappaid}\\
-  \stepsto& \reason{focus on left operand}\\
-  &\cek{\Do\;\Await~\Unit \mid \emptyset \mid ([(\emptyset, x, N_y)], (\env_\Pipe, H_\Pipe)) \cons \kappaid}\\
-  \stepsto& \reason{shallow continuation capture $v_\Await = (\nil, [(\emptyset, x, N_y)])$}\\
-  &\cek{\Copipe~\Record{resume, p} \mid \env_\Pipe[resume \mapsto v_\Await] \mid \kappaid}\\
-\end{derivation}
-%
-The invocation of $\Await$ begins a search through the machine
-continuation to locate a matching handler. In this instance the
-top-most handler $H_\Pipe$ handles $\Await$. The complete shallow
-resumption consists of an empty continuation and a singleton pure
-continuation. The former is empty as $H_\Pipe$ is a shallow handler,
-meaning that it is discarded.
-
-Evaluation continues by applying $\Copipe$.
-%
-\begin{derivation}
-  \stepsto& \reason{apply $\Copipe$}\\
-  &\cek{\ShallowHandle\; p~\Unit \;\With\;H_\Copipe \mid \env_\top[c \mapsto v_\Await, p \mapsto (\emptyset, \Ones)] \mid \kappaid}\\
-  \stepsto& \reason{install $H_\Copipe$ with $\env_\Copipe = \env_\top[c \mapsto v_\Await, p \mapsto (\emptyset, \Ones)]$}\\
-  &\cek{p~\Unit \mid \env_\Copipe \mid (\emptyset, (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
-  \stepsto^2& \reason{apply $p$, $\val{p}\env_\Copipe = (\emptyset, \Ones)$, and $\env_{\Ones} = \emptyset[ones \mapsto (\emptyset, \Ones)]$}\\
-  % &\cek{\Do\;\Yield~1;~ones~\Unit \mid \env_{ones} \mid (\nil, (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
-  % \stepsto^2& \reason{focus on $\Yield$}\\
-  &\cek{\Do\;\Yield~1 \mid \env_{\Ones} \mid ([(\env_{\Ones},\_,ones~\Unit)], (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
-  \stepsto& \reason{shallow continuation capture $v_\Yield = (\nil, [(\env_{\Ones}, \_, ones~\Unit)])$}\\
-  &\cek{\Pipe~\Record{resume, \lambda\Unit.c~s} \mid \env_\Copipe[s \mapsto 1,resume \mapsto v_\Yield] \mid \kappaid}
-\end{derivation}
-%
-At this point the situation is similar as before: the invocation of
-$\Yield$ causes the continuation to be unwound in order to find an
-appropriate handler, which happens to be $H_\Copipe$. Next $\Pipe$ is
-applied.
-%
-\begin{derivation}
-  \stepsto& \reason{apply $\Pipe$ and $\env_\Pipe' = \env_\top[c \mapsto (\env_\Copipe[c \mapsto v_\Await, s\mapsto 1]), p \mapsto v_\Yield])]$}\\
-  &\cek{\ShallowHandle\;c~\Unit\;\With\; H_\Pipe \mid \env_\Pipe' \mid \kappaid}\\
-  \stepsto& \reason{install $H_\Pipe$}\\
-  &\cek{c~\Unit \mid \env_\Pipe' \mid (\nil, (\env_\Pipe', H_\Pipe)) \cons \kappaid}\\
-  \stepsto& \reason{apply $c$ and $\val{c}\env_\Pipe' = (\env_\Copipe[c \mapsto v_\Await, s\mapsto 1])$}\\
-  &\cek{c~s \mid \env_\Copipe[c \mapsto v_\Await, s\mapsto 1] \mid (\nil, (\env_\Pipe', H_\Pipe)) \cons \kappaid}\\
-  \stepsto& \reason{shallow resume with $v_\Await = (\nil, [(\emptyset,x,N_y)])$}\\
-  &\cek{\Return\;1 \mid \env_\Pipe' \mid ([(\emptyset,x,N_y)], (\env_\Pipe', H_\Pipe)) \cons \kappaid}
-\end{derivation}
-%
-Applying the resumption concatenates the first component (the
-continuation) with the machine continuation. The second component
-(pure continuation) gets concatenated with the pure continuation of
-the top-most frame of the machine continuation. Thus in this
-particular instance, the machine continuation is manipulated as
-follows.
-%
-\[
-  \ba{@{~}l@{~}l}
-   &\nil \concat ([(\emptyset,x,N_y)] \concat \nil, (\env_\Pipe', H_\Pipe)) \cons \kappaid\\
-   =& ([(\emptyset,x,N_y)], (\env_\Pipe', H_\Pipe)) \cons \kappaid
-  \ea
+  \bl
+    % H_\nondet : \alpha \eff \{\Choose : \UnitType \opto \Bool\} \Harrow \List~\alpha\\
+    % H_\nondet \defas
+    %  \ba[t]{@{~}l@{~}c@{~}l}
+    %    \Return\;x &\mapsto& [x]\\
+    %    \OpCase{\Choose}{\Unit}{resume} &\mapsto& resume~\True \concat resume~\False
+    %  \ea \smallskip\\
+     \nondet : (\UnitType \to \alpha \eff \{\Fork : \UnitType \opto \Bool\}) \to \List~\alpha\\
+     \nondet~m \defas \bl
+       \Handle\;m\,\Unit\;\With\\
+         ~\ba{@{~}l@{~}c@{~}l}
+            \Return\;x &\mapsto& [x]\\
+            \OpCase{\Fork}{\Unit}{resume} &\mapsto& resume~\True \concat resume~\False
+     \ea
+     \el
+  \el
 \]
 %
-Because the control component contains the expression $\Return\;1$ and
-the pure continuation is nonempty, the machine applies the pure
-continuation.
-\begin{derivation}
-  \stepsto& \reason{apply pure continuation, $\env_{\AddTwo} = \emptyset[x \mapsto 1]$}\\
-  &\cek{N_y \mid \env_{\AddTwo} \mid (\nil, (\env_\Pipe', H_\Pipe)) \cons \kappaid}\\
-  \stepsto& \reason{focus on right operand}\\
-  &\cek{\Do\;\Await~\Unit \mid \env_{\AddTwo} \mid ([(\env_{\AddTwo}, y, x + y)], (\env_\Pipe', H_\Pipe)) \cons \kappaid}\\
-  \stepsto^2& \reason{shallow continuation capture $w_\Await = (\nil, [(\env_{\AddTwo}, y, x + y)])$, apply $\Copipe$}\\
-  &\cek{\ShallowHandle\;p~\Unit \;\With\; \env_\Copipe \mid \env_\top[c \mapsto w_\Await, p \mapsto v_\Yield] \mid \kappaid}\\
-  \reducesto& \reason{install $H_\Copipe$ with $\env_\Copipe = \env_\top[c \mapsto w_\Await, p \mapsto v_\Yield]$}\\
-  &\cek{p~\Unit \mid \env_\Copipe \mid (\nil, (\env_\Copipe, H_\Copipe)) \cons \kappaid}
-\end{derivation}
+\[
+  \bl
+  % H_\incr : \Record{\Int;\alpha \eff \{\Incr : \UnitType \opto \Int\}} \Harrow^\param \alpha\\
+  % H_\incr \defas
+  %    i.\,\ba[t]{@{~}l@{~}c@{~}l}
+  %      \Return\;x &\mapsto& x\\
+  %      \OpCase{\Incr}{\Unit}{resume} &\mapsto& resume\,\Record{i+1;i}
+  %    \ea \smallskip\\
+  \incr : \Record{\Int;\UnitType \to \alpha\eff \{\Incr : \UnitType \opto \Int\}} \to \alpha\\
+  \incr\,\Record{i_0;m} \defas
+  \bl
+  \ParamHandle\;m\,\Unit\;\With\\
+  ~\left(i.\,\ba{@{~}l@{~}c@{~}l}
+       \Return\;x &\mapsto& x\\
+       \OpCase{\Incr}{\Unit}{resume} &\mapsto& resume\,\Record{i+1;i}
+     \ea\right)~i_0
+  \el
+  \el
+\]
 %
-The variable $p$ is bound to the shallow resumption $v_\Yield$, thus
-invoking it will transfer control back to the $\Ones$ computation.
-%
-\begin{derivation}
-  \stepsto & \reason{shallow resume with $v_\Yield = (\nil, [(\env_{\Ones}, \_, ones~\Unit)])$}\\
-  &\cek{\Return\;\Unit \mid \env_\Copipe \mid ([(\env_{\Ones}, \_, ones~\Unit)], (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
-  \stepsto^3& \reason{apply pure continuation, apply $ones$, focus on $\Yield$}\\
-  &\cek{\Do\;\Yield~1 \mid \env_{\Ones} \mid ([(\env_{\Ones}, \_, ones~\Unit)], (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
-\end{derivation}
-%
-At this stage the machine repeats the transitions from before: the
-shallow continuation of $\Do\;\Yield~1$ is captured, control passes to
-the $\Yield$ clause in $H_\Copipe$, which again invokes $\Pipe$ and
-subsequently installs the $H_\Pipe$ handler with an environment
-$\env_\Pipe''$. The handler runs the computation $c~\Unit$, where $c$
-is an abstraction over the resumption $w_\Await$ applied to the
-yielded value $1$.
-%
-\begin{derivation}
-  \stepsto^6 & \reason{by the above reasoning, shallow resume with $w_\Await = (\nil, [(\env_{\AddTwo}, y, x + y)])$}\\
-  &\cek{x + y \mid \env_{\AddTwo}[y \mapsto 1] \mid (\nil, (\env_\Pipe'', H_\Pipe)) \cons \kappaid}\\
-  \stepsto& \reason{$\val{x}\env_{\AddTwo}[y\mapsto 1] = 1$ and $\val{y}\env_{\AddTwo}[y\mapsto 1] = 1$}\\
-  &\cek{\Return\;2 \mid \env_{\AddTwo}[y \mapsto 1] \mid (\nil, (\env_\Pipe'', H_\Pipe)) \cons \kappaid}
-\end{derivation}
-%
-Since the pure continuation is empty the $\Return$ clause of $H_\Pipe$
-gets invoked with the value $2$. Afterwards the $\Return$ clause of the
-identity continuation in $\kappaid$ is invoked, ultimately
-transitioning to the following final configuration.
-%
-\begin{derivation}
-  \stepsto^2& \reason{by the above reasoning}\\
-  &\cek{\Return\;2 \mid \emptyset \mid \nil}
-\end{derivation}
-%
-%\env_\top[c \mapsto (\env_\Copipe, \lambda\Unit.w_\Await~1),p \mapsto (\nil, [(\env_{\Ones}, \_, ones~\Unit)])]
+\[
+  \bl
+   \Pipe   : \Record{\UnitType \to \alpha \eff \{ \Yield : \beta \opto \UnitType \}; \UnitType \to \alpha\eff\{ \Await : \UnitType \opto \beta \}}          \to \alpha \\
+   \Pipe\, \Record{p; c} \defas
+        \bl
+          \ShallowHandle\; c\,\Unit \;\With\; \\
+           ~\ba[m]{@{}l@{~}c@{~}l@{}}
+              \Return~x &\mapsto& x \\
+              \OpCase{\Await}{\Unit}{resume}  &\mapsto& \Copipe\,\Record{resume; p} \\
+            \ea
+        \el\medskip\\
 
-\paragraph{Remark} If the main continuation is empty then the machine gets
-stuck. This occurs when an operation is unhandled, and the forwarding
-continuation describes the succession of handlers that have failed to
-handle the operation along with any pure continuations that were
-encountered along the way.
+   \Copipe : \Record{\beta \to \alpha\eff\{ \Await : \UnitType \opto \beta\};    \UnitType \to \alpha\eff\{ \Yield : \beta \opto \UnitType\}} \to \alpha \\
+   \Copipe\, \Record{c; p} \defas
+      \bl
+         \ShallowHandle\; p\,\Unit \;\With\; \\
+          ~\ba[m]{@{}l@{~}c@{~}l@{}}
+             \Return~x &\mapsto& x \\
+             \OpCase{\Yield}{y}{resume} &\mapsto& \Pipe\,\Record{resume; \lambda \Unit. c\, y} \\
+           \ea \\
+      \el \\
+\el
+\]
 %
-Assuming the input is a well-typed closed computation term $\typc{}{M
-  : A}{E}$, the machine will either not terminate, return a value of
-type $A$, or get stuck failing to handle an operation appearing in
-$E$. We now make the correspondence between the operational semantics
-and the abstract machine more precise.
+\[
+  \bl
+  \dec{prod}\,\Unit \defas \Do\;\Yield\,(\Do\;\Incr\,\Unit); \dec{prod}\,\Unit\\
+  \dec{cons}\,\Unit \defas \Let\;x \revto \Do\;\Await\,\Unit\;\In\;\Let\;y \revto \Do\;\Await\,\Unit\;\In\;x+y
+  \el
+\]
+%
+\begin{derivation}
+  &\nondet\,(\lambda\Unit.\incr\,\Record{0;\lambda\Unit.\Record{\Do\;\Fork\,\Unit;\Pipe\,\Record{\dec{prod};\dec{cons}}}})\\
+  \stepsto& \reason{\mlab{Init} with $\env_0$}\\
+  &\cek{\nondet\,(\lambda\Unit.\incr\,\Record{0;\lambda\Unit.\Record{\Do\;\Fork\,\Unit;\Pipe\,\Record{\dec{prod};\dec{cons}}}}) \mid \env_0 \mid \sks_0}\\
+  \stepsto^+& \reason{\mlab{App}, \mlab{Handle}, \mlab{App}, \mlab{Handle^\param}, \mlab{App}, \mlab{Let}}\\
+  &\bl
+  \cek{\Do\;\Fork\,\Unit \mid \env_0 \mid ([(\env_0,x,\Record{x;\Pipe\,\Record{\dec{prod};\dec{cons}}})],\chi_\incr) \cons (\nil, \chi_\nondet) \cons \sks_0}\\
+  ~\text{where } \chi_\incr \defas (\env_0[i \mapsto i],H_\incr)
+  \el\\
+  \stepsto^+& \reason{\mlab{Forward}, \mlab{Do^\param}}\\
+  &\bl
+    \cek{resume~\True \concat resume~\False \mid \env_\nondet \mid \sks_0}\\
+    ~\text{where } \env_\nondet \defas \env_0[resume \mapsto [([(\env_0,x,\Record{x;\Pipe\,\Record{\dec{prod};\dec{cons}}})],\chi_\incr), (\nil, \chi_\nondet)]
+   \el
+  % &\bl
+  % \cek{c\,\Unit \mid \env_{\Pipe} \mid (\nil,\chi_\Pipe) \cons (\nil,\chi_\incr) \cons (\nil, \chi_\nondet) \cons \sks_0}\\
+  % \ba[t]{@{~}r@{~}c@{~}l}
+  %   \text{where } \env_\Pipe &\defas& \env_0[pipe \mapsto (\env_0,\Pipe),p \mapsto (\env_0,\dec{prod}),c \mapsto (\env_0,\dec{cons})]\\
+  %   \text{and } \chi_\Pipe &\defas& (\env_{\Pipe},H_{\Pipe})
+  % \ea
+  % \el\\
+  % \stepsto^+& \reason{\mlab{App}, \mlab{Let}}\\
+  % &\bl\cek{\Do\;\Await\,\Unit \mid \env_0 \mid ([(\env_0,x,x+\Do\;\Await\,\Unit)],\chi_\Pipe) \cons \sks_1}\\
+  % ~\text{where } \sks_1 \defas (\nil,\chi_\incr) \cons (\nil, \chi_\nondet) \cons \sks_0
+  % \el
+\end{derivation}
+
+% \paragraph{Example} To make the transition rules in
+% Figure~\ref{fig:abstract-machine-semantics} concrete we give an
+% example of the abstract machine in action. We reuse the small producer
+% and consumer from Section~\ref{sec:shallow-handlers-tutorial}. We
+% reproduce their definitions here in ANF.
+% %
+% \[
+% \bl
+% \Ones \defas \Rec\;ones~\Unit. \Do\; \Yield~1; ones~\Unit \\
+% \AddTwo \defas
+%       \lambda \Unit.
+%          \Let\; x \revto \Do\;\Await~\Unit \;\In\;
+%          \Let\; y \revto \Do\;\Await~\Unit \;\In\;
+%          x + y \\
+% \el
+% \]%
+% %
+% Let $N_x$ denote the term $\Let\;x \revto \Do\;\Await~\Unit\;\In\;N_y$
+% and $N_y$ the term $\Let\;y \revto \Do\;\Await~\Unit\;\In\;x+y$.
+% %
+% %% For clarity, we annotate each bound variable $resume$ with a subscript
+% %% $\Await$ or $\Yield$ according to whether it was captured by a
+% %% consumer or a producer.
+% %
+% Suppose $\Ones$, $\AddTwo$, $\Pipe$, and $\Copipe$ are bound in
+% $\env_\top$. Furthermore, let $H_\Pipe$ and $H_\Copipe$ denote the
+% pipe and copipe handler definitions. The machine begins by applying
+% $\Pipe$.
+% %
+% \begin{derivation}
+%   &\cek{\Pipe~\Record{\Ones, \AddTwo} \mid \env_\top \mid \kappaid}\\
+%   \stepsto& \reason{apply $\Pipe$}\\
+%   &\cek{\ShallowHandle\;c~\Unit\;\With\;H_\Pipe \mid \env_\top[c \mapsto (\emptyset, \AddTwo), p \mapsto (\emptyset, \Ones)] \mid \kappaid}\\
+%   \stepsto& \reason{install $H_\Pipe$ with $\env_\Pipe = \env_\top[c \mapsto (\emptyset, \AddTwo), p \mapsto (\emptyset, \Ones)]$}\\
+%   &\cek{c~\Unit \mid \env_\Pipe \mid (\nil, (\env_\Pipe, H_\Pipe)) \cons \kappaid}\\
+%   \stepsto& \reason{apply $c$ and $\val{c}\env_\Pipe = (\emptyset, \AddTwo)$}\\
+%   &\cek{N_x \mid \emptyset \mid (\nil, (\env_\Pipe, H_\Pipe)) \cons \kappaid}\\
+%   \stepsto& \reason{focus on left operand}\\
+%   &\cek{\Do\;\Await~\Unit \mid \emptyset \mid ([(\emptyset, x, N_y)], (\env_\Pipe, H_\Pipe)) \cons \kappaid}\\
+%   \stepsto& \reason{shallow continuation capture $v_\Await = (\nil, [(\emptyset, x, N_y)])$}\\
+%   &\cek{\Copipe~\Record{resume, p} \mid \env_\Pipe[resume \mapsto v_\Await] \mid \kappaid}\\
+% \end{derivation}
+% %
+% The invocation of $\Await$ begins a search through the machine
+% continuation to locate a matching handler. In this instance the
+% top-most handler $H_\Pipe$ handles $\Await$. The complete shallow
+% resumption consists of an empty continuation and a singleton pure
+% continuation. The former is empty as $H_\Pipe$ is a shallow handler,
+% meaning that it is discarded.
+
+% Evaluation continues by applying $\Copipe$.
+% %
+% \begin{derivation}
+%   \stepsto& \reason{apply $\Copipe$}\\
+%   &\cek{\ShallowHandle\; p~\Unit \;\With\;H_\Copipe \mid \env_\top[c \mapsto v_\Await, p \mapsto (\emptyset, \Ones)] \mid \kappaid}\\
+%   \stepsto& \reason{install $H_\Copipe$ with $\env_\Copipe = \env_\top[c \mapsto v_\Await, p \mapsto (\emptyset, \Ones)]$}\\
+%   &\cek{p~\Unit \mid \env_\Copipe \mid (\emptyset, (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
+%   \stepsto^2& \reason{apply $p$, $\val{p}\env_\Copipe = (\emptyset, \Ones)$, and $\env_{\Ones} = \emptyset[ones \mapsto (\emptyset, \Ones)]$}\\
+%   % &\cek{\Do\;\Yield~1;~ones~\Unit \mid \env_{ones} \mid (\nil, (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
+%   % \stepsto^2& \reason{focus on $\Yield$}\\
+%   &\cek{\Do\;\Yield~1 \mid \env_{\Ones} \mid ([(\env_{\Ones},\_,ones~\Unit)], (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
+%   \stepsto& \reason{shallow continuation capture $v_\Yield = (\nil, [(\env_{\Ones}, \_, ones~\Unit)])$}\\
+%   &\cek{\Pipe~\Record{resume, \lambda\Unit.c~s} \mid \env_\Copipe[s \mapsto 1,resume \mapsto v_\Yield] \mid \kappaid}
+% \end{derivation}
+% %
+% At this point the situation is similar as before: the invocation of
+% $\Yield$ causes the continuation to be unwound in order to find an
+% appropriate handler, which happens to be $H_\Copipe$. Next $\Pipe$ is
+% applied.
+% %
+% \begin{derivation}
+%   \stepsto& \reason{apply $\Pipe$ and $\env_\Pipe' = \env_\top[c \mapsto (\env_\Copipe[c \mapsto v_\Await, s\mapsto 1]), p \mapsto v_\Yield])]$}\\
+%   &\cek{\ShallowHandle\;c~\Unit\;\With\; H_\Pipe \mid \env_\Pipe' \mid \kappaid}\\
+%   \stepsto& \reason{install $H_\Pipe$}\\
+%   &\cek{c~\Unit \mid \env_\Pipe' \mid (\nil, (\env_\Pipe', H_\Pipe)) \cons \kappaid}\\
+%   \stepsto& \reason{apply $c$ and $\val{c}\env_\Pipe' = (\env_\Copipe[c \mapsto v_\Await, s\mapsto 1])$}\\
+%   &\cek{c~s \mid \env_\Copipe[c \mapsto v_\Await, s\mapsto 1] \mid (\nil, (\env_\Pipe', H_\Pipe)) \cons \kappaid}\\
+%   \stepsto& \reason{shallow resume with $v_\Await = (\nil, [(\emptyset,x,N_y)])$}\\
+%   &\cek{\Return\;1 \mid \env_\Pipe' \mid ([(\emptyset,x,N_y)], (\env_\Pipe', H_\Pipe)) \cons \kappaid}
+% \end{derivation}
+% %
+% Applying the resumption concatenates the first component (the
+% continuation) with the machine continuation. The second component
+% (pure continuation) gets concatenated with the pure continuation of
+% the top-most frame of the machine continuation. Thus in this
+% particular instance, the machine continuation is manipulated as
+% follows.
+% %
+% \[
+%   \ba{@{~}l@{~}l}
+%    &\nil \concat ([(\emptyset,x,N_y)] \concat \nil, (\env_\Pipe', H_\Pipe)) \cons \kappaid\\
+%    =& ([(\emptyset,x,N_y)], (\env_\Pipe', H_\Pipe)) \cons \kappaid
+%   \ea
+% \]
+% %
+% Because the control component contains the expression $\Return\;1$ and
+% the pure continuation is nonempty, the machine applies the pure
+% continuation.
+% \begin{derivation}
+%   \stepsto& \reason{apply pure continuation, $\env_{\AddTwo} = \emptyset[x \mapsto 1]$}\\
+%   &\cek{N_y \mid \env_{\AddTwo} \mid (\nil, (\env_\Pipe', H_\Pipe)) \cons \kappaid}\\
+%   \stepsto& \reason{focus on right operand}\\
+%   &\cek{\Do\;\Await~\Unit \mid \env_{\AddTwo} \mid ([(\env_{\AddTwo}, y, x + y)], (\env_\Pipe', H_\Pipe)) \cons \kappaid}\\
+%   \stepsto^2& \reason{shallow continuation capture $w_\Await = (\nil, [(\env_{\AddTwo}, y, x + y)])$, apply $\Copipe$}\\
+%   &\cek{\ShallowHandle\;p~\Unit \;\With\; \env_\Copipe \mid \env_\top[c \mapsto w_\Await, p \mapsto v_\Yield] \mid \kappaid}\\
+%   \reducesto& \reason{install $H_\Copipe$ with $\env_\Copipe = \env_\top[c \mapsto w_\Await, p \mapsto v_\Yield]$}\\
+%   &\cek{p~\Unit \mid \env_\Copipe \mid (\nil, (\env_\Copipe, H_\Copipe)) \cons \kappaid}
+% \end{derivation}
+% %
+% The variable $p$ is bound to the shallow resumption $v_\Yield$, thus
+% invoking it will transfer control back to the $\Ones$ computation.
+% %
+% \begin{derivation}
+%   \stepsto & \reason{shallow resume with $v_\Yield = (\nil, [(\env_{\Ones}, \_, ones~\Unit)])$}\\
+%   &\cek{\Return\;\Unit \mid \env_\Copipe \mid ([(\env_{\Ones}, \_, ones~\Unit)], (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
+%   \stepsto^3& \reason{apply pure continuation, apply $ones$, focus on $\Yield$}\\
+%   &\cek{\Do\;\Yield~1 \mid \env_{\Ones} \mid ([(\env_{\Ones}, \_, ones~\Unit)], (\env_\Copipe, H_\Copipe)) \cons \kappaid}\\
+% \end{derivation}
+% %
+% At this stage the machine repeats the transitions from before: the
+% shallow continuation of $\Do\;\Yield~1$ is captured, control passes to
+% the $\Yield$ clause in $H_\Copipe$, which again invokes $\Pipe$ and
+% subsequently installs the $H_\Pipe$ handler with an environment
+% $\env_\Pipe''$. The handler runs the computation $c~\Unit$, where $c$
+% is an abstraction over the resumption $w_\Await$ applied to the
+% yielded value $1$.
+% %
+% \begin{derivation}
+%   \stepsto^6 & \reason{by the above reasoning, shallow resume with $w_\Await = (\nil, [(\env_{\AddTwo}, y, x + y)])$}\\
+%   &\cek{x + y \mid \env_{\AddTwo}[y \mapsto 1] \mid (\nil, (\env_\Pipe'', H_\Pipe)) \cons \kappaid}\\
+%   \stepsto& \reason{$\val{x}\env_{\AddTwo}[y\mapsto 1] = 1$ and $\val{y}\env_{\AddTwo}[y\mapsto 1] = 1$}\\
+%   &\cek{\Return\;2 \mid \env_{\AddTwo}[y \mapsto 1] \mid (\nil, (\env_\Pipe'', H_\Pipe)) \cons \kappaid}
+% \end{derivation}
+% %
+% Since the pure continuation is empty the $\Return$ clause of $H_\Pipe$
+% gets invoked with the value $2$. Afterwards the $\Return$ clause of the
+% identity continuation in $\kappaid$ is invoked, ultimately
+% transitioning to the following final configuration.
+% %
+% \begin{derivation}
+%   \stepsto^2& \reason{by the above reasoning}\\
+%   &\cek{\Return\;2 \mid \emptyset \mid \nil}
+% \end{derivation}
+% %
+% %\env_\top[c \mapsto (\env_\Copipe, \lambda\Unit.w_\Await~1),p \mapsto (\nil, [(\env_{\Ones}, \_, ones~\Unit)])]
+
+% \paragraph{Remark} If the main continuation is empty then the machine gets
+% stuck. This occurs when an operation is unhandled, and the forwarding
+% continuation describes the succession of handlers that have failed to
+% handle the operation along with any pure continuations that were
+% encountered along the way.
+% %
+% Assuming the input is a well-typed closed computation term $\typc{}{M
+%   : A}{E}$, the machine will either not terminate, return a value of
+% type $A$, or get stuck failing to handle an operation appearing in
+% $E$. We now make the correspondence between the operational semantics
+% and the abstract machine more precise.
 
 \section{Realisability and efficiency implications}
 \label{subsec:machine-realisability}
