@@ -10957,7 +10957,7 @@ Section~\ref{subsec:machine-correctness} easier to state.
 \[
 \bl
 %\multicolumn{1}{c}{\stepsto \subseteq \MConfCat \times \MConfCat}\\[1ex]
-\ba{@{}l@{\quad}r@{~}c@{~}l@{\quad}l@{}}
+\ba{@{}l@{\quad}r@{~}c@{~}l@{~~}l@{}}
 % \mlab{Init} & \multicolumn{3}{@{}c@{}}{M \stepsto \cek{M \mid \emptyset \mid [(\nil, (\emptyset, \{\Return\;x \mapsto \Return\;x\}))]}} \\[1ex]
 % App
 &&\multicolumn{2}{@{}l}{\stepsto \subseteq \MConfCat \times \MConfCat}\\
@@ -10988,7 +10988,7 @@ Section~\ref{subsec:machine-correctness} easier to state.
 % Deep resumption application
 \mlab{Resume^\param} & \cek{ V\,\Record{W;W'} \mid \env \mid \shk}
            &\stepsto& \cek{ \Return \; W \mid \env \mid (\sigma,(\env'[q \mapsto \val{W'}\env],q.\,H)) \cons \shk' \concat \shk},
-              &\text{if }\val{V}{\env} = (\sigma,(\env',q.\,H)) \cons \shk')^A \\
+              &\text{if }\val{V}{\env} = \shk' \concat [(\sigma,(\env',q.\,H))])^A \\
 %
 \mlab{Split} & \cek{ \Let \; \Record{\ell = x;y} = V \; \In \; N \mid \env \mid \shk}
       &\stepsto& \cek{ N \mid \env[x \mapsto v, y \mapsto w] \mid \shk},
@@ -11200,7 +11200,7 @@ provides a way to extract the final value of some computation from a
 configuration.
 
 \subsection{Putting the machine into action}
-\newcommand{\Chiid}{\ensuremath{\Chi_{\text{id}}}}
+\newcommand{\chiid}{\ensuremath{\chi_{\text{id}}}}
 \newcommand{\kappaid}{\ensuremath{\kappa_{\text{id}}}}
 \newcommand{\incr}{\dec{incr}}
 \newcommand{\Incr}{\dec{Incr}}
@@ -11222,7 +11222,12 @@ a deep, parameterised, and shallow handler.
        \Handle\;m\,\Unit\;\With\\
          ~\ba{@{~}l@{~}c@{~}l}
             \Return\;x &\mapsto& [x]\\
-            \OpCase{\Fork}{\Unit}{resume} &\mapsto& resume~\True \concat resume~\False
+            \OpCase{\Fork}{\Unit}{resume} &\mapsto&
+              \bl
+                \Let\;t \revto resume~\True\;\In\\
+                \Let\;f \revto resume~\False\;\In\\
+                t \concat f
+              \el
      \ea
      \el
   \el
@@ -11274,25 +11279,107 @@ a deep, parameterised, and shallow handler.
 %
 \[
   \bl
-  \dec{prod}\,\Unit \defas \Do\;\Yield\,(\Do\;\Incr\,\Unit); \dec{prod}\,\Unit\\
-  \dec{cons}\,\Unit \defas \Let\;x \revto \Do\;\Await\,\Unit\;\In\;\Let\;y \revto \Do\;\Await\,\Unit\;\In\;x+y
+  \dec{prod} : \UnitType \to \alpha \eff \{\Incr : \UnitType \opto \Int; \Yield : \Int \opto \UnitType\}\\
+  \dec{prod}\,\Unit \defas
+  \bl
+    \Let\;i \revto \Do\;\Incr\,\Unit\;\In\\
+    \Let\;x \revto \Do\;\Yield~i\\
+    \In\;\dec{prod}\,\Unit
+  \el\smallskip\\
+  \dec{cons} : \UnitType \to \Int \eff \{\Fork : \UnitType \opto \Bool; \Await : \UnitType \opto \Int\}\\
+  \dec{cons}\,\Unit \defas
+    \bl
+      \Let\;b \revto \Do\;\Fork\,\Unit\;\In\\
+      \Let\;x \revto \Do\;\Await\,\Unit\;\In\\
+      % \Let\;y \revto \Do\;\Await\,\Unit\;\In\\
+      \If\;b\;\Then\;x+2\;\Else\;x*2
+    \el
   \el
 \]
 %
 \begin{derivation}
-  &\nondet\,(\lambda\Unit.\incr\,\Record{0;\lambda\Unit.\Record{\Do\;\Fork\,\Unit;\Pipe\,\Record{\dec{prod};\dec{cons}}}})\\
+  &\nondet\,(\lambda\Unit.\incr\,\Record{0;\lambda\Unit.\Pipe\,\Record{\dec{prod};\dec{cons}}})\\
   \stepsto& \reason{\mlab{Init} with $\env_0$}\\
-  &\cek{\nondet\,(\lambda\Unit.\incr\,\Record{0;\lambda\Unit.\Record{\Do\;\Fork\,\Unit;\Pipe\,\Record{\dec{prod};\dec{cons}}}}) \mid \env_0 \mid \sks_0}\\
-  \stepsto^+& \reason{\mlab{App}, \mlab{Handle}, \mlab{App}, \mlab{Handle^\param}, \mlab{App}, \mlab{Let}}\\
+  &\cek{\nondet\,(\lambda\Unit.\incr\,\Record{0;\lambda\Unit.\Pipe\,\Record{\dec{prod};\dec{cons}}}) \mid \env_0 \mid \sks_0}\\
+  \stepsto^+& \reason{$3\times$(\mlab{App}, \mlab{Handle^\delta})}\\
   &\bl
-  \cek{\Do\;\Fork\,\Unit \mid \env_0 \mid ([(\env_0,x,\Record{x;\Pipe\,\Record{\dec{prod};\dec{cons}}})],\chi_\incr) \cons (\nil, \chi_\nondet) \cons \sks_0}\\
-  ~\text{where } \chi_\incr \defas (\env_0[i \mapsto i],H_\incr)
+    \cek{c\,\Unit \mid \env_\Pipe \mid (\nil,\chi^\dagger_\Pipe) \cons (\nil, \chi^\param_\incr) \cons (\nil, \chi_\nondet) \cons \kappa_0}\\
+    \text{where }
+      \bl
+        \env_\Pipe = \env_0[c \mapsto (\env_0, \dec{cons}), p \mapsto (\env_0, \dec{prod})]\\
+        \chi^\dagger_\Pipe = (\env_\Pipe, H^\dagger_\Pipe)\\
+        \env_\incr = \env_0[m \mapsto (\env_0, \lambda\Unit.\Pipe\cdots),i \mapsto 0]\\
+        \chi^\param_\incr = (\env_\incr, H^\param_\Pipe)\\
+        \env_\nondet = \env_0[m \mapsto (\env_0, \lambda\Unit.\incr \cdots)]\\
+        \chi_\nondet = (\env_\nondet, H_\nondet)
+      \el
+    \el\\
+  \stepsto^+& \reason{\mlab{App}, \mlab{Let}}\\
+  &\bl
+    \cek{\Do\;\Fork\,\Unit \mid \env_0 \mid ([(\env_0,b,\Let\;x \revto \cdots)],(\env_\Pipe,H^\dagger_\Pipe)) \cons \kappa_1}\\
+    \text{where } \kappa_1 = (\nil, \chi^\param_\incr) \cons (\nil, \chi_\nondet) \cons \kappa_0
   \el\\
-  \stepsto^+& \reason{\mlab{Forward}, \mlab{Do^\param}}\\
+  \stepsto^+& \reason{\mlab{Forward}, \mlab{Forward}}\\
   &\bl
-    \cek{resume~\True \concat resume~\False \mid \env_\nondet \mid \sks_0}\\
-    ~\text{where } \env_\nondet \defas \env_0[resume \mapsto [([(\env_0,x,\Record{x;\Pipe\,\Record{\dec{prod};\dec{cons}}})],\chi_\incr), (\nil, \chi_\nondet)]
-   \el
+    \cek{\Do\;\Fork\,\Unit \mid \env_0 \mid [(\nil, \chi_\nondet),(\nil,\chiid)] \circ \kappa'}\\
+    \text{where } \kappa' = [([(\env_0,b,\Let\;x \revto \cdots)],(\env_\Pipe,H^\dagger_\Pipe)),(\nil, \chi^\param_\incr)]
+   \el\\
+  \stepsto^+& \reason{\mlab{Do}, \mlab{Let}}\\
+  &\bl
+    \cek{resume~\True \mid \env_\nondet' \mid \kappa_0'}\\
+    \text{where }
+    \ba[t]{@{~}r@{~}c@{~}l}
+       \env_\nondet' &=& \env_\nondet[resume \mapsto \kappa' \concat [(\nil, \chi_\nondet)]]\\
+       \kappa_0'     &=& [([(\env_\nondet',x,\Let\;y\revto\cdots)],\chiid)]
+    \el
+  \el\\
+  \stepsto^+& \reason{\mlab{Resume}, \mlab{PureCont}, \mlab{Let}}\\
+  &\bl
+    \cek{\Do\;\Await\,\Unit \mid \env_0' \mid \kappa'}\\
+    \text{where }
+       \ba[t]{@{~}r@{~}c@{~}l}
+         \env_0' &=& \env_0[b \mapsto \True]\\
+         \kappa' &=& [([(\env_0',x,\If\;\cdots)], \chi^\dagger_\Pipe),(\nil,\chi^\param_\incr),(\nil, \chi_\nondet)] \concat \kappa_0'
+         \ea
+    \el\\
+  \stepsto^+& \reason{\mlab{Forward}, \mlab{Do^\dagger}}\\
+  &\bl
+    \cek{\Copipe\,\Record{resume;p} \mid \env_\Pipe' \mid \kappa'}\\
+    \text{where }
+      \ba[t]{@{~}r@{~}c@{~}l}
+        \env_\Pipe' &=& \env_\Pipe[resume \mapsto (\nil, [(\env_0',x,\If\;\cdots)])]\\
+        \kappa'     &=& [(\nil,\chi^\param_\incr),(\nil, \chi_\nondet)] \concat \kappa_0'
+      \ea
+    \el\\
+    \stepsto^+& \reason{\mlab{App}, \mlab{Handle^\dagger}}\\
+  &\bl
+    \cek{p\,\Unit \mid \env_\Copipe \mid (\nil, \chi^\dagger_\Copipe) \cons \kappa'}\\
+    \text{where }
+      \ba[t]{@{~}r@{~}c@{~}l}
+        \env_\Copipe &=& \env_0[c \mapsto (\nil, [(\env_0',x,\If\;\cdots)]), p \mapsto (\env_0,\dec{prod})]\\
+        \chi_\Copipe  &=& (\env_\Copipe,H^\dagger_\Copipe)\\
+        \ea
+    \el\\
+  \stepsto^+& \reason{\mlab{AppRec}, \mlab{Let}}\\
+  &\cek{\Do\;\Incr\,\Unit \mid \env_0 \mid ([(\env_0,i,\Let\;x\revto\cdots)],\chi^\dagger_\Copipe) \cons \kappa'}\\
+  \stepsto^+& \reason{\mlab{Forward}, \mlab{Do^\param}, \mlab{Let}, \mlab{App}, \mlab{PureCont}}\\
+  &\bl
+    \cek{resume\,\Record{1;0} \mid \env_\incr' \mid \kappa'}\\
+    \text{where }
+      \ba[t]{@{~}r@{~}c@{~}l}
+        \env_\incr' &=& \env_\incr[i' \mapsto 1, resume \mapsto [([(\env_0,i,\Let\;x\revto\cdots)],\chi^\dagger_\Copipe),(\nil,\chi^\param_\incr)]]\\
+        \kappa'     &=& (\nil, \chi_\nondet) \cons \kappa_0'
+        \ea
+     \el
+  % &\bl
+  % \cek{\Do\;\Fork\,\Unit \mid \env_0 \mid ([(\env_0,x,\Record{x;\Pipe\,\Record{\dec{prod};\dec{cons}}})],\chi_\incr) \cons (\nil, \chi_\nondet) \cons \sks_0}\\
+  % ~\text{where } \chi_\incr \defas (\env_0[i \mapsto i],H_\incr)
+  % \el\\
+  % \stepsto^+& \reason{\mlab{Forward}, \mlab{Do^\param}}\\
+  % &\bl
+  %   \cek{resume~\True \concat resume~\False \mid \env_\nondet \mid \sks_0}\\
+  %   ~\text{where } \env_\nondet \defas \env_0[resume \mapsto [([(\env_0,x,\Record{x;\Pipe\,\Record{\dec{prod};\dec{cons}}})],\chi_\incr), (\nil, \chi_\nondet)]
+  %  \el
   % &\bl
   % \cek{c\,\Unit \mid \env_{\Pipe} \mid (\nil,\chi_\Pipe) \cons (\nil,\chi_\incr) \cons (\nil, \chi_\nondet) \cons \sks_0}\\
   % \ba[t]{@{~}r@{~}c@{~}l}
