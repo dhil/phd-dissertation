@@ -235,6 +235,7 @@
 
 \newcommand{\concat}{\mathbin{+\!\!+}}
 \newcommand{\revconcat}{\mathbin{\widehat{\concat}}}
+\newcommand{\snoc}[2]{\ensuremath{#1 \concat [#2]}}
 
 %%
 %% CPS notation
@@ -541,3 +542,95 @@
     }
 ;
 \end{tikzpicture}}
+
+%%
+%% Asymptotic improvement macros
+%%
+\newcommand{\naive}{naïve\xspace}
+\newcommand{\naively}{naïvely\xspace}
+\newcommand{\Naive}{Naïve\xspace}
+\newcommand{\sem}[1]{\ensuremath{\pi_{#1}}}
+\newcommand{\Iff}{\Leftrightarrow}
+\newcommand{\Implies}{\Rightarrow}
+\newcommand{\BCalcS}{\ensuremath{\lambda_{\textrm{\normalfont s}}\xspace}}
+\newcommand{\BCalcE}{\ensuremath{\lambda_{\textrm{\normalfont e}}\xspace}}
+\newcommand{\BCalcSE}{\ensuremath{\lambda_{\textrm{\normalfont se}}\xspace}}
+\newcommand{\IfZero}{\keyw{ifzero}}
+\newcommand{\Superpoint}{\lambda\_.\Do\;\Branch~\Unit}
+\newcommand{\ECount}{\dec{effcount}}
+\newcommand{\Countprog}{K}
+\newcommand{\Plus}{\mathsf{Plus}}
+\newcommand{\Minus}{\mathsf{Minus}}
+\newcommand{\Eq}{\mathsf{Eq}}
+\newcommand{\BList}{\mathbb{B}^\ast}
+
+\newcommand{\CtxCat}{\CatName{Ctx}}
+\newcommand{\PureCont}{\mathsf{PureCont}}
+
+\newcommand{\Addr}{\mathsf{Addr}}
+\newcommand{\Lab}{\mathsf{Lab}}
+\newcommand{\Env}{\mathsf{Env}}
+
+\newcommand{\Time}{\dec{DTIME}}
+\newcommand{\query}{\mathord{?}}
+\newcommand{\ans}{\mathord{!}}
+\newcommand{\labs}{\mathsf{labs}}
+\newcommand{\steps}{\mathsf{steps}}
+
+\newcommand{\tree}{\tau}
+\newcommand{\tl}{\labs(\tree)}
+\newcommand{\ts}{\steps(\tree)}
+\newcommand{\T}[1]{\ensuremath{\mathcal{T}_{#1}}}
+\newcommand{\Config}{\dec{Config}}
+\newcommand{\cekl}{\langle}
+\newcommand{\cekr}{\rangle}
+
+\newcommand{\const}[1]{\ulcorner #1 \urcorner}
+\newcommand{\HC}{\ensuremath{\mathcal{H}}}
+
+\newcommand{\tr}{\mathcal{T}}
+\newcommand{\tru}{\mathcal{U}}
+\newcommand{\Tree}{\dec{Tree}}
+\newcommand{\TimedTree}{\dec{TimedTree}}
+\newcommand{\denotep}[1]{\ensuremath{\mathbb{P}\llbracket #1 \rrbracket}}
+
+\newcommand\ttTwoTree{
+\begin{tikzpicture}[->,>=stealth',level/.style={sibling distance = 4cm/##1,
+  level distance = 2.0cm}]
+\node (root) [opnode] {Branch}
+  child { node [opnode] {Branch}
+    child { node [leaf] {$\True$}
+      edge from parent node[above left] {$\True$}
+    }
+    child { node [leaf] {$\True$}
+      edge from parent node[above right] {$\False$}
+    }
+    edge from parent node[above left] {$\True$}
+  }
+  child { node [opnode] {Branch}
+    child { node [leaf] {$\True$}
+      edge from parent node[above left] {$\True$}
+    }
+    child { node [leaf] {$\True$}
+      edge from parent node[above right] {$\False$}
+    }
+    edge from parent node[above right] {$\False$}
+  }
+;
+\end{tikzpicture}}
+
+
+\newcommand{\tossTree}{
+  \begin{tikzpicture}[->,>=stealth',level/.style={sibling distance = 2.5cm/##1,
+      level distance = 1.0cm}]
+\node (root) [opnode] {$\dec{Branch}$}
+  child { node [leaf] {$\dec{Heads}$}
+    edge from parent node[above left] {$\True$}
+  }
+  child { node [leaf] {$\dec{Tails}$}
+    edge from parent node[above right] {$\False$}
+  }
+;
+\end{tikzpicture}}
+
+\newenvironment{twoeqs}{\ba[t]{@{}r@{~}c@{~}l@{~}c@{~}r@{~}c@{~}l@{}}}{\ea}
