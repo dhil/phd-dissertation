@@ -11207,9 +11207,14 @@ configuration.
 \newcommand{\prodf}{\dec{prod}}
 \newcommand{\consf}{\dec{cons}}
 %
-To better understand how the abstract machine concretely transitions
-between configurations we will consider a small program consisting of
-a deep, parameterised, and shallow handler.
+To gain a better understanding of how the abstract machine concretely
+transitions between configurations we will consider a small program
+consisting of a deep, parameterised, and shallow handler.
+%
+For the deep handler we will use the $\nondet$ handler from
+Section~\ref{sec:tiny-unix-time} which handles invocations of the
+operation $\Fork : \UnitType \opto \Bool$; it is reproduced here in
+fine-grain call-by-value syntax.
 %
 \[
   \bl
@@ -11235,6 +11240,11 @@ a deep, parameterised, and shallow handler.
   \el
 \]
 %
+As for the parameterised handler we will use a handler, which
+implements a simple counter that supports one operation
+$\Incr : \UnitType \opto \Int$, which increments the value of the
+counter and returns the previous value. It is defined as follows.
+%
 \[
   \bl
   % H_\incr : \Record{\Int;\alpha \eff \{\Incr : \UnitType \opto \Int\}} \Harrow^\param \alpha\\
@@ -11248,12 +11258,15 @@ a deep, parameterised, and shallow handler.
   \bl
   \ParamHandle\;m\,\Unit\;\With\\
   ~\left(i.\,\ba{@{~}l@{~}c@{~}l}
-       \Return\;x &\mapsto& x\\
+       \Return\;x &\mapsto& \Return\;x\\
        \OpCase{\Incr}{\Unit}{resume} &\mapsto& \Let\;i' \revto i+1\;\In\;resume\,\Record{i';i}
      \ea\right)~i_0
   \el
   \el
 \]
+%
+We will use the $\Pipe$ and $\Copipe$ shallow handlers from
+Section~\ref{sec:pipes} to construct a small pipeline.
 %
 \[
   \bl
@@ -11262,7 +11275,7 @@ a deep, parameterised, and shallow handler.
         \bl
           \ShallowHandle\; c\,\Unit \;\With\; \\
            ~\ba[m]{@{}l@{~}c@{~}l@{}}
-              \Return~x &\mapsto& x \\
+              \Return~x &\mapsto& \Return\;x \\
               \OpCase{\Await}{\Unit}{resume}  &\mapsto& \Copipe\,\Record{resume; p} \\
             \ea
         \el\medskip\\
@@ -11272,12 +11285,15 @@ a deep, parameterised, and shallow handler.
       \bl
          \ShallowHandle\; p\,\Unit \;\With\; \\
           ~\ba[m]{@{}l@{~}c@{~}l@{}}
-             \Return~x &\mapsto& x \\
+             \Return~x &\mapsto& \Return\;x \\
              \OpCase{\Yield}{y}{resume} &\mapsto& \Pipe\,\Record{resume; \lambda \Unit. c\, y} \\
            \ea \\
       \el \\
 \el
 \]
+%
+We use the following the producer and consumer computations for the
+pipes.
 %
 \[
   \bl
@@ -11294,14 +11310,28 @@ a deep, parameterised, and shallow handler.
       \Let\;b \revto \Do\;\Fork\,\Unit\;\In\;
       \Let\;x \revto \Do\;\Await\,\Unit\;\In\\
       % \Let\;y \revto \Do\;\Await\,\Unit\;\In\\
-      \If\;b\;\Then\;x+2\;\Else\;x*2
+      \If\;b\;\Then\;x*2\;\Else\;x*x
     \el
   \el
 \]
 %
+The producer computation $\prodf$ invokes the operation $\Incr$ to
+increment and retrieve the previous value of some counter. This value
+is supplied as the payload to an invocation of $\Yield$.
+%
+The consumer computation $\consf$ first performs an invocation of
+$\Fork$ to duplicate the stream, and then it performs an invocation
+$\Await$ to retrieve some value. The return value of $\consf$ depends
+on the instance runs in the original stream or forked stream. The
+original stream multiplies the retrieved value by $2$, and the
+duplicate squares the value.
+%
+Finally, the top-level computation plugs all of the above together.
+%
 \begin{equation}
   \nondet\,(\lambda\Unit.\incr\,\Record{1;\lambda\Unit.\Pipe\,\Record{\prodf;\consf}})\label{eq:abs-prog}
 \end{equation}
+%
 %
 Function interpretation is somewhat heavy notation-wise as
 environments need to be built. To make the notation a bit more
@@ -11324,9 +11354,10 @@ be implicitly $\Let$-sequenced, whose tail computation is
 `toplevel' environment, which binds the closures for the definition. I
 shall use $\env_0$ to denote this environment.
 
-The machine starts in an initial configuration with the $\env_0$
-environment. The initial transitions install the three handlers in
-order: $\nondet$, $\incr$, and $\Pipe$.
+The machine executes the top-level computation in an initial
+configuration with the top-level environment $\env_0$. The first
+couple of transitions install the three handlers in order: $\nondet$,
+$\incr$, and $\Pipe$.
 %
 \begin{derivation}
   &\nondet\,(\lambda\Unit.\incr\,\Record{1;\lambda\Unit.\Pipe\,\Record{\prodf;\consf}})\\
