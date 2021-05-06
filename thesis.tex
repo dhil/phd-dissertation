@@ -11523,10 +11523,10 @@ computation.
    \el\\
    \stepsto^+& \reason{\mlab{App}, \mlab{Handle^\dagger}, \mlab{Resume^\dagger}, \mlab{PureCont}}\\
   &\bl
-     \cek{\If\;b\;\Then\;x + 2\;\Else\;x*2 \mid \env_\consf'' \mid (\nil, \chi^\dagger_\Pipe) \cons (\nil,\chi^\param_\incr) \cons (\nil, \chi_\nondet) \cons \kappa_0'}\\
+     \cek{\If\;b\;\Then\;x * 2\;\Else\;x*x \mid \env_\consf'' \mid (\nil, \chi^\dagger_\Pipe) \cons (\nil,\chi^\param_\incr) \cons (\nil, \chi_\nondet) \cons \kappa_0'}\\
      \text{where }
        \ba[t]{@{~}r@{~}c@{~}l}
-         \env_\consf'' &=& \env_\consf[x \mapsto 1]
+         \env_\consf'' &=& \env_\consf'[x \mapsto 1]
         \ea
         \el
 \end{derivation}
@@ -13123,140 +13123,6 @@ for illustrating the generic search efficiency phenomenon.
 %
 Auxiliary results are included in the appendices of the extended
 version of the paper~\citep{HillerstromLL20}.
-
-%%
-%% Effect handlers primer
-%%
-\section{Effect Handlers Primer}
-\label{sec:handlers-primer}
-Effect handlers were originally studied as a theoretical means to
-provide a semantics for exception handling in the setting of algebraic
-effects~\cite{PlotkinP01, PlotkinP13}.
-%
-Subsequently they have emerged as a practical programming abstraction
-for modular effectful programming~\citep{BauerP15, ConventLMM20,
-  KammarLO13, KiselyovSS13, DolanWSYM15, Leijen17, HillerstromLA20}.
-%
-In this section we give a short introduction to effect handlers.  For
-a thorough introduction to programming with effect handlers, we
-recommend the tutorial by \citet{Pretnar15}, and as an introduction to
-the mathematical foundations of handlers, we refer the reader to the
-founding paper by \citet{PlotkinP13} and the excellent tutorial paper
-by \citet{Bauer18}.
-%
-
-Viewed through the lens of universal algebra, an algebraic effect is
-given by a signature $\Sigma$ of typed \emph{operation symbols} along
-with an equational theory that describes the properties of the
-operations~\cite{PlotkinP01}.
-%
-An example of an algebraic effect is \emph{nondeterminism}, whose
-signature consists of a single nondeterministic choice operation:
-$\Sigma \defas \{ \Branch : \One \to \Bool \}$.
-%
-The operation takes a single parameter of type unit and ultimately
-produces a boolean value.
-%
-The pragmatic programmatic view of algebraic effects differs from the
-original development as no implementation accounts for equations over
-operations yet.
-
-As a simple example, let us use the operation $\Branch$ to model a
-coin toss.
-%
-Suppose we have a data type $\dec{Toss} \defas \dec{Heads} \mid
-\dec{Tails}$, then
-%
-we may implement a coin toss as follows.
-%
-{\small
-\[
-  \bl
-    \dec{toss} : \One \to \dec{Toss}\\
-    \dec{toss}~\Unit =
-           \If \; \Do\; \Branch\; \Unit \;
-           \Then\; \dec{Heads} \;
-           \Else\; \dec{Tails}
-  \el
-\]}%
-%
-From the type signature it is clear that the computation returns a
-value of type $\dec{Toss}$. It is not clear from the signature of
-$\dec{toss}$ whether it performs an effect. However, from the
-definition, it evidently performs the operation $\Branch$ with
-argument $\Unit$ using the $\Do$-invocation form. The result of the
-operation determines whether the computation returns either
-$\dec{Heads}$ or $\dec{Tails}$.
-%
-Systems such as Frank~\cite{LindleyMM17, ConventLMM20},
-Helium~\cite{BiernackiPPS19, BiernackiPPS20}, Koka~\cite{Leijen17},
-and Links~\cite{HillerstromL16, HillerstromLA20} include
-type-and-effect systems which track the use of effectful operations,
-whilst current iterations of systems such as Eff~\cite{BauerP15} and
-Multicore OCaml~\cite{DolanWSYM15} elect not to track effects in the
-type system.
-%
-Our language is closer to the latter two.
-
-%
-We may view an effectful computation as a tree, where the interior
-nodes correspond to operation invocations and the leaves correspond to
-return values.
-%
-The computation tree for $\dec{toss}$ is as follows.
-%
-\begin{center}
-  {\small
-  \tossTree}%
-\end{center}
-%
-It models interaction with the environment. The operation $\Branch$
-can be viewed as a \emph{query} for which the \emph{response} is
-either $\True$ or $\False$. The response is provided by an effect
-handler. As an example, consider the following handler which enumerates
-the possible outcomes of a coin toss.
-%
-{\small
-\[
-  \bl
-    \Handle\; \dec{toss}~\Unit\;\With\\
-      \quad\ba[t]{@{~}l@{~}c@{~}l}
-           \Val~x &\mapsto& [x]\\
-           \Branch~\Unit~r &\mapsto& r~\True \concat r~\False
-           \ea
-  \el
-\]}%
-%
-The $\Handle$-construct generalises the exceptional syntax
-of~\citet{BentonK01}.
-%
-This handler has a \emph{success} clause and an \emph{operation}
-clauses.
-%
-The success clause determines how to interpret the return value of
-$\dec{toss}$, or equivalently how to interpret the leaves of its
-computation tree.
-%
-It lifts the return value into a singleton list.
-%
-The operation clause determines how to interpret occurrences of
-$\Branch$ in $\dec{toss}$. It provides access to the argument of
-$\Branch$ (which is unit) and its resumption, $r$. The resumption is a
-first-class delimited continuation which captures the remainder of the
-$\dec{toss}$ computation from the invocation of $\Branch$ up to its
-nearest enclosing handler.
-%
-
-Applying $r$ to $\True$ resumes evaluation of $\dec{toss}$ via the
-$\True$ branch, returning $\dec{Heads}$ and causing the success clause
-of the handler to be invoked; thus the result of $r~\True$ is
-$[\dec{Heads}]$. Evaluation continues in the operation clause,
-meaning that $r$ is applied again, but this time to $\False$, which
-causes evaluation to resume in $\dec{toss}$ via the $\False$
-branch. By the same reasoning, the value of $r~\False$ is
-$[\dec{Tails}]$, which is concatenated with the result of the
-$\True$ branch; hence the handler ultimately returns
-$[\dec{Heads}, \dec{Tails}]$.
 
 %%
 %% Base calculus
@@ -16081,72 +15947,6 @@ fast with SML/NJ compared with MLton.
 
 \tablethree
 
-%%
-%% Conclusions and Future work
-%%
-\section{Conclusions and Future Work}
-\label{sec:conclusions}
-We presented a PCF-inspired language $\BCalc$ and its extension with
-effect handlers $\HCalc$. We proved that $\HCalc$ supports an
-asymptotically more efficient implementation of generic search than
-any possible implementation in $\BCalc$. We observed its effect in
-practice on several benchmarks.
-%
-We also proved that our $\Omega(n2^n)$ lower bound applies to a
-language $\BCalcS$ which extends $\BCalc$ with state.
-
-Our positive result for $\HCalc$ extends to other control operators by appeal to existing
-results on interdefinability of handlers and other control
-operators~\citep{ForsterKLP19,PirogPS19}.
-%
-The result no longer applies directly if we add an effect type system
-to $\HCalc$, as the implementation of the counting program would
-require a change of type for predicates to reflect the ability to
-perform effectful operations.
-%
-In future we plan to investigate how to account for effect type systems.
-
-We have verified that our $\Omega(n2^n)$ lower bound also applies to
-a language $\BCalcE$ with (Benton-Kennedy style~\citep{BentonK01})
-\emph{exceptions} and handlers.
-%
-The lower bound also applies to the combined language $\BCalcSE$
-with both state and exceptions --- this seems to bring us close to
-the expressive power of real languages such as Standard ML, Java, and
-Python, strongly suggesting that the speedup we have discussed is
-unattainable in these languages.
-
-In future work, we hope to establish the more general result that our
-$\Omega(n2^n)$ applies to a language with \emph{affine effect
-  handlers} (handlers which invoke the resumption $r$ at most once).
-This would not only subsume our present results (since state and
-exceptions are examples of affine effects), but would also apply
-e.g.\ to a richer language with \emph{coroutines}.  However, it
-appears that our present methods do not immediately adapt to this more
-general situation, as our arguments depend at various points on an
-orderly nesting of subcomputations which coroutining would break.
-
-One might object that the efficiency gap we have analysed is of merely
-theoretical interest, since an $\Omega(2^n)$ runtime is already
-`infeasible'.  We claim, however, that what we have presented is an
-example of a much more pervasive phenomenon, and our generic count
-example serves merely as a convenient way to bring this phenomenon
-into sharp formal focus. Suppose, for example, that our programming
-task was not to count all solutions to $P$, but to find just one of
-them.  It is informally clear that for many kinds of predicates this
-would in practice be a feasible task, and also that we could still
-gain our factor $n$ speedup here by working in a language with
-first-class control.  However, such an observation appears less
-amenable to a clean mathematical formulation, as the runtimes in
-question are highly sensitive to both the particular choice of
-predicate and the search order employed.
-
-
-% \chapter{Speeding up programs in ML-like programming languages}
-% \section{Mutable state}
-% \section{Exception handling}
-% \section{Effect system}
-
 \part{Conclusions}
 \label{p:conclusions}
 
@@ -16184,13 +15984,15 @@ into the wider landscape of programming abstractions.
 \section{Programming with effect handlers}
 In Chapters~\ref{ch:base-language} and \ref{ch:unary-handlers} I
 explored the design space of programming languages with effect
-handlers. My design differentiates itself from others in the literature
-with respect to the kind of programming language considered. I have
-focused a language with structural data and effects, whereas others
-have focused on nominal data and effects. An effect system is
-necessary to ensure safety and soundness in a structural
-setting. Although, an effect system is informative, it is not strictly
-necessary in a nominal setting.
+handlers. My design differentiates itself from others in the
+literature with respect to the kind of programming language considered
+as I have focused a language with structural data and effects, whereas
+others have focused on nominal data and effects. An effect system is
+necessary to ensure the standard safety and soundness properties of
+statically typed programming languages.  Although, an effect system is
+informative, it is not strictly necessary in a nominal setting
+(e.g. Section~\ref{sec:handlers-calculus} presents a sound core
+calculus with nominal effects, but without an effect system).
 %
 Another point of emphasis is that my design incorporates deep,
 shallow, and parameterised variations of effect handlers into a single
@@ -16200,13 +16002,19 @@ Section~\ref{sec:deep-handlers-in-action}.
 
 
 \subsection{Future work}
+
+\paragraph{Operating systems via effect handlers}
+\begin{itemize}
+  \item Signal handling.
+  \item Implement an actual operation system using handlers.
+  \item Re-implement the case study in other programming languages.
+  \item Prove the UNIX with handlers correct.
+\end{itemize}
+
 \begin{itemize}
   \item Efficiency of nested handlers.
   \item Effect-based optimisations.
   \item Equational theories.
-  \item Signal handling.
-  \item Implement an actual operation system using handlers.
-  \item Re-implement the case study in other programming languages.
   \item Parallel and distributed programming with effect handlers.
   \item Multi-handlers.
 \end{itemize}
@@ -16223,6 +16031,65 @@ Section~\ref{sec:deep-handlers-in-action}.
 \end{itemize}
 
 \section{On the expressive power of effect handlers}
+%%
+%% Conclusions and Future work
+%%
+\section{Conclusions and Future Work}
+\label{sec:conclusions}
+We presented a PCF-inspired language $\BCalc$ and its extension with
+effect handlers $\HCalc$. We proved that $\HCalc$ supports an
+asymptotically more efficient implementation of generic search than
+any possible implementation in $\BCalc$. We observed its effect in
+practice on several benchmarks.
+%
+We also proved that our $\Omega(n2^n)$ lower bound applies to a
+language $\BCalcS$ which extends $\BCalc$ with state.
+
+Our positive result for $\HCalc$ extends to other control operators by appeal to existing
+results on interdefinability of handlers and other control
+operators~\cite{ForsterKLP19,PirogPS19}.
+%
+The result no longer applies directly if we add an effect type system
+to $\HCalc$, as the implementation of the counting program would
+require a change of type for predicates to reflect the ability to
+perform effectful operations.
+%
+In future we plan to investigate how to account for effect type systems.
+
+We have verified that our $\Omega(n2^n)$ lower bound also applies to
+a language $\BCalcE$ with \citeauthor{BentonK01}-style
+\emph{exceptions} and handlers~\cite{BentonK01}.
+%
+The lower bound also applies to the combined language $\BCalcSE$
+with both state and exceptions --- this seems to bring us close to
+the expressive power of real languages such as Standard ML, Java, and
+Python, strongly suggesting that the speedup we have discussed is
+unattainable in these languages.
+
+In future work, we hope to establish the more general result that our
+$\Omega(n2^n)$ applies to a language with \emph{affine effect
+  handlers} (handlers which invoke the resumption $r$ at most once).
+This would not only subsume our present results (since state and
+exceptions are examples of affine effects), but would also apply
+e.g.\ to a richer language with \emph{coroutines}.  However, it
+appears that our present methods do not immediately adapt to this more
+general situation, as our arguments depend at various points on an
+orderly nesting of subcomputations which coroutining would break.
+
+One might object that the efficiency gap we have analysed is of merely
+theoretical interest, since an $\Omega(2^n)$ runtime is already
+`infeasible'.  We claim, however, that what we have presented is an
+example of a much more pervasive phenomenon, and our generic count
+example serves merely as a convenient way to bring this phenomenon
+into sharp formal focus. Suppose, for example, that our programming
+task was not to count all solutions to $P$, but to find just one of
+them.  It is informally clear that for many kinds of predicates this
+would in practice be a feasible task, and also that we could still
+gain our factor $n$ speedup here by working in a language with
+first-class control.  However, such an observation appears less
+amenable to a clean mathematical formulation, as the runtimes in
+question are highly sensitive to both the particular choice of
+predicate and the search order employed.
 
 \subsection{Future work}
 \begin{itemize}
