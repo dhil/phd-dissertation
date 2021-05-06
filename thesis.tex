@@ -10756,10 +10756,9 @@ then in the image $\cps{M}\,k \reducesto^\ast k\,\cps{V}$.
 Abstract machine semantics are an operational semantics that makes
 program control more apparent than context-based reduction
 semantics. In a some sense abstract machine semantics are a lower
-level semantics than reduction semantics as it provides a model of
-computation based on an \emph{abstract machine}, which captures some
-core aspects of how an actual computer might go about executing a
-program.
+level semantics than reduction semantics as they provide a model of
+computation based on \emph{abstract machines}, which capture some core
+aspects of how actual computers might go about executing programs.
 %
 Abstract machines come in different style and flavours, though, a
 common trait is that they are defined in terms of
@@ -10787,18 +10786,11 @@ name values as an environment associates names with values. Thus by
 using the CEK formalism we depart from the substitution-based model of
 computation used in the preceding chapters and move towards a more
 `realistic' model of computation (realistic in the sense of emulating
-how a computer executes a program).
-%
-Formally, the CEK machine comprises three components: 1) the control
-component, which focuses the term currently being evaluated; 2) the
-environment component, which maps free variables to machine values,
-and 3) the continuation component, which describes what to evaluate
-next (some literature uses the term `control string' in lieu of
-continuation to disambiguate it from programmatic continuations in the
-source language).
-%
-Intuitively, the continuation component captures the idea of call
-stack from actual programming language implementations.
+how a computer executes a program). Another significant difference is
+that in the CEK formalism evaluation contexts are no longer
+syntactically intertwined with the source program. Instead evaluation
+contexts are separately managed through the continuation of the CEK
+machine.
 
 % In this chapter we will demonstrate an application of generalised
 % continuations (Section~\ref{sec:generalised-continuations}) to
@@ -10824,6 +10816,17 @@ item~\ref{en:ch-am-HLA20}.
 
 \section{Configurations with generalised continuations}
 \label{sec:machine-configurations}
+Syntactically, the CEK machine consists of three components: 1) the
+control component, which focuses the term currently being evaluated;
+2) the environment component, which maps free variables to machine
+values, and 3) the continuation component, which describes what to
+evaluate next (some literature uses the term `control string' in lieu
+of continuation to disambiguate it from programmatic continuations in
+the source language).
+%
+Intuitively, the continuation component captures the idea of call
+stack from actual programming language implementations.
+
 The abstract machine is formally defined in terms of configurations. A
 configuration $\cek{M \mid \env \mid \shk \circ \shk'} \in \MConfCat$
 is a triple consisting of a computation term $M \in \CompCat$, an
