@@ -16062,20 +16062,83 @@ effect.
 \subsection{Future work}
 
 \paragraph{Operating systems via effect handlers}
-\begin{itemize}
-  \item Signal handling.
-  \item Implement an actual operation system using handlers.
-  \item Re-implement the case study in other programming languages.
-  \item Prove the UNIX with handlers correct.
-\end{itemize}
+In the \UNIX{} case study we explored the paradigmatic reading of
+\emph{effect handlers as composable operating systems} in practice by
+composing a \UNIX{}-like operating system out of several effects and
+handlers. Obviously, the resulting system \OSname{} has been
+implemented in the combined core calculus consisting of $\HCalc$,
+$\SCalc$, and $\HPCalc$ calculi. There also exists an actual runnable
+implementation of it in Links. It would be interesting to implement
+the system in other programming languages with support for effect
+handlers as at the time of writing most languages with effect handlers
+have some unique trait, e.g. lexical handlers, special effect system,
+etc. Ultimately, re-implementing the case study can help collect more
+data points about programming with effect handlers, which can
+potentially serve to inform the design of future effect
+handler-oriented languages.
 
-\begin{itemize}
-  \item Efficiency of nested handlers.
-  \item Effect-based optimisations.
-  \item Equational theories.
-  \item Parallel and distributed programming with effect handlers.
-  \item Multi-handlers.
-\end{itemize}
+I have made no attempts at formally proving the correctness of
+\OSname{} with respect to some specification. Although, I have
+consciously opted to implement \OSname{} using standard effects with
+well-known equations. Furthermore, the effect handlers have been
+implemented such that they ought to respect the equations of their
+effects. Thus, perhaps it is possible to devise an equational
+specification for the operating system and prove the implementation
+correct with respect to that specification.
+
+One important feature that is arguably missing from \OSname{} is
+external signal handling. Effect handlers as signal handlers is not a
+new idea. In a previous paper we have outlined an idea for using
+effect handlers to handle POSIX signals~\cite{DolanEHMSW17}. Signal
+handling is a delicate matter as signals introduce a form of
+preemption, thus some care needs to be taken to ensure that the
+interpretation of a signal does not interrupted by another signal
+instance. The essence of the idea is to have a \emph{mask} primitive,
+which is a form of critical section for signals that permits some
+block of code to suppress signal interruptions. A potential starting
+point would be to combine \citeauthor{AhmanP21}'s calculus of
+asynchronous effects with $\HCalc$ to explore this idea more
+formally~\cite{AhmanP21}.
+
+Another interesting thought is to implement an actual operating system
+using effect handlers. Although, it might be a daunting task, the idea
+is maybe not so far fetched. With the advent of effect handlers in
+OCaml~\cite{SivaramakrishnanDWKJM21} it may be possible for MirageOS
+project~\cite{MadhavapeddyS14}, which is a unikernel based operating
+system written in OCaml, to take advantage of effect handlers to
+implement features such as concurrency.
+
+\paragraph{Effect-based optimisations} In this dissertation I have not
+considered any effect-based optimisations. However if effect handler
+oriented programming is to succeed in practice, then runtime
+performance will matter. Optimisation of program structure is one way
+to improve runtime performance. At our disposal we have the effect
+system and the algebraic structure of effects and handlers.
+%
+Taking advantage of the information provided by the effect system to
+optimise programs is an old idea that has been explored previously in
+the literature~\cite{KammarP12,Kammar14,Saleh19}.
+%
+Other work has attempted to exploit the algebraic structure of (deep)
+effect handlers to fuse nested handlers~\cite{WuS15}.
+%
+An obvious idea is to apply these lines of work to the handler calculi
+of Chapter~\ref{ch:unary-handlers}.
+%
+Moreover, I hypothesise there is untapped potential in the combination
+of effect-dependent analysis with respect to equational theories to
+optimise effectful programs. A potential starting point for testing
+out this hypothesis is to take \citeauthor{LuksicP20}'s a core
+calculus where effects are equipped with equations~\cite{LuksicP20}
+and combine it with techniques for effect-dependent
+optimisations~\cite{KammarP12}.
+
+% \begin{itemize}
+%   \item Efficiency of nested handlers.
+%   \item Effect-based optimisations.
+%   \item Equational theories.
+%   % \item Parallel and distributed programming with effect handlers.
+% \end{itemize}
 
 \paragraph{Multi handlers} In this dissertation I have solely focused
 on so-called \emph{unary} handlers, which handle a \emph{single}
@@ -16108,6 +16171,23 @@ handlers only get amplified in the setting of multi handlers.
   \item Abstracting continuations.
   \item Multi-handlers.
 \end{itemize}
+
+\paragraph{Typed CPS for effect handlers} The image of each
+translation developed in Chapter~\ref{ch:cps} is untyped. Typing the
+translations may provide additional insight into the semantic content
+of the translations. Effect forwarding poise a challenge in typing the
+image.  In order to encode forwarding we need to be able to
+parametrically specify what a default case does.
+%
+The Appendix B of the paper by \citet{HillerstromLAS17} outlines a
+possible typing for the CPS translation for deep handlers.  The
+extension we propose to our row type system is to allow a row type to
+be given a \emph{shape} (something akin to
+\citeauthor{BerthomieuS95}'s tagged types~\cite{BerthomieuS95}), which
+constrains the form of the ordinary types it contains. Whether this
+idea is formally sound and whether it extends to shallow handlers
+remains to be investigated.
+
 
 \section{On the expressive power of effect handlers}
 %%
