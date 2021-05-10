@@ -15976,30 +15976,88 @@ In Part~\ref{p:implementation} I have devised two canonical
 implementation strategies for the language, one based an
 transformation into continuation passing style, and another based on
 abstract machine semantics. Both strategies make key use of the notion
-of generalised continuations, which
+of generalised continuations\dots
 
 In Part~\ref{p:expressiveness} I have explored how effect handlers fit
 into the wider landscape of programming abstractions.
 
 \section{Programming with effect handlers}
-In Chapters~\ref{ch:base-language} and \ref{ch:unary-handlers} I
-explored the design space of programming languages with effect
-handlers. My design differentiates itself from others in the
-literature with respect to the kind of programming language considered
-as I have focused a language with structural data and effects, whereas
-others have focused on nominal data and effects. An effect system is
-necessary to ensure the standard safety and soundness properties of
-statically typed programming languages.  Although, an effect system is
-informative, it is not strictly necessary in a nominal setting
-(e.g. Section~\ref{sec:handlers-calculus} presents a sound core
-calculus with nominal effects, but without an effect system).
-%
-Another point of emphasis is that my design incorporates deep,
-shallow, and parameterised variations of effect handlers into a single
-programming language. I have demonstrated applications that each kind
-of handler is uniquely suited for by way of the case study of
-Section~\ref{sec:deep-handlers-in-action}.
+In Chapters~\ref{ch:base-language} and \ref{ch:unary-handlers} present
+the design of a core calculus that forms the basis for Links, which is
+a practical programming language with deep, shallow, and parameterised
+effect handlers. A distinguishing feature of the core calculus is that
+it is based on a structural notion of data and effects, whereas other
+literature predominantly consider nominal data and effects. In the
+setting of structural effects the effect system play a pivotal role in
+ensuring that the standard safety and soundness properties of
+statically typed programming languages hold as the effect system is
+used to track type and presence information about effectful
+operations. In a nominal setting an effect system is not necessary to
+ensure soundness (e.g. Section~\ref{sec:handlers-calculus} presents a
+sound core calculus with nominal effects, but without an effect
+system). Irrespective of nominal or structural notions of effects, an
+effect system is a valuable asset when programming with effect
+handlers as an effect system enables modular reasoning about the
+composition of functions. The effect system provides crucial
+information about the introduction and elimination of effects. In the
+absence of an effect system programmers are essentially required to
+reason globally their programs as for instance the composition of any
+two functions may introduce arbitrary effects that need to be handled
+accordingly. Alternatively, a composition of any two functions may
+inadvertently eliminate arbitrary effects, and as such, programming
+with effect handlers without an effect system is prone to error. The
+\UNIX{} case study in Chapter~\ref{ch:unary-handlers} demonstrates how
+the effect system assists to ensure that effectful function
+compositions are meaningful.
 
+The particular effect system that I have used throughout this
+dissertation is based on \citeauthor{Remy93}-style row polymorphism
+formalism~\cite{Remy93}. Whilst \citeauthor{Remy93}-style row
+polymorphism provides a suitable basis for structural records and
+variants, its suitability as a basis for practical effect systems is
+questionable. From a practical point of view the problem with this
+form of row polymorphism is that it leads to verbose type-and-effect
+signature due to the presence and absence annotations. In many cases
+annotations are redundant, e.g. in second-order functions like
+$\dec{map}$ for lists, where the effect signature of the function is
+the same as the signature of its functional argument. From a
+theoretical point of view this verbosity is not a concern. However, in
+practice verbosity may lead to `an overload of unequivocal
+information' by which I mean the programmer is presented with too many
+trivial facts about the program. Too much information can hinder both
+readability and writability of programs. For instance, in most
+mainstream programming languages with System F-style type polymorphism
+programmers normally do not have to annotate type variables with
+kinds, unless they happen to be doing something special. Similarly,
+programmers do not have to write type variable quantifiers, unless
+they do not appear in prenex position. In practice some defaults are
+implicitly understood and it is only when programmers deviate from
+those defaults that programmers ought to supply the compiler with
+explicit information. In Section~\ref{sec:effect-sugar} introduces
+some ad-hoc syntactic sugar for effect signature that tames the
+verbosity of an effect system based on \citeauthor{Remy93}-style row
+polymorphism to the degree that second-order functions like
+$\dec{map}$ do not duplicate information. Rather than back-patching
+the effect system in hindsight, a possibly better approach is to
+design the effect system for practical programming from the ground up
+as \citet{LindleyMM17} did for the Frank programming language.
+
+Nevertheless, the \UNIX{} case study is indicative of the syntactic
+sugar being adequate in practice to build larger effect-oriented
+applications. The case study demonstrates how effect handlers provide
+a high-degree of modularity and flexibility that enable substantial
+behavioural changes to be retrofitted onto programs without altering
+the existing the code. Thus effect handlers provide a mechanism for
+building small task-oriented programs that later can be scaled to
+interact with other programs in a larger context.
+%
+The case study also demonstrates how one might ascribe a handler
+semantics to a \UNIX{}-like operating system. The resulting operating
+system \OSname{} captures the essentials of a true operating system
+including support for managing multiple concurrent user environments
+simultaneously, process parallelism, file I/O. The case study also
+shows how each essential can be implemented in terms of some standard
+effect.
 
 \subsection{Future work}
 
@@ -16018,6 +16076,27 @@ Section~\ref{sec:deep-handlers-in-action}.
   \item Parallel and distributed programming with effect handlers.
   \item Multi-handlers.
 \end{itemize}
+
+\paragraph{Multi handlers} In this dissertation I have solely focused
+on so-called \emph{unary} handlers, which handle a \emph{single}
+effectful computation. A natural generalisation is \emph{n-ary}
+handlers, which allow $n$ effectful computations to be handled
+simultaneously. In the literature n-ary handlers are called
+\emph{multi handlers}, and unary handlers are simply called
+handlers. The ability to handle two or more computations
+simultaneously make for a straightforward way to implement
+synchronisation between two or more computations. For example, the
+pipes example of Section~\ref{sec:pipes} can be expressed using a
+single handler rather than two dual
+handlers~\cite{LindleyMM17}. Shallow multi handlers are an ample
+feature of the Frank programming language~\cite{LindleyMM17}.  The
+design space of deep and parameterised notions of multi handlers have
+yet to be explored as well as their applications domains. Thus an
+interesting future direction of research would be to extend $\HCalc$
+with multi handlers and explore their practical programming
+applicability. The effect system pose an interesting design challenge
+for multi handlers as any problematic quirks that occur with unary
+handlers only get amplified in the setting of multi handlers.
 
 \section{Canonical implementation strategies for handlers}
 
