@@ -15976,10 +15976,16 @@ In Part~\ref{p:implementation} I have devised two canonical
 implementation strategies for the language, one based an
 transformation into continuation passing style, and another based on
 abstract machine semantics. Both strategies make key use of the notion
-of generalised continuations\dots
+of generalised continuations, which provide a high-level model of
+segmented runtime stacks.
 
 In Part~\ref{p:expressiveness} I have explored how effect handlers fit
-into the wider landscape of programming abstractions.
+into the wider landscape of programming abstractions. I have shown
+that deep, shallow, and parameterised effect handlers are
+macro-expressible. Furthermore, I shown that effect handlers endow its
+host language with additional computational power that provides an
+asymptotic improvement in runtime performance for some class of
+programs.
 
 \section{Programming with effect handlers}
 In Chapters~\ref{ch:base-language} and \ref{ch:unary-handlers} present
@@ -16216,7 +16222,25 @@ formal functional correspondence between higher-order CPS translation
 and the abstract machine, however, the existence of such a
 correspondence has yet to be established.
 
-\paragraph{Abstracting continuations} rapid prototyping
+\paragraph{Abstracting continuations} It is evident from the step-wise
+refinement of the CPS translations in Chapter~\ref{ch:cps} that each
+translation has a certain structure to it.
+%
+In fact, this is how the CPS translation for effect handlers in Links
+has been implemented. Concretely, the translation is implemented as a
+functor, which is parameterised by a continuation interface. The
+continuation interface has monoidal operation for continuation
+extension and an application operation for applying the continuation
+to a value argument. Theoretically, it would be interesting to pin
+down and understand the precise algebraic nature of this nature would
+be interesting with respect to abstracting the notion of
+continuations. Practically, it would keep the code base modular and
+pave the way for rapid compilation of new control structures. Ideally
+one would simply have to implement a standard CPS translation, which
+keeps the notion of continuation abstract such that any conforming
+continuation can be plugged in.
+
+% suggests there is a certain structure rapid prototyping
 
 \paragraph{Generalising generalised continuations} The incarnation of
 generalised continuations in this dissertation has been engineered for
@@ -16230,6 +16254,10 @@ continuations, where each pure continuation represents a distinct
 computation running under the handler.
 
 \paragraph{Ad-hoc generalised continuations}
+Generalised continuations may shed new light on some ad-hoc
+realisations of continuations, e.g. \citeauthor{PettyjohnCMKF05}'s
+continuations via exception handlers.
+%
 Simulate generalised continuations with other programming facilities.
 
 \paragraph{Typed CPS for effect handlers} The image of each
@@ -16250,77 +16278,113 @@ remains to be investigated.
 
 
 \section{On the expressive power of effect handlers}
-%%
-%% Conclusions and Future work
-%%
-\section{Conclusions and Future Work}
-\label{sec:conclusions}
-We presented a PCF-inspired language $\BCalc$ and its extension with
-effect handlers $\HCalc$. We proved that $\HCalc$ supports an
-asymptotically more efficient implementation of generic search than
-any possible implementation in $\BCalc$. We observed its effect in
-practice on several benchmarks.
-%
-We also proved that our $\Omega(n2^n)$ lower bound applies to a
-language $\BCalcS$ which extends $\BCalc$ with state.
 
-Our positive result for $\HCalc$ extends to other control operators by appeal to existing
-results on interdefinability of handlers and other control
-operators~\cite{ForsterKLP19,PirogPS19}.
-%
-The result no longer applies directly if we add an effect type system
-to $\HCalc$, as the implementation of the counting program would
-require a change of type for predicates to reflect the ability to
-perform effectful operations.
-%
-In future we plan to investigate how to account for effect type systems.
+In Chapter~\ref{ch:deep-vs-shallow} we investigated the
+interdefinability of deep, shallow, and parameterised handlers through
+the lens of typed macro expressiveness. We establish that every kind
+of handler is interdefinable. Although, the handlers are
+interdefinable it may matter in practice which kind of handler is
+being employed. For example, the encoding of shallow handlers using
+deep handlers is rather inefficient. The encoding suffers from space
+leaks as demonstrated empirically in Appendix B.3 of
+\citet{HillerstromL18}. Similarly, the runtime and memory performance
+of between native parameterised handlers and encoding parameterised
+handlers as ordinary deep handlers may be observable in practice as
+the latter introduce a new closure per operation invocation.
 
-We have verified that our $\Omega(n2^n)$ lower bound also applies to
-a language $\BCalcE$ with \citeauthor{BentonK01}-style
+Chapter~\ref{ch:handlers-efficiency} explores the relative efficiency
+of a base language, $\BPCF$, and its extension with effect handlers,
+$\HPCF$, through the lens of type-respecting expressivity. Concretely,
+we used the example program of \emph{generic count} to show that
+$\HPCF$ admits realisations of this program whose asymptotic
+efficiency is better than any possible realisation in
+$\BPCF$. Concretely, we established that the lower bound of generic
+count on $n$-standard predicates in $\BPCF$ is $\Omega(n2^n)$, whilst
+the worst case upper bound in $\HPCF$ is $\BigO(2^n)$. Hence there is
+a strict efficiency gap between the two languages. We observed this
+efficiency gap in practice on several benchmarks.
+%
+The lower runtime bound also applies to a language $\BSPCF$ which
+extends $\BPCF$ with state.
+%
+Although, I have not spelled out the details here, in
+\citet{HillerstromLL20} we have verified that the lower bound also
+applies to a language $\BEPCF$ with \citeauthor{BentonK01}-style
 \emph{exceptions} and handlers~\cite{BentonK01}.
 %
-The lower bound also applies to the combined language $\BCalcSE$
+The lower bound also applies to the combined language $\BSEPCF$
 with both state and exceptions --- this seems to bring us close to
 the expressive power of real languages such as Standard ML, Java, and
 Python, strongly suggesting that the speedup we have discussed is
 unattainable in these languages.
 
-In future work, we hope to establish the more general result that our
-$\Omega(n2^n)$ applies to a language with \emph{affine effect
-  handlers} (handlers which invoke the resumption $r$ at most once).
-This would not only subsume our present results (since state and
-exceptions are examples of affine effects), but would also apply
-e.g.\ to a richer language with \emph{coroutines}.  However, it
-appears that our present methods do not immediately adapt to this more
-general situation, as our arguments depend at various points on an
-orderly nesting of subcomputations which coroutining would break.
+The positive result for $\HPCF$ extends to other control operators by
+appeal to existing results on interdefinability of handlers and other
+control operators~\cite{ForsterKLP19,PirogPS19}.
+%
+% The result no longer applies directly if we add an effect type system
+% to $\HPCF$, as the implementation of the counting program would
+% require a change of type for predicates to reflect the ability to
+% perform effectful operations.
+%
+% In future we plan to investigate how to account for effect type systems.
 
-One might object that the efficiency gap we have analysed is of merely
-theoretical interest, since an $\Omega(2^n)$ runtime is already
-`infeasible'.  We claim, however, that what we have presented is an
-example of a much more pervasive phenomenon, and our generic count
-example serves merely as a convenient way to bring this phenomenon
-into sharp formal focus. Suppose, for example, that our programming
-task was not to count all solutions to $P$, but to find just one of
-them.  It is informally clear that for many kinds of predicates this
-would in practice be a feasible task, and also that we could still
-gain our factor $n$ speedup here by working in a language with
-first-class control.  However, such an observation appears less
+From a practical point of view one might be tempted to label the
+efficiency result as merely of theoretical interest, since an
+$\Omega(2^n)$ runtime is already infeasible.  However, what has been
+presented is an example of a much more pervasive phenomenon, and the
+generic count example serves merely as a convenient way to bring this
+phenomenon into sharp formal focus. For example, suppose that our
+programming task was not to count all solutions to $P$, but to find
+just one of them.  It is informally clear that for many kinds of
+predicates this would in practice be a feasible task, and also that we
+could still gain our factor $n$ speedup here by working in a language
+with first-class control.  However, such an observation appears less
 amenable to a clean mathematical formulation, as the runtimes in
 question are highly sensitive to both the particular choice of
 predicate and the search order employed.
 
 \subsection{Future work}
-\begin{itemize}
-  \item Investigate whether there exists efficient encodings of shallow
-    handlers in terms of deep handlers.
-  \item Establish a hierarchy of asymptotic efficiency for control
-    structures (iteration, recursion, backtracking, first-class
-    control).
-  \item Investigate how to adapt the asymptotic result to a setting
-    with effect tracking.
-  \item Extend the result to linear effect handlers.
-\end{itemize}
+
+\paragraph{Efficiency of handler encodings} Although, I do not give a
+formal proof for the efficiency of the shallow as deep encoding in
+Chapter~\ref{ch:deep-vs-shallow} it seems intuitively clear that the
+encoding is rather inefficient. In fact in Appendix B.2 and B.3 of
+\citet{HillerstromL18} we show empirically that the encoding is
+inefficient. An interesting question is whether there exists an
+efficient encoding of shallow handlers using deep handlers. Formally
+proving the absence of an efficient encoding would give a strong
+indication of the relative computational expressive power between
+shallow and deep handlers. Likewise discovering that an efficient
+encoding does exist would tell us that it may not matter
+computationally whether a language incorporates shallow or deep
+handlers.
+
+\paragraph{Effect tracking breaks asymptotic improvement} The
+result of Chapter~\ref{ch:handlers-efficiency} does not immediately
+carry over to a language with an effect system as the implementation
+of generic search in \HPCF{} would introduce an effectful operation,
+which requires a change of types. In order to state and prove the
+result in the presence of an effect system some other refined,
+possibly new, notion of expressivity seems necessary.
+
+\paragraph{Asymptotic improvement with affine handlers}
+The result of Chapter~\ref{ch:handlers-efficiency} does not
+immediately remain true in the presence of affine effect handlers
+(handlers which their resumptions at most once) as they make it
+possible to encode coroutines. The present proof method does not
+readily adapt to a situation with coroutines, because the proof depend
+at various points on an orderly nesting of subcomputations which
+corouting would break.
+
+\paragraph{Efficiency hierarchy of control} The definability hierarchy
+of various control constructs such as iteration, recursion, recursion
+with state, and first class control is fairly
+well-understood~\cite{LongleyN15,Longley18a,Longley19}. However, the
+relative asymptotic efficiency between them is less
+well-understood. It would be insightful to formally establish a
+hierarchy of relative asymptotic efficiency between various control
+constructs in the style of Chapter~\ref{ch:handlers-efficiency}.
 
 %%
 %% Appendices
