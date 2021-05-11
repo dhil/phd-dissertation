@@ -16133,13 +16133,6 @@ calculus where effects are equipped with equations~\cite{LuksicP20}
 and combine it with techniques for effect-dependent
 optimisations~\cite{KammarP12}.
 
-% \begin{itemize}
-%   \item Efficiency of nested handlers.
-%   \item Effect-based optimisations.
-%   \item Equational theories.
-%   % \item Parallel and distributed programming with effect handlers.
-% \end{itemize}
-
 \paragraph{Multi handlers} In this dissertation I have solely focused
 on so-called \emph{unary} handlers, which handle a \emph{single}
 effectful computation. A natural generalisation is \emph{n-ary}
@@ -16162,15 +16155,82 @@ for multi handlers as any problematic quirks that occur with unary
 handlers only get amplified in the setting of multi handlers.
 
 \section{Canonical implementation strategies for handlers}
+Chapter~\ref{ch:cps} carries out a comprehensive study of CPS
+translations for deep, shallow, and parameterised notions of effect
+handlers.
+%
+We arrive at a higher-order CPS translation through step-wise
+refinement of an initial standard first-order fine-grain call-by-value
+CPS translation, which we extended to support deep effect
+handlers. Firstly, we refined the first-order translation by
+uncurrying it in order to yield a properly tail-recursive
+translation. Secondly, we adapted it to a higher-order one-pass
+translation that statically eliminates administrative
+redexes. Thirdly, we solidify the structure of continuations to arrive
+at the notion of \emph{generalised continuation}, which provides the
+basis for implementing shallow and parameterised handlers.
+%
+The CPS translations have been proven correct with respect to the
+contextual small-step semantics of $\HCalc$, $\SCalc$, and $\HPCalc$.
+
+Generalised continuations are a succinct syntactic framework for
+modelling low-level stack manipulations. The structure of generalised
+continuations closely mimics the structure of \citeauthor{HiebDB90}
+and \citeauthor{BruggemanWD96}'s segmented
+stacks~\cite{HiebDB90,BruggemanWD96}, which is a state-of-art
+technique for implementing first-class
+control~\cite{FlattDDKMSTZ19}. Each generalised continuation frame
+consists of a pure continuation and a handler definition. The pure
+continuation represents an execution stack delimited by some
+handler. Thus chaining together generalised continuation frames yields
+a sequence of segmented stacks.
+
+The versatility of generalised continuations is illustrated in
+Chapter~\ref{ch:abstract-machine}, where we plugged the notion of
+generalised continuation into \citeauthor{FelleisenF86}'s CEK machine
+to obtain an adequate execution runtime with simultaneous support for
+deep, shallow, and parameterised effect
+handlers~\cite{FelleisenF86}. The resulting abstract machine is proven
+correct with respect to the reduction semantics of the combined
+calculus of $\HCalc$, $\SCalc$, and $\HPCalc$. The abstract machine
+provides a blueprint for both high-level interpreter-based
+implementations of effect handlers as well as low-level
+implementations based on stack manipulations. The server-side
+implementation of effect handlers in the Links programming language is
+a testimony to the former~\cite{HillerstromL16}, whilst the Multicore
+OCaml implementation of effect handlers is a testimony to the
+latter~\cite{SivaramakrishnanDWKJM21}.
 
 \subsection{Future work}
-\begin{itemize}
-  \item Formally relate the CPS translation and the abstract machine.
-  \item Type the CPS translation.
-  \item Simulate generalised continuations with other programming facilities.
-  \item Abstracting continuations.
-  \item Multi-handlers.
-\end{itemize}
+
+\paragraph{Functional correspondence} The CPS translations and
+abstract machine have been developed individually. Although, the
+abstract machine is presented as an application of generalised
+continuations in Chapter~\ref{ch:abstract-machine} it did appear
+before the CPS translations. The idea of generalised continuation
+first solidified during the design of higher-order CPS translation for
+shallow handlers~\cite{HillerstromL18}, where we adapted the
+continuation structure of our initial abstract machine
+design~\cite{HillerstromL16}. Thus it seems that there ought to be a
+formal functional correspondence between higher-order CPS translation
+and the abstract machine, however, the existence of such a
+correspondence has yet to be established.
+
+\paragraph{Abstracting continuations} rapid prototyping
+
+\paragraph{Generalising generalised continuations} The incarnation of
+generalised continuations in this dissertation has been engineered for
+unary handlers. An obvious extension to investigate is support for
+multi handlers. With multi handlers, handler definitions enter a
+one-to-many relationship with pure continuations rather than an
+one-to-one relationship with unary handlers. Thus at minimum the
+structure of generalised continuation frames needs to be altered such
+that each handler definition is paired with a list of pure
+continuations, where each pure continuation represents a distinct
+computation running under the handler.
+
+\paragraph{Ad-hoc generalised continuations}
+Simulate generalised continuations with other programming facilities.
 
 \paragraph{Typed CPS for effect handlers} The image of each
 translation developed in Chapter~\ref{ch:cps} is untyped. Typing the
