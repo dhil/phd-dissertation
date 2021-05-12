@@ -151,15 +151,6 @@
 
 %% Specify the abstract here.
 \abstract{%
-  % Virtually every programming language is equipped with multiple
-  % different control operators which enable the programmer to manipulate
-  % the flow of control.
-  % %
-  % For example, the operator \emph{if-then-else} lets the programmer
-  % conditionally select between two distinct \emph{continuations}. The
-  % operator \emph{async-await} lets the programmer run multiple
-  % distinct continuations asynchronously and await their results.
-  %
   First-class control operators provide programmers with an expressive
   and efficient means for manipulating control through reification of
   the current control state as a first-class object, enabling
@@ -344,12 +335,55 @@
 %%
 \chapter{Introduction}
 \label{ch:introduction}
-An enthralling introduction\dots
+Control is an ample ingredient of virtually every programming
+language. A programming language typically feature a variety of
+control constructs, which let the programmer manipulate the control
+flow of programs in interesting ways. The most well-known control
+construct may well be $\If\;V\;\Then\;M\;\Else\;N$, which
+conditionally selects between two possible \emph{continuations} $M$
+and $N$ depending on whether the condition $V$ is $\True$ or
+$\False$. Another familiar control construct is function application
+$\EC[(\lambda x.M)\,W]$, which evaluates some parameterised
+continuation $M$ at value argument $W$ to normal form and subsequently
+continues the current continuation induced by the invocation context
+$\EC$.
 %
-Motivation: 1) compiler perspective: unifying control abstraction,
-lean runtime, desugaring of async/await, generators/iterators, 2)
-giving control to programmers, safer microkernels, everything as a
-library.
+At the time of writing the trendiest control construct happen to be
+async/await, which is designed for direct-style asynchronous
+programming~\cite{SymePL11}. It takes the form
+$\async.\,\EC[\await\;M]$, where $\async$ delimits an asynchronous
+context $\EC$ in which computations may be interleaved. The $\await$
+primitive may be used to defer execution of the current continuation
+until the result of the asynchronous computation $M$ is ready. Prior
+to async/await the most fashionable control construct was coroutines,
+which provide the programmer with a construct for performing non-local
+transfers of control by suspending the current continuation on
+demand~\cite{MouraI09}, e.g.  in
+$\keyw{co_0}.\,\EC_0[\keyw{suspend}];\keyw{co_1}.\,\EC_1[\Unit]$ the
+two coroutines $\keyw{co_0}$ and $\keyw{co_1}$ work in tandem by
+invoking suspend in order to hand over control to the other coroutine;
+$\keyw{co_0}$ suspends the current continuation $\EC_0$ and transfers
+control to $\keyw{co_1}$, which resume its continuation $\EC_1$ with
+the unit value $\Unit$. The continuation $\EC_1$ may later suspend in
+order to transfer control back to $\keyw{co_0}$ such that it can
+resume execution of the continuation
+$\EC_0$~\cite{AbadiP10}. Coroutines are amongst the oldest ideas of
+the literature as they have been around since the dawn of
+programming~\cite{DahlMN68,DahlDH72,Knuth97,MouraI09}. Nevertheless
+coroutines frequently reappear in the literature in various guises.
+
+% Virtually every programming language is equipped with one or more
+% control flow operators, which enable the programmer to manipulate the
+% flow of control of programs in interesting ways. The most well-known
+% control operator may well be $\If\;V\;\Then\;M\;\Else\;N$, which
+% conditionally selects between two possible \emph{continuations} $M$
+% and $N$ depending on whether the condition $V$ is $\True$ or $\False$.
+% %
+% Another familiar operator is function application\dots
+
+Evidently, control is a pervasive phenomenon in programming. However,
+not every control phenomenon is equal in terms of programmability and
+expressiveness.
 
 \section{Why first-class control matters}
 
@@ -358,7 +392,13 @@ library.
 \paragraph{Delimited control}
 \paragraph{Composable control}
 
-\subsection{Why effect handlers}
+\subsection{Why effect handlers matter}
+
+\section{State of effectful programming}
+\subsection{Monadic programming}
+Monads have given rise to various popular control-oriented programming
+abstractions, e.g. async/await originates from monadic
+programming~\cite{Claessen99,LiZ07,SymePL11}.
 
 \section{Thesis outline}
 Thesis outline\dots
