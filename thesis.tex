@@ -372,6 +372,9 @@ the literature as they have been around since the dawn of
 programming~\cite{DahlMN68,DahlDH72,Knuth97,MouraI09}. Nevertheless
 coroutines frequently reappear in the literature in various guises.
 
+The common denominator for the aforementioned control constructs is
+that they are all second-class.
+
 % Virtually every programming language is equipped with one or more
 % control flow operators, which enable the programmer to manipulate the
 % flow of control of programs in interesting ways. The most well-known
@@ -400,11 +403,94 @@ Monads have given rise to various popular control-oriented programming
 abstractions, e.g. async/await originates from monadic
 programming~\cite{Claessen99,LiZ07,SymePL11}.
 
-\section{Thesis outline}
-Thesis outline\dots
+\section{Contributions}
+The key contributions of this dissertation are the following:
+\begin{itemize}
+  \item A practical design for a programming language equipped with a
+    structural effect system and deep, shallow, and parameterised effect
+    handlers.
+  \item A case study in effect handler oriented programming
+    demonstrating how to compose the essence of an \UNIX{}-style
+    operating system with user session management, task parallelism,
+    and file I/O using standard effects and handlers.
+  \item A novel generalisation of the notion of continuation known as
+    \emph{generalised continuation}, which provides a succinct
+    foundation for implementing deep, shallow, and parameterised
+    handlers.
+  \item A higher-order continuation passing style translation based on
+    generalised continuations, which yields a universal implementation
+    strategy for effect handlers.
+  \item An abstract machine semantics based on generalised
+    continuations, which characterises the low-level stack
+    manipulations admitted by effect handlers at runtime.
+  \item A formal proof that deep, shallow, and parameterised handlers
+    are equi-expressible in the sense of typed macro-expressiveness.
+  \item A robust mathematical characterisation of the computational
+    efficiency of effect handlers, which shows that effect handlers
+    can improve the asymptotic runtime of certain classes of programs.
+  \item A comprehensive operational characterisation of various
+    notions of continuations and first-class control phenomena.
+\end{itemize}
 
-\section{Typographical conventions}
-Explain conventions\dots
+\section{Thesis outline}
+Chapter~\ref{ch:maths-prep} defines some basic mathematical
+notation and constructions that are they pervasively throughout this
+dissertation.
+
+Chapter~\ref{ch:continuations} presents a literature survey of
+continuations and first-class control. I classify continuations
+according to their operational behaviour and provide an overview of
+the various first-class sequential control operators that appear in
+the literature. The application spectrum of continuations is discussed
+as well as implementation strategies for first-class control.
+
+Chapter~\ref{ch:base-language} introduces a polymorphic fine-grain
+call-by-value core calculus, $\BCalc$, which makes key use of
+\citeauthor{Remy93}-style row polymorphism to implement polymorphic
+variants, structural records, and a structural effect system. The
+calculus distils the essence of the core of the Links programming
+language.
+
+Chapter~\ref{ch:unary-handlers} presents three extensions of $\BCalc$,
+which are $\HCalc$ that adds deep handlers, $\SCalc$ that adds shallow
+handlers, and $\HPCalc$ that adds parameterised handlers. The chapter
+also contains a running case study that demonstrates effect handler
+oriented programming in practice by implementing a small operating
+system dubbed \OSname{} based on \citeauthor{RitchieT74}'s original
+\UNIX{}.
+
+Chapter~\ref{ch:cps} develops a higher-order continuation passing
+style translation for effect handlers through a series of step-wise
+refinements of an initial standard continuation passing style
+translation for $\BCalc$. Each refinement slightly modifies the notion
+of continuation employed by the translation. The development
+ultimately leads to the key invention of generalised continuation,
+which is used to give a continuation passing style semantics to deep,
+shallow, and parameterised handlers.
+
+Chapter~\ref{ch:abstract-machine} demonstrates an application of
+generalised continuations to abstract machine as we plug generalised
+continuations into \citeauthor{FelleisenF86}'s CEK machine to obtain
+an adequate abstract runtime with simultaneous support for deep,
+shallow, and parameterised handlers.
+
+Chapter~\ref{ch:deep-vs-shallow} shows that deep, shallow, and
+parameterised notions of handlers can simulate one another up to
+specific notions of administrative reduction.
+
+Chapter~\ref{ch:handlers-efficiency} studies the fundamental efficiency of effect
+handlers. In this chapter, we show that effect handlers enable an
+asymptotic improvement in runtime complexity for a certain class of
+functions. Specifically, we consider the \emph{generic count} problem
+using a pure PCF-like base language $\BPCF$ (a simply typed variation
+of $\BCalc$) and its extension with effect handlers $\HPCF$.
+%
+We show that $\HPCF$ admits an asymptotically more efficient
+implementation of generic count than any $\BPCF$ implementation.
+%
+
+Chapter~\ref{ch:conclusions} concludes and discusses future work.
+
 
 \part{Background}
 \label{p:background}
