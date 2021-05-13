@@ -16114,7 +16114,7 @@ asymptotic improvement in runtime performance for some class of
 programs.
 
 \section{Programming with effect handlers}
-In Chapters~\ref{ch:base-language} and \ref{ch:unary-handlers} present
+Chapters~\ref{ch:base-language} and \ref{ch:unary-handlers} present
 the design of a core calculus that forms the basis for Links, which is
 a practical programming language with deep, shallow, and parameterised
 effect handlers. A distinguishing feature of the core calculus is that
@@ -16185,11 +16185,11 @@ interact with other programs in a larger context.
 %
 The case study also demonstrates how one might ascribe a handler
 semantics to a \UNIX{}-like operating system. The resulting operating
-system \OSname{} captures the essentials of a true operating system
-including support for managing multiple concurrent user environments
-simultaneously, process parallelism, file I/O. The case study also
-shows how each essential can be implemented in terms of some standard
-effect.
+system \OSname{} captures the essential features of a true operating
+system including support for managing multiple concurrent user
+environments simultaneously, process parallelism, file I/O. The case
+study also shows how each feature can be implemented in terms of some
+standard effect.
 
 \subsection{Future work}
 
@@ -16286,6 +16286,22 @@ applicability. The effect system pose an interesting design challenge
 for multi handlers as any problematic quirks that occur with unary
 handlers only get amplified in the setting of multi handlers.
 
+\paragraph{Handling linear resources} The implementation of effect
+handlers in Links makes the language unsound, because the \naive{}
+combination of effect handlers and session typing is unsound. For
+instance, it is possible to break session fidelity by twice resuming
+some resumption that closes over a receive operation. Similarly, it is
+possible to break type safety by using a combination of exceptions and
+multi-shot resumptions, e.g. suppose some channel first expects an
+integer followed by a boolean, then the running the program
+$\Do\;\Fork\,\Unit;\keyw{send}~42;\Absurd\;\Do\;\Fail\,\Unit$ under
+the composition of the nondeterminism handler and default failure
+handler from Chapter~\ref{ch:unary-handlers} will cause the primitive
+$\keyw{send}$ operation to supply two integers in succession, thus
+breaking the session protocol. Figuring out how to safely combine
+linear resources, such as channels, and effect handlers with
+multi-shot resumptions is an interesting unsolved problem.
+
 \section{Canonical implementation strategies for handlers}
 Chapter~\ref{ch:cps} carries out a comprehensive study of CPS
 translations for deep, shallow, and parameterised notions of effect
@@ -16298,9 +16314,10 @@ handlers. Firstly, we refined the first-order translation by
 uncurrying it in order to yield a properly tail-recursive
 translation. Secondly, we adapted it to a higher-order one-pass
 translation that statically eliminates administrative
-redexes. Thirdly, we solidify the structure of continuations to arrive
-at the notion of \emph{generalised continuation}, which provides the
-basis for implementing shallow and parameterised handlers.
+redexes. Thirdly, we solidified the structure of continuations to
+arrive at the notion of \emph{generalised continuation}, which
+provides the basis for implementing shallow and parameterised
+handlers.
 %
 The CPS translations have been proven correct with respect to the
 contextual small-step semantics of $\HCalc$, $\SCalc$, and $\HPCalc$.
@@ -16336,7 +16353,7 @@ latter~\cite{SivaramakrishnanDWKJM21}.
 \subsection{Future work}
 
 \paragraph{Functional correspondence} The CPS translations and
-abstract machine have been developed individually. Although, the
+abstract machine have been developed separately. Even though, the
 abstract machine is presented as an application of generalised
 continuations in Chapter~\ref{ch:abstract-machine} it did appear
 before the CPS translations. The idea of generalised continuation
@@ -16366,8 +16383,6 @@ one would simply have to implement a standard CPS translation, which
 keeps the notion of continuation abstract such that any conforming
 continuation can be plugged in.
 
-% suggests there is a certain structure rapid prototyping
-
 \paragraph{Generalising generalised continuations} The incarnation of
 generalised continuations in this dissertation has been engineered for
 unary handlers. An obvious extension to investigate is support for
@@ -16380,16 +16395,22 @@ continuations, where each pure continuation represents a distinct
 computation running under the handler.
 
 \paragraph{Ad-hoc generalised continuations}
-Generalised continuations may shed new light on some ad-hoc
-realisations of continuations, e.g. \citeauthor{PettyjohnCMKF05}'s
-continuations via exception handlers.
-%
-Simulate generalised continuations with other programming facilities.
+The literature contains plenty of ad-hoc techniques for realising
+continuations. For instance, \citeauthor{PettyjohnCMKF05}'s technique
+for implementing undelimited continuations via exception handlers and
+state~\cite{PettyjohnCMKF05}, and \citeauthor{JamesS11}'s technique
+for implementing delimited control via generators and
+iterators~\cite{JamesS11}. Such techniques may be used to implement
+effect handlers in control hostile environments by simulating the
+structure of generalised continuations. By using these techniques to
+implement effect handlers we may be able to bring effect handler
+oriented programming to programming languages that do not offer
+programmers much control.
 
 \paragraph{Typed CPS for effect handlers} The image of each
 translation developed in Chapter~\ref{ch:cps} is untyped. Typing the
 translations may provide additional insight into the semantic content
-of the translations. Effect forwarding poise a challenge in typing the
+of the translations. Effect forwarding poses a challenge in typing the
 image.  In order to encode forwarding we need to be able to
 parametrically specify what a default case does.
 %
@@ -16398,9 +16419,8 @@ possible typing for the CPS translation for deep handlers.  The
 extension we propose to our row type system is to allow a row type to
 be given a \emph{shape} (something akin to
 \citeauthor{BerthomieuS95}'s tagged types~\cite{BerthomieuS95}), which
-constrains the form of the ordinary types it contains. Whether this
-idea is formally sound and whether it extends to shallow handlers
-remains to be investigated.
+constrains the form of the ordinary types it contains. A full
+formalisation of this idea remains to be done.
 
 
 \section{On the expressive power of effect handlers}
@@ -16508,7 +16528,7 @@ of various control constructs such as iteration, recursion, recursion
 with state, and first class control is fairly
 well-understood~\cite{LongleyN15,Longley18a,Longley19}. However, the
 relative asymptotic efficiency between them is less
-well-understood. It would be insightful to formally establish a
+well-understood. It would be interesting to formally establish a
 hierarchy of relative asymptotic efficiency between various control
 constructs in the style of Chapter~\ref{ch:handlers-efficiency}.
 
