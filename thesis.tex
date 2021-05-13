@@ -11089,7 +11089,7 @@ Section~\ref{subsec:machine-correctness} easier to state.
 \ba{@{}l@{\quad}r@{~}c@{~}l@{~~}l@{}}
 % \mlab{Init} & \multicolumn{3}{@{}c@{}}{M \stepsto \cek{M \mid \emptyset \mid [(\nil, (\emptyset, \{\Return\;x \mapsto \Return\;x\}))]}} \\[1ex]
 % App
-&&\multicolumn{2}{@{}l}{\stepsto \subseteq \MConfCat \times \MConfCat}\\
+&&\multicolumn{2}{@{}l}{\stepsto\, \subseteq\! \MConfCat \times \MConfCat}\\
 \mlab{App} & \cek{ V\;W \mid \env \mid \shk}
     &\stepsto& \cek{ M \mid \env'[x \mapsto \val{W}{\env}] \mid \shk},
        &\text{if }\val{V}{\env} = (\env', \lambda x^A.M) \\
