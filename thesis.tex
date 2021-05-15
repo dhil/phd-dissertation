@@ -398,10 +398,122 @@ expressiveness.
 \subsection{Why effect handlers matter}
 
 \section{State of effectful programming}
-\subsection{Monadic programming}
+
+\subsection{Dark age of impurity}
+
+\subsection{Monadic enlightenment}
+During the late 80s and early 90s monads rose to prominence as a
+practical program structuring idiom for effectful
+programming. Notably, they form the foundations for effectful
+programming in Haskell, which adds special language-level support for
+programming with monads~\cite{JonesABBBFHHHHJJLMPRRW99}.
+%
+\begin{definition}
+  A monad is a triple $(T, \Return, \bind)$ where $T$ is some unary
+  type constructor, $\Return$ is an operation that lifts an arbitrary
+  value into the monad (sometimes this operation is called `the unit
+  operation'), and $\bind$ is an application operator the monad (this
+  operator is pronounced `bind'). Implementations of $\Return$ and
+  $\bind$ must conform to the following interface.
+  %
+  \[
+    \bl
+      \Return : A \to T~A \qquad\quad \bind ~: T~A \to (A \to T~B) \to T~B
+    \el
+  \]
+  %
+  Interactions between $\Return$ and $\bind$ are governed by the
+  so-called `monad laws'.
+  \begin{reductions}
+    \slab{Left\textrm{ }identity} & \Return\;x \bind k &=& k~x\\
+    \slab{Right\textrm{ }identity} & m \bind \Return &=& m\\
+    \slab{Associativity} & (m \bind k) \bind f &=& m \bind (\lambda x. k~x \bind f)
+  \end{reductions}
+\end{definition}
+%
 Monads have given rise to various popular control-oriented programming
-abstractions, e.g. async/await originates from monadic
+abstractions, e.g. the async/await idiom has its origins in monadic
 programming~\cite{Claessen99,LiZ07,SymePL11}.
+
+\subsection{Option monad}
+The $\Option$ type is a unary type constructor with two data
+constructors, i.e.  $\Option~A \defas [\Some:A|\None]$.
+
+\begin{definition} The option monad is a monad equipped with a single
+  failure operation.
+  %
+  \[
+    \ba{@{~}l@{\qquad}@{~}r}
+      \multicolumn{2}{l}{T~A \defas \Option~A} \smallskip\\
+      \multirow{2}{*}{
+        \bl
+         \Return : A \to T~A\\
+         \Return \defas \lambda x.\Some~x
+        \el} &
+      \multirow{2}{*}{
+        \bl
+          \bind ~: T~A \to (A \to T~B) \to T~B\\
+          \bind ~\defas \lambda m.\lambda k.\Case\;m\;\{\None \mapsto \None;\Some~x \mapsto k~x\}
+          \el}\\ & \smallskip\\
+      \multicolumn{2}{l}{
+        \bl
+          \fail : A \to T~A\\
+          \fail \defas \lambda x.\None
+        \el}
+    \ea
+  \]
+  %
+\end{definition}
+
+\subsection{State monad}
+
+\subsection{Continuation monad}
+As in J.R.R. Tolkien's fictitious Middle-earth~\cite{Tolkien54} there
+exists one monad to rule them all, one monad to realise them, one
+monad to subsume them all, and in the term language bind them. This
+powerful monad is the \emph{continuation monad}.
+
+\begin{definition}
+  The continuation monad is defined over some fixed return type
+  $R$~\cite{Wadler92}.
+  %
+  \[
+    \ba{@{~}l@{\qquad\quad}@{~}r}
+      \multicolumn{2}{l}{T~A \defas (A \to R) \to R} \smallskip\\
+      \multirow{2}{*}{
+        \bl
+         \Return : A \to T~A\\
+         \Return \defas \lambda x.\lambda k.k~x
+        \el} &
+      \multirow{2}{*}{
+        \bl
+          \bind ~: T~A \to (A \to T~B) \to T~B\\
+          \bind ~\defas \lambda m.\lambda k.\lambda f.m~(\lambda x.k~x~f)
+          \el} \\ & % space hack to avoid the next paragraph from
+                    % floating into the math environment.
+    \ea
+  \]
+  %
+\end{definition}
+%
+The $\Return$ operation lifts a value into the monad by using it as an
+argument to the continuation $k$. The bind operator applies the monad
+$m$ to an anonymous function that accepts a value $x$ of type
+$A$. This value $x$ is supplied to the immediate continuation $k$
+alongside the current continuation $f$.
+
+Scheme's undelimited control operator $\Callcc$ is definable as a
+monadic operation on the continuation monad~\cite{Wadler92}.
+%
+\[
+  \bl
+    \Callcc : ((A \to T~B) \to T~A) \to T~A\\
+    \Callcc \defas \lambda f.\lambda k. f\,(\lambda x.\lambda.k'.k~x)~k
+  \el
+\]
+
+\subsection{Direct-style revolution}
+
 
 \section{Contributions}
 The key contributions of this dissertation are the following:
@@ -432,7 +544,7 @@ The key contributions of this dissertation are the following:
     notions of continuations and first-class control phenomena.
 \end{itemize}
 
-\section{Thesis outline}
+\section{Structure of this dissertation}
 Chapter~\ref{ch:maths-prep} defines some basic mathematical
 notation and constructions that are they pervasively throughout this
 dissertation.
@@ -16288,19 +16400,22 @@ handlers only get amplified in the setting of multi handlers.
 
 \paragraph{Handling linear resources} The implementation of effect
 handlers in Links makes the language unsound, because the \naive{}
-combination of effect handlers and session typing is unsound. For
-instance, it is possible to break session fidelity by twice resuming
-some resumption that closes over a receive operation. Similarly, it is
-possible to break type safety by using a combination of exceptions and
-multi-shot resumptions, e.g. suppose some channel first expects an
-integer followed by a boolean, then the running the program
+combination of effect handlers and session typing is unsound. The
+combined power of being able to discard some resumptions and resume
+others multiple times can make for bad interactions with sessions. For
+instance, suppose some channel supplies only one value, then it is
+possible to break session fidelity by twice resuming some resumption
+that closes over a receive operation. Similarly, it is possible to
+break type safety by using a combination of exceptions and multi-shot
+resumptions, e.g. suppose some channel first expects an integer
+followed by a boolean, then the running the program
 $\Do\;\Fork\,\Unit;\keyw{send}~42;\Absurd\;\Do\;\Fail\,\Unit$ under
 the composition of the nondeterminism handler and default failure
 handler from Chapter~\ref{ch:unary-handlers} will cause the primitive
 $\keyw{send}$ operation to supply two integers in succession, thus
 breaking the session protocol. Figuring out how to safely combine
-linear resources, such as channels, and effect handlers with
-multi-shot resumptions is an interesting unsolved problem.
+linear resources, such as channels, and handlers with multi-shot
+resumptions is an interesting unsolved problem.
 
 \section{Canonical implementation strategies for handlers}
 Chapter~\ref{ch:cps} carries out a comprehensive study of CPS
