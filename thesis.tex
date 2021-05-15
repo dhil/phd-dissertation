@@ -512,6 +512,79 @@ monadic operation on the continuation monad~\cite{Wadler92}.
   \el
 \]
 
+\subsection{Free monad}
+Just like other monads the free monad satisfies the monad laws,
+however, unlike other monads the free monad does not perform any
+computation \emph{per se}. Instead the free monad builds an abstract
+representation of the computation in form of a computation tree, whose
+interior nodes correspond to an invocation of some operation on the
+monad, where each outgoing edge correspond to a possible continuation
+of the operation; the leaves correspond to return values. The meaning
+of a free monadic computation is ascribed by a separate function, or
+interpreter, that traverses the computation tree.
+
+The shape of computation trees is captured by the following generic
+type definition.
+%
+\[
+  \Free~F~A \defas [\return:A|\OpF:F\,(\Free~F~A)]
+\]
+%
+The type constructor $\Free$ takes two type arguments. The first
+parameter $F$ is itself a type constructor of kind
+$\TypeCat \to \TypeCat$. The second parameter is the usual type of
+values computed by the monad. The $\Return$ tag creates a leaf of the
+computation tree, whilst the $\OpF$ tag creates an interior node. In
+the type signature for $\OpF$ the type variable $F$ is applied to the
+$\Free$ type. The idea is that $F~K$ computes an enumeration of the
+signatures of the possible operations on the monad, where $K$ is the
+type of continuation for each operation. Thus the continuation of an
+operation is another computation tree node.
+%
+\begin{definition} The free monad is a triple
+  $(F^{\TypeCat \to \TypeCat}, \Return, \bind)$ which forms a monad
+  with respect to $F$. In addition an adequate instance of $F$ must
+  supply a map, $\dec{fmap} : (A \to B) \to F~A \to F~B$, over its
+  structure.
+  %
+  \[
+   \bl
+     T~A \defas \Free~F~A \smallskip\\
+     \Return : A \to T~A\\
+     \Return \defas \lambda x.\return~x\\
+     \bind ~: T~A \to (A \to T~B) \to T~B\\
+     \bind ~\defas \lambda m.\lambda k.\Case\;m\;\{\return~x \mapsto k~x;\OpF~y \mapsto \OpF\,(\fmap\,(\lambda m'. m' \bind k)\,y)\}
+     \el
+   \]
+   %
+   We define an auxiliary function to alleviate some of the
+   boilerplate involved with performing operations on the monad.
+   %
+   \[
+     \bl
+       \DoF : F~A \to \Free~F~A\\
+       \DoF \defas \lambda op.\OpF\,(\fmap\,(\lambda x.\return~x)\,op)
+     \el
+  \]
+  %
+\end{definition}
+
+\[
+  \bl
+    \dec{FreeState}~S~R \defas [\Get:S \to R|\Put:\Record{S;R}|\Done] \smallskip\\
+    \fmap~f~x \defas \Case\;x\;\{
+    \bl
+       \Get~k \mapsto \Get\,(\lambda st.f\,(k~st));\\
+       \Put~st'~k \mapsto \Put\,\Record{st';f~k};\\
+       \Done \mapsto \Done\}
+    \el \smallskip\\
+    \getF : \UnitType \to T~S\\
+    \getF~\Unit \defas \DoF~(\Get\,(\lambda x.x)))\\
+    \putF : S \to T~\UnitType\\
+    \putF~st \defas \DoF~(\Put\,\Record{st;\Unit})
+  \el
+\]
+
 \subsection{Direct-style revolution}
 
 
@@ -8175,7 +8248,7 @@ $\Co$-operations have been handled.
 %
 In the definition the scheduler state is bound by the name $st$.
 
-The $\return$ case is invoked when a process completes. The return
+The $\Return$ case is invoked when a process completes. The return
 value $x$ is paired with the identifier of the currently executing
 process and consed onto the list $done$. Subsequently, the function
 $\runNext$ is invoked in order to the next ready process.
