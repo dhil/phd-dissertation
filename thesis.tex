@@ -502,7 +502,7 @@ The state monad encapsulates mutable state by using the state-passing
 technique internally. It provides two operations for manipulating the
 state cell.
 %
-\begin{definition}
+\begin{definition}\label{def:state-monad}
   The state monad is defined over some fixed state type $S$.
   %
   \[
@@ -615,7 +615,7 @@ exists one monad to rule them all, one monad to realise them, one
 monad to subsume them all, and in the term language bind them. This
 powerful monad is the \emph{continuation monad}.
 
-\begin{definition}
+\begin{definition}\label{def:cont-monad}
   The continuation monad is defined over some fixed return type
   $R$~\cite{Wadler92}.
   %
@@ -672,7 +672,12 @@ invocation on the monad. The operation $\putF$ works in the same
 way. The primary difference is that $\putF$ does not return the value
 of the state cell; instead it returns simply the unit value $\Unit$.
 %
-Using this continuation monad we can interpret $\incrEven$.
+One can show that this implementation of $\getF$ and $\putF$ abides by
+the same equations as the implementation given in
+Definition~\ref{def:state-monad}.
+%
+By fixing $S = \Int$ we can use this particular continuation monad
+instance to interpret $\incrEven$.
 %
 \[
   \incrEven~\Unit~(\lambda x.\lambda st. \Record{x;st})~4 \reducesto^+ \Record{\True;5}
@@ -698,6 +703,12 @@ corresponds to the $\Return$ of the state monad.
   \compTreeEx
   \caption{Computation tree for $\incrEven$.}\label{fig:comptree}
 \end{figure}
+%
+The state monad and the continuation monad offer little flexibility
+with regards to the concrete interpretation of state as in both cases
+the respective monad hard-wires a particular interpretation. An
+alternative is the \emph{free monad} which decouples the structure of
+the monad from its interpretation.
 %
 Just like other monads the free monad satisfies the monad laws,
 however, unlike other monads the free monad does not perform any
