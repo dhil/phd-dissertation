@@ -388,6 +388,11 @@ Evidently, control is a pervasive phenomenon in programming. However,
 not every control phenomenon is equal in terms of programmability and
 expressiveness.
 
+\section{This thesis in a nutshell}
+In this dissertation I am concerned only with
+\citeauthor{PlotkinP09}'s deep handlers, their shallow variation, and
+parameterised handlers which are a slight variation of deep handlers.
+
 \section{Why first-class control matters}
 
 \subsection{Flavours of control}
@@ -399,22 +404,45 @@ expressiveness.
 
 \section{State of effectful programming}
 
-\subsection{Dark age of impurity}
+The evolution of effectful programming has gone through several
+characteristic phases. In this section I will provide a brief overview
+of how effectful programming has evolved as well as providing a brief
+introduction to the core concepts concerned with each phase.
 
-\subsection{Monadic enlightenment}
+\subsection{Early days of direct-style}
+
+\subsection{Monadic epoch}
 During the late 80s and early 90s monads rose to prominence as a
-practical program structuring idiom for effectful
-programming. Notably, they form the foundations for effectful
-programming in Haskell, which adds special language-level support for
-programming with monads~\cite{JonesABBBFHHHHJJLMPRRW99}.
+practical programming idiom for structuring effectful
+programming~\cite{Moggi89,Moggi91,Wadler92,Wadler92b,JonesW93,Wadler95,JonesABBBFHHHHJJLMPRRW99}.
+%
+The concept of monad has its origins in category theory and its
+mathematical nature is well-understood~\cite{MacLane71,Borceux94}. The
+emergence of monads as a programming abstraction began when
+\citet{Moggi89,Moggi91} proposed to use monads as the basis for
+denoting computational effects in denotational semantics such as
+exceptions, state, nondeterminism, interactive input and
+output. \citet{Wadler92,Wadler95} popularised monadic programming by
+putting \citeauthor{Moggi89}'s proposal to use in functional
+programming by demonstrating how monads increase the ease at which
+programs may be retrofitted with computational effects.
+%
+In practical programming terms, monads may be thought of as
+constituting a family of design patterns, where each pattern gives
+rise to a distinct effect with its own operations.
+%
+% Notably, they form the foundations for effectful programming in
+% Haskell, which adds special language-level support for programming
+% with monads~\cite{JonesABBBFHHHHJJLMPRRW99}.
 %
 \begin{definition}
-  A monad is a triple $(T, \Return, \bind)$ where $T$ is some unary
-  type constructor, $\Return$ is an operation that lifts an arbitrary
-  value into the monad (sometimes this operation is called `the unit
-  operation'), and $\bind$ is an application operator the monad (this
-  operator is pronounced `bind'). Implementations of $\Return$ and
-  $\bind$ must conform to the following interface.
+  A monad is a triple $(T^{\TypeCat \to \TypeCat}, \Return, \bind)$
+  where $T$ is some unary type constructor, $\Return$ is an operation
+  that lifts an arbitrary value into the monad (sometimes this
+  operation is called `the unit operation'), and $\bind$ is the
+  application operator of the monad (this operator is pronounced
+  `bind'). Adequate implementations of $\Return$ and $\bind$ must
+  conform to the following interface.
   %
   \[
     \bl
@@ -431,43 +459,155 @@ programming with monads~\cite{JonesABBBFHHHHJJLMPRRW99}.
   \end{reductions}
 \end{definition}
 %
-Monads have given rise to various popular control-oriented programming
-abstractions, e.g. the async/await idiom has its origins in monadic
+Monads have a proven track record of successful applications.
+
+Monads have also given rise to various popular control-oriented
+programming abstractions, e.g. the asynchronous programming idiom
+async/await has its origins in monadic
 programming~\cite{Claessen99,LiZ07,SymePL11}.
 
-\subsection{Option monad}
-The $\Option$ type is a unary type constructor with two data
-constructors, i.e.  $\Option~A \defas [\Some:A|\None]$.
+% \subsection{Option monad}
+% The $\Option$ type is a unary type constructor with two data
+% constructors, i.e.  $\Option~A \defas [\Some:A|\None]$.
 
-\begin{definition} The option monad is a monad equipped with a single
-  failure operation.
+% \begin{definition} The option monad is a monad equipped with a single
+%   failure operation.
+%   %
+%   \[
+%     \ba{@{~}l@{\qquad}@{~}r}
+%       \multicolumn{2}{l}{T~A \defas \Option~A} \smallskip\\
+%       \multirow{2}{*}{
+%         \bl
+%          \Return : A \to T~A\\
+%          \Return \defas \lambda x.\Some~x
+%         \el} &
+%       \multirow{2}{*}{
+%         \bl
+%           \bind ~: T~A \to (A \to T~B) \to T~B\\
+%           \bind ~\defas \lambda m.\lambda k.\Case\;m\;\{\None \mapsto \None;\Some~x \mapsto k~x\}
+%           \el}\\ & \smallskip\\
+%       \multicolumn{2}{l}{
+%         \bl
+%           \fail : A \to T~A\\
+%           \fail \defas \lambda x.\None
+%         \el}
+%     \ea
+%   \]
+%   %
+% \end{definition}
+
+\subsubsection{State monad}
+%
+The state monad provides a way to encapsulate a state cell.
+%
+\begin{definition}
+  The state monad is defined over some fixed state type $S$.
   %
   \[
-    \ba{@{~}l@{\qquad}@{~}r}
-      \multicolumn{2}{l}{T~A \defas \Option~A} \smallskip\\
+    \ba{@{~}l@{\qquad\quad}@{~}r}
+      \multicolumn{2}{l}{T~A \defas S \to A \times S} \smallskip\\
       \multirow{2}{*}{
         \bl
          \Return : A \to T~A\\
-         \Return \defas \lambda x.\Some~x
+         \Return~x\defas \lambda st.\Record{x;st}
         \el} &
       \multirow{2}{*}{
         \bl
           \bind ~: T~A \to (A \to T~B) \to T~B\\
-          \bind ~\defas \lambda m.\lambda k.\Case\;m\;\{\None \mapsto \None;\Some~x \mapsto k~x\}
-          \el}\\ & \smallskip\\
-      \multicolumn{2}{l}{
-        \bl
-          \fail : A \to T~A\\
-          \fail \defas \lambda x.\None
-        \el}
+          \bind ~\defas \lambda m.\lambda k.\lambda st. \Let\;\Record{x;st'} = m~st\;\In\; (k~x)~st'
+          \el} \\ & % space hack to avoid the next paragraph from
+                    % floating into the math environment.
     \ea
   \]
   %
+  The $\Return$ of the monad is a state-accepting function of type
+  $S \to A \times S$ that returns its first argument paired with the
+  current state. The bind operator also produces a state-accepting
+  function of type $S \to A \times S$. The bind operator first
+  supplies the current state $st$ to the monad argument $m$. This
+  application yields a value result of type $A$ and an updated state
+  $st'$. The result is supplied to the continuation $k$, which
+  produces another state accepting function that gets applied to the
+  previously computed state value $st'$.
+
+  The state monad is equipped with two dual operations for accessing
+  and modifying the state encapsulated within the monad.
+  %
+  \[
+    \ba{@{~}l@{\qquad\quad}@{~}r}
+    \multirow{2}{*}{
+      \bl
+        \getF : \UnitType \to T~S\\
+        \getF~\Unit \defas \lambda st. \Record{st;st}
+      \el} &
+    \multirow{2}{*}{
+      \bl
+        \putF : S \to T~\UnitType\\
+        \putF~st \defas \lambda st'.\Record{\Unit;st}
+      \el} \\ & % space hack to avoid the next paragraph from
+                % floating into the math environment.
+    \ea
+  \]
+  %
+  Interactions between the two operations satisfy the following
+  equations~\cite{Gibbons12}.
+  %
+  \begin{reductions}
+    \slab{Get\textrm{-}put} & \getF\,\Unit \bind (\lambda st.\putF~st)    &=& \Return\;\Unit\\
+    \slab{Put\textrm{-}put} & \putF~st \bind (\lambda st.\putF~st') &=& \putF~st'\\
+    \slab{Put\textrm{-}get} & \putF~st \bind (\lambda\Unit.\getF\,\Unit) &=& \putF~st \bind (\lambda \Unit.\Return\;st)
+  \end{reductions}
+  %
+  The first equation captures the intuition that getting a value and
+  then putting has no observable effect on the state cell. The second
+  equation states that only the latter of two consecutive puts is
+  observable. The third equation states that performing a get
+  immediately after putting a value is equivalent to returning that
+  value.
 \end{definition}
 
-\subsection{State monad}
+The literature often presents the state monad with a fourth equation,
+which states that $\getF$ is idempotent. However, this equation is
+redundant as it is derivable from the first and third equations.
 
-\subsection{Continuation monad}
+The following bit toggling function illustrates a use of the state
+monad.
+%
+\[
+  \bl
+    T~A \defas \Int \to (A \times \Int)\smallskip\\
+    \incrEven : \UnitType \to T~\Bool\\
+    \incrEven~\Unit \defas \getF
+      \bind (\lambda st.
+           \putF\,(1+st)
+           \bind \lambda\Unit. \Return\;(\even~st)))
+  \el
+\]
+%
+We fix the state type of our monad to be the integer type.  The type
+signature of the function $\incrEven$ may be read as describing a
+thunk that returns a boolean value, and whilst computing this boolean
+value the function may perform any effectful operations given by the
+monad $T$~\cite{Moggi91,Wadler92}, i.e. $\getF$ and
+$\putF$. Operationally, the function retrieves the current value of
+the state cell via the invocation of $\getF$. The bind operator passes
+this value onto the continuation, which increments the value and
+invokes $\putF$. The continuation applies a predicate
+$\even : \Int \to \Bool$ to the original state value to test whether
+its parity is even. The structure of the monad means that the result
+of running this computation gives us a pair consisting of boolean
+value indicating whether the initial state was even and the final
+state value. For instance, if the initial state value is $\True$, then
+the computation yields
+%
+\[
+  \incrEven~\Unit~4 \reducesto^+ \Record{\True;5},
+\]
+%
+where the first component contains the initial state value and the
+second component contains the final state value.
+
+\subsubsection{Continuation monad}
 As in J.R.R. Tolkien's fictitious Middle-earth~\cite{Tolkien54} there
 exists one monad to rule them all, one monad to realise them, one
 monad to subsume them all, and in the term language bind them. This
@@ -483,7 +623,7 @@ powerful monad is the \emph{continuation monad}.
       \multirow{2}{*}{
         \bl
          \Return : A \to T~A\\
-         \Return \defas \lambda x.\lambda k.k~x
+         \Return~x\defas \lambda k.k~x
         \el} &
       \multirow{2}{*}{
         \bl
@@ -502,26 +642,78 @@ $m$ to an anonymous function that accepts a value $x$ of type
 $A$. This value $x$ is supplied to the immediate continuation $k$
 alongside the current continuation $f$.
 
-Scheme's undelimited control operator $\Callcc$ is definable as a
-monadic operation on the continuation monad~\cite{Wadler92}.
+If we instantiate $R = S \to A \times S$ for some type $S$ then we
+can implement the state monad inside the continuation monad.
 %
 \[
-  \bl
-    \Callcc : ((A \to T~B) \to T~A) \to T~A\\
-    \Callcc \defas \lambda f.\lambda k. f\,(\lambda x.\lambda.k'.k~x)~k
-  \el
+  \ba{@{~}l@{\qquad\quad}@{~}r}
+    \multirow{2}{*}{
+      \bl
+        \getF : \UnitType \to T~S\\
+        \getF~\Unit \defas \lambda k.\lambda st.k~st~st
+      \el} &
+    \multirow{2}{*}{
+      \bl
+        \putF : S \to T~\UnitType\\
+        \putF~st \defas \lambda k.\lambda st'.k~\Unit~st
+      \el} \\ & % space hack to avoid the next paragraph from
+                % floating into the math environment.
+  \ea
 \]
+%
+The $\getF$ operation takes as input a (binary) continuation $k$ of
+type $S \to S \to A \times S$ and produces a state-accepting function
+that applies the continuation to the given state $st$. The first
+occurrence of $st$ is accessible to the caller of $\getF$, whilst the
+second occurrence passes the value $st$ onto the next operation
+invocation on the monad. The operation $\putF$ works in the same
+way. The primary difference is that $\putF$ does not return the value
+of the state cell; instead it returns simply the unit value $\Unit$.
+%
+Using this continuation monad we can interpret $\incrEven$.
+%
+\[
+  \incrEven~\Unit~(\lambda x.\lambda st. \Record{x;st})~4 \reducesto^+ \Record{\True;5}
+\]
+%
+The initial continuation $(\lambda x.\lambda st. \Record{x;st})$
+corresponds to the $\Return$ of the state monad.
 
-\subsection{Free monad}
+% Scheme's undelimited control operator $\Callcc$ is definable as a
+% monadic operation on the continuation monad~\cite{Wadler92}.
+% %
+% \[
+%   \bl
+%     \Callcc : ((A \to T~B) \to T~A) \to T~A\\
+%     \Callcc \defas \lambda f.\lambda k. f\,(\lambda x.\lambda.k'.k~x)~k
+%   \el
+% \]
+
+\subsubsection{Free monad}
+%
+\begin{figure}
+  \centering
+  \compTreeEx
+  \caption{Computation tree for $\incrEven$.}\label{fig:comptree}
+\end{figure}
+%
 Just like other monads the free monad satisfies the monad laws,
 however, unlike other monads the free monad does not perform any
 computation \emph{per se}. Instead the free monad builds an abstract
 representation of the computation in form of a computation tree, whose
 interior nodes correspond to an invocation of some operation on the
 monad, where each outgoing edge correspond to a possible continuation
-of the operation; the leaves correspond to return values. The meaning
-of a free monadic computation is ascribed by a separate function, or
-interpreter, that traverses the computation tree.
+of the operation; the leaves correspond to return
+values. Figure~\ref{fig:comptree} depicts the computation tree for the
+$\incrEven$ function. This particular computation tree has infinite
+width, because the operation $\getF$ has infinitely many possible
+continuations (we take the denotation of $\Int$ to be
+$\mathbb{Z}$). Contrary, each $\putF$ node has only one outgoing edge,
+because $\putF$ has only a single possible continuation, namely, the
+trivial continuation $\Unit$.
+
+The meaning of a free monadic computation is ascribed by a separate
+function, or interpreter, that traverses the computation tree.
 
 The shape of computation trees is captured by the following generic
 type definition.
@@ -549,11 +741,23 @@ operation is another computation tree node.
   %
   \[
    \bl
-     T~A \defas \Free~F~A \smallskip\\
-     \Return : A \to T~A\\
-     \Return \defas \lambda x.\return~x\\
-     \bind ~: T~A \to (A \to T~B) \to T~B\\
-     \bind ~\defas \lambda m.\lambda k.\Case\;m\;\{\return~x \mapsto k~x;\OpF~y \mapsto \OpF\,(\fmap\,(\lambda m'. m' \bind k)\,y)\}
+     \ba{@{~}l@{\qquad}@{~}r}
+     \multicolumn{2}{l}{T~A \defas \Free~F~A} \smallskip\\
+     \multirow{2}{*}{
+       \bl
+         \Return : A \to T~A\\
+         \Return~x \defas \return~x
+         \el} &
+     \multirow{2}{*}{
+       \bl
+         \bind ~: T~A \to (A \to T~B) \to T~B\\
+         \bind ~\defas \lambda m.\lambda k.\Case\;m\;\{
+           \bl
+              \return~x \mapsto k~x;\\
+              \OpF~y    \mapsto \OpF\,(\fmap\,(\lambda m'. m' \bind k)\,y)\}
+           \el
+         \el}\\ & \\ &
+       \ea
      \el
    \]
    %
@@ -563,7 +767,7 @@ operation is another computation tree node.
    \[
      \bl
        \DoF : F~A \to \Free~F~A\\
-       \DoF \defas \lambda op.\OpF\,(\fmap\,(\lambda x.\return~x)\,op)
+       \DoF~op \defas \OpF\,(\fmap\,(\lambda x.\return~x)\,op)
      \el
   \]
   %
@@ -571,21 +775,52 @@ operation is another computation tree node.
 
 \[
   \bl
-    \dec{FreeState}~S~R \defas [\Get:S \to R|\Put:\Record{S;R}|\Done] \smallskip\\
+    \dec{FreeState}~S~R \defas [\Get:S \to R|\Put:\Record{S;R}] \smallskip\\
     \fmap~f~x \defas \Case\;x\;\{
     \bl
        \Get~k \mapsto \Get\,(\lambda st.f\,(k~st));\\
-       \Put~st'~k \mapsto \Put\,\Record{st';f~k};\\
-       \Done \mapsto \Done\}
-    \el \smallskip\\
-    \getF : \UnitType \to T~S\\
-    \getF~\Unit \defas \DoF~(\Get\,(\lambda x.x)))\\
-    \putF : S \to T~\UnitType\\
-    \putF~st \defas \DoF~(\Put\,\Record{st;\Unit})
+       \Put~st'~k \mapsto \Put\,\Record{st';f~k}\}
+    \el
   \el
 \]
+%
+\[
+  \ba{@{~}l@{\qquad\quad}@{~}r}
+    \multirow{2}{*}{
+      \bl
+        \getF : \UnitType \to T~S\\
+        \getF~\Unit \defas \DoF~(\Get\,(\lambda x.x))
+      \el} &
+    \multirow{2}{*}{
+      \bl
+        \putF : S \to T~\UnitType\\
+        \putF~st \defas \DoF~(\Put\,\Record{st;\Unit})
+      \el} \\ & % space hack to avoid the next paragraph from
+                % floating into the math environment.
+  \ea
+\]
+%
+\[
+  \bl
+    \runState : S \to \Free\,(\dec{FreeState}~S)\,A \to A \times S\\
+    \runState~st~m \defas
+      \Case\;m\;\{
+      \ba[t]{@{~}l@{~}c@{~}l}
+         \return~x      &\mapsto& (x, st);\\
+         \OpF\,(\Get~k) &\mapsto& \runState~st~(k~st);\\
+         \OpF\,(\Put\,\Record{st';k}) &\mapsto& \runState~st'~k
+      \}\ea
+  \el
+\]
+%
+\[
+  \runState~4~(\incrEven~\Unit) \reducesto^+ \Record{\True;5}
+\]
 
-\subsection{Direct-style revolution}
+\subsection{Back to direct-style}
+
+
+\subsubsection{Effect tracking}
 
 
 \section{Contributions}

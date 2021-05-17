@@ -359,6 +359,9 @@
 \newcommand{\getF}{\dec{get}}
 \newcommand{\putF}{\dec{put}}
 \newcommand{\fmap}{\dec{fmap}}
+\newcommand{\toggle}{\dec{toggle}}
+\newcommand{\incrEven}{\dec{incrEven}}
+\newcommand{\even}{\dec{even}}
 
 % Abstract machine
 \newcommand{\cek}[1]{\ensuremath{\langle #1 \rangle}}
@@ -535,24 +538,6 @@
 \newcommand{\OCaml}{OCaml}
 
 
-% Tikz figures
-\newcommand\toggle{
-\begin{tikzpicture}[->,>=stealth',level/.style={sibling distance = 5cm/##1,
-  level distance = 1.5cm}]
-\node [opnode] {$\Get~\Unit$}
-    child{ node [opnode] {$\Put~\False$}
-           child{ node [leaf] {$\True$}
-                  edge from parent node[left] {$\Unit$}}
-           edge from parent node[above left] {$\True$}
-    }
-    child{ node [opnode] {$\Put~v$}
-           child{ node [leaf] {$\False$}
-                  edge from parent node[right] {$\res{()}$}}
-           edge from parent node[above right] {$\res{\False}$}
-    }
-;
-\end{tikzpicture}}
-
 %%
 %% Asymptotic improvement macros
 %%
@@ -647,3 +632,46 @@
 \end{tikzpicture}}
 
 \newenvironment{twoeqs}{\ba[t]{@{}r@{~}c@{~}l@{~}c@{~}r@{~}c@{~}l@{}}}{\ea}
+
+\newcommand{\compTreeEx}{
+  \begin{tikzpicture}[->,>=stealth',level/.style={sibling distance = 2.0cm/##1,
+      level distance = 2.0cm}]
+\node (root) [opnode] {$\getF$}
+    child { node [yshift=15] {$\dots$}
+    edge from parent {}
+    }
+    child { node [opnode] {$\putF$}
+      child { node {$\True$}
+         edge from parent node[left] {$\Unit$}
+      }
+    edge from parent node[yshift=5,left] {$-2$}
+    }
+    child { node [opnode] {$\putF$}
+      child { node {$\False$}
+         edge from parent node[left] {$\Unit$}
+      }
+    edge from parent node[yshift=2,left] {$-1$}
+    }
+    child { node [opnode] {$\putF$}
+      child { node {$\True$}
+         edge from parent node[left] {$\Unit$}
+      }
+    edge from parent node[left] {$0$}
+    }
+    child { node [opnode] {$\putF$}
+      child { node {$\False$}
+         edge from parent node[right] {$\Unit$}
+      }
+    edge from parent node[yshift=2,right] {$1$}
+    }
+    child { node [opnode] {$\putF$}
+      child { node {$\True$}
+         edge from parent node[right] {$\Unit$}
+      }
+    edge from parent node[yshift=5,right] {$2$}
+    }
+    child { node [yshift=15] {$\dots$}
+    edge from parent {}
+    }
+;
+\end{tikzpicture}}
