@@ -498,7 +498,9 @@ programming~\cite{Claessen99,LiZ07,SymePL11}.
 
 \subsubsection{State monad}
 %
-The state monad provides a way to encapsulate a state cell.
+The state monad encapsulates mutable state by using the state-passing
+technique internally. It provides two operations for manipulating the
+state cell.
 %
 \begin{definition}
   The state monad is defined over some fixed state type $S$.
