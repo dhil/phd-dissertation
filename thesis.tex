@@ -710,9 +710,9 @@ values. Figure~\ref{fig:comptree} depicts the computation tree for the
 $\incrEven$ function. This particular computation tree has infinite
 width, because the operation $\getF$ has infinitely many possible
 continuations (we take the denotation of $\Int$ to be
-$\mathbb{Z}$). Contrary, each $\putF$ node has only one outgoing edge,
-because $\putF$ has only a single possible continuation, namely, the
-trivial continuation $\Unit$.
+$\mathbb{Z}$). Conversely, each $\putF$ node has only one outgoing
+edge, because $\putF$ has only a single possible continuation, namely,
+the trivial continuation $\Unit$.
 
 The meaning of a free monadic computation is ascribed by a separate
 function, or interpreter, that traverses the computation tree.
