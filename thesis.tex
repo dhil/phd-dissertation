@@ -1163,20 +1163,20 @@ handlers.
 %
 \dhil{Definition of (typed) programming language, conservative extension, macro-expressiveness~\cite{Felleisen90,Felleisen91}}
 
-\chapter{State of effectful programming}
-\label{ch:related-work}
+% \chapter{State of effectful programming}
+% \label{ch:related-work}
 
-% \section{Type and effect systems}
-% \section{Monadic programming}
-\section{Golden age of impurity}
-\section{Monadic enlightenment}
-\dhil{Moggi's seminal work applies the notion of monads to effectful
-  programming by modelling effects as monads. More importantly,
-  Moggi's work gives a precise characterisation of what's \emph{not}
-  an effect}
-\section{Direct-style revolution}
+% % \section{Type and effect systems}
+% % \section{Monadic programming}
+% \section{Golden age of impurity}
+% \section{Monadic enlightenment}
+% \dhil{Moggi's seminal work applies the notion of monads to effectful
+%   programming by modelling effects as monads. More importantly,
+%   Moggi's work gives a precise characterisation of what's \emph{not}
+%   an effect}
+% \section{Direct-style revolution}
 
-\subsection{Monadic reflection: best of both worlds}
+% \subsection{Monadic reflection: best of both worlds}
 
 \chapter{Continuations}
 \label{ch:continuations}
@@ -15868,11 +15868,11 @@ be modified.
 
 We have in mind an extension $\BCalcS$ of $\BCalc$ with ML-style
 reference cells: we extend our grammar for types with a reference type
-($\Ref~A$), and that for computation terms with forms for creating
+($\PCFRef~A$), and that for computation terms with forms for creating
 references ($\keyw{letref}\; x = V\; \In\; N$), dereferencing ($!x$),
 and destructive update ($x := V$), with the familiar typing rules.  We
 also add a new kind of value, namely \emph{locations} $l^A$, of type
-$\Ref~A$. We adopt a basic Scott-Strachey~\citeyearpar{ScottS71} model
+$\PCFRef~A$. We adopt a basic Scott-Strachey~\citeyearpar{ScottS71} model
 of store: a location is a natural number decorated with a type, and
 the execution of a stateful program allocates locations in the order
 $0,1,2,\ldots$, assigning types to them as it does so. A \emph{store}
