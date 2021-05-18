@@ -394,11 +394,33 @@ In this dissertation I am concerned only with
 parameterised handlers which are a slight variation of deep handlers.
 
 \section{Why first-class control matters}
+From the perspective of programmers first-class control is a valuable
+programming feature because it enables them to implement their own
+control idioms as if they were native to the programming
+language. More important with first-class control programmer-defined
+control idioms are local phenomena which can be encapsulated in a
+library such that the rest of the program does not need to be made
+aware of their existence. Conversely, without first-class control some
+control idioms can only be implemented using global program
+restructuring techniques such as continuation passing style.
 
-\subsection{Flavours of control}
-\paragraph{Undelimited control}
-\paragraph{Delimited control}
-\paragraph{Composable control}
+From the perspective of compiler engineers first-class control is
+valuable because it unifies several control-related constructs under
+one single construct. First-class control can be beneficial for
+implementing programming languages which have no notion of first-class
+control in source language. A runtime with support for first-class
+control can considerably simplify and ease maintainability of an
+implementation of a programming language with various distinct
+second-class control idioms such as async/await, coroutines, etc,
+because compiler engineers need only implement and maintain a single
+control mechanism rather than having to implement and maintain
+individual runtime support for each control idiom in the source
+language.
+
+% \subsection{Flavours of control}
+% \paragraph{Undelimited control}
+% \paragraph{Delimited control}
+% \paragraph{Composable control}
 
 \subsection{Why effect handlers matter}
 
