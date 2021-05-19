@@ -434,6 +434,106 @@ concerned with each time period.
 
 \subsection{Early days of direct-style}
 
+It is well-known that $\Callcc$ exhibits both time and space
+performance problems for various implementing various
+effects~\cite{Kiselyov12}.
+%
+\subsubsection{Builtin mutable state}
+Builtin mutable state comes with three operations.
+%
+\[
+  \refv : S \to \PCFRef~S \qquad\quad
+  ! : \PCFRef~S \to S     \qquad\quad
+  \defnas~ : \PCFRef \to S \to \Unit
+\]
+%
+The first operation \emph{initialises} a new mutable state cell; the
+second operation \emph{gets} the value of a given state cell; and the
+third operation \emph{puts} a new value into a given state cell.
+%
+The following function illustrates a use of the get and put primitives
+to manipulate the contents of some global state cell $st$.
+%
+\[
+  \bl
+    \incrEven : \UnitType \to \Bool\\
+    \incrEven\,\Unit \defas \Let\;v \revto !st\;\In\;st \defnas 1 + v\;\In\;\even~st
+  \el
+\]
+%
+The type signature is oblivious to the fact that the function
+internally makes use of the state effect to compute its return value.
+%
+We can run this computation as a subcomputation in the context of
+global state cell $st$.
+%
+\[
+  \Let\;st \revto \refv~4\;\In\;\Record{\incrEven\,\Unit;!st} \reducesto^+ \Record{\True;5} : \Bool \times \Int
+\]
+%
+Operationally, the whole computation initialises the state cell $st$
+to contain the integer value $4$. Subsequently it runs the $\incrEven$
+computation, which returns the boolean value $\True$ and as a
+side-effect increments the value of $st$ to be $5$. The whole
+computation returns the boolean value paired with the final value of
+the state cell.
+
+\subsubsection{Transparent state-passing purely functionally}
+%
+\[
+  \bl
+    \incrEven : \UnitType \to \Int \to \Bool \times \Int\\
+    \incrEven\,\Unit \defas \lambda st. \Record{\even~st; 1 + st}
+  \el
+\]
+%
+State-passing is a global phenomenon that requires us to rewrite the
+signatures of all functions that makes use of state, i.e. in order to
+endow an $n$-ary function that returns some value of type $R$ with
+state $S$ we have to transform its type as follows.
+%
+\[
+    \val{A_1 \to \cdots \to A_n \to R}_S
+  = A_0 \to \cdots \to A_n \to S \to R \times S
+\]
+%
+\subsubsection{Opaque state-passing with delimited control}
+%
+\[
+  \ba{@{~}l@{\qquad\quad}@{~}r}
+  \multirow{2}{*}{
+    \bl
+      \getF : \UnitType \to S\\
+      \getF~\Unit \defas \shift~k.\lambda st. k~st~st
+    \el} &
+  \multirow{2}{*}{
+    \bl
+      \putF : S \to \UnitType\\
+      \putF~st \defas \shift~k.\lambda st'.k~\Unit~st
+    \el} \\ & % space hack to avoid the next paragraph from
+                % floating into the math environment.
+  \ea
+\]
+%
+\[
+  \bl
+    \incrEven : \UnitType \to \Bool\\
+    \incrEven\,\Unit \defas \Let\;st \revto \getF\,\Unit\;\In\;\putF\,(1 + st);\,\even~st
+  \el
+\]
+%
+\[
+  \bl
+    \runState : S \to (\UnitType \to A) \to A \times S\\
+    \runState~st~m \defas \pmb{\langle} \Let\;x \revto f\,\Unit\;\In\;\lambda st. \Record{x;st} \pmb{\rangle}\,st
+      \bl
+      \el
+  \el
+\]
+%
+The function $\runState$ is both the state cell initialiser and runner
+of the stateful computation.
+
 \subsection{Monadic epoch}
 During the late 80s and early 90s monads rose to prominence as a
 practical programming idiom for structuring effectful
@@ -453,6 +553,12 @@ programs may be retrofitted with computational effects.
 In practical programming terms, monads may be thought of as
 constituting a family of design patterns, where each pattern gives
 rise to a distinct effect with its own operations.
+%
+The part of the appeal of monads is that they provide a structured
+interface for programming with effects such as state, exceptions,
+nondeterminism, and so forth, whilst preserving the equational style
+of reasoning about pure functional
+programs~\cite{GibbonsH11,Gibbons12}.
 %
 % Notably, they form the foundations for effectful programming in
 % Haskell, which adds special language-level support for programming
@@ -595,8 +701,9 @@ The literature often presents the state monad with a fourth equation,
 which states that $\getF$ is idempotent. However, this equation is
 redundant as it is derivable from the first and third equations.
 
-The following bit toggling function illustrates a use of the state
-monad.
+We can implement a monadic variation of the $\incrEven$ function that
+uses the state monad to emulate manipulations of the state cell as
+follows.
 %
 \[
   \bl
@@ -812,11 +919,11 @@ operation is another computation tree node.
 \[
   \bl
     \dec{FreeState}~S~R \defas [\Get:S \to R|\Put:\Record{S;R}] \smallskip\\
-    \fmap~f~x \defas \Case\;x\;\{
-    \bl
-       \Get~k \mapsto \Get\,(\lambda st.f\,(k~st));\\
-       \Put~st'~k \mapsto \Put\,\Record{st';f~k}\}
-    \el
+    \fmap~f~op \defas \Case\;op\;\{
+    \ba[t]{@{}l@{~}c@{~}l}
+       \Get~k    &\mapsto& \Get\,(\lambda st.f\,(k~st));\\
+       \Put~st~k &\mapsto& \Put\,\Record{st;f~k}\}
+    \ea
   \el
 \]
 %
