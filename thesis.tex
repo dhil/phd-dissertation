@@ -435,14 +435,45 @@ effectful programming through the lens of a singular effect, namely,
 global mutable state.
 
 \subsection{Early days of direct-style}
+%
+Programming in its infancy was effectful as the idea of first-class
+control was conceived already during the design of the programming
+language Algol~\cite{BackusBGKMPRSVWWW60} -- one of the early
+high-level programming languages along with
+Fortran~\cite{BackusBBGHHNSSS57} and Lisp~\cite{McCarthy60} -- when
+\citet{Landin98} sought to model unrestricted goto-style jumps using
+an extended $\lambda$-calculus. The nature of \citeauthor{Landin98}'s
+control facility is undelimited; its power was recognised early by
+\citet{Burstall69}, who used it to implement a thread scheduler.
+%
+\citeauthor{Landin98}'s control facility did not gain popularity as a
+practical programming abstraction~\cite{Felleisen87b}.
 
-It is well-known that $\Callcc$ exhibits both time and space
-performance problems for various implementing various
-effects~\cite{Kiselyov12}.
+%
+% The power of \citeauthor{Landin98}'s control facility was recognised early The nature of the first-class control introduced by
+% \citeauthor{Landin98} was undelimited. However, 
+
+% The early high-level programming languages
+% Fortran~\cite{BackusBBGHHNSSS57}, Algol~\cite{BackusBGKMPRSVWWW60},
+% and Lisp~\cite{McCarthy60} all hard-wire a particular set of effects
+% into their semantics. The usage of effects in these languages is
+% completely untracked, although, the languages belonging to the Lisp
+% family have adopted a naming convention to suffix names of
+% side-effecting operations with exclamation points, e.g. the state
+% modification operation is named $\keyw{set!}$~\cite{Dybvig03}.
+
+% The idea of undelimited first-class control was conceived during the
+% development of Algol~\cite{Landin65,Landin65a,Landin98}. The probably
+% most famous form of undelimited control, $\Callcc$, appeared
+% later~\cite{AbelsonHAKBOBPCRFRHSHW85}.
+
+% It is well-known that $\Callcc$ exhibits both time and space
+% performance problems for various implementing various
+% effects~\cite{Kiselyov12}.
 %
 \subsubsection{Builtin mutable state}
 It is common to find mutable state builtin into the semantics of
-mainstream programming language. However, different languages vary in
+mainstream programming languages. However, different languages vary in
 their approach to mutable state. For instance, state mutation
 underpins the foundations of imperative programming languages
 belonging to the C family of languages. They do typically not
