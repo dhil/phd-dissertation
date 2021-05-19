@@ -439,7 +439,17 @@ performance problems for various implementing various
 effects~\cite{Kiselyov12}.
 %
 \subsubsection{Builtin mutable state}
-Builtin mutable state comes with three operations.
+It is common to find mutable state builtin into the semantics of
+mainstream programming language. However, different languages vary in
+their approach to mutable state. For instance, state mutation
+underpins the foundations of imperative programming languages
+belonging to the C family of languages. They do typically not
+distinguish between mutable and immutable values at the level of
+types. Contrary, programming languages belonging to the ML family of
+languages use types to differentiate between mutable and immutable
+values. They reflect mutable values in types by using a special unary
+type constructor $\PCFRef^{\Type \to \Type}$. Furthermore, ML
+languages equip the $\PCFRef$ constructor with three operations.
 %
 \[
   \refv : S \to \PCFRef~S \qquad\quad
@@ -447,12 +457,12 @@ Builtin mutable state comes with three operations.
   \defnas~ : \PCFRef \to S \to \Unit
 \]
 %
-The first operation \emph{initialises} a new mutable state cell; the
-second operation \emph{gets} the value of a given state cell; and the
-third operation \emph{puts} a new value into a given state cell. It is
-important to note here retrieving contents of the state cell is an
-idempotent action, whilst modifying the contents is a destructive
-action.
+The first operation \emph{initialises} a new mutable state cell of
+type $S$; the second operation \emph{gets} the value of a given state
+cell; and the third operation \emph{puts} a new value into a given
+state cell. It is important to note that retrieving contents of the
+state cell is an idempotent action, whilst modifying the contents is a
+destructive action.
 
 The following function illustrates a use of the get and put primitives
 to manipulate the contents of some global state cell $st$.
@@ -683,7 +693,15 @@ Haskell~\cite{JonesABBBFHHHHJJLMPRRW99}.
   \end{reductions}
 \end{definition}
 %
-The monad laws ensure that monads have some algebraic structure.
+The monad laws ensure that monads have some algebraic structure, which
+programmers can use when reasoning about their monadic programs, and
+optimising compilers may take advantage of the structure to emit more
+efficient code for monadic programs.
+
+The monad interface may be instantiated in different ways to realise
+different computational effects. In the following subsections we will
+see three different instantiations with which we will implement global
+mutable state.
 
 The success of monads as a programming idiom is difficult to
 understate as monads have given rise to several popular
@@ -854,6 +872,8 @@ As in J.R.R. Tolkien's fictitious Middle-earth~\cite{Tolkien54} there
 exists one monad to rule them all, one monad to realise them, one
 monad to subsume them all, and in the term language bind them. This
 powerful monad is the \emph{continuation monad}.
+%
+
 
 \begin{definition}\label{def:cont-monad}
   The continuation monad is defined over some fixed return type
