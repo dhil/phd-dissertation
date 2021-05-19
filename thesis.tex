@@ -915,16 +915,27 @@ of the state cell; instead it returns simply the unit value $\Unit$.
 One can show that this implementation of $\getF$ and $\putF$ abides by
 the same equations as the implementation given in
 Definition~\ref{def:state-monad}.
-%
-By fixing $S = \Int$ we can use this particular continuation monad
-instance to interpret $\incrEven$.
+
+The state initialiser and runner for the monad supplies the initial
+continuation.
 %
 \[
-  \incrEven~\Unit~(\lambda x.\lambda st. \Record{x;st})~4 \reducesto^+ \Record{\True;5}
+  \bl
+    \runState : (\UnitType \to T~A) \to S \to A \times S\\
+    \runState~m~st_0 \defas m~\Unit~(\lambda x.\lambda st. \Record{x;st})~st_0
+  \el
 \]
 %
 The initial continuation $(\lambda x.\lambda st. \Record{x;st})$
 corresponds to the $\Return$ of the state monad.
+%
+As usual by fixing $S = \Int$ and $A = \Bool$, we can use this
+particular continuation monad instance to interpret $\incrEven$.
+%
+\[
+  \runState~\incrEven~4 \reducesto^+ \Record{\True;5} : \Bool \times \Int
+\]
+%
 
 % Scheme's undelimited control operator $\Callcc$ is definable as a
 % monadic operation on the continuation monad~\cite{Wadler92}.
