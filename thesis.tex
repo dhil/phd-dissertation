@@ -449,8 +449,11 @@ Builtin mutable state comes with three operations.
 %
 The first operation \emph{initialises} a new mutable state cell; the
 second operation \emph{gets} the value of a given state cell; and the
-third operation \emph{puts} a new value into a given state cell.
-%
+third operation \emph{puts} a new value into a given state cell. It is
+important to note here retrieving contents of the state cell is an
+idempotent action, whilst modifying the contents is a destructive
+action.
+
 The following function illustrates a use of the get and put primitives
 to manipulate the contents of some global state cell $st$.
 %
@@ -488,9 +491,10 @@ the state cell.
 \]
 %
 State-passing is a global phenomenon that requires us to rewrite the
-signatures of all functions that makes use of state, i.e. in order to
-endow an $n$-ary function that returns some value of type $R$ with
-state $S$ we have to transform its type as follows.
+signatures (and their implementations) of all functions that makes use
+of state, i.e. in order to endow an $n$-ary function that returns some
+value of type $R$ with state $S$ we have to transform its type as
+follows.
 %
 \[
     \val{A_1 \to \cdots \to A_n \to R}_S
@@ -499,21 +503,83 @@ state $S$ we have to transform its type as follows.
 %
 \subsubsection{Opaque state-passing with delimited control}
 %
+Delimited control appears during the late 80s in different
+forms~\cite{SitaramF90,DanvyF89}.
+%
+There are several different forms of delimited control.  The
+particular form of delimited control that I will use here is due to
+\citet{DanvyF89}.
+%
+Nevertheless, the secret sauce of all forms of delimited control is
+that a delimited control operator makes it possible to pry open
+function boundaries as control may transfer out of an arbitrary
+evaluation context, leaving behind a hole that can later be filled by
+some value supplied externally.
+
+\citeauthor{DanvyF89}'s formulation of delimited control introduces
+the following two primitives.
+%
+\[
+  \reset{-} : (\UnitType \to R) \to R \qquad\quad
+  \shift : ((A \to R) \to R) \to A
+\]
+%
+The first primitive $\reset{-}$ (pronounced `reset') is a control
+delimiter. Operationally, reset evaluates a given thunk in an empty
+evaluation context and returns the final result of that evaluation.
+%
+The second primitive $\shift$ is a control reifier. An application
+$\shift$ reifies and erases the control state up to (but not
+including) the nearest enclosing reset. The reified control state
+represents the continuation of the invocation of $\shift$ (up to the
+innermost reset); it gets passed as a function to the argument of
+$\shift$.
+
+Both primitives are defined over some (globally) fixed result type
+$R$.
+%
+By instantiating $R = S \to A \times S$, where $S$ is the type of
+state and $A$ is the type of return values, then we can use shift and
+reset to simulate mutable state using state-passing in way that is
+opaque to the rest of the program.
+%
+Let us first define operations for accessing and modifying the state
+cell.
+%
 \[
   \ba{@{~}l@{\qquad\quad}@{~}r}
   \multirow{2}{*}{
     \bl
       \getF : \UnitType \to S\\
-      \getF~\Unit \defas \shift~k.\lambda st. k~st~st
+      \getF~\Unit \defas \shift\,(\lambda k.\lambda st. k~st~st)
     \el} &
   \multirow{2}{*}{
     \bl
       \putF : S \to \UnitType\\
-      \putF~st \defas \shift~k.\lambda st'.k~\Unit~st
+      \putF~st \defas \shift\,(\lambda k.\lambda st'.k~\Unit~st)
     \el} \\ & % space hack to avoid the next paragraph from
                 % floating into the math environment.
   \ea
 \]
+%
+The body of $\getF$ applies $\shift$ to capture the current
+continuation, which gets supplied to the anonymous function
+$(\lambda k.\lambda st. k~st~st)$. The continuation parameter $k$ has
+type $S \to S \to A \times S$. The continuation is applied to two
+instances of the current state value $st$. The instance the value
+returned to the caller of $\getF$, whilst the second instance is the
+state value available during the next invocation of either $\getF$ or
+$\putF$. This aligns with the intuition that accessing a state cell
+does not modify its contents. The implementation of $\putF$ is
+similar, except that the first argument to $k$ is the unit value,
+because the caller of $\putF$ expects a unit in return. Also, it
+ignores the current state value $st'$ and instead passes the state
+argument $st$ onto the activation of the next state operation. Again,
+this aligns with the intuition that modifying a state cell destroys
+its previous contents.
+
+Using these two operations we can implement a version of $\incrEven$
+that takes advantage of delimited control to simulate global state.
 %
 \[
   \bl
@@ -522,17 +588,40 @@ state $S$ we have to transform its type as follows.
   \el
 \]
 %
+Modulo naming of operations, this version is similar to the version
+that uses builtin state. The type signature of the function is even
+the same.
+%
+Before we can apply this function we must first a state initialiser.
+%
 \[
   \bl
-    \runState : S \to (\UnitType \to A) \to A \times S\\
-    \runState~st~m \defas \pmb{\langle} \Let\;x \revto f\,\Unit\;\In\;\lambda st. \Record{x;st} \pmb{\rangle}\,st
+    \runState : (\UnitType \to A) \to S \to A \times S\\
+    \runState~m~st_0 \defas \reset{\lambda\Unit.\Let\;x \revto m\,\Unit\;\In\;\lambda st. \Record{x;st}}\,st_0
       \bl
       \el
   \el
 \]
 %
-The function $\runState$ is both the state cell initialiser and runner
-of the stateful computation.
+The function $\runState$ acts as both the state cell initialiser and
+runner of the stateful computation. The first parameter $m$ is a thunk
+that may perform stateful operations and the second parameter $st_0$
+is the initial value of the state cell. The implementation wraps an
+instance of reset around the application of $m$ in order to delimit
+the extent of applications of $\shift$ within $m$. It is important to
+note that each invocation of $\getF$ and $\putF$ gives rise to a
+state-accepting function, thus when $m$ is applied a chain of
+state-accepting functions gets constructed lazily. The chain ends in
+the state-accepting function returned by the reset instance. The
+application of the reset instance to $st_0$ effectively causes
+evaluation of each function in this chain to start.
+
+After instantiating $A = \Bool$ and $S = \Int$ we can use the
+$\runState$ function to apply the $\incrEven$ function.
+%
+\[
+  \runState~\incrEven~4~ \reducesto^+ \Record{\True;5} : \Bool \times \Int
+\]
 
 \subsection{Monadic epoch}
 During the late 80s and early 90s monads rose to prominence as a
@@ -945,8 +1034,8 @@ operation is another computation tree node.
 %
 \[
   \bl
-    \runState : S \to \Free\,(\dec{FreeState}~S)\,A \to A \times S\\
-    \runState~st~m \defas
+    \runState : \Free\,(\dec{FreeState}~S)\,A \to S \to A \times S\\
+    \runState~m~st \defas
       \Case\;m\;\{
       \ba[t]{@{~}l@{~}c@{~}l}
          \return~x      &\mapsto& (x, st);\\
@@ -961,7 +1050,7 @@ operation is another computation tree node.
 \]
 
 \subsection{Back to direct-style}
-
+Combining monadic effects~\cite{VazouL16}\dots
 
 \subsubsection{Effect tracking}
 
@@ -1427,13 +1516,13 @@ distinct notions of continuations. It is common in the literature to
 find the word `continuation' accompanied by a qualifier such as full,
 partial, abortive, escape, undelimited, delimited, composable, or
 functional (in Chapter~\ref{ch:cps} I will extend this list by three
-new ones). Some of these notions of continuations synonyms, whereas
-others have distinct meaning. Common to all notions of continuations
-is that in essence they represent the control state. However, the
+new ones). Some of these notions of continuations are synonymous,
+whereas others have distinct meanings. Common to all notions of
+continuations is that they represent the control state. However, the
 extent and behaviour of continuations differ widely from notion to
 notion. The essential notions of continuations are
 undelimited/delimited and abortive/composable. To tell them apart, we
-will classify them by their operational behaviour.
+will classify them according to their operational behaviour.
 
 The extent and behaviour of a continuation in programming are
 determined by its introduction and elimination forms,
