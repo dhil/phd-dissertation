@@ -470,12 +470,18 @@ to manipulate the contents of some global state cell $st$.
 \[
   \bl
     \incrEven : \UnitType \to \Bool\\
-    \incrEven\,\Unit \defas \Let\;v \revto !st\;\In\;st \defnas 1 + v\;\In\;\even~st
+    \incrEven\,\Unit \defas \Let\;v \revto !st\;\In\;st \defnas 1 + v;\,\even~st
   \el
 \]
 %
 The type signature is oblivious to the fact that the function
 internally makes use of the state effect to compute its return value.
+%
+The body of the function first retrieves the current value of the
+state cell and binds it to $st$. Subsequently, it destructively
+increments the value of the state cell. Finally, it applies the
+predicate $\even : \Int \to \Bool$ to the original state value to test
+whether its parity is even.
 %
 We can run this computation as a subcomputation in the context of
 global state cell $st$.
@@ -839,12 +845,11 @@ monad $T$~\cite{Moggi91,Wadler92}, i.e. $\getF$ and
 $\putF$. Operationally, the function retrieves the current value of
 the state cell via the invocation of $\getF$. The bind operator passes
 this value onto the continuation, which increments the value and
-invokes $\putF$. The continuation applies a predicate
-$\even : \Int \to \Bool$ to the original state value to test whether
-its parity is even. The structure of the monad means that the result
-of running this computation gives us a pair consisting of boolean
-value indicating whether the initial state was even and the final
-state value.
+invokes $\putF$. The continuation applies a predicate the $\even$
+predicate to the original state value. The structure of the monad
+means that the result of running this computation gives us a pair
+consisting of boolean value indicating whether the initial state was
+even and the final state value.
 
 The state initialiser and monad runner is simply thunk forcing and
 function application combined.
