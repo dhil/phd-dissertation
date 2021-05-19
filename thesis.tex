@@ -653,6 +653,12 @@ programs~\cite{GibbonsH11,Gibbons12}.
 % Haskell, which adds special language-level support for programming
 % with monads~\cite{JonesABBBFHHHHJJLMPRRW99}.
 %
+
+The presentation of monads here is inspired by \citeauthor{Wadler92}'s
+presentation of monads for functional programming~\cite{Wadler92}, and
+it should be familiar to users of
+Haskell~\cite{JonesABBBFHHHHJJLMPRRW99}.
+
 \begin{definition}
   A monad is a triple $(T^{\TypeCat \to \TypeCat}, \Return, \bind)$
   where $T$ is some unary type constructor, $\Return$ is an operation
@@ -677,11 +683,12 @@ programs~\cite{GibbonsH11,Gibbons12}.
   \end{reductions}
 \end{definition}
 %
-Monads have a proven track record of successful applications.
+The monad laws ensure that monads have some algebraic structure.
 
-Monads have also given rise to various popular control-oriented
-programming abstractions, e.g. the asynchronous programming idiom
-async/await has its origins in monadic
+The success of monads as a programming idiom is difficult to
+understate as monads have given rise to several popular
+control-oriented programming abstractions including the asynchronous
+programming idiom async/await has its origins in monadic
 programming~\cite{Claessen99,LiZ07,SymePL11}.
 
 % \subsection{Option monad}
@@ -716,9 +723,10 @@ programming~\cite{Claessen99,LiZ07,SymePL11}.
 
 \subsubsection{State monad}
 %
-The state monad encapsulates mutable state by using the state-passing
-technique internally. It provides two operations for manipulating the
-state cell.
+The state monad is an instantiation of the monad interface that
+encapsulates mutable state by using the state-passing technique
+internally. In addition it equip the monad with two operations for
+manipulating the state cell.
 %
 \begin{definition}\label{def:state-monad}
   The state monad is defined over some fixed state type $S$.
@@ -818,15 +826,28 @@ $\even : \Int \to \Bool$ to the original state value to test whether
 its parity is even. The structure of the monad means that the result
 of running this computation gives us a pair consisting of boolean
 value indicating whether the initial state was even and the final
-state value. For instance, if the initial state value is $\True$, then
-the computation yields
+state value.
+
+The state initialiser and monad runner is simply thunk forcing and
+function application combined.
 %
 \[
-  \incrEven~\Unit~4 \reducesto^+ \Record{\True;5},
+  \bl
+    \runState : (\UnitType \to T~A) \to S \to A \to S\\
+    \runState~m~st_0 \defas m~\Unit~st_0\\
+   \el
 \]
 %
-where the first component contains the initial state value and the
-second component contains the final state value.
+By instantiating $S = \Int$ and $A = \Bool$ we can obtain the same
+result as before.
+%
+\[
+  \runState~\incrEven~4 \reducesto^+ \Record{\True;5} : \Bool \times \Int
+\]
+%
+We can instantiate the monad structure in a similar way to simulate
+other computational effects such as exceptions, nondeterminism,
+concurrency, and so forth~\cite{Moggi91,Wadler92}.
 
 \subsubsection{Continuation monad}
 As in J.R.R. Tolkien's fictitious Middle-earth~\cite{Tolkien54} there
