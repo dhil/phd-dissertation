@@ -430,7 +430,9 @@ The evolution of effectful programming has gone through several
 characteristic time periods. In this section I will provide a brief
 programming perspective on how effectful programming has evolved as
 well as providing an informal introduction to the core concepts
-concerned with each time period.
+concerned with each time period. We will look at the evolution of
+effectful programming through the lens of a singular effect, namely,
+global mutable state.
 
 \subsection{Early days of direct-style}
 
@@ -498,6 +500,29 @@ computation returns the boolean value paired with the final value of
 the state cell.
 
 \subsubsection{Transparent state-passing purely functionally}
+It is possible to implement stateful behaviour even in a language
+without any computational effects, e.g. simply typed
+$\lambda$-calculus, by following a particular design pattern known as
+\emph{state-passing}. The principal idea is to parameterise stateful
+functions by the current state and make them return whatever result
+they compute along with the updated state value. More precisely, in
+order to endow some $n$-ary function with argument types $A_i$ and
+return type $R$ with state of type $S$, we transform the function
+signature as follows.
+%
+\[
+    \val{A_1 \to \cdots \to A_n \to R}_S
+  \defas A_1 \to \cdots \to A_n \to S \to R \times S
+\]
+%
+By convention we always insert the state parameter at the tail end of
+the parameter list. We may read the suffix $S \to R \times S$ as a
+sort of effect annotation indicating that a particular function
+utilises state. The downside of state-passing is that it is a global
+technique which requires us to rewrite the signatures (and their
+implementations) of all functions that makes use of state.
+
+We can reimplement the $\incrEven$ in state-passing style as follows.
 %
 \[
   \bl
@@ -506,17 +531,21 @@ the state cell.
   \el
 \]
 %
-State-passing is a global phenomenon that requires us to rewrite the
-signatures (and their implementations) of all functions that makes use
-of state, i.e. in order to endow an $n$-ary function that returns some
-value of type $R$ with state $S$ we have to transform its type as
-follows.
+State initialisation is simply function application.
 %
 \[
-    \val{A_1 \to \cdots \to A_n \to R}_S
-  = A_0 \to \cdots \to A_n \to S \to R \times S
+  \incrEven~\Unit~4 \reducesto^+ \Record{\True;5} : \Bool \times \Int
 \]
 %
+Programming in state-passing style is laborious and no fun as it is
+anti-modular, because effect-free higher-order functions to work with
+stateful functions they too must be transformed or at the very least
+be duplicated to be compatible with stateful function arguments.
+%
+Nevertheless, state-passing is an important technique as it is the
+secret sauce that enables us to simulate mutable state with other
+programming techniques.
+
 \subsubsection{Opaque state-passing with delimited control}
 %
 Delimited control appears during the late 80s in different
@@ -699,15 +728,16 @@ Haskell~\cite{JonesABBBFHHHHJJLMPRRW99}.
   \end{reductions}
 \end{definition}
 %
-The monad laws ensure that monads have some algebraic structure, which
-programmers can use when reasoning about their monadic programs, and
-optimising compilers may take advantage of the structure to emit more
-efficient code for monadic programs.
-
+\dhil{Remark that the monad type $T~A$ may be read as a tainted value}
 The monad interface may be instantiated in different ways to realise
 different computational effects. In the following subsections we will
 see three different instantiations with which we will implement global
 mutable state.
+
+The monad laws ensure that monads have some algebraic structure, which
+programmers can use when reasoning about their monadic programs, and
+optimising compilers may take advantage of the structure to emit more
+efficient code for monadic programs.
 
 The success of monads as a programming idiom is difficult to
 understate as monads have given rise to several popular
