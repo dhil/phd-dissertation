@@ -1254,16 +1254,17 @@ operations using the state-passing technique.
   \el
 \]
 %
-The interpreter pattern matches on the shape of the monad (or
-equivalently computation tree). In the case of a $\Return$ node the
-interpreter returns the payload $x$ along with the final state value
-$st$. If the current node is a $\Get$ operation, then the interpreter
-recursively calls itself with the same state value $st$ and a thunked
-application of the continuation $k$ to the current state $st$. The
-recursive activation of $\runState$ will force the thunk in order to
-compute the next computation tree node.  In the case of a $\Put$
-operation the interpreter calls itself recursively with new state
-value $st'$ and the continuation $k$ (which is a thunk).
+The interpreter implements a \emph{fold} over the computation tree by
+pattern matching on the shape of the tree (or equivalently monad). In
+the case of a $\Return$ node the interpreter returns the payload $x$
+along with the final state value $st$. If the current node is a $\Get$
+operation, then the interpreter recursively calls itself with the same
+state value $st$ and a thunked application of the continuation $k$ to
+the current state $st$. The recursive activation of $\runState$ will
+force the thunk in order to compute the next computation tree node.
+In the case of a $\Put$ operation the interpreter calls itself
+recursively with new state value $st'$ and the continuation $k$ (which
+is a thunk).
 %
 
 By instantiating $S = \Int$ we can use this interpreter to run
