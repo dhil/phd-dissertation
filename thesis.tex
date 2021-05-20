@@ -426,28 +426,53 @@ language.
 
 \section{State of effectful programming}
 
-The evolution of effectful programming has gone through several
-characteristic time periods. In this section I will provide a brief
-programming perspective on how effectful programming has evolved as
-well as providing an informal introduction to the core concepts
-concerned with each time period. We will look at the evolution of
-effectful programming through the lens of a singular effect, namely,
-global mutable state.
+Programming with effects can be done in basically three different
+ways: 1) usage of builtin effects, 2) simulation via global program
+transformations, or 3) simulation via control effects.
+%
+In this section I will provide a brief programming perspective on the
+various approaches to programming with effects. We will look at each
+approach through the lens of a singular effect, namely, global mutable
+state.
 
-\subsection{Early days of direct-style}
+% how
+% effectful programming has evolved as well as providing an informal
+% introduction to the involved core concepts. We will look at the
+% evolution of effectful programming through the lens of a singular
+% effect, namely, global mutable state.
+
+% The evolution of effectful programming has gone through several
+% characteristic time periods. In this section I will provide a brief
+% programming perspective on how effectful programming has evolved as
+% well as providing an informal introduction to the core concepts
+% concerned with each time period. We will look at the evolution of
+% effectful programming through the lens of a singular effect, namely,
+% global mutable state.
+
+\subsection{Direct-style state}
 %
-Programming in its infancy was effectful as the idea of first-class
-control was conceived already during the design of the programming
-language Algol~\cite{BackusBGKMPRSVWWW60} -- one of the early
-high-level programming languages along with
-Fortran~\cite{BackusBBGHHNSSS57} and Lisp~\cite{McCarthy60} -- when
-\citet{Landin98} sought to model unrestricted goto-style jumps using
-an extended $\lambda$-calculus. The nature of \citeauthor{Landin98}'s
-control facility is undelimited; its power was recognised early by
-\citet{Burstall69}, who used it to implement a thread scheduler.
-%
-\citeauthor{Landin98}'s control facility did not gain popularity as a
-practical programming abstraction~\cite{Felleisen87b}.
+We can realise stateful behaviour by either using language-supported
+state primitives, globally structure our program to follow a certain
+style, or use first-class control in the form of delimited control to
+simulate state. As for simulating state with control effects we
+consider only delimited control, because undelimited control is
+insufficient to express mutable state~\cite{FriedmanS00}.
+% Programming in its infancy was effectful as the idea of first-class
+% control was conceived already during the design of the programming
+% language Algol~\cite{BackusBGKMPRSVWWW60} -- one of the early
+% high-level programming languages along with
+% Fortran~\cite{BackusBBGHHNSSS57} and Lisp~\cite{McCarthy60} -- when
+% \citet{Landin98} sought to model unrestricted goto-style jumps using
+% an extended $\lambda$-calculus. The power of \citeauthor{Landin98}'s
+% control facility was recognised early by \citet{Burstall69}, who used
+% it to implement a control abstraction for tree-based search.
+% %
+% % \citeauthor{Landin98}'s control facility did not gain popularity as a
+% % practical programming abstraction~\cite{Felleisen87b}.
+% \citeauthor{Landin98}'s control facility is a precursor to the
+% undelimited control operator $\Callcc$ (short for call with current
+% continuation), which first appeared in the programming language
+% Scheme~\cite{AbelsonHAKBOBPCRFRHSHW85}.
 
 %
 % The power of \citeauthor{Landin98}'s control facility was recognised early The nature of the first-class control introduced by
@@ -531,9 +556,9 @@ computation returns the boolean value paired with the final value of
 the state cell.
 
 \subsubsection{Transparent state-passing purely functionally}
-It is possible to implement stateful behaviour even in a language
-without any computational effects, e.g. simply typed
-$\lambda$-calculus, by following a particular design pattern known as
+It is possible to implement stateful behaviour in a language without
+any computational effects, e.g. simply typed $\lambda$-calculus, by
+following a particular design pattern known as
 \emph{state-passing}. The principal idea is to parameterise stateful
 functions by the current state and make them return whatever result
 they compute along with the updated state value. More precisely, in
@@ -699,7 +724,8 @@ $\runState$ function to apply the $\incrEven$ function.
   \runState~\incrEven~4~ \reducesto^+ \Record{\True;5} : \Bool \times \Int
 \]
 
-\subsection{Monadic epoch}
+% \subsection{Monadic epoch}
+\subsection{Monadic state}
 During the late 80s and early 90s monads rose to prominence as a
 practical programming idiom for structuring effectful
 programming~\cite{Moggi89,Moggi91,Wadler92,Wadler92b,JonesW93,Wadler95,JonesABBBFHHHHJJLMPRRW99}.
