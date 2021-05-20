@@ -349,28 +349,54 @@ either continuation.
 More intriguing forms of control exist, which enable the programmer to
 manipulate and reify continuations as first-class data objects. This
 kind of control is known as \emph{first-class control}.
-%
-The idea of first-class control is old, it was conceived already
+
+The idea of first-class control is old. It was conceived already
 during the design of the programming language
 Algol~\cite{BackusBGKMPRSVWWW60} (one of the early high-level
 programming languages along with Fortran~\cite{BackusBBGHHNSSS57} and
 Lisp~\cite{McCarthy60}) when \citet{Landin98} sought to model
-unrestricted goto-style jumps using an extended
-$\lambda$-calculus. Albeit, the most (in)famous first-class control
-operator \emph{call-with-current-continuation} appeared later when it
-was introduced by the designers of the programming language
-Scheme~\cite{AbelsonHAKBOBPCRFRHSHW85}.
+unrestricted goto-style jumps using an extended $\lambda$-calculus.
 %
-The ability to manipulate continuations programmatically is incredibly
-powerful as it enables programmers to perform non-local transfers of
-control on the
-demand. % and it can be used to codify a wealth of control idioms.
+Since then a wide variety of first-class control operators have
+appeared. We can coarsely categorise them into two groups:
+\emph{undelimited} and \emph{delimited} (in
+Chapter~\ref{ch:continuations} we will perform a finer analysis of
+first-class control). Undelimited control operators are global
+phenomena that let programmers capture the entire control state of
+their programs, whereas delimited control operators are local
+phenomena that provide programmers with fine-grain control over which
+parts of the control state to capture.
 %
-\dhil{First-class control provides more intriguing forms of control,
-  which reifies the continuation as a first-class data object.}
+Thus there are good reasons for preferring delimited control over
+undelimited control for practical programming.
 %
-\dhil{Control effects gives rise to a programming paradigm known as
-  effectful programming}
+% The most (in)famous control operator
+% \emph{call-with-current-continuation} appeared later during a revision
+% of the programming language Scheme~\cite{AbelsonHAKBOBPCRFRHSHW85}.
+%
+
+Nevertheless, the ability to manipulate continuations programmatically
+is incredibly powerful as it enables programmers to perform non-local
+transfers of control on the demand. This sort of power makes it
+possible to implement a wealth of control idioms such as
+coroutines~\cite{MouraI09}, generators/iterators~\cite{ShawWL77},
+async/await~\cite{SymePL11} as user-definable
+libraries~\cite{FriedmanHK84,FriedmanH85,Leijen17a,Leijen17,Pretnar15}. The
+phenomenon of non-local transfer of control is known as a
+\emph{control effect}. It turns out to be `the universal effect' in
+the sense that it can simulate every other computational effect
+(consult \citet{Filinski96} for a precise characterisation of what it
+means to simulate an effect). More concretely, this means a
+programming language equipped with first-class control is capable of
+implementing effects such as exceptions, mutable state, transactional
+memory, nondeterminism, concurrency, interactive input/output, stream
+redirection, internally.
+%
+
+A whole programming paradigm known as \emph{effectful programming} is
+built around the idea of simulating computational effects using
+control effects.
+
 %
 \dhil{This dissertation is about the operational foundations for
   programming and implementing effect handlers, a particularly modular
@@ -636,9 +662,9 @@ State initialisation is simply function application.
 \]
 %
 Programming in state-passing style is laborious and no fun as it is
-anti-modular, because effect-free higher-order functions to work with
-stateful functions they too must be transformed or at the very least
-be duplicated to be compatible with stateful function arguments.
+anti-modular, because for effect-free higher-order functions to work
+with stateful functions they too must be transformed or at the very
+least be duplicated to be compatible with stateful function arguments.
 %
 Nevertheless, state-passing is an important technique as it is the
 secret sauce that enables us to simulate mutable state with other
@@ -709,10 +735,10 @@ The body of $\getF$ applies $\shift$ to capture the current
 continuation, which gets supplied to the anonymous function
 $(\lambda k.\lambda st. k~st~st)$. The continuation parameter $k$ has
 type $S \to S \to A \times S$. The continuation is applied to two
-instances of the current state value $st$. The instance the value
-returned to the caller of $\getF$, whilst the second instance is the
-state value available during the next invocation of either $\getF$ or
-$\putF$. This aligns with the intuition that accessing a state cell
+instances of the current state value $st$. The first instance is the
+value returned to the caller of $\getF$, whilst the second instance is
+the state value available during the next invocation of either $\getF$
+or $\putF$. This aligns with the intuition that accessing a state cell
 does not modify its contents. The implementation of $\putF$ is
 similar, except that the first argument to $k$ is the unit value,
 because the caller of $\putF$ expects a unit in return. Also, it
@@ -776,10 +802,9 @@ The concept of monad has its origins in category theory and its
 mathematical nature is well-understood~\cite{MacLane71,Borceux94}. The
 emergence of monads as a programming abstraction began when
 \citet{Moggi89,Moggi91} proposed to use monads as the basis for
-denoting computational effects in denotational semantics such as
-exceptions, state, nondeterminism, interactive input and
-output. \citet{Wadler92,Wadler95} popularised monadic programming by
-putting \citeauthor{Moggi89}'s proposal to use in functional
+denoting computational effects in denotational
+semantics. \citet{Wadler92,Wadler95} popularised monadic programming
+by putting \citeauthor{Moggi89}'s proposal to use in functional
 programming by demonstrating how monads increase the ease at which
 programs may be retrofitted with computational effects.
 %
@@ -787,10 +812,10 @@ In practical programming terms, monads may be thought of as
 constituting a family of design patterns, where each pattern gives
 rise to a distinct effect with its own operations.
 %
-The part of the appeal of monads is that they provide a structured
+Part of the appeal of monads is that they provide a structured
 interface for programming with effects such as state, exceptions,
-nondeterminism, and so forth, whilst preserving the equational style
-of reasoning about pure functional
+nondeterminism, interactive input and output, and so forth, whilst
+preserving the equational style of reasoning about pure functional
 programs~\cite{GibbonsH11,Gibbons12}.
 %
 % Notably, they form the foundations for effectful programming in
@@ -800,7 +825,7 @@ programs~\cite{GibbonsH11,Gibbons12}.
 
 The presentation of monads here is inspired by \citeauthor{Wadler92}'s
 presentation of monads for functional programming~\cite{Wadler92}, and
-it should be familiar to users of
+it ought to be familiar to users of
 Haskell~\cite{JonesABBBFHHHHJJLMPRRW99}.
 
 \begin{definition}
@@ -847,8 +872,7 @@ efficient code for monadic programs.
 The success of monads as a programming idiom is difficult to
 understate as monads have given rise to several popular
 control-oriented programming abstractions including the asynchronous
-programming idiom async/await has its origins in monadic
-programming~\cite{Claessen99,LiZ07,SymePL11}.
+programming idiom async/await~\cite{Claessen99,LiZ07,SymePL11}.
 
 % \subsection{Option monad}
 % The $\Option$ type is a unary type constructor with two data
@@ -1013,14 +1037,15 @@ exists one monad to rule them all, one monad to realise them, one
 monad to subsume them all, and in the term language bind them. This
 powerful monad is the \emph{continuation monad}.
 
-The continuation monad may be regarded as `the universal effect' as it
-can simulate any other computational effect~\cite{Filinski99}. It
-derives its name from its connection to continuation passing
-style~\cite{Wadler92}, which is a particular style of programming
-where each function is parameterised by the current continuation (we
-will discuss continuation passing style in detail in
-Chapter~\ref{ch:cps}). The continuation monad is powerful exactly
-because each of its operations has access to the current continuation.
+The continuation monad may be regarded as `the universal monad' as it
+can embed any other monad, and thereby simulate any computational
+effect~\cite{Filinski99}. It derives its name from its connection to
+continuation passing style~\cite{Wadler92}, which is a particular
+style of programming where each function is parameterised by the
+current continuation (we will discuss continuation passing style in
+detail in Chapter~\ref{ch:cps}). The continuation monad is powerful
+exactly because each of its operations has access to the current
+continuation.
 
 
 \begin{definition}\label{def:cont-monad}
@@ -1393,7 +1418,7 @@ delimited control variant of $\incrEven$.
 
 \subsubsection{Effect tracking}
 \dhil{Cite \citet{GiffordL86}, \citet{LucassenG88}, \citet{TalpinJ92},
-\citet{TofteT97}, \citet{NielsonN99}.}
+\citet{TofteT97}, \citet{NielsonN99}, \citet{WadlerT03}.}
 
 A benefit of using monads for effectful programming is that we get
 effect tracking `for free' (some might object to this statement and
