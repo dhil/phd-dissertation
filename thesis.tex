@@ -335,63 +335,104 @@
 %%
 \chapter{Introduction}
 \label{ch:introduction}
-Control is an ample ingredient of virtually every programming
-language. A programming language typically feature a variety of
+Control is a pervasive phenomenon in virtually every programming
+language.  A programming language typically features a variety of
 control constructs, which let the programmer manipulate the control
 flow of programs in interesting ways. The most well-known control
 construct may well be $\If\;V\;\Then\;M\;\Else\;N$, which
 conditionally selects between two possible \emph{continuations} $M$
-and $N$ depending on whether the condition $V$ is $\True$ or
-$\False$. Another familiar control construct is function application
-$\EC[(\lambda x.M)\,W]$, which evaluates some parameterised
-continuation $M$ at value argument $W$ to normal form and subsequently
-continues the current continuation induced by the invocation context
-$\EC$.
+and $N$ depending on whether the condition $V$ is $\True$ or $\False$.
 %
-At the time of writing the trendiest control construct happen to be
-async/await, which is designed for direct-style asynchronous
-programming~\cite{SymePL11}. It takes the form
-$\async.\,\EC[\await\;M]$, where $\async$ delimits an asynchronous
-context $\EC$ in which computations may be interleaved. The $\await$
-primitive may be used to defer execution of the current continuation
-until the result of the asynchronous computation $M$ is ready. Prior
-to async/await the most fashionable control construct was coroutines,
-which provide the programmer with a construct for performing non-local
-transfers of control by suspending the current continuation on
-demand~\cite{MouraI09}, e.g.  in
-$\keyw{co_0}.\,\EC_0[\keyw{suspend}];\keyw{co_1}.\,\EC_1[\Unit]$ the
-two coroutines $\keyw{co_0}$ and $\keyw{co_1}$ work in tandem by
-invoking suspend in order to hand over control to the other coroutine;
-$\keyw{co_0}$ suspends the current continuation $\EC_0$ and transfers
-control to $\keyw{co_1}$, which resume its continuation $\EC_1$ with
-the unit value $\Unit$. The continuation $\EC_1$ may later suspend in
-order to transfer control back to $\keyw{co_0}$ such that it can
-resume execution of the continuation
-$\EC_0$~\cite{AbadiP10}. Coroutines are amongst the oldest ideas of
-the literature as they have been around since the dawn of
-programming~\cite{DahlMN68,DahlDH72,Knuth97,MouraI09}. Nevertheless
-coroutines frequently reappear in the literature in various guises.
+The $\If$ construct offers no means for programmatic manipulation of
+either continuation.
+%
+More intriguing forms of control exist, which enable the programmer to
+manipulate and reify continuations as first-class data objects. This
+kind of control is known as \emph{first-class control}.
+%
+The idea of first-class control is old, it was conceived already
+during the design of the programming language
+Algol~\cite{BackusBGKMPRSVWWW60} (one of the early high-level
+programming languages along with Fortran~\cite{BackusBBGHHNSSS57} and
+Lisp~\cite{McCarthy60}) when \citet{Landin98} sought to model
+unrestricted goto-style jumps using an extended
+$\lambda$-calculus. Albeit, the most (in)famous first-class control
+operator \emph{call-with-current-continuation} appeared later when it
+was introduced by the designers of the programming language
+Scheme~\cite{AbelsonHAKBOBPCRFRHSHW85}.
+%
+The ability to manipulate continuations programmatically is incredibly
+powerful as it enables programmers to perform non-local transfers of
+control on the
+demand. % and it can be used to codify a wealth of control idioms.
+%
+\dhil{First-class control provides more intriguing forms of control,
+  which reifies the continuation as a first-class data object.}
+%
+\dhil{Control effects gives rise to a programming paradigm known as
+  effectful programming}
+%
+\dhil{This dissertation is about the operational foundations for
+  programming and implementing effect handlers, a particularly modular
+  and extensible programming abstraction for effectful programming}
 
-The common denominator for the aforementioned control constructs is
-that they are all second-class.
-
-% Virtually every programming language is equipped with one or more
-% control flow operators, which enable the programmer to manipulate the
-% flow of control of programs in interesting ways. The most well-known
-% control operator may well be $\If\;V\;\Then\;M\;\Else\;N$, which
+% Control is an ample ingredient of virtually every programming
+% language. A programming language typically feature a variety of
+% control constructs, which let the programmer manipulate the control
+% flow of programs in interesting ways. The most well-known control
+% construct may well be $\If\;V\;\Then\;M\;\Else\;N$, which
 % conditionally selects between two possible \emph{continuations} $M$
-% and $N$ depending on whether the condition $V$ is $\True$ or $\False$.
+% and $N$ depending on whether the condition $V$ is $\True$ or
+% $\False$. Another familiar control construct is function application
+% $\EC[(\lambda x.M)\,W]$, which evaluates some parameterised
+% continuation $M$ at value argument $W$ to normal form and subsequently
+% continues the current continuation induced by the invocation context
+% $\EC$.
 % %
-% Another familiar operator is function application\dots
+% At the time of writing the trendiest control construct happen to be
+% async/await, which is designed for direct-style asynchronous
+% programming~\cite{SymePL11}. It takes the form
+% $\async.\,\EC[\await\;M]$, where $\async$ delimits an asynchronous
+% context $\EC$ in which computations may be interleaved. The $\await$
+% primitive may be used to defer execution of the current continuation
+% until the result of the asynchronous computation $M$ is ready. Prior
+% to async/await the most fashionable control construct was coroutines,
+% which provide the programmer with a construct for performing non-local
+% transfers of control by suspending the current continuation on
+% demand~\cite{MouraI09}, e.g.  in
+% $\keyw{co_0}.\,\EC_0[\keyw{suspend}];\keyw{co_1}.\,\EC_1[\Unit]$ the
+% two coroutines $\keyw{co_0}$ and $\keyw{co_1}$ work in tandem by
+% invoking suspend in order to hand over control to the other coroutine;
+% $\keyw{co_0}$ suspends the current continuation $\EC_0$ and transfers
+% control to $\keyw{co_1}$, which resume its continuation $\EC_1$ with
+% the unit value $\Unit$. The continuation $\EC_1$ may later suspend in
+% order to transfer control back to $\keyw{co_0}$ such that it can
+% resume execution of the continuation
+% $\EC_0$~\cite{AbadiP10}. Coroutines are amongst the oldest ideas of
+% the literature as they have been around since the dawn of
+% programming~\cite{DahlMN68,DahlDH72,Knuth97,MouraI09}. Nevertheless
+% coroutines frequently reappear in the literature in various guises.
 
-Evidently, control is a pervasive phenomenon in programming. However,
-not every control phenomenon is equal in terms of programmability and
-expressiveness.
+% The common denominator for the aforementioned control constructs is
+% that they are all second-class.
 
-\section{This thesis in a nutshell}
-In this dissertation I am concerned only with
-\citeauthor{PlotkinP09}'s deep handlers, their shallow variation, and
-parameterised handlers which are a slight variation of deep handlers.
+% % Virtually every programming language is equipped with one or more
+% % control flow operators, which enable the programmer to manipulate the
+% % flow of control of programs in interesting ways. The most well-known
+% % control operator may well be $\If\;V\;\Then\;M\;\Else\;N$, which
+% % conditionally selects between two possible \emph{continuations} $M$
+% % and $N$ depending on whether the condition $V$ is $\True$ or $\False$.
+% % %
+% % Another familiar operator is function application\dots
+
+% Evidently, control is a pervasive phenomenon in programming. However,
+% not every control phenomenon is equal in terms of programmability and
+% expressiveness.
+
+% % \section{This thesis in a nutshell}
+% % In this dissertation I am concerned only with
+% % \citeauthor{PlotkinP09}'s deep handlers, their shallow variation, and
+% % parameterised handlers which are a slight variation of deep handlers.
 
 \section{Why first-class control matters}
 From the perspective of programmers first-class control is a valuable
@@ -1280,9 +1321,114 @@ The free monad brings us close to the essence of programming with
 effect handlers.
 
 \subsection{Back to direct-style}
-Combining monadic effects~\cite{VazouL16}\dots
+\dhil{The problem with monads is that they do not
+  compose. Cite~\citet{Espinosa95}, \citet{VazouL16}}
+%
+Another problem is that monads break the basic doctrine of modular
+abstraction, which we should program against an abstract interface,
+not an implementation. A monad is a concrete implementation.
+
+\subsubsection{Handling state}
+\dhil{Cite \citet{PlotkinP01,PlotkinP02,PlotkinP03,PlotkinP09,PlotkinP13}.}
+\[
+  \ba{@{~}l@{~}r}
+    \Do\;\ell^{A \opto B}~M^A : B & \Handle\;M^A\;\With\;H^{A \Harrow B} : B \smallskip\\
+    \multicolumn{2}{c}{H^{A \Harrow B} ::= \{\Return\;x \mapsto M\} \mid \{\OpCase{\ell}{p}{k} \mapsto M\} \uplus H}
+  \ea
+\]
+The operation symbols are declared in a signature
+$\ell : A \opto B \in \Sigma$.
+%
+\[
+  \ba{@{~}l@{\qquad\quad}@{~}r}
+    \multicolumn{2}{l}{\Sigma \defas \{\Get : \UnitType \opto S;\Put : S \opto \UnitType\}} \smallskip\\
+    \multirow{2}{*}{
+      \bl
+        \getF : \UnitType \to S\\
+        \getF~\Unit \defas \Do\;\Get\,\Unit
+      \el} &
+    \multirow{2}{*}{
+      \bl
+        \putF : S \to \UnitType\\
+        \putF~st \defas \Do\;\Put~st
+      \el} \\ & % space hack to avoid the next paragraph from
+                % floating into the math environment.
+  \ea
+\]
+%
+As with the free monad, we are completely free to pick whatever
+interpretation of state we desire. However, if we want an
+interpretation that is compatible with the usual equations for state,
+then we can simply use the state-passing technique again.
+%
+\[
+  \bl
+    \runState : (\UnitType \to A) \to S \to A \times S\\
+    \runState~m~st_0 \defas
+      \bl
+        \Let\;f \revto \Handle\;m\,\Unit\;\With\\~\{
+          \ba[t]{@{}l@{~}c@{~}l}
+            \Return\;x &\mapsto& \lambda st.\Record{x;st};\\
+            \OpCase{\Get}{\Unit}{k} &\mapsto& \lambda st.k~st~st;\\
+            \OpCase{\Put}{st'}{k}   &\mapsto& \lambda st.k~\Unit~st'\}
+          \ea\\
+        \In\;f~st_0
+     \el
+  \el
+\]
+%
+Note the similarity with the implementation of the interpreter for the
+free state monad. Save for the syntactic differences, the main
+difference between this implementation and the free state monad
+interpreter is that here the continuation $k$ implicitly reinstalls
+the handler, whereas in the free state monad interpreter we explicitly
+reinstalled the handler via a recursive application.
+%
+By fixing $S = \Int$ we can use the above effect handler to run the
+delimited control variant of $\incrEven$.
+%
+\[
+  \runState~\incrEven~4 \reducesto^+ \Record{\True;5} : \Bool \times \Int
+\]
 
 \subsubsection{Effect tracking}
+\dhil{Cite \citet{GiffordL86}, \citet{LucassenG88}, \citet{TalpinJ92},
+\citet{TofteT97}, \citet{NielsonN99}.}
+
+A benefit of using monads for effectful programming is that we get
+effect tracking `for free' (some might object to this statement and
+claim we paid for it by having to program in monadic style). Effect
+tracking is a useful tool for making programming with effects less
+prone to error in much the same way a static type system is useful
+detecting a wide range of potential runtime errors at compile
+time.
+
+The principal idea of an effect system is to annotate computation
+types with the collection of effects that their inhabitants are
+allowed to perform, e.g. the type $A \to B \eff E$ denotes a function
+that accepts a value of type $A$ as input and ultimately returns a
+value of type $B$. As it computes the $B$ value it is allowed to use
+the operations given by the effect signature $E$.
+
+This typing discipline fits nicely with the effect handlers-style of
+programming. The $\Do$ construct provides a mechanism for injecting an
+operation into the effect signature, whilst the $\Handle$ construct
+provides a way to eliminate an effect operation from the signature.
+%
+If we instantiate $A = \UnitType$, $B = \Bool$, and $E = \Sigma$, then
+we obtain a type-and-effect signature for the control effects version
+of $\incrEven$.
+%
+\[
+  \incrEven : \UnitType \to \Bool \eff \{\Get:\UnitType \opto \Int;\Put:\Int \opto \UnitType\}
+\]
+%
+Now, the signature of $\incrEven$ communicates precisely what it
+expects from the ambient context. It is clear that we must run this
+function under a handler that interprets at least $\Get$ and $\Put$.
+
+\dhil{Mention the importance of polymorphism in effect tracking}
+
 
 
 \section{Contributions}
