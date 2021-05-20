@@ -397,7 +397,7 @@ parameterised handlers which are a slight variation of deep handlers.
 From the perspective of programmers first-class control is a valuable
 programming feature because it enables them to implement their own
 control idioms as if they were native to the programming
-language. More important with first-class control programmer-defined
+language. More important, with first-class control programmer-defined
 control idioms are local phenomena which can be encapsulated in a
 library such that the rest of the program does not need to be made
 aware of their existence. Conversely, without first-class control some
@@ -417,23 +417,25 @@ control mechanism rather than having to implement and maintain
 individual runtime support for each control idiom of the source
 language.
 
+% From either perspective first-class control adds value to a
+% programming language regardless of whether it is featured in the
+% source language.
+
 % \subsection{Flavours of control}
 % \paragraph{Undelimited control}
 % \paragraph{Delimited control}
 % \paragraph{Composable control}
 
 \subsection{Why effect handlers matter}
+\dhil{Something about structured programming with delimited control}
 
 \section{State of effectful programming}
 
-Programming with effects can be done in basically three different
-ways: 1) usage of builtin effects, 2) simulation via global program
-transformations, or 3) simulation via control effects.
-%
-In this section I will provide a brief programming perspective on the
-various approaches to programming with effects. We will look at each
-approach through the lens of a singular effect, namely, global mutable
-state.
+In this section I will provide a brief programming perspective on
+different approaches to programming with effects along with an
+informal introduction to the related concepts. We will look at each
+approach through the lens of global mutable state --- which is quite
+possibly the most well-known effect.
 
 % how
 % effectful programming has evolved as well as providing an informal
@@ -454,8 +456,7 @@ state.
 We can realise stateful behaviour by either using language-supported
 state primitives, globally structure our program to follow a certain
 style, or use first-class control in the form of delimited control to
-simulate state. As for simulating state with control effects we
-consider only delimited control, because undelimited control is
+simulate state. We do not consider undelimited control, because it is
 insufficient to express mutable state~\cite{FriedmanS00}.
 % Programming in its infancy was effectful as the idea of first-class
 % control was conceived already during the design of the programming
