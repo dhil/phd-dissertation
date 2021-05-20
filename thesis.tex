@@ -843,7 +843,7 @@ programming~\cite{Claessen99,LiZ07,SymePL11}.
 %
 The state monad is an instantiation of the monad interface that
 encapsulates mutable state by using the state-passing technique
-internally. In addition it equip the monad with two operations for
+internally. In addition it equips the monad with two operations for
 manipulating the state cell.
 %
 \begin{definition}\label{def:state-monad}
@@ -1265,7 +1265,8 @@ the current state $st$. The recursive activation of $\runState$ will
 force the thunk in order to compute the next computation tree node.
 In the case of a $\Put$ operation the interpreter calls itself
 recursively with new state value $st'$ and the continuation $k$ (which
-is a thunk).
+is a thunk). One may prove that this interpretation of get and put
+satisfies the equations of Definition~\ref{def:state-monad}.
 %
 
 By instantiating $S = \Int$ we can use this interpreter to run
