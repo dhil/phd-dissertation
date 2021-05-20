@@ -785,7 +785,13 @@ Haskell~\cite{JonesABBBFHHHHJJLMPRRW99}.
   \end{reductions}
 \end{definition}
 %
-\dhil{Remark that the monad type $T~A$ may be read as a tainted value}
+We may understand the type $T~A$ as inhabiting computations that
+compute a \emph{tainted} value of type $A$. In this regard, we may
+understand $T$ as denoting the taint involved in computing $A$,
+i.e. we can think of $T$ as sort of effect annotation which informs us
+about which effectful operations the computation may perform to
+produce $A$.
+%
 The monad interface may be instantiated in different ways to realise
 different computational effects. In the following subsections we will
 see three different instantiations with which we will implement global
@@ -964,7 +970,15 @@ As in J.R.R. Tolkien's fictitious Middle-earth~\cite{Tolkien54} there
 exists one monad to rule them all, one monad to realise them, one
 monad to subsume them all, and in the term language bind them. This
 powerful monad is the \emph{continuation monad}.
-%
+
+The continuation monad may be regarded as `the universal effect' as it
+can simulate any other computational effect~\cite{Filinski99}. It
+derives its name from its connection to continuation passing
+style~\cite{Wadler92}, which is a particular style of programming
+where each function is parameterised by the current continuation (we
+will discuss continuation passing style in detail in
+Chapter~\ref{ch:cps}). The continuation monad is powerful exactly
+because each of its operations has access to the current continuation.
 
 
 \begin{definition}\label{def:cont-monad}
@@ -982,7 +996,7 @@ powerful monad is the \emph{continuation monad}.
       \multirow{2}{*}{
         \bl
           \bind ~: T~A \to (A \to T~B) \to T~B\\
-          \bind ~\defas \lambda m.\lambda k.\lambda f.m~(\lambda x.k~x~f)
+          \bind ~\defas \lambda m.\lambda k.\lambda c.m\,(\lambda x.k~x~c)
           \el} \\ & % space hack to avoid the next paragraph from
                     % floating into the math environment.
     \ea
@@ -991,10 +1005,13 @@ powerful monad is the \emph{continuation monad}.
 \end{definition}
 %
 The $\Return$ operation lifts a value into the monad by using it as an
-argument to the continuation $k$. The bind operator applies the monad
-$m$ to an anonymous function that accepts a value $x$ of type
-$A$. This value $x$ is supplied to the immediate continuation $k$
-alongside the current continuation $f$.
+argument to the continuation $k$. The bind operator binds the current
+continuation to $c$. In the body it applies the monad $m$ to an
+anonymous continuation function of type $A \to T~B$. Internally, the
+monad $m$ will apply this continuation when it is on the form
+$\Return$. Thus the parameter $x$ gets bound to the $\Return$ value of
+the monad. This parameter gets supplied as an argument to the next
+monadic action $k$ alongside the current continuation $c$.
 
 If we instantiate $R = S \to A \times S$ for some type $S$ then we
 can implement the state monad inside the continuation monad.
@@ -1041,14 +1058,18 @@ continuation.
 The initial continuation $(\lambda x.\lambda st. \Record{x;st})$
 corresponds to the $\Return$ of the state monad.
 %
-As usual by fixing $S = \Int$ and $A = \Bool$, we can use this
-particular continuation monad instance to interpret $\incrEven$.
+By fixing $S = \Int$ and $A = \Bool$, we can use the continuation
+monad to interpret $\incrEven$.
 %
 \[
   \runState~\incrEven~4 \reducesto^+ \Record{\True;5} : \Bool \times \Int
 \]
 %
-
+The continuation monad gives us a succinct framework for implementing
+and programming with computational effects, however, it comes at the
+expense of extensibility and modularity. Adding a new operation to the
+monad may require modifying its internal structure, which entails a
+complete reimplementation of any existing operations.
 % Scheme's undelimited control operator $\Callcc$ is definable as a
 % monadic operation on the continuation monad~\cite{Wadler92}.
 % %
@@ -1090,7 +1111,7 @@ the trivial continuation $\Unit$.
 
 The meaning of a free monadic computation is ascribed by a separate
 function, or interpreter, that traverses the computation tree.
-
+%
 The shape of computation trees is captured by the following generic
 type definition.
 %
@@ -1113,7 +1134,8 @@ operation is another computation tree node.
   $(F^{\TypeCat \to \TypeCat}, \Return, \bind)$ which forms a monad
   with respect to $F$. In addition an adequate instance of $F$ must
   supply a map, $\dec{fmap} : (A \to B) \to F~A \to F~B$, over its
-  structure.
+  structure (in more precise technical terms: $F$ must be a
+  \emph{functor}).
   %
   \[
    \bl
@@ -1137,6 +1159,17 @@ operation is another computation tree node.
      \el
    \]
    %
+   The $\Return$ operation simplify reflects itself by injecting the
+   value $x$ into the computation tree as a leaf node. The bind
+   operator threads the continuation $k$ through the computation
+   tree. Upon encounter a leaf node the continuation gets applied to
+   the value of the node. Note how this is reminiscent of the
+   $\Return$ of the continuation monad. The bind operator works in
+   tandem with the $\fmap$ of $F$ to advance past $\OpF$ nodes. The
+   $\fmap$ function is responsible for applying its functional
+   argument to the next computation tree node which is embedded inside
+   $y$.
+   %
    We define an auxiliary function to alleviate some of the
    boilerplate involved with performing operations on the monad.
    %
@@ -1147,51 +1180,101 @@ operation is another computation tree node.
      \el
   \]
   %
+  This function injects some operation $op$ into the computation tree
+  as an operation node.
 \end{definition}
-
+%
+In order to implement state with the free monad we must first declare
+a signature of its operations and implement the required $\fmap$ for
+the signature.
+%
 \[
   \bl
-    \dec{FreeState}~S~R \defas [\Get:S \to R|\Put:\Record{S;R}] \smallskip\\
+    \FreeState~S~R \defas [\Get:S \to R|\Put:S \times (\UnitType \to R)] \smallskip\\
+    \fmap : (A \to B) \to \FreeState~S~A \to \FreeState~S~B\\
     \fmap~f~op \defas \Case\;op\;\{
     \ba[t]{@{}l@{~}c@{~}l}
        \Get~k    &\mapsto& \Get\,(\lambda st.f\,(k~st));\\
-       \Put~st~k &\mapsto& \Put\,\Record{st;f~k}\}
+       \Put\,\Record{st';k} &\mapsto& \Put\,\Record{st';\lambda\Unit.f\,(k\,\Unit)}\}
     \ea
   \el
 \]
+%
+The signature $\FreeState$ declares the two stateful operations $\Get$
+and $\Put$ over state type $S$ and continuation type $R$. The $\Get$
+tag is parameterised a continuation function of type $S \to R$. The
+idea is that an application of this function provides access to the
+current state, whilst computing the next node of the computation
+tree. The $\Put$ operation is parameterised by the new state value and
+a thunk, which computes the next computation tree node. The $\fmap$
+instance applies the function $f$ to the continuation $k$ of each
+operation.
+%
+By instantiating $F = \FreeState\,S$ and using the $\DoF$ function we
+can give the get and put operations a familiar look and feel.
 %
 \[
   \ba{@{~}l@{\qquad\quad}@{~}r}
     \multirow{2}{*}{
       \bl
         \getF : \UnitType \to T~S\\
-        \getF~\Unit \defas \DoF~(\Get\,(\lambda x.x))
+        \getF~\Unit \defas \DoF\,(\Get\,(\lambda st.st))
       \el} &
     \multirow{2}{*}{
       \bl
         \putF : S \to T~\UnitType\\
-        \putF~st \defas \DoF~(\Put\,\Record{st;\Unit})
+        \putF~st \defas \DoF\,(\Put\,\Record{st;\lambda\Unit.\Unit})
       \el} \\ & % space hack to avoid the next paragraph from
                 % floating into the math environment.
   \ea
 \]
 %
+Both operations are performed with the identity function as their
+respective continuation function. We do not have much choice in this
+regard as for instance in the case of $\getF$ we must ultimately
+return a computation of type $T~S$, and the only value of type $S$ we
+have access to in this context is the one supplied externally to the
+continuation function.
+
+The state initialiser and runner for the monad is an interpreter. As
+the programmers, we are free to choose whatever interpretation of
+state we desire. For example, the following interprets the stateful
+operations using the state-passing technique.
+%
 \[
   \bl
-    \runState : \Free\,(\dec{FreeState}~S)\,A \to S \to A \times S\\
+    \runState : (\UnitType \to \Free\,(\FreeState~S)\,A) \to S \to A \times S\\
     \runState~m~st \defas
-      \Case\;m\;\{
-      \ba[t]{@{~}l@{~}c@{~}l}
+      \Case\;m\,\Unit\;\{
+      \ba[t]{@{}l@{~}c@{~}l}
          \return~x      &\mapsto& (x, st);\\
-         \OpF\,(\Get~k) &\mapsto& \runState~st~(k~st);\\
+         \OpF\,(\Get~k) &\mapsto& \runState~st~(\lambda\Unit.k~st);\\
          \OpF\,(\Put\,\Record{st';k}) &\mapsto& \runState~st'~k
       \}\ea
   \el
 \]
 %
+The interpreter pattern matches on the shape of the monad (or
+equivalently computation tree). In the case of a $\Return$ node the
+interpreter returns the payload $x$ along with the final state value
+$st$. If the current node is a $\Get$ operation, then the interpreter
+recursively calls itself with the same state value $st$ and a thunked
+application of the continuation $k$ to the current state $st$. The
+recursive activation of $\runState$ will force the thunk in order to
+compute the next computation tree node.  In the case of a $\Put$
+operation the interpreter calls itself recursively with new state
+value $st'$ and the continuation $k$ (which is a thunk).
+%
+
+By instantiating $S = \Int$ we can use this interpreter to run
+$\incrEven$.
+%
 \[
-  \runState~4~(\incrEven~\Unit) \reducesto^+ \Record{\True;5}
+  \runState~\incrEven~4 \reducesto^+ \Record{\True;5} : \Bool \times \Int
 \]
+%
+The free monad brings us close to the essence of programming with
+effect handlers.
 
 \subsection{Back to direct-style}
 Combining monadic effects~\cite{VazouL16}\dots
