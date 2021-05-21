@@ -522,6 +522,7 @@ possibly the most well-known effect.
 % global mutable state.
 
 \subsection{Direct-style state}
+\label{sec:direct-style-state}
 %
 We can realise stateful behaviour by either using language-supported
 state primitives, globally structure our program to follow a certain
@@ -768,7 +769,7 @@ Before we can apply this function we must first a state initialiser.
 %
 \[
   \bl
-    \runState : (\UnitType \to A) \to S \to A \times S\\
+    \runState : (\UnitType \to R) \to S \to R \times S\\
     \runState~m~st_0 \defas \reset{\lambda\Unit.\Let\;x \revto m\,\Unit\;\In\;\lambda st. \Record{x;st}}\,st_0
       \bl
       \el
@@ -788,7 +789,7 @@ the state-accepting function returned by the reset instance. The
 application of the reset instance to $st_0$ effectively causes
 evaluation of each function in this chain to start.
 
-After instantiating $A = \Bool$ and $S = \Int$ we can use the
+After instantiating $R = \Bool$ and $S = \Int$ we can use the
 $\runState$ function to apply the $\incrEven$ function.
 %
 \[
@@ -1356,8 +1357,105 @@ Another problem is that monads break the basic doctrine of modular
 abstraction, which we should program against an abstract interface,
 not an implementation. A monad is a concrete implementation.
 
+\subsubsection{Monadic reflection on state}
+%
+Monadic reflection is a technique due to
+\citet{Filinski94,Filinski96,Filinski99,Filinski10} which makes use of
+delimited control to perform a local switch from monadic style into
+direct-style and vice versa. The key insight is that a control reifier
+provides an escape hatch that makes it possible for computation to
+locally unseal the monad, as it were. The scope of this escape hatch
+is restricted by the control delimiter, which seals computation back
+into the monad. Monadic reflection introduces two operators, which are
+defined over some monad $T$ and some fixed result type $R$.
+%
+\[
+    \ba{@{~}l@{\qquad\quad}@{~}r}
+      \multirow{2}{*}{
+        \bl
+         \reify : (\UnitType \to R) \to T~R\\
+         \reify~m \defas \reset{\lambda\Unit. \Return\,(m\,\Unit)}
+        \el} &
+      \multirow{2}{*}{
+        \bl
+          \reflect : T~A \to A\\
+          \reflect~m \defas \shift\,(\lambda k.m \bind k)
+          \el} \\ & % space hack to avoid the next paragraph from
+                    % floating into the math environment.
+    \ea
+\]
+%
+The first operator $\reify$ (pronounced `reify') performs
+\emph{monadic unsealing}, which means it makes the effect
+corresponding to $T$ in the thunk $m$ transparent. The implementation
+installs a reset instance to delimit control effects of $m$. The
+result of forcing $m$ gets lifted into the monad $T$.
+%
+The second operator $\reflect$ (pronounced `reflect') performs
+\emph{monadic sealing}. It makes the effect corresponding to $T$ in
+its parameter $m$ opaque. The implementation applies $\shift$ to
+capture the current continuation (up to the nearest instance of
+reset). Subsequently, it evaluates the monadic computation $m$ and
+passes the result of this evaluation to the continuation $k$.
+
+
+Suppose we instantiate $T = \State~S$ for some type $S$, then we can
+realise direct-style versions of the state operations $\getF$ and
+$\putF$, whose internal implementations make use of the monadic state
+operations.
+%
+\[
+  \ba{@{~}l@{\qquad\quad}@{~}r}
+    \multirow{2}{*}{
+      \bl
+        \getF : \UnitType \to S\\
+        \getF\,\Unit \defas \reflect\,(T.\getF\,\Unit)
+      \el} &
+    \multirow{2}{*}{
+      \bl
+        \putF : S \to \UnitType\\
+        \putF~st \defas \reflect\,(T.\putF\,st)
+      \el} \\ & % space hack to avoid the next paragraph from
+                % floating into the math environment.
+  \ea
+\]
+%
+I am slightly abusing notation here as I use component selection
+notation on the constructor type $T$ in order to disambiguate the
+reflected operation names and monadic operation names. Nevertheless,
+the implementations of $\getF$ and $\putF$ simply reflect their
+monadic counterparts. Note that the type signatures are the same as
+the signatures for operations that we implemented using shift/reset in
+Section~\ref{sec:direct-style-state}.
+
+The initialiser and runner for some reflected stateful computation is
+defined in terms of the state monad runner.
+%
+\[
+  \bl
+    \runState : (\UnitType \to R) \to S \to R \times S\\
+    \runState~m~st_0 \defas T.\runState~(\reify m)~st_0
+  \el
+\]
+%
+The runner reifies the computation $m$ to obtain an instance of the
+state monad, which it then runs using the state monad implementation
+of $\runState$.
+
+Since this state interface is the same as shift/reset-based interface,
+we can simply take a carbon copy of the shift/reset-based
+implementation of $\incrEven$ and run it after instantiating
+$R = \Bool$ and $S = \Int$.
+%
+\[
+  \runState~\incrEven~4 \reducesto^+ \Record{\True;5} : \Bool \times \Int
+\]
 \subsubsection{Handling state}
 \dhil{Cite \citet{PlotkinP01,PlotkinP02,PlotkinP03,PlotkinP09,PlotkinP13}.}
+%
+From a programming perspective effect handlers are an operational
+extension of \citet{BentonK01} style exception handlers.
+%
 \[
   \ba{@{~}l@{~}r}
     \Do\;\ell^{A \opto B}~M^A : B & \Handle\;M^A\;\With\;H^{A \Harrow B} : B \smallskip\\
@@ -1385,9 +1483,9 @@ $\ell : A \opto B \in \Sigma$.
 \]
 %
 As with the free monad, we are completely free to pick whatever
-interpretation of state we desire. However, if we want an
-interpretation that is compatible with the usual equations for state,
-then we can simply use the state-passing technique again.
+interpretation of state we desire. If we want an interpretation that
+is compatible with the usual equations for state, then we can simply
+use the state-passing technique again.
 %
 \[
   \bl
