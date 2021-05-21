@@ -600,7 +600,7 @@ to manipulate the contents of some global state cell $st$.
 \[
   \bl
     \incrEven : \UnitType \to \Bool\\
-    \incrEven\,\Unit \defas \Let\;v \revto !st\;\In\;st \defnas 1 + v;\,\even~st
+    \incrEven\,\Unit \defas \Let\;v \revto !st\;\In\;st \defnas 1 + v;\,\even~v
   \el
 \]
 %
@@ -993,7 +993,7 @@ follows.
   \bl
     T~A \defas \Int \to (A \times \Int)\smallskip\\
     \incrEven : \UnitType \to T~\Bool\\
-    \incrEven~\Unit \defas \getF
+    \incrEven~\Unit \defas \getF\,\Unit
       \bind (\lambda st.
            \putF\,(1+st)
            \bind \lambda\Unit. \Return\;(\even~st)))
@@ -1364,10 +1364,10 @@ Monadic reflection is a technique due to
 delimited control to perform a local switch from monadic style into
 direct-style and vice versa. The key insight is that a control reifier
 provides an escape hatch that makes it possible for computation to
-locally unseal the monad, as it were. The scope of this escape hatch
-is restricted by the control delimiter, which seals computation back
-into the monad. Monadic reflection introduces two operators, which are
-defined over some monad $T$ and some fixed result type $R$.
+locally jump out of the monad, as it were. The scope of this escape
+hatch is restricted by the control delimiter, which forces computation
+back into the monad. Monadic reflection introduces two operators,
+which are defined over some monad $T$ and some fixed result type $R$.
 %
 \[
     \ba{@{~}l@{\qquad\quad}@{~}r}
@@ -1386,17 +1386,18 @@ defined over some monad $T$ and some fixed result type $R$.
 \]
 %
 The first operator $\reify$ (pronounced `reify') performs
-\emph{monadic unsealing}, which means it makes the effect
-corresponding to $T$ in the thunk $m$ transparent. The implementation
-installs a reset instance to delimit control effects of $m$. The
-result of forcing $m$ gets lifted into the monad $T$.
+\emph{monadic reification}. Semantically it makes the effect
+corresponding to $T$ transparent. The implementation installs a reset
+instance to delimit control effects of $m$. The result of forcing $m$
+gets lifted into the monad $T$.
 %
 The second operator $\reflect$ (pronounced `reflect') performs
-\emph{monadic sealing}. It makes the effect corresponding to $T$ in
-its parameter $m$ opaque. The implementation applies $\shift$ to
-capture the current continuation (up to the nearest instance of
-reset). Subsequently, it evaluates the monadic computation $m$ and
-passes the result of this evaluation to the continuation $k$.
+\emph{monadic reflection}. It makes the effect corresponding to $T$
+opaque. The implementation applies $\shift$ to capture the current
+continuation (up to the nearest instance of reset). Subsequently, it
+evaluates the monadic computation $m$ and passes the result of this
+evaluation to the continuation $k$, which effectively performs the
+jump out of the monad.
 
 
 Suppose we instantiate $T = \State~S$ for some type $S$, then we can
@@ -1434,7 +1435,7 @@ defined in terms of the state monad runner.
 \[
   \bl
     \runState : (\UnitType \to R) \to S \to R \times S\\
-    \runState~m~st_0 \defas T.\runState~(\reify m)~st_0
+    \runState~m~st_0 \defas T.\runState~(\lambda\Unit.\reify m)~st_0
   \el
 \]
 %
