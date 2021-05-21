@@ -504,8 +504,8 @@ language.
 In this section I will provide a brief programming perspective on
 different approaches to programming with effects along with an
 informal introduction to the related concepts. We will look at each
-approach through the lens of global mutable state --- which is quite
-possibly the most well-known effect.
+approach through the lens of global mutable state --- which is the
+``hello world'' example of effectful programming.
 
 % how
 % effectful programming has evolved as well as providing an informal
@@ -590,9 +590,9 @@ languages equip the $\PCFRef$ constructor with three operations.
 The first operation \emph{initialises} a new mutable state cell of
 type $S$; the second operation \emph{gets} the value of a given state
 cell; and the third operation \emph{puts} a new value into a given
-state cell. It is important to note that retrieving contents of the
-state cell is an idempotent action, whilst modifying the contents is a
-destructive action.
+state cell. It is important to note that getting the value of a state
+cell does not alter its contents, whilst putting a value into a state
+cell overrides the previous contents.
 
 The following function illustrates a use of the get and put primitives
 to manipulate the contents of some global state cell $st$.
@@ -690,7 +690,7 @@ evaluation context, leaving behind a hole that can later be filled by
 some value supplied externally.
 
 \citeauthor{DanvyF89}'s formulation of delimited control introduces
-the following two primitives.
+two primitives.
 %
 \[
   \reset{-} : (\UnitType \to R) \to R \qquad\quad
@@ -805,16 +805,17 @@ programming~\cite{Moggi89,Moggi91,Wadler92,Wadler92b,JonesW93,Wadler95,JonesABBB
 The concept of monad has its origins in category theory and its
 mathematical nature is well-understood~\cite{MacLane71,Borceux94}. The
 emergence of monads as a programming abstraction began when
-\citet{Moggi89,Moggi91} proposed to use monads as the basis for
-denoting computational effects in denotational
-semantics. \citet{Wadler92,Wadler95} popularised monadic programming
-by putting \citeauthor{Moggi89}'s proposal to use in functional
-programming by demonstrating how monads increase the ease at which
-programs may be retrofitted with computational effects.
+\citet{Moggi89,Moggi91} proposed to use monads as the mathematical
+foundation for modelling computational effects in denotational
+semantics. \citeauthor{Moggi91}'s view was that \emph{monads determine
+  computational effects}. This view was put into practice by
+\citet{Wadler92,Wadler95}, who popularised monadic programming in
+functional programming by demonstrating how monads increase the ease
+at which programs may be retrofitted with computational effects.
 %
 In practical programming terms, monads may be thought of as
 constituting a family of design patterns, where each pattern gives
-rise to a distinct effect with its own operations.
+rise to a distinct effect with its own collection of operations.
 %
 Part of the appeal of monads is that they provide a structured
 interface for programming with effects such as state, exceptions,
@@ -877,36 +878,6 @@ The success of monads as a programming idiom is difficult to
 understate as monads have given rise to several popular
 control-oriented programming abstractions including the asynchronous
 programming idiom async/await~\cite{Claessen99,LiZ07,SymePL11}.
-
-% \subsection{Option monad}
-% The $\Option$ type is a unary type constructor with two data
-% constructors, i.e.  $\Option~A \defas [\Some:A|\None]$.
-
-% \begin{definition} The option monad is a monad equipped with a single
-%   failure operation.
-%   %
-%   \[
-%     \ba{@{~}l@{\qquad}@{~}r}
-%       \multicolumn{2}{l}{T~A \defas \Option~A} \smallskip\\
-%       \multirow{2}{*}{
-%         \bl
-%          \Return : A \to T~A\\
-%          \Return \defas \lambda x.\Some~x
-%         \el} &
-%       \multirow{2}{*}{
-%         \bl
-%           \bind ~: T~A \to (A \to T~B) \to T~B\\
-%           \bind ~\defas \lambda m.\lambda k.\Case\;m\;\{\None \mapsto \None;\Some~x \mapsto k~x\}
-%           \el}\\ & \smallskip\\
-%       \multicolumn{2}{l}{
-%         \bl
-%           \fail : A \to T~A\\
-%           \fail \defas \lambda x.\None
-%         \el}
-%     \ea
-%   \]
-%   %
-% \end{definition}
 
 \subsubsection{State monad}
 %
@@ -991,7 +962,7 @@ follows.
 %
 \[
   \bl
-    T~A \defas \Int \to (A \times \Int)\smallskip\\
+    T~A \defas \Int \to A \times \Int\smallskip\\
     \incrEven : \UnitType \to T~\Bool\\
     \incrEven~\Unit \defas \getF\,\Unit
       \bind (\lambda st.
@@ -1206,7 +1177,7 @@ operation is another computation tree node.
   with respect to $F$. In addition an adequate instance of $F$ must
   supply a map, $\dec{fmap} : (A \to B) \to F~A \to F~B$, over its
   structure (in more precise technical terms: $F$ must be a
-  \emph{functor}).
+  \emph{functor}~\cite{Borceux94}).
   %
   \[
    \bl
@@ -1326,17 +1297,18 @@ operations using the state-passing technique.
 \]
 %
 The interpreter implements a \emph{fold} over the computation tree by
-pattern matching on the shape of the tree (or equivalently monad). In
-the case of a $\Return$ node the interpreter returns the payload $x$
-along with the final state value $st$. If the current node is a $\Get$
-operation, then the interpreter recursively calls itself with the same
-state value $st$ and a thunked application of the continuation $k$ to
-the current state $st$. The recursive activation of $\runState$ will
-force the thunk in order to compute the next computation tree node.
-In the case of a $\Put$ operation the interpreter calls itself
-recursively with new state value $st'$ and the continuation $k$ (which
-is a thunk). One may prove that this interpretation of get and put
-satisfies the equations of Definition~\ref{def:state-monad}.
+pattern matching on the shape of the tree (or equivalently
+monad)~\cite{MeijerFP91}. In the case of a $\Return$ node the
+interpreter returns the payload $x$ along with the final state value
+$st$. If the current node is a $\Get$ operation, then the interpreter
+recursively calls itself with the same state value $st$ and a thunked
+application of the continuation $k$ to the current state $st$. The
+recursive activation of $\runState$ will force the thunk in order to
+compute the next computation tree node.  In the case of a $\Put$
+operation the interpreter calls itself recursively with new state
+value $st'$ and the continuation $k$ (which is a thunk). One may prove
+that this interpretation of get and put satisfies the equations of
+Definition~\ref{def:state-monad}.
 %
 
 By instantiating $S = \Int$ we can use this interpreter to run
@@ -1452,15 +1424,36 @@ $R = \Bool$ and $S = \Int$.
   \runState~\incrEven~4 \reducesto^+ \Record{\True;5} : \Bool \times \Int
 \]
 \subsubsection{Handling state}
-\dhil{Cite \citet{PlotkinP01,PlotkinP02,PlotkinP03,PlotkinP09,PlotkinP13}.}
+%
+At the start of the 00s decade
+\citet{PlotkinP01,PlotkinP02,PlotkinP03} introduced \emph{algebraic
+  effects}, which is an approach to effectful programming that inverts
+\citeauthor{Moggi91}'s view such that \emph{computational effects
+  determine monads}. In their view a computational effect is given by
+a signature of operations and a collection of equations that govern
+their behaviour, together they generate a monad rather than the other
+way around.
+%
+In practical programming terms, we may understand an algebraic effect
+as an abstract interface, whose operations build the underlying free
+monad.
+
+By the end of the decade \citet{PlotkinP09,PlotkinP13} introduced
+\emph{handlers for algebraic effects}
+
+Programming with algebraic effects and their handlers was popularised
+by \citet{KammarLO13}, who demonstrated that algebraic effects and
+handlers provide a modular abstraction for effectful programming.
+
+%\dhil{Cite \citet{PlotkinP01,PlotkinP02,PlotkinP03,PlotkinP09,PlotkinP13}.}
 %
 From a programming perspective effect handlers are an operational
 extension of \citet{BentonK01} style exception handlers.
 %
 \[
   \ba{@{~}l@{~}r}
-    \Do\;\ell^{A \opto B}~M^A : B & \Handle\;M^A\;\With\;H^{A \Harrow B} : B \smallskip\\
-    \multicolumn{2}{c}{H^{A \Harrow B} ::= \{\Return\;x \mapsto M\} \mid \{\OpCase{\ell}{p}{k} \mapsto M\} \uplus H}
+    \Do\;\ell^{A \opto B}~M^C : B & \Handle\;M^A\;\With\;H^{A \Harrow B} : B \smallskip\\
+    \multicolumn{2}{c}{H^{C \Harrow D} ::= \{\Return\;x^C \mapsto M^D\} \mid \{\OpCase{\ell^{A \opto B}}{p^A}{k^{B \to D}} \mapsto M^D\} \uplus H}
   \ea
 \]
 The operation symbols are declared in a signature
