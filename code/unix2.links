@@ -680,3 +680,18 @@ fun tcphandshakeFail() {
     performTCP(tcpserver, 84, sfd, cfd)
   }
 }
+
+#
+# Grep
+#
+#sig grep : (String) {Await:Char,Yield:(Char) -> () |_}~> ()
+fun grep(str) {
+  var cs = explode(str);
+  fun match(c,cs) {
+    switch (cs) {
+      case c' :: cs' ->
+        if (c == '\n') fail()
+        if (c == c') 
+    }
+  }
+}
