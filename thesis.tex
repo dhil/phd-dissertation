@@ -808,7 +808,10 @@ emergence of monads as a programming abstraction began when
 \citet{Moggi89,Moggi91} proposed to use monads as the mathematical
 foundation for modelling computational effects in denotational
 semantics. \citeauthor{Moggi91}'s view was that \emph{monads determine
-  computational effects}. This view was put into practice by
+  computational effects}. The key property of this view is that pure
+values of type $A$ are distinguished from effectful computations of
+type $T~A$, where $T$ is the monad representing the effect(s) of the
+computation. This view was put into practice by
 \citet{Wadler92,Wadler95}, who popularised monadic programming in
 functional programming by demonstrating how monads increase the ease
 at which programs may be retrofitted with computational effects.
@@ -869,10 +872,17 @@ different computational effects. In the following subsections we will
 see three different instantiations with which we will implement global
 mutable state.
 
+Monadic programming is a top-down approach to effectful programming,
+where the concrete monad structure is taken as a primitive which
+controls interactions between effectful operations.
+% Monadic programming is a top-down approach to effectful programming,
+% where we start with a concrete framework in which we can realise
+% effectful operations.
+%
 The monad laws ensure that monads have some algebraic structure, which
-programmers can use when reasoning about their monadic programs, and
-optimising compilers may take advantage of the structure to emit more
-efficient code for monadic programs.
+programmers can use when reasoning about their monadic
+programs. Similarly, optimising compilers may take advantage of the
+structure to emit more efficient code.
 
 The success of monads as a programming idiom is difficult to
 understate as monads have given rise to several popular
@@ -1285,13 +1295,13 @@ operations using the state-passing technique.
 %
 \[
   \bl
-    \runState : (\UnitType \to \Free\,(\FreeState~S)\,A) \to S \to A \times S\\
+    \runState : (\UnitType \to \Free\,(\FreeState~S)\,R) \to S \to R \times S\\
     \runState~m~st \defas
       \Case\;m\,\Unit\;\{
       \ba[t]{@{}l@{~}c@{~}l}
          \return~x      &\mapsto& (x, st);\\
-         \OpF\,(\Get~k) &\mapsto& \runState~st~(\lambda\Unit.k~st);\\
-         \OpF\,(\Put\,\Record{st';k}) &\mapsto& \runState~st'~k
+         \OpF\,(\Get~k) &\mapsto& \runState\,(\lambda\Unit.k~st)~st;\\
+         \OpF\,(\Put\,\Record{st';k}) &\mapsto& \runState~k~st'
       \}\ea
   \el
 \]
@@ -1311,8 +1321,8 @@ that this interpretation of get and put satisfies the equations of
 Definition~\ref{def:state-monad}.
 %
 
-By instantiating $S = \Int$ we can use this interpreter to run
-$\incrEven$.
+By instantiating $S = \Int$ and $R = \Bool$ we can use this
+interpreter to run $\incrEven$.
 %
 \[
   \runState~\incrEven~4 \reducesto^+ \Record{\True;5} : \Bool \times \Int
@@ -1426,43 +1436,96 @@ $R = \Bool$ and $S = \Int$.
 \subsubsection{Handling state}
 %
 At the start of the 00s decade
-\citet{PlotkinP01,PlotkinP02,PlotkinP03} introduced \emph{algebraic
-  effects}, which is an approach to effectful programming that inverts
-\citeauthor{Moggi91}'s view such that \emph{computational effects
-  determine monads}. In their view a computational effect is given by
-a signature of effectful operations and a collection of equations that
-govern their behaviour, together they generate a free monad rather
-than the other way around.
+\citet{PlotkinP01,PlotkinP02,PlotkinP03} introduced algebraic theories
+of computational effects, or simply \emph{algebraic effects}, which
+inverts \citeauthor{Moggi91}'s view of effects such that
+\emph{computational effects determine monads}.  In their view a
+computational effect is described by an algebraic effect, which
+consists of a signature of abstract operations and a collection of
+equations that govern their behaviour, together they generate a free
+monad rather than the other way around.
+%
+Algebraic effects provide a bottom-up approach to effectful
+programming in which abstract effect operations are taken as
+primitive. Using these operations we may build up concrete structures.
 %
 In practical programming terms, we may understand an algebraic effect
 as an abstract interface, whose operations build the underlying free
 monad.
-
-By the end of the decade \citet{PlotkinP09,PlotkinP13} introduced
-\emph{handlers for algebraic effects}, which interpret computation
-trees induced by effectful operations in a similar way to runners of
-free monad interpret computation trees. A crucial difference between
-handlers and runners is that the handlers are based on first-class
-delimited control.
 %
-Practical programming with algebraic effects and their handlers was
-popularised by \citet{KammarLO13}, who demonstrated that algebraic
-effects and handlers provide a modular basis for effectful
-programming.
-
-%\dhil{Cite \citet{PlotkinP01,PlotkinP02,PlotkinP03,PlotkinP09,PlotkinP13}.}
+\begin{definition}
+  % A \emph{signature} $\Sigma$ is a collection of operation symbols
+  % $\ell : A \opto B \in \Sigma$. An operation symbol is a syntactic entity.
+  An algebraic effect is given by a pair
+  $\AlgTheory = (\Sigma,\mathsf{E})$ consisting of an effect signature
+  $\Sigma = \{(\ell_i : A \opto B)_i\}_i$ of typed operation symbols
+  $\ell_i$, whose interactions are govern by set of equations
+  $\mathsf{E}$.
+  %
+  We will not concern ourselves with the mathematical definition of
+  equation, as in this dissertation we will always fix
+  $\mathsf{E} = \emptyset$, meaning that the interactive patterns of
+  operations are unrestricted. As a consequence we will regard an
+  operation symbol as a syntactic entity subject only to a static
+  semantics. The type $A \opto B$ denotes the space of operations
+  whose payload has type $A$ and whose interpretation yields a value
+  of type $B$.
+\end{definition}
 %
-From a programming perspective effect handlers are an operational
-extension of \citet{BentonK01} style exception handlers.
+As with the free monad, the meaning of an algebraic effect operation
+is conferred by some separate interpreter. In the algebraic theory of
+computational effects such interpreters are known as handlers for
+algebraic effects, or simply \emph{effect handlers}. They were
+introduced by \citet{PlotkinP09,PlotkinP13} by the end of the decade.
+%
+A crucial difference between effect handlers and interpreters of free
+monads is that effect handlers use delimited control to realise the
+behaviour of computational effects.
+% The meaning of an algebraic effect is conferred by a suitable effect
+% handler, or in analogy with the free monad a suitable interpreter. Effect handlers were By
+% the end of the decade \citet{PlotkinP09,PlotkinP13} introduced
+% \emph{handlers for algebraic effects}, which interpret computation
+% trees induced by effectful operations in a similar way to runners of
+% free monad interpret computation trees. A crucial difference between
+% handlers and runners is that the handlers are based on first-class
+% delimited control.
+%
+Practical programming with effect handlers was popularised by
+\citet{KammarLO13}, who advocated algebraic effects and their handlers
+as a modular basis for effectful programming.
+
+Effect handlers introduce two dual control constructs.
 %
 \[
   \ba{@{~}l@{~}r}
-    \Do\;\ell^{A \opto B}~M^C : B & \Handle\;M^A\;\With\;H^{A \Harrow B} : B \smallskip\\
-    \multicolumn{2}{c}{H^{C \Harrow D} ::= \{\Return\;x^C \mapsto M^D\} \mid \{\OpCase{\ell^{A \opto B}}{p^A}{k^{B \to D}} \mapsto M^D\} \uplus H}
+    \Do\;\ell^{A \opto B}~V^A : B & \Handle\;M^C\;\With\;H^{C \Harrow D} : D \smallskip\\
+    \multicolumn{2}{c}{H ::= \{\Return\;x^C \mapsto N^D\} \mid \{\OpCase{\ell^{A \opto B}}{p^A}{k^{B \to D}} \mapsto N^D\} \uplus H^{C \Harrow D}}
   \ea
 \]
-The operation symbols are declared in a signature
-$\ell : A \opto B \in \Sigma$.
+%
+The $\Do$ construct reifies the control state up to a suitable handler
+and packages it up with the operation symbol $\ell$ and its payload
+$V$ before transferring control to the suitable handler. As control is
+transferred a hole is left in the evaluation context that must be
+filled before evaluation can continue. The $\Handle$ construct
+delimits $\Do$ invocations within the computation $M$ according to the
+handler definition $H$. Handler definitions consist of the union of a
+single $\Return$-clause and the disjoint union of zero or more
+operation clauses. The $\Return$-clause specifies what to do with the
+return value of a computation. An operation clause
+$\OpCase{\ell}{p}{k}$ matches on an operation symbol and binds its
+payload to $p$ and its continuation $k$. Note that the domain type of
+the continuation agrees with the codomain type of the operation
+symbol, and the codomain type of the continuation agrees with the
+codomain type of the handler definition. Continuation application
+fills the hole left by the $\Do$ construct, thus providing a value
+interpretation of the invocation. The continuation returns inside the
+handler once the $\Return$-clause computation has finished.
+%
+Operationally, effect handlers may be regarded as an extension of
+\citet{BentonK01} style exception handlers.
+
+We can implement mutable state with effect handlers as follows.
 %
 \[
   \ba{@{~}l@{\qquad\quad}@{~}r}
@@ -1509,12 +1572,16 @@ interpreter is that here the continuation $k$ implicitly reinstalls
 the handler, whereas in the free state monad interpreter we explicitly
 reinstalled the handler via a recursive application.
 %
-By fixing $S = \Int$ we can use the above effect handler to run the
-delimited control variant of $\incrEven$.
+By fixing $S = \Int$ and $A = \Bool$ we can use the above effect
+handler to run the delimited control variant of $\incrEven$.
 %
 \[
   \runState~\incrEven~4 \reducesto^+ \Record{\True;5} : \Bool \times \Int
 \]
+%
+Effect handlers come into their own when multiple effects are
+combined. Throughout the dissertation we will see multiple examples of
+handlers in action (e.g. Chapter~\ref{ch:unary-handlers}).
 
 \subsubsection{Effect tracking}
 \dhil{Cite \citet{GiffordL86}, \citet{LucassenG88}, \citet{TalpinJ92},
