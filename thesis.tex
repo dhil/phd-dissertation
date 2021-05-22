@@ -1430,20 +1430,25 @@ At the start of the 00s decade
   effects}, which is an approach to effectful programming that inverts
 \citeauthor{Moggi91}'s view such that \emph{computational effects
   determine monads}. In their view a computational effect is given by
-a signature of operations and a collection of equations that govern
-their behaviour, together they generate a monad rather than the other
-way around.
+a signature of effectful operations and a collection of equations that
+govern their behaviour, together they generate a free monad rather
+than the other way around.
 %
 In practical programming terms, we may understand an algebraic effect
 as an abstract interface, whose operations build the underlying free
 monad.
 
 By the end of the decade \citet{PlotkinP09,PlotkinP13} introduced
-\emph{handlers for algebraic effects}
-
-Programming with algebraic effects and their handlers was popularised
-by \citet{KammarLO13}, who demonstrated that algebraic effects and
-handlers provide a modular abstraction for effectful programming.
+\emph{handlers for algebraic effects}, which interpret computation
+trees induced by effectful operations in a similar way to runners of
+free monad interpret computation trees. A crucial difference between
+handlers and runners is that the handlers are based on first-class
+delimited control.
+%
+Practical programming with algebraic effects and their handlers was
+popularised by \citet{KammarLO13}, who demonstrated that algebraic
+effects and handlers provide a modular basis for effectful
+programming.
 
 %\dhil{Cite \citet{PlotkinP01,PlotkinP02,PlotkinP03,PlotkinP09,PlotkinP13}.}
 %
