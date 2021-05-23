@@ -1609,9 +1609,8 @@ combined. Throughout the dissertation we will see multiple examples of
 handlers in action (e.g. Chapter~\ref{ch:unary-handlers}).
 
 \subsubsection{Effect tracking}
-\dhil{Cite \citet{GiffordL86}, \citet{LucassenG88}, \citet{TalpinJ92},
-\citet{TofteT97}, \citet{NielsonN99}, \citet{WadlerT03}.}
-
+% \dhil{Cite \citet{GiffordL86}, \citet{LucassenG88}, \citet{TalpinJ92},
+% \citet{TofteT97}, \citet{WadlerT03}.}
 A benefit of using monads for effectful programming is that we get
 effect tracking `for free' (some might object to this statement and
 claim we paid for it by having to program in monadic style). Effect
@@ -1619,7 +1618,22 @@ tracking is a useful tool for making programming with effects less
 prone to error in much the same way a static type system is useful for
 detecting a wide range of potential runtime errors at compile time.
 
-The principal idea of a \citet{LucassenG88} style effect system is to
+Effect systems provide suitable typing discipline for statically
+tracking the observable effects of programs~\cite{NielsonN99}. The
+notion of effect system was developed around the same time as monads
+rose to prominence, though, its development was independent of
+monads. Nevertheless, \citet{WadlerT03} have shown that effect systems
+and monads are formally related, providing effect systems with some
+formal validity. Subsequently, \citet{Kammar14} has contributed to the
+formal understanding of effect systems through development of a
+general algebraic theory of effect systems. \citet{LucassenG88}
+developed the original effect system as a means for lightweight static
+analyses of functional programs with imperative features. For
+instance, \citet{Lucassen87} made crucial use of an effect system to
+statically distinguish between safe and unsafe terms for parallel
+execution.
+
+The principal idea of a \citeauthor{LucassenG88} style effect system is to
 annotate computation types with the collection of effects that their
 inhabitants are allowed to perform, e.g. the type $A \to B \eff E$ is
 inhabited by functions that accept a value of type $A$ as input and
@@ -1633,8 +1647,8 @@ operation into the effect signature, whilst the $\Handle$ construct
 provides a way to eliminate an effect operation from the signature.
 %
 If we instantiate $A = \UnitType$, $B = \Bool$, and $E = \Sigma$, then
-we obtain a type-and-effect signature for the control effects version
-of $\incrEven$.
+we obtain a type-and-effect signature for the handler version of
+$\incrEven$.
 %
 \[
   \incrEven : \UnitType \to \Bool \eff \{\Get:\UnitType \opto \Int;\Put:\Int \opto \UnitType\}
@@ -1644,7 +1658,11 @@ Now, the signature of $\incrEven$ communicates precisely what it
 expects from the ambient context. It is clear that we must run this
 function under a handler that interprets at least $\Get$ and $\Put$.
 
-\dhil{Mention the importance of polymorphism in effect tracking}
+Some form of polymorphism is necessary to make an effect system
+extensible and useful in practice. Otherwise effect annotations end up
+pervading the entire program in a similar fashion as monads do. In
+Chapter~\ref{ch:base-language} we will develop an extensible effect
+system based on row polymorphism.
 
 \section{Scope}
 Summarised in one sentence this dissertation is about practical
