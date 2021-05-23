@@ -458,11 +458,6 @@ I dub \emph{effect handler oriented programming}.
 % not every control phenomenon is equal in terms of programmability and
 % expressiveness.
 
-% % \section{This thesis in a nutshell}
-% % In this dissertation I am concerned only with
-% % \citeauthor{PlotkinP09}'s deep handlers, their shallow variation, and
-% % parameterised handlers which are a slight variation of deep handlers.
-
 \section{Why first-class control matters}
 From the perspective of programmers first-class control is a valuable
 programming feature because it enables them to implement their own
@@ -1333,7 +1328,7 @@ effect handlers.
 
 \subsection{Back to direct-style}
 \dhil{The problem with monads is that they do not
-  compose. Cite~\citet{Espinosa95}, \citet{VazouL16}}
+  compose. Cite~\citet{Espinosa95}, \citet{VazouL16} \citet{McBrideP08}}
 %
 Another problem is that monads break the basic doctrine of modular
 abstraction, which we should program against an abstract interface,
@@ -1621,10 +1616,70 @@ function under a handler that interprets at least $\Get$ and $\Put$.
 
 \dhil{Mention the importance of polymorphism in effect tracking}
 
+\section{Scope}
+Since the inception of effect handlers numerous variations and
+extensions of them have been proposed.  In this dissertation I am
+concerned only with \citeauthor{PlotkinP09}'s deep handlers, their
+shallow variation, and parameterised handlers which are a slight
+variation of deep handlers.
 
+\subsection{Some pointers to elsewhere}
+The literature on effect handlers is rich, and my dissertation is but
+one of many on topics related to effect handlers. In this section I
+provide a few pointers to related work involving effect handlers that
+I will not otherwise discuss in this dissertation.
+
+Readers interested in the mathematical theory and original development
+of effect handlers should consult \citeauthor{Pretnar10}'s PhD
+dissertation~\cite{Pretnar10}.
+
+Lexical effect handlers are a variation on \citeauthor{PlotkinP09}'s
+deep handlers, which provide a form of lexical scoping for effect
+operations, thus statically binding them to their handlers.
+%
+\citeauthor{Geron19}'s PhD dissertation develops the mathematical
+theory of scoped effect operations, whilst \citet{WuSH14} and
+\citet{BiernackiPPS20} studies them from a programming perspective.
+
+To get a grasp of the reasoning principles for effect handlers,
+interested readers should consult \citeauthor{McLaughlin20}'s PhD
+dissertation, which contains a development of relational reasoning
+techniques for shallow
+multi-handlers~\cite{McLaughlin20}. \citeauthor{McLaughlin20}'s
+techniques draw inspiration from the logical relation reasoning
+techniques for deep handlers due to \citet{BiernackiPPS18}.
+
+\citeauthor{Ahman17}'s PhD dissertation is relevant for readers
+interested in the integration of computational effects into dependent
+type theories~\cite{Ahman17}. \citeauthor{Ahman17} develops an
+intensional \citet{MartinLof84} style effectful dependent type theory
+equipped with a novel computational dependent type.
+
+Effect handlers were conceived in the realm of category theory to give
+an algebraic treatment of exception handling~\cite{PlotkinP09}. They
+were adopted early by functional programmers, who either added
+language-level support for effect handlers~
+\cite{Hillerstrom15,DolanWSYM15,BiernackiPPS18,Leijen17,BauerP15,BrachthauserSO20a,LindleyMM17,Chiusano20}
+or embedded them in
+libraries~\cite{KiselyovSS13,KiselyovI15,KiselyovS16,KammarLO13,BrachthauserS17,Brady13,XieL20}. Thus
+functional perspectives on effect handlers are plentiful in the
+literature. Only a few has studied effect handlers outside the realm
+of functional programming: \citet{Brachthauser20} offers an
+object-oriented perspective on effect handlers; \citet{Saleh19}
+provides a logic programming perspective via an effect handlers
+extension to Prolog; and \citet{Leijen17b} has an imperative take on
+effect handlers in C.
 
 \section{Contributions}
-The key contributions of this dissertation are the following:
+The key contributions of this dissertation are scattered across the
+four main parts. The following listing summarises the contributions of
+each part.
+\paragraph{Background}
+\begin{itemize}
+  \item A comprehensive operational characterisation of various
+    notions of continuations and first-class control phenomena.
+\end{itemize}
+\paragraph{Programming}
 \begin{itemize}
   \item A practical design for a programming language equipped with a
     structural effect system and deep, shallow, and parameterised effect
@@ -1633,6 +1688,10 @@ The key contributions of this dissertation are the following:
     demonstrating how to compose the essence of an \UNIX{}-style
     operating system with user session management, task parallelism,
     and file I/O using standard effects and handlers.
+\end{itemize}
+
+\paragraph{Implementation}
+\begin{itemize}
   \item A novel generalisation of the notion of continuation known as
     \emph{generalised continuation}, which provides a succinct
     foundation for implementing deep, shallow, and parameterised
@@ -1643,16 +1702,22 @@ The key contributions of this dissertation are the following:
   \item An abstract machine semantics based on generalised
     continuations, which characterises the low-level stack
     manipulations admitted by effect handlers at runtime.
+\end{itemize}
+\paragraph{Expressiveness}
+\begin{itemize}
   \item A formal proof that deep, shallow, and parameterised handlers
     are equi-expressible in the sense of typed macro-expressiveness.
   \item A robust mathematical characterisation of the computational
     efficiency of effect handlers, which shows that effect handlers
     can improve the asymptotic runtime of certain classes of programs.
-  \item A comprehensive operational characterisation of various
-    notions of continuations and first-class control phenomena.
 \end{itemize}
 
 \section{Structure of this dissertation}
+
+The following is a summary of the chapters belonging to each part of
+this dissertation.
+
+\paragraph{Background}
 Chapter~\ref{ch:maths-prep} defines some basic mathematical
 notation and constructions that are they pervasively throughout this
 dissertation.
@@ -1664,6 +1729,7 @@ the various first-class sequential control operators that appear in
 the literature. The application spectrum of continuations is discussed
 as well as implementation strategies for first-class control.
 
+\paragraph{Programming}
 Chapter~\ref{ch:base-language} introduces a polymorphic fine-grain
 call-by-value core calculus, $\BCalc$, which makes key use of
 \citeauthor{Remy93}-style row polymorphism to implement polymorphic
@@ -1679,6 +1745,7 @@ oriented programming in practice by implementing a small operating
 system dubbed \OSname{} based on \citeauthor{RitchieT74}'s original
 \UNIX{}.
 
+\paragraph{Implementation}
 Chapter~\ref{ch:cps} develops a higher-order continuation passing
 style translation for effect handlers through a series of step-wise
 refinements of an initial standard continuation passing style
@@ -1694,6 +1761,7 @@ continuations into \citeauthor{FelleisenF86}'s CEK machine to obtain
 an adequate abstract runtime with simultaneous support for deep,
 shallow, and parameterised handlers.
 
+\paragraph{Expressiveness}
 Chapter~\ref{ch:deep-vs-shallow} shows that deep, shallow, and
 parameterised notions of handlers can simulate one another up to
 specific notions of administrative reduction.
@@ -1709,6 +1777,7 @@ We show that $\HPCF$ admits an asymptotically more efficient
 implementation of generic count than any $\BPCF$ implementation.
 %
 
+\paragraph{Conclusions}
 Chapter~\ref{ch:conclusions} concludes and discusses future work.
 
 
