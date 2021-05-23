@@ -1330,9 +1330,25 @@ effect handlers.
 \dhil{The problem with monads is that they do not
   compose. Cite~\citet{Espinosa95}, \citet{VazouL16} \citet{McBrideP08}}
 %
-Another problem is that monads break the basic doctrine of modular
-abstraction, which we should program against an abstract interface,
-not an implementation. A monad is a concrete implementation.
+The inherent problems with monads is that they break the basic
+doctrine of modular abstraction, which says we should program against
+an abstract interface, not an implementation. A monad is a concrete
+implementation. Monadic effect operations are intimately tied to the
+concrete monad structure.
+
+It is worth mentioning \citeauthor{McBrideP08}'s idioms (known as
+applicative functors in Haskell) as an alternative to monadic
+programming~\cite{McBrideP08}. Idioms provide an applicative style for
+programming with effects. Even though idioms are computationally
+weaker than monads, they are still capable of simulating a wide range
+of computational effects whose realisation do not require the full
+monad structure (consult \citet{Yallop10} for a technical analysis of
+idioms and monads).
+
+We will wrap up this crash course in effectful programming by looking
+at two techniques for programming in direct-style with effects that
+make use of delimited control before finishing with a brief discussion
+of effect tracking.
 
 \subsubsection{Monadic reflection on state}
 %
@@ -1586,16 +1602,16 @@ A benefit of using monads for effectful programming is that we get
 effect tracking `for free' (some might object to this statement and
 claim we paid for it by having to program in monadic style). Effect
 tracking is a useful tool for making programming with effects less
-prone to error in much the same way a static type system is useful
-detecting a wide range of potential runtime errors at compile
-time.
+prone to error in much the same way a static type system is useful for
+detecting a wide range of potential runtime errors at compile time.
 
 The principal idea of an effect system is to annotate computation
 types with the collection of effects that their inhabitants are
-allowed to perform, e.g. the type $A \to B \eff E$ denotes a function
-that accepts a value of type $A$ as input and ultimately returns a
-value of type $B$. As it computes the $B$ value it is allowed to use
-the operations given by the effect signature $E$.
+allowed to perform, e.g. the type $A \to B \eff E$ is inhabited by
+functions that accept a value of type $A$ as input and ultimately
+return a value of type $B$. As an inhabitant computes the $B$ value it
+is allowed to perform the effect operations mentioned by the effect
+signature $E$.
 
 This typing discipline fits nicely with the effect handlers-style of
 programming. The $\Do$ construct provides a mechanism for injecting an
