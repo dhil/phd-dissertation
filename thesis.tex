@@ -158,18 +158,18 @@
   idioms as shareable libraries.
   %
   Effect handlers provide a particularly structured approach to
-  programming with first-class control by separating control reifying
-  operations from their handling.
+  programming with first-class control by naming control reifying
+  operations and separating from their handling.
 
-  This thesis is composed of three strands in which I develop
+  This thesis is composed of three strands of work in which I develop
   operational foundations for programming and implementing effect
   handlers as well as exploring the expressive power of effect
   handlers.
 
   The first strand develops a fine-grain call-by-value core calculus
-  of a statically typed programming language a \emph{structural}
-  notion of effects, as opposed to the \emph{nominal} notion of
-  effects that dominants the literature.
+  of a statically typed programming language with a \emph{structural}
+  notion of effect types, as opposed to the \emph{nominal} notion of
+  effect types that dominates the literature.
   %
   With the structural approach, effects need not be declared before
   use. The usual safety properties of statically typed programming are
@@ -196,37 +196,43 @@
   techniques that admit a unified basis for implementing deep,
   shallow, and parameterised effect handlers in the same environment.
   %
-  The CPS translation is obtained through a series refinements by
-  starting from a basic first-order CPS translation for a fine-grain
-  call-by-value language into an untyped language. The initial
-  refinement adds support for deep handlers by representing stacks of
-  continuations and handlers as a curried sequence of arguments.
+  The CPS translation is obtained through a series of refinements of a
+  basic first-order CPS translation for a fine-grain call-by-value
+  language into an untyped language.
   %
-  The resulting translation is not \emph{properly tail-recursive},
-  meaning some function application terms do not appear in tail
-  position. To rectify this the CPS translation is refined once more
-  to obtain an uncurried representation of stacks of continuations and
-  handlers. Each refinement moves toward a more intensional
-  representation of continuations eventually arriving at the notion of
-  \emph{generalised continuation}, which admit simultaneous support
-  for deep, shallow, and parameterised handlers. Finally, the
-  translation is made higher-order in order to contract administrative
-  redexes at translation time.
+  Each refinement moves toward a more intensional representation of
+  continuations eventually arriving at the notion of \emph{generalised
+    continuation}, which admit simultaneous support for deep, shallow,
+  and parameterised handlers.
+  %
+  The initial refinement adds support for deep handlers by
+  representing stacks of continuations and handlers as a curried
+  sequence of arguments.
+  %
+  The image of the resulting translation is not \emph{properly
+    tail-recursive}, meaning some function application terms do not
+  appear in tail position. To rectify this the CPS translation is
+  refined once more to obtain an uncurried representation of stacks of
+  continuations and handlers. Finally, the translation is made
+  higher-order in order to contract administrative redexes at
+  translation time.
   %
   The generalised continuation representation is used to construct an
-  abstract machine that supports the three kinds of handlers.
+  abstract machine that provide simultaneous support for deep,
+  shallow, and parameterised effect handlers.  kinds of effect
+  handlers.
 
   The third strand explores the expressiveness of effect
   handlers. First, I show that deep, shallow, and parameterised
   notions of handlers are interdefinable by way of \emph{typed
     macro-expressiveness}, which provides a syntactic notion of
-  expressiveness that merely affirms existence of encodings between
+  expressiveness that affirms the existence of encodings between
   handlers, but it provides no information about the computational
   content of the encodings. Second, using the semantic notion of
   \emph{type-respecting expressiveness} I show that for a class of
-  programs a programming language with first-class (e.g. effect
-  handlers) admits asymptotically faster implementations than possible
-  in a language without first-class.
+  programs a programming language with first-class control
+  (e.g. effect handlers) admits asymptotically faster implementations
+  than possible in a language without first-class control.
 %
 }
 
