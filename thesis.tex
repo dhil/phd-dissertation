@@ -369,75 +369,104 @@
 %%
 \chapter{Introduction}
 \label{ch:introduction}
-Control is a pervasive phenomenon in virtually every programming
-language.  A programming language typically features a variety of
-control constructs, which let the programmer manipulate the control
-flow of programs in interesting ways. The most well-known control
-construct may well be $\If\;V\;\Then\;M\;\Else\;N$, which
-conditionally selects between two possible \emph{continuations} $M$
-and $N$ depending on whether the condition $V$ is $\True$ or $\False$.
 %
-The $\If$ construct offers no means for programmatic manipulation of
-either continuation.
-%
-More intriguing forms of control exist, which enable the programmer to
-manipulate and reify continuations as first-class data objects. This
-kind of control is known as \emph{first-class control}.
+Functional programmers tend to view functions as impenetrable black
+boxes, whose outputs are determined entirely by their
+inputs~\cite{Hughes89}. This is a compelling view which admits a
+canonical mathematical model of
+computation~\cite{Church32,Church41}. Alas, this view does not capture
+the reality of practical programs. In practice functions may perform
+effectful operations such as throwing an exception, referencing
+memory, forking a thread, which may have an observable effect on the
+program state~\cite{CartwrightF92}.
 
-The idea of first-class control is old. It was conceived already
-during the design of the programming language
-Algol~\cite{BackusBGKMPRSVWWW60} (one of the early high-level
-programming languages along with Fortran~\cite{BackusBBGHHNSSS57} and
-Lisp~\cite{McCarthy60}) when \citet{Landin98} sought to model
-unrestricted goto-style jumps using an extended $\lambda$-calculus.
-%
-Since then a wide variety of first-class control operators have
-appeared. We can coarsely categorise them into two groups:
-\emph{undelimited} and \emph{delimited} (in
-Chapter~\ref{ch:continuations} we will perform a finer analysis of
-first-class control). Undelimited control operators are global
-phenomena that let programmers capture the entire control state of
-their programs, whereas delimited control operators are local
-phenomena that provide programmers with fine-grain control over which
-parts of the control state to capture.
-%
-Thus there are good reasons for preferring delimited control over
-undelimited control for practical programming.
-%
-% The most (in)famous control operator
-% \emph{call-with-current-continuation} appeared later during a revision
-% of the programming language Scheme~\cite{AbelsonHAKBOBPCRFRHSHW85}.
-%
+Practical programming is in its nature effectful.
 
-Nevertheless, the ability to manipulate continuations programmatically
-is incredibly powerful as it enables programmers to perform non-local
-transfers of control on the demand. This sort of power makes it
-possible to implement a wealth of control idioms such as
-coroutines~\cite{MouraI09}, generators/iterators~\cite{ShawWL77},
-async/await~\cite{SymePL11} as user-definable
-libraries~\cite{FriedmanHK84,FriedmanH85,Leijen17a,Leijen17,Pretnar15}. The
-phenomenon of non-local transfer of control is known as a
-\emph{control effect}. It turns out to be `the universal effect' in
-the sense that it can simulate every other computational effect
-(consult \citet{Filinski96} for a precise characterisation of what it
-means to simulate an effect). More concretely, this means a
-programming language equipped with first-class control is capable of
-implementing effects such as exceptions, mutable state, transactional
-memory, nondeterminism, concurrency, interactive input/output, stream
-redirection, internally.
+Functional programming offers two dominant approaches to programming
+with effects, which \citet{Filinski96} succinctly characterises as
+\emph{effects as data} and \emph{effects as behaviour}.
+
+control effects can pry open function boundaries which have profound
+implications for the computational expressiveness and efficiency of
+
+effect handlers, a recent innovation,
+
+\citet{Sabry98}
+% Virtually every useful program performs some computational effects
+% such as exceptions, state, concurrency, nondeterminism, interactive
+% input and output during its execution.
 %
+%\citet{Filinski96} \emph{effects as data} and \emph{effects as behaviour}
 
-A whole programming paradigm known as \emph{effectful programming} is
-built around the idea of simulating computational effects using
-control effects.
+% Control is a pervasive phenomenon in virtually every programming
+% language.  A programming language typically features a variety of
+% control constructs, which let the programmer manipulate the control
+% flow of programs in interesting ways. The most well-known control
+% construct may well be $\If\;V\;\Then\;M\;\Else\;N$, which
+% conditionally selects between two possible \emph{continuations} $M$
+% and $N$ depending on whether the condition $V$ is $\True$ or $\False$.
+% %
+% The $\If$ construct offers no means for programmatic manipulation of
+% either continuation.
+% %
+% More intriguing forms of control exist, which enable the programmer to
+% manipulate and reify continuations as first-class data objects. This
+% kind of control is known as \emph{first-class control}.
 
-In this dissertation I also advocate a new programming paradigm, which
-I dub \emph{effect handler oriented programming}.
+% The idea of first-class control is old. It was conceived already
+% during the design of the programming language
+% Algol~\cite{BackusBGKMPRSVWWW60} (one of the early high-level
+% programming languages along with Fortran~\cite{BackusBBGHHNSSS57} and
+% Lisp~\cite{McCarthy60}) when \citet{Landin98} sought to model
+% unrestricted goto-style jumps using an extended $\lambda$-calculus.
+% %
+% Since then a wide variety of first-class control operators have
+% appeared. We can coarsely categorise them into two groups:
+% \emph{undelimited} and \emph{delimited} (in
+% Chapter~\ref{ch:continuations} we will perform a finer analysis of
+% first-class control). Undelimited control operators are global
+% phenomena that let programmers capture the entire control state of
+% their programs, whereas delimited control operators are local
+% phenomena that provide programmers with fine-grain control over which
+% parts of the control state to capture.
+% %
+% Thus there are good reasons for preferring delimited control over
+% undelimited control for practical programming.
+% %
+% % The most (in)famous control operator
+% % \emph{call-with-current-continuation} appeared later during a revision
+% % of the programming language Scheme~\cite{AbelsonHAKBOBPCRFRHSHW85}.
+% %
 
-%
-\dhil{This dissertation is about the operational foundations for
-  programming and implementing effect handlers, a particularly modular
-  and extensible programming abstraction for effectful programming}
+% Nevertheless, the ability to manipulate continuations programmatically
+% is incredibly powerful as it enables programmers to perform non-local
+% transfers of control on the demand. This sort of power makes it
+% possible to implement a wealth of control idioms such as
+% coroutines~\cite{MouraI09}, generators/iterators~\cite{ShawWL77},
+% async/await~\cite{SymePL11} as user-definable
+% libraries~\cite{FriedmanHK84,FriedmanH85,Leijen17a,Leijen17,Pretnar15}. The
+% phenomenon of non-local transfer of control is known as a
+% \emph{control effect}. It turns out to be `the universal effect' in
+% the sense that it can simulate every other computational effect
+% (consult \citet{Filinski96} for a precise characterisation of what it
+% means to simulate an effect). More concretely, this means a
+% programming language equipped with first-class control is capable of
+% implementing effects such as exceptions, mutable state, transactional
+% memory, nondeterminism, concurrency, interactive input/output, stream
+% redirection, internally.
+% %
+
+% A whole programming paradigm known as \emph{effectful programming} is
+% built around the idea of simulating computational effects using
+% control effects.
+
+% In this dissertation I also advocate a new programming paradigm, which
+% I dub \emph{effect handler oriented programming}.
+
+% %
+% \dhil{This dissertation is about the operational foundations for
+%   programming and implementing effect handlers, a particularly modular
+%   and extensible programming abstraction for effectful programming}
 
 % Control is an ample ingredient of virtually every programming
 % language. A programming language typically feature a variety of
@@ -640,7 +669,8 @@ The body of the function first retrieves the current value of the
 state cell and binds it to $st$. Subsequently, it destructively
 increments the value of the state cell. Finally, it applies the
 predicate $\even : \Int \to \Bool$ to the original state value to test
-whether its parity is even.
+whether its parity is even (remark: this example function is a slight
+variation of an example by \citet{Gibbons12}).
 %
 We can run this computation as a subcomputation in the context of
 global state cell $st$.
