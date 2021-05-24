@@ -404,7 +404,7 @@ respect to an interface of effectful operations they expect to be
 offered by their environment.
 %
 An effect handler is an environment that implements an effect
-interface.
+interface (also known as a computational effect).
 %
 Programs can run under any effect handler whose implementation
 conforms to the expected effect interface.
@@ -426,8 +426,8 @@ paradigm which we shall call \emph{effect handler oriented
 decomposed into a collection of fine-grained effect handlers.
 
 The key enabler for seamless composition is \emph{first-class
-  control}, which provides a facility for reifying the program control
-state as a first-class data object known as a
+  control}, which provides a mechanism for reifying the program
+control state as a first-class data object known as a
 continuation~\cite{FriedmanHK84}.
 %
 Through structured manipulation of continuations control gets
@@ -472,15 +472,6 @@ efficiency.
 % facility that can simulate any computational
 % effect~\cite{Filinski94,Filinski96}.
 
-% \citeauthor{PlotkinP09}'s \emph{effect handlers} are a recent
-% innovation\dots
-
-% First-class control enables the programmer to reify and manipulate the
-% control state as a first-class data object known as a
-% continuation~\cite{FriedmanHK84}.
-
-
-%
 % Programmers with continuations at their disposal have the ability to
 % pry open function boundaries, which shatters the opaque box view. This
 % ability can significantly improve the computational expressiveness and
@@ -634,25 +625,80 @@ implementing programming languages which have no notion of first-class
 control in source language. A runtime with support for first-class
 control can considerably simplify and ease maintainability of an
 implementation of a programming language with various distinct
-second-class control idioms such as async/await, coroutines, etc,
-because compiler engineers need only implement and maintain a single
-control mechanism rather than having to implement and maintain
-individual runtime support for each control idiom of the source
-language.
+second-class control idioms such as async/await~\cite{SymePL11},
+coroutines~\cite{MouraI09}, etc, because compiler engineers need only
+implement and maintain a single control mechanism rather than having
+to implement and maintain individual runtime support for each control
+idiom of the source language.
 
-% From either perspective first-class control adds value to a
-% programming language regardless of whether it is featured in the
-% source language.
-
-% \subsection{Flavours of control}
-% \paragraph{Undelimited control}
-% \paragraph{Delimited control}
-% \paragraph{Composable control}
+The idea of first-class control is old. It was conceived already
+during the design of the programming language
+Algol~\cite{BackusBGKMPRSVWWW60} (one of the early high-level
+programming languages along with Fortran~\cite{BackusBBGHHNSSS57} and
+Lisp~\cite{McCarthy60}) when \citet{Landin98} sought to model
+unrestricted goto-style jumps using an extended $\lambda$-calculus.
+%
+Since then a wide variety of first-class control operators have
+appeared. We can coarsely categorise them into two groups:
+\emph{undelimited} and \emph{delimited} (in
+Chapter~\ref{ch:continuations} we will perform a finer analysis of
+first-class control). Undelimited control operators are global
+phenomena that let programmers capture the entire control state of
+their programs, whereas delimited control operators are local
+phenomena that provide programmers with fine-grain control over which
+parts of the control state to capture.
+%
+Thus there are good reasons for preferring delimited control over
+undelimited control for practical programming.
 
 \subsection{Why effect handlers matter}
-\dhil{Something about structured programming with delimited control}
+%
+The problem with traditional delimited control operators such as
+\citeauthor{DanvyF90}'s shift/reset~\cite{DanvyF90} or
+\citeauthor{Felleisen88}'s control/prompt~\cite{Felleisen88} is that
+they hard-wire an implementation for the \emph{control effect}
+interface, which provides only a single operation for reifying the
+control state. In itself this interface does not limit what effects
+are expressible as the control effect is in a particular sense `the
+universal effect' because it can simulate any other computational
+effect~\cite{Filinski96}.
+
+The problem, meanwhile, is that the universality of the control effect
+hinders modular programming as the control effect is inherently
+unstructured. In essence, programming with traditional delimited
+control to simulate effects is analogous to programming with the
+universal type~\cite{Longley03} in statically typed programming
+languages, and having to program with the universal type is usually a
+telltale that the programming abstraction is inadequate for the
+intended purpose.
+
+In contrast, effect handlers provide a structured form of delimited
+control, where programmers can give distinct names to control reifying
+operations and separate the from their handling.
+%
+\dhil{Maybe expand this a bit more to really sell it}
 
 \section{State of effectful programming}
+
+Functional programmers tend to view programs as impenetrable black
+boxes, whose outputs are determined entirely by their
+inputs~\cite{Hughes89,Howard80}. This is a compelling view which
+admits a canonical mathematical model of
+computation~\cite{Church32,Church41}. Alas, this view does not capture
+the reality of practical programs, which interact their environment.
+%
+Functional programming prominently features two distinct, but related,
+approaches to effectful programming, which \citet{Filinski96}
+succinctly characterises as \emph{effects as data} and \emph{effects
+  as behaviour}.
+%
+The former uses data abstraction to encapsulate
+effects~\cite{Moggi91,Wadler92} which is compelling because it
+recovers some of benefits of the black box view for effectful
+programs, though, at the expense of a change of programming
+style~\cite{JonesW93}. The latter retains the usual direct style of
+programming either by hard-wiring the semantics of the effects into
+the language or by more flexible means via first-class control.
 
 In this section I will provide a brief programming perspective on
 different approaches to programming with effects along with an
