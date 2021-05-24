@@ -371,30 +371,73 @@
 \chapter{Introduction}
 \label{ch:introduction}
 %
-Functional programmers tend to view programs as impenetrable opaque
-boxes, whose outputs are determined entirely by their
-inputs~\cite{Hughes89,Howard80}. This is a compelling view which
-admits a canonical mathematical model of
-computation~\cite{Church32,Church41}.
-%
-Alas, this view does not capture the reality of practical programs,
-which perform operations to interact with their ambient environment to
-for example signal graceful or erroneous termination, manipulate the
-file system, fork a new thread, and so forth, all of which may have an
-observable effect on the program state. Interactions with the
-environment are mediated by some local authority (e.g. operating
-system), which confers the meaning of operations~\cite{CartwrightF94}.
-%
-This suggests a view of programs as translucent boxes, which convey
-their internal use of operations used to compute their outputs.
+% Programmers tend to view programs as impenetrable opaque boxes, whose
+% outputs are determined entirely by their
+% inputs~\cite{Hughes89,Howard80}. This is a compelling view which
+% admits a canonical mathematical model of
+% computation~\cite{Church32,Church41}.
+% %
+% Alas, this view does not capture the reality of practical programs,
+% which perform operations to interact with their ambient environment to
+% for example signal graceful or erroneous termination, manipulate the
+% file system, fork a new thread, and so forth, all of which may have an
+% observable effect on the program state. Interactions with the
+% environment are mediated by some local authority (e.g. operating
+% system), which confers the meaning of operations~\cite{CartwrightF94}.
+% %
+% This suggests a view of programs as translucent boxes, which convey
+% their internal use of operations used to compute their outputs.
 
-This view underpins the \emph{effectful programming paradigm} in which
-computational effects constitute an integral part of programs. In
-effectful programming a computational effect is understood as a
-collection of operations, e.g. exceptions are an effect with a single
-operation \emph{raise}, mutable state is an effect with two operations
-\emph{get} and \emph{put}, concurrency is an effect with two
-operations \emph{fork} and \emph{yield}, etc~\cite{Moggi91,PlotkinP01}.
+% This view underpins the \emph{effectful programming paradigm} in which
+% computational effects constitute an integral part of programs. In
+% effectful programming a computational effect is understood as a
+% collection of operations, e.g. exceptions are an effect with a single
+% operation \emph{raise}, mutable state is an effect with two operations
+% \emph{get} and \emph{put}, concurrency is an effect with two
+% operations \emph{fork} and \emph{yield}, etc~\cite{Moggi91,PlotkinP01}.
+
+\citeauthor{PlotkinP09}'s \emph{effect handlers} provide a promising
+modular basis for effectful
+programming~\cite{PlotkinP09,PlotkinP13,KammarLO13}. The basic tenet
+of programming with effect handlers is that programs are written with
+respect to an interface of effectful operations they expect to be
+offered by their environment.
+%
+An effect handler is an environment that implements an effect
+interface.
+%
+Programs can run under any effect handler whose implementation
+conforms to the expected effect interface.
+%
+
+In this regard, the \emph{doing} and \emph{being} of effects are kept
+separate~\cite{JonesW93,LindleyMM17}, which is a necessary condition
+for modular abstraction~\cite{Parnas72}.
+%
+A key property of effect handlers is that they provide modular
+instantiation of effect interfaces through seamless composition,
+meaning the programmer can compose any number of complementary
+handlers to obtain a full implementation of some
+interface~\cite{HillerstromL16}.
+%
+The ability to seamless compose handlers gives to a programming
+paradigm which we shall call \emph{effect handler oriented
+  programming} in which the meaning of effectful programs may be
+decomposed into a collection of fine-grained effect handlers.
+
+The key enabler for seamless composition is \emph{first-class
+  control}, which provides a facility for reifying the program control
+state as a first-class data object known as a
+continuation~\cite{FriedmanHK84}.
+%
+Through structured manipulation of continuations control gets
+transferred between programs and their handlers.
+
+In this dissertation I present a practical design for programming
+languages with support for effect handler oriented programming, I
+develop two foundational implementation techniques for effect
+handlers, and I study their inherent computational expressiveness and
+efficiency.
 
 % Alas, this view does not capture the reality of practical programs, which
 % may use a variety of observable computational effects such as
@@ -417,20 +460,20 @@ operations \emph{fork} and \emph{yield}, etc~\cite{Moggi91,PlotkinP01}.
 % Practical programming is inherently effectfulPractical programming involves programming with \emph{computational
 %   effects}, or simply effects.
 
-Functional programming offers two distinct, but related, approaches to
-effectful programming, which \citet{Filinski96} succinctly
-characterises as \emph{effects as data} and \emph{effects as
-  behaviour}. The former uses monads to encapsulate
-effects~\cite{Moggi91,Wadler92} which is compelling because it
-recovers some of benefits of the opaque box view for effectful
-programs, though, at the expense of a change of programming
-style~\cite{JonesW93}. The latter retains the usual direct style of
-programming by way of \emph{first-class control}, which is a powerful
-facility that can simulate any computational
-effect~\cite{Filinski94,Filinski96}.
+% Functional programming offers two distinct, but related, approaches to
+% effectful programming, which \citet{Filinski96} succinctly
+% characterises as \emph{effects as data} and \emph{effects as
+%   behaviour}. The former uses monads to encapsulate
+% effects~\cite{Moggi91,Wadler92} which is compelling because it
+% recovers some of benefits of the opaque box view for effectful
+% programs, though, at the expense of a change of programming
+% style~\cite{JonesW93}. The latter retains the usual direct style of
+% programming by way of \emph{first-class control}, which is a powerful
+% facility that can simulate any computational
+% effect~\cite{Filinski94,Filinski96}.
 
-\citeauthor{PlotkinP09}'s \emph{effect handlers} are a recent
-innovation\dots
+% \citeauthor{PlotkinP09}'s \emph{effect handlers} are a recent
+% innovation\dots
 
 % First-class control enables the programmer to reify and manipulate the
 % control state as a first-class data object known as a
@@ -442,8 +485,6 @@ innovation\dots
 % pry open function boundaries, which shatters the opaque box view. This
 % ability can significantly improve the computational expressiveness and
 % efficiency of programming languages~\cite{LongleyN15,HillerstromLL20}.
-
-effect handlers, a recent innovation,
 
 %\citet{Sabry98}
 % Virtually every useful program performs some computational effects
