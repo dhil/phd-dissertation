@@ -610,17 +610,18 @@ efficiency.
 \section{Why first-class control matters}
 From the perspective of programmers first-class control is a valuable
 programming feature because it enables them to implement their own
-control idioms as if they were native to the programming
-language. More important, with first-class control programmer-defined
-control idioms are local phenomena which can be encapsulated in a
-library such that the rest of the program does not need to be made
-aware of their existence. Conversely, without first-class control some
-control idioms can only be implemented using global program
-restructuring techniques such as continuation passing style.
+control idioms as if they were native to the programming language (in
+fact this is the very definition of first-class control). More
+important, with first-class control programmer-defined control idioms
+are local phenomena which can be encapsulated in a library such that
+the rest of the program does not need to be made aware of their
+existence. Conversely, without first-class control some control idioms
+can only be implemented using global program restructuring techniques
+such as continuation passing style.
 
 From the perspective of compiler engineers first-class control is
 valuable because it unifies several control-related constructs under
-one single construct. First-class control can be beneficial for
+one single construct. First-class control can even be beneficial for
 implementing programming languages which have no notion of first-class
 control in source language. A runtime with support for first-class
 control can considerably simplify and ease maintainability of an
@@ -839,7 +840,7 @@ return type $R$ with state of type $S$, we transform the function
 signature as follows.
 %
 \[
-    \val{A_1 \to \cdots \to A_n \to R}_S
+    \sembr{A_1 \to \cdots \to A_n \to R}_S
   \defas A_1 \to \cdots \to A_n \to S \to R \times S
 \]
 %
@@ -6495,6 +6496,53 @@ getting stuck on an unhandled operation.
 \begin{proof}
   By induction on the typing derivations.
 \end{proof}
+
+\subsection{Effect sugar}
+\label{sec:effect-sugar}
+
+The class of second-order functions capture many familiar and useful
+functions (although, it should be noted that there exist useful
+functions at higher order, e.g. in
+Chapter~\ref{ch:handlers-efficiency} we shall use third-order
+functions; for an example of a sixth order function see
+\citet{Okasaki98}).
+%
+\[
+  \bl
+    \pp : \EffectCat \to \EffectCat\\
+    \ba{@{}l@{~}c@{~}l}
+      \pp(\{\cdot\})                     &\defas& \{\cdot\}\\
+      \pp(\{\varepsilon\})               &\defas& \{\varepsilon\}\\
+      \pp(\{\ell : A \opto B\} \cup E) &\defas& \{\ell : \theta \} \cup \pp(E),\quad \text{fresh}~\theta
+    \ea\\
+  \el
+\]
+%
+\[
+  \bl
+  \trcomp{-} : \ValTypeCat \times \EffectCat \to \ValTypeCat\\
+  \trcomp{A \to B}_E \defas \trval{A}_{E} \to \trval{B}_{\{\varepsilon\}} \eff E,\quad \text{fresh}~\varepsilon\\
+  \trcomp{A \to B \eff E}_{E'} \defas \trval{A}_{E \cup E'} \to \trval{B}_{\{\varepsilon\}} \eff E \cup E',\quad \text{fresh}~\varepsilon \smallskip\\
+  \trcomp{-} : \HandlerTypeCat \to \HandlerTypeCat\\
+  \trcomp{A \Harrow B} \defas \trcomp{B}_{\{\varepsilon\}} \eff \{\varepsilon\} \Harrow \trcomp{B}_{\{\varepsilon\}} \eff \{\varepsilon\},\quad \text{fresh}~\varepsilon\\
+  \trcomp{A \eff E_A \Harrow B} \defas \trcomp{A}_{E_A} \Harrow \trcomp{B}_{\{\varepsilon\}} \eff \pp(E),\quad \text{fresh}~\varepsilon\\
+   \trcomp{A \Harrow B \eff E_B} \defas \trcomp{A}_{E_B} \Harrow \trcomp{B}_{\{\varepsilon\}} \eff E_B\\
+   \trcomp{A \eff E_A \Harrow B \eff E_B} \defas \trcomp{A}_{E_A \cup E_B} \eff E_A \cup E_B \Harrow \trcomp{B}_{\{\varepsilon\}} \eff \pp(E_A) \cup E_B,\quad \text{fresh}~\varepsilon\\
+    % \trcomp{(A_1 \to B_1 \eff E_1) \to B_2 \eff E_2} \defas (\trval{A_1} \to \trval{B_1} \eff E_1 \cup E_2) \to \trval{B_2} \eff E_1 \cup E_2
+    % \trcomp{A \to B \eff \varepsilon} \defas A \to B \eff \{\varepsilon\}\\
+    % \trcomp{A \to B \eff E} \defas A' \to \trval{B}_{\{\varepsilon\}} \eff E''\\
+    % \quad\where~\bl
+    %               (E', A') = \trval{A}_{\treff{E}}\;\keyw{and}\;  E''      = \treff{E \cup E'}
+    %             \el\\
+      % \val{A \to B \eff E} \defas A' \to B' \eff E'\\
+      % ~\where~\bl
+      %           (E_A, A') = \val{A}\\
+      %           (E_B, 
+      %         \ea
+      \map : \Record{\alpha \to \beta;\List~\alpha} \to \List~\beta\\
+      % \map : \Record{\alpha \to \beta \eff \{\varepsilon\};\List~\alpha} \to \List~\beta \eff \{\varepsilon\}
+  \el
+\]
 
 \section{Composing \UNIX{} with effect handlers}
 \label{sec:deep-handlers-in-action}
