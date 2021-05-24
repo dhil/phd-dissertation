@@ -6500,49 +6500,158 @@ getting stuck on an unhandled operation.
 \subsection{Effect sugar}
 \label{sec:effect-sugar}
 
-The class of second-order functions capture many familiar and useful
-functions (although, it should be noted that there exist useful
-functions at higher order, e.g. in
+Every effect row which share the same effect variable must mention the
+exact same operations to be complete. Their presence information may
+differ. In higher-order effectful programming this can lead to
+duplication of information, and thus verbose effect
+signature. Verbosity can be a real nuisance in larger codebases.
+%
+We can retrospectively fix this issue with some syntactic sugar rather
+than redesigning the entire effect system to rectify this problem.
+%
+I will describe an ad-hoc elaboration scheme, which is designed to
+work well for first-order and second-order functions, but might not
+work so well for third-order and above. The reason for focusing on
+first-order and second-order functions is that many familiar and
+useful functions are either first-order or second-order, and in the
+following sections we will mostly be working with first-order and
+second-order functions (although, it should be noted that there exist
+useful functions at higher order, e.g. in
 Chapter~\ref{ch:handlers-efficiency} we shall use third-order
 functions; for an example of a sixth order function see
 \citet{Okasaki98}).
+
+First, let us consider some small instances of the kind of incomplete
+effect rows we would like to be able to write. Consider the type of
+$\map$ function for lists.
 %
 \[
-  \bl
-    \pp : \EffectCat \to \EffectCat\\
-    \ba{@{}l@{~}c@{~}l}
-      \pp(\{\cdot\})                     &\defas& \{\cdot\}\\
-      \pp(\{\varepsilon\})               &\defas& \{\varepsilon\}\\
-      \pp(\{\ell : A \opto B\} \cup E) &\defas& \{\ell : \theta \} \cup \pp(E),\quad \text{fresh}~\theta
-    \ea\\
-  \el
+  \map : \Record{\alpha \to \beta;\List~\alpha} \to \List~\beta
 \]
 %
+For this type to be correct in $\HCalc$ (and $\BCalc$ for that matter)
+we must annotate the arrows with their effect signatures, e.g.
+%
 \[
-  \bl
-  \trcomp{-} : \ValTypeCat \times \EffectCat \to \ValTypeCat\\
-  \trcomp{A \to B}_E \defas \trval{A}_{E} \to \trval{B}_{\{\varepsilon\}} \eff E,\quad \text{fresh}~\varepsilon\\
-  \trcomp{A \to B \eff E}_{E'} \defas \trval{A}_{E \cup E'} \to \trval{B}_{\{\varepsilon\}} \eff E \cup E',\quad \text{fresh}~\varepsilon \smallskip\\
-  \trcomp{-} : \HandlerTypeCat \to \HandlerTypeCat\\
-  \trcomp{A \Harrow B} \defas \trcomp{B}_{\{\varepsilon\}} \eff \{\varepsilon\} \Harrow \trcomp{B}_{\{\varepsilon\}} \eff \{\varepsilon\},\quad \text{fresh}~\varepsilon\\
-  \trcomp{A \eff E_A \Harrow B} \defas \trcomp{A}_{E_A} \Harrow \trcomp{B}_{\{\varepsilon\}} \eff \pp(E),\quad \text{fresh}~\varepsilon\\
-   \trcomp{A \Harrow B \eff E_B} \defas \trcomp{A}_{E_B} \Harrow \trcomp{B}_{\{\varepsilon\}} \eff E_B\\
-   \trcomp{A \eff E_A \Harrow B \eff E_B} \defas \trcomp{A}_{E_A \cup E_B} \eff E_A \cup E_B \Harrow \trcomp{B}_{\{\varepsilon\}} \eff \pp(E_A) \cup E_B,\quad \text{fresh}~\varepsilon\\
-    % \trcomp{(A_1 \to B_1 \eff E_1) \to B_2 \eff E_2} \defas (\trval{A_1} \to \trval{B_1} \eff E_1 \cup E_2) \to \trval{B_2} \eff E_1 \cup E_2
-    % \trcomp{A \to B \eff \varepsilon} \defas A \to B \eff \{\varepsilon\}\\
-    % \trcomp{A \to B \eff E} \defas A' \to \trval{B}_{\{\varepsilon\}} \eff E''\\
-    % \quad\where~\bl
-    %               (E', A') = \trval{A}_{\treff{E}}\;\keyw{and}\;  E''      = \treff{E \cup E'}
-    %             \el\\
-      % \val{A \to B \eff E} \defas A' \to B' \eff E'\\
-      % ~\where~\bl
-      %           (E_A, A') = \val{A}\\
-      %           (E_B, 
-      %         \ea
-      \map : \Record{\alpha \to \beta;\List~\alpha} \to \List~\beta\\
-      % \map : \Record{\alpha \to \beta \eff \{\varepsilon\};\List~\alpha} \to \List~\beta \eff \{\varepsilon\}
-  \el
+  \map : \Record{\alpha \to \beta \eff \{\varepsilon\};\List~\alpha}
+         \to \List~\beta \eff \{\varepsilon\}
 \]
+%
+The effect annotations do not convey any additional information,
+because the function is entirely parametric in all effects, thus the
+ink spent on the effect annotations is really wasted in this instance.
+%
+To fix this we simply need to instantiate each computation type with
+the same effect variable $\varepsilon$.
+
+A slight variation of this example is an effectful second-order
+function that is parametric in its argument's effects.
+%
+\[
+  (A \to B_1 \eff \{\varepsilon\}) \to B_2 \eff \{\ell : A' \opto B';\varepsilon\} \simeq (A \to B_1 \eff \{\ell : A' \opto B';\varepsilon\}) \to B_2 \eff \{\ell : A' \opto B';\varepsilon\}
+\]
+%
+For the effect row of the functional parameter to be correct it must
+mention the $\ell$ operation.
+%
+The idea here is to push the effect signature inwards. The following
+infix function $\vartriangleleft$ copies operations and their presence
+information from its right argument to its left argument.
+%
+\begin{equations}
+  \vartriangleleft &:& \EffectCat \times \EffectCat \to \EffectCat\\
+  E \vartriangleleft \{\cdot\} &\defas& E\\
+  E \vartriangleleft \{\varepsilon\} &\defas& E\\
+  E \vartriangleleft \{\ell : P;R\} &\defas&
+  \begin{cases}
+    \{\ell : P\} \uplus (E \vartriangleleft \{R\}) & \text{if } \ell \notin E\\
+    \{R\} \vartriangleleft E & \text{otherwise}
+  \end{cases}\\
+\end{equations}
+%
+This function essentially computes the union of the two effect rows.
+
+Another example is an observably pure function whose input is
+effectful, meaning the function must be handling the effects of its
+argument internally (or not apply its argument at all). To capture the
+intuition that operations have been handled, we would like to not
+mention the handled operations in the function's effect signature,
+however, the underlying row polymorphism formalism requires us to
+explicitly mention handled operations as being polymorphic in their
+presence, e.g.
+%
+\[
+  (A \to B_1 \eff \{\ell : A' \opto B';\varepsilon\}) \to B_2 \eff \{\varepsilon\} \simeq (A \to B_1 \eff \{\ell : A' \opto B';\varepsilon\}) \to B_2 \eff \{\ell : \theta;\varepsilon\}
+\]
+%
+The idea is to extract the effect signature of the domain $A$ and then
+copy every operation from this signature into the function's signature
+as polymorphic in its presence if it is not mentioned by the
+function's signature. The following function implements the copy
+aspect of this idea.
+%
+\begin{equations}
+  \vartriangleright &:& \EffectCat \times \EffectCat \to \EffectCat\\
+  \{\cdot\} \vartriangleright E &\defas& E\\
+  \{\varepsilon\} \vartriangleright E &\defas& E\\
+  \{\ell : A \opto B;R\} \vartriangleright E &\defas&
+  \begin{cases}
+    \{\ell : \theta\} \uplus (\{R\} \vartriangleright E) & \text{if } \ell \notin E\\
+    \{R\} \vartriangleright E & \text{otherwise}
+  \end{cases}\\
+  \{\ell : P;R\} \vartriangleright E &\defas&
+  \begin{cases}
+    \{\ell : P\} \uplus (\{R\} \vartriangleright E) & \text{if } \ell \notin E\\
+    \{R\} \vartriangleright E & \text{otherwise}
+  \end{cases}
+\end{equations}
+%
+The only subtlety occur in the interesting case which is when an
+operation is present in the left signature, but not in the right
+signature. In this case we instantiate the operation with a fresh
+presence variable in the output signature.
+%
+\begin{equations}
+  \trval{-} &:& \ValTypeCat \to \ValTypeCat\\
+  \trval{A \to B \eff E} &\defas& A' \to B' \eff E'\\
+  \multicolumn{3}{l}{\quad\where~(A', E_A) \defas \trval{A}_{E}\;\keyw{and}\;(B', \_) = \trval{B}_{\{\varepsilon\}}\;\keyw{and}\; E' = E_A \vartriangleright E} \medskip\\
+  \trval{-} &:& \ValTypeCat \times \EffectCat \to \ValTypeCat \times \EffectCat\\
+  \trval{\UnitType}_{E_{amb}} &\defas& (\UnitType, \{\cdot\})\\
+  \trval{A \to B \eff E}_{E_{amb}} &\defas& (A' \to B' \eff E', E_A \vartriangleright E)\\
+  \multicolumn{3}{l}{\quad\where~E' = E \vartriangleleft E_{amb}\;\keyw{and}\;(A', E_A) = \trval{A}_{E'}\;\keyw{and}\;(B', \_) = \trval{B}_{\{\varepsilon\}}}
+\end{equations}
+
+% which can be a real nuisance for programming as it scales poorly to large codebases.
+% The idea is to push the effects inwards.
+%
+% \begin{equations}
+%   \pp &:& \EffectCat \to \EffectCat\\
+%   \pp(\{\cdot\})         &\defas& \{\cdot\}\\
+%   \pp(\{\varepsilon\})   &\defas& \{\varepsilon\}\\
+%   \pp(\{\ell : A \opto B;R\}) &\defas& \{\ell : \theta \} \cup \pp(\{R\}),\quad \text{fresh}~\theta
+% \end{equations}
+% %
+% \[
+%   \bl
+%   \trcomp{-} : \ValTypeCat \to \ValTypeCat\\
+%   \trcomp{A} \defas \trcomp{A}_{\{\varepsilon\}} \smallskip\\
+%   \ba{@{}r@{~}c@{~}l}
+%     \trcomp{-} &:& \ValTypeCat \times \EffectCat \to \ValTypeCat \times \EffectCat\\
+%     \trcomp{A \to B}_E          &\defas& (A' \to B' \eff E', E')\\
+%     \multicolumn{3}{l}{\quad\where~(A', E_A) = \trval{A}_E\;\keyw{and}\;(B', \_) = \trval{B}_{\{\varepsilon\}}\;\keyw{and}\;E' = E \cup \pp(E_A)}\\
+%     \trcomp{A \to B \eff E}_{E'} &\defas& \trval{A}_{E \cup E'} \to \trval{B}_{\{\varepsilon\}} \eff E \cup E'
+%     \ea\smallskip\\
+%   %
+%   \ba{@{}r@{~}c@{~}l}
+%    \trcomp{-} &:& \HandlerTypeCat \to \HandlerTypeCat\\
+%     \trcomp{A \Harrow B}       &\defas& \trcomp{B}_{\{\varepsilon\}} \eff \{\varepsilon\} \Harrow \trcomp{B}_{\{\varepsilon\}} \eff \{\varepsilon\}\\
+%     \trcomp{A \eff E_A \Harrow B} &\defas& \trcomp{A}_{E_A} \Harrow \trcomp{B}_{\{\varepsilon\}} \eff \pp(E),\quad \text{fresh}~\varepsilon\\
+%      \trcomp{A \Harrow B \eff E_B} &\defas& \trcomp{A}_{E_B} \Harrow \trcomp{B}_{\{\varepsilon\}} \eff E_B\\
+%      \trcomp{A \eff E_A \Harrow B \eff E_B} &\defas& \trcomp{A}_{E} \eff E \Harrow \trcomp{B}_{\{\varepsilon\}} \eff E'\\
+%      \multicolumn{3}{l}{\quad \where~E = E_A \cup E_B\;\keyw{and}\;E' = \pp(E_A) \cup E_B}
+%    \ea\\
+%   \el
+% \]
 
 \section{Composing \UNIX{} with effect handlers}
 \label{sec:deep-handlers-in-action}
@@ -8298,7 +8407,7 @@ an unique entry.
                \bl
                   \If\;inode.lno > 1\;\Then\\
                    \quad\bl
-                      \Let\;inode' \revto \Record{inode\;\With\;lno = inode.lno - 1}\\
+                      \Let\;inode' \revto \Record{\bl inode\;\With\\lno = inode.lno - 1}\el\\
                       \In\;\Record{\modify\,\Record{ino;inode';fs.ilist};fs.dreg}
                     \el\\
                   \Else\;
@@ -8476,7 +8585,8 @@ We can now plug it all together.
                \Record{3;
                  \ba[t]{@{}l@{}l}
                    \texttt{"}&\texttt{UNIX is basically a simple operating system, }\\
-                             &\texttt{but you have to be a genius to understand the simplicity.\nl{"}}},
+                             &\texttt{but you have to be a genius }\\
+                             &\texttt{to understand the simplicity.\nl{"}}},
                  \ea\\
                \Record{2;
                  \ba[t]{@{}l@{}l}
@@ -9128,25 +9238,25 @@ analysis utility need not operate on the low level of characters.
     \paste : \UnitType \to \UnitType \eff \{\Await : \UnitType \opto \Char;\Yield : \String \opto \UnitType\}\\
     \paste\,\Unit \defas
       \bl
-        paste'\,\Record{\Do\;\Await~\Unit;\strlit{}}\\
+        pst\,\Record{\Do\;\Await~\Unit;\strlit{}}\\
         \where
           \ba[t]{@{~}l@{~}c@{~}l}
-             paste'\,\Record{\charlit{\textnil};str} &\defas& \Do\;\Yield~str;\Do\;\Yield~\strlit{\textnil}\\
-             paste'\,\Record{\charlit{\nl};str} &\defas& \Do\;\Yield~str;\Do\;\Yield~\strlit{\nl};paste'\,\Record{\Do\;\Await~\Unit;\strlit{}}\\
-             paste'\,\Record{\charlit{~};str} &\defas& \Do\;\Yield~str;paste'\,\Record{\Do\;\Await~\Unit;\strlit{}}\\
-             paste'\,\Record{c;str} &\defas& paste'\,\Record{\Do\;\Await~\Unit;str \concat [c]}
+             pst\,\Record{\charlit{\textnil};str} &\defas& \Do\;\Yield~str;\Do\;\Yield~\strlit{\textnil}\\
+             pst\,\Record{\charlit{\nl};str} &\defas& \Do\;\Yield~str;\Do\;\Yield~\strlit{\nl};pst\,\Record{\Do\;\Await~\Unit;\strlit{}}\\
+             pst\,\Record{\charlit{~};str} &\defas& \Do\;\Yield~str;pst\,\Record{\Do\;\Await~\Unit;\strlit{}}\\
+             pst\,\Record{c;str} &\defas& pst\,\Record{\Do\;\Await~\Unit;str \concat [c]}
 
           \ea
       \el
   \el
 \]
 %
-The heavy-lifting is delegated to the recursive function $paste'$
+The heavy-lifting is delegated to the recursive function $pst$
 which accepts two parameters: 1) the next character in the input
 stream, and 2) a string buffer for building the output string. The
 function is initially applied to the first character from the stream
 (returned by the invocation of $\Await$) and the empty string
-buffer. The function $paste'$ is defined by pattern matching on the
+buffer. The function $pst$ is defined by pattern matching on the
 character parameter. The first three definitions handle the special
 cases when the received character is nil, newline, and space,
 respectively. If the character is nil, then the function yields the
