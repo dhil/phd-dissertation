@@ -371,15 +371,31 @@
 \chapter{Introduction}
 \label{ch:introduction}
 %
-Functional programmers tend to view functions as impenetrable black
+Functional programmers tend to view programs as impenetrable opaque
 boxes, whose outputs are determined entirely by their
-inputs~\cite{Hughes89}. This is a compelling view which admits a
-canonical mathematical model of
+inputs~\cite{Hughes89,Howard80}. This is a compelling view which
+admits a canonical mathematical model of
 computation~\cite{Church32,Church41}.
 %
 Alas, this view does not capture the reality of practical programs,
-which must interact with their environment (i.e. operating system) to
-facilitate file I/O\dots
+which perform operations to interact with their ambient environment to
+for example signal graceful or erroneous termination, manipulate the
+file system, fork a new thread, and so forth, all of which may have an
+observable effect on the program state. Interactions with the
+environment are mediated by some local authority (e.g. operating
+system), which confers the meaning of operations~\cite{CartwrightF94}.
+%
+This suggests a view of programs as translucent boxes, which convey
+their internal use of operations used to compute their outputs.
+
+This view underpins the \emph{effectful programming paradigm} in which
+computational effects constitute an integral part of programs. In
+effectful programming a computational effect is understood as a
+collection of operations, e.g. exceptions are an effect with a single
+operation \emph{raise}, mutable state is an effect with two operations
+\emph{get} and \emph{put}, concurrency is an effect with two
+operations \emph{fork} and \emph{yield}, etc~\cite{Moggi91,PlotkinP01}.
+
 % Alas, this view does not capture the reality of practical programs, which
 % may use a variety of observable computational effects such as
 % exceptions, state, concurrency, interactive input/output, and so
@@ -405,18 +421,27 @@ Functional programming offers two distinct, but related, approaches to
 effectful programming, which \citet{Filinski96} succinctly
 characterises as \emph{effects as data} and \emph{effects as
   behaviour}. The former uses monads to encapsulate
-effects~\cite{Moggi91,Wadler92} which is compelling because it extends
-the black box view to effectful functions, though, at the expense of a
-change of programming style~\cite{JonesW93}. The latter retains the
-usual direct style of programming by way of \emph{first-class
-  control}, which is a powerful facility that can simulate any
-effect~\cite{Filinski94,Filinski96}. First-class control enables the
-programmer to manipulate and reify the control state as a first-class
-data object known as a continuation~\cite{FriedmanHK84}. First-class
-control has the ability pry open function boundaries, which fractures
-the black box view of computation. This ability can significantly
-improve the computational expressiveness and efficiency of programming
-languages~\cite{LongleyN15,HillerstromLL20}.
+effects~\cite{Moggi91,Wadler92} which is compelling because it
+recovers some of benefits of the opaque box view for effectful
+programs, though, at the expense of a change of programming
+style~\cite{JonesW93}. The latter retains the usual direct style of
+programming by way of \emph{first-class control}, which is a powerful
+facility that can simulate any computational
+effect~\cite{Filinski94,Filinski96}.
+
+\citeauthor{PlotkinP09}'s \emph{effect handlers} are a recent
+innovation\dots
+
+% First-class control enables the programmer to reify and manipulate the
+% control state as a first-class data object known as a
+% continuation~\cite{FriedmanHK84}.
+
+
+%
+% Programmers with continuations at their disposal have the ability to
+% pry open function boundaries, which shatters the opaque box view. This
+% ability can significantly improve the computational expressiveness and
+% efficiency of programming languages~\cite{LongleyN15,HillerstromLL20}.
 
 effect handlers, a recent innovation,
 
