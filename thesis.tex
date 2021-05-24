@@ -253,7 +253,7 @@
   fortunate to have been supervised by him.
   %
   Secondly, I want to extend my gratitude to John Longley, who has
-  been an admirable second supervisor and who has stimulated my
+  been an excellent second supervisor and who has stimulated my
   mathematical curiosity.
   %
   Thirdly, I want to thank my academic brother Simon Fowler. You have
@@ -277,13 +277,13 @@
   Thanks to James McKinna for always asking intellectually
   interesting, and at times challenging, questions. I have appreciate
   our many conversations even though I spent days, weeks, sometimes
-  months, and in some extreme cases years to think about answers to
-  your questions. On the topic of intellectually stimulating
-  conversations, I also want to thank Gordon Plotkin for our
-  intriguing impromptu conversations in the level 4 and 5 pantries of
-  Informatics Forum. Thanks to Brian Campbell and J. Garrett Morris
-  for putting up with the supervision meetings that I had with Sam in
-  their shared office 5.28.
+  months, and in some instances years to think about answers to your
+  questions. On the topic of intellectually stimulating conversations,
+  I also want to thank Gordon Plotkin for our intriguing impromptu
+  conversations in the level 4 and 5 pantries of Informatics
+  Forum. Thanks to Brian Campbell and J. Garrett Morris for putting up
+  with the supervision meetings that I had with Sam in their shared
+  office 5.28.
 
   Speaking of offices, I also want to thank my peers from my own
   office 5.21 for stimulating my general interest in computer science
@@ -313,6 +313,7 @@
     \item Andreas Rossberg
     \item Jeremy Yallop
     \item Paul Piho
+    \item Larisa Stoltzfus
   \end{itemize}
 \end{acknowledgements}
 
@@ -374,24 +375,52 @@ Functional programmers tend to view functions as impenetrable black
 boxes, whose outputs are determined entirely by their
 inputs~\cite{Hughes89}. This is a compelling view which admits a
 canonical mathematical model of
-computation~\cite{Church32,Church41}. Alas, this view does not capture
-the reality of practical programs. In practice functions may perform
-effectful operations such as throwing an exception, referencing
-memory, forking a thread, which may have an observable effect on the
-program state~\cite{CartwrightF92}.
+computation~\cite{Church32,Church41}.
+%
+Alas, this view does not capture the reality of practical programs,
+which must interact with their environment (i.e. operating system) to
+facilitate file I/O\dots
+% Alas, this view does not capture the reality of practical programs, which
+% may use a variety of observable computational effects such as
+% exceptions, state, concurrency, interactive input/output, and so
+% forth.
+% %
+% Instead a view of function as 
 
-Practical programming is in its nature effectful.
+% Alas, this view does not capture
+% the reality of practical programs. In practice a function may perform
+% effectful operations such as throwing an exception, referencing
+% memory, forking a thread, whose interactions with the function's
+% ambient environment are observable~\cite{CartwrightF92}.
+%
+% Practical programs are inherently effectful as they interact with
+% their environment (i.e. operating system) during the extent of their
+% evaluation.
 
-Functional programming offers two dominant approaches to programming
-with effects, which \citet{Filinski96} succinctly characterises as
-\emph{effects as data} and \emph{effects as behaviour}.
+%
+% Practical programming is inherently effectfulPractical programming involves programming with \emph{computational
+%   effects}, or simply effects.
 
-control effects can pry open function boundaries which have profound
-implications for the computational expressiveness and efficiency of
+Functional programming offers two distinct, but related, approaches to
+effectful programming, which \citet{Filinski96} succinctly
+characterises as \emph{effects as data} and \emph{effects as
+  behaviour}. The former uses monads to encapsulate
+effects~\cite{Moggi91,Wadler92} which is compelling because it extends
+the black box view to effectful functions, though, at the expense of a
+change of programming style~\cite{JonesW93}. The latter retains the
+usual direct style of programming by way of \emph{first-class
+  control}, which is a powerful facility that can simulate any
+effect~\cite{Filinski94,Filinski96}. First-class control enables the
+programmer to manipulate and reify the control state as a first-class
+data object known as a continuation~\cite{FriedmanHK84}. First-class
+control has the ability pry open function boundaries, which fractures
+the black box view of computation. This ability can significantly
+improve the computational expressiveness and efficiency of programming
+languages~\cite{LongleyN15,HillerstromLL20}.
 
 effect handlers, a recent innovation,
 
-\citet{Sabry98}
+%\citet{Sabry98}
 % Virtually every useful program performs some computational effects
 % such as exceptions, state, concurrency, nondeterminism, interactive
 % input and output during its execution.
