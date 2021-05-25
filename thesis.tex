@@ -27,7 +27,9 @@
 \usepackage{float}            % Float control
 \usepackage{caption,subcaption}  % Sub figures support
 \DeclareCaptionFormat{underlinedfigure}{#1#2#3\hrulefill}
+\DeclareCaptionFormat{subfig}{#1#2#3}
 \captionsetup[figure]{format=underlinedfigure}
+\captionsetup[subfigure]{format=subfig}
 \usepackage[T1]{fontenc}      % Fixes issues with accented characters
 %\usepackage{libertine}
 %\usepackage{lmodern}
@@ -16150,9 +16152,9 @@ applying it to $\dec{q}_1$ or $\dec{q}_2$ yields $\True$.
   \centering
   \begin{subfigure}{0.1\textwidth}
     \begin{center}
-    \vspace*{6.5ex}
-    \scalebox{1.0}{\TTZeroModel}
-    \vspace*{6.5ex}
+    % \vspace*{-2.5ex}
+    \scalebox{1.3}{\TTZeroModel}
+    \vspace*{13.5ex}
     \end{center}
     \caption{$\dec{T}_0$}
     \label{fig:tt0-tree}
@@ -16160,7 +16162,7 @@ applying it to $\dec{q}_1$ or $\dec{q}_2$ yields $\True$.
   %
   \begin{subfigure}{0.3\textwidth}
     \begin{center}
-    \scalebox{1.0}{\ShortConjModel}
+    \scalebox{1.3}{\ShortConjModel}
     \end{center}
     \caption{$\dec{I}_2$}
     \label{fig:div1-tree}
@@ -16168,9 +16170,9 @@ applying it to $\dec{q}_1$ or $\dec{q}_2$ yields $\True$.
   %
   \begin{subfigure}{0.4\textwidth}
     \begin{center}
-    \scalebox{1.0}{\XORTwoModel}
+    \scalebox{1.3}{\XORTwoModel}
     \end{center}
-    \caption{$\dec{Odd}_2$}
+    \caption{$\dec{odd}_2$}
     \label{fig:xor2-tree}
   \end{subfigure}
   \caption{Examples of decision trees.}
@@ -16350,9 +16352,11 @@ undefined or both are defined and $a = b$.
 It is convenient to define the timed tree and then extract the untimed one from it:
 
 \begin{definition}\label{def:model-construction}
- (i) Define $\tr: \Conf_q \to \Addr \pto (\Lab \times \N)$ to be the
-  minimal family of partial functions satisfying the following
-  equations:
+  ~
+  \begin{enumerate}[(i)]
+  \item Define $\tr: \Conf_q \to \Addr \pto (\Lab \times \N)$ to be
+    the minimal family of partial functions satisfying the following
+    equations:
 %
 {
 \begin{mathpar}
@@ -16378,23 +16382,26 @@ $\gamma(q) = \gamma'(q) = q$.
 Clearly $\tr(\conf)$ is a timed decision tree for any $\conf \in \Conf_q$.
 %
 
-(ii) The timed decision tree of a computation term is obtained by placing it in
-the initial configuration:
+\item The timed decision tree of a computation term is obtained by
+  placing it in the initial configuration:
 %
 $\tr(M) \defas \tr(\cek{M, \emptyset[q \mapsto q], \kappa_0})$.
 %
 
-(iii) The timed decision tree of a closed value $P:\Predicate$ is $\tr(P\,q)$.
-Since $q$ plays the role of a dummy argument, we will usually omit it and write $\tr(P)$ for $\tr(P\,q)$.
+\item The timed decision tree of a closed value $P:\Predicate$ is
+  $\tr(P\,q)$.  Since $q$ plays the role of a dummy argument, we will
+  usually omit it and write $\tr(P)$ for $\tr(P\,q)$.
 
-(iv) The untimed decision tree $\tru(P)$ is obtained from $\tr(P)$ via
-first projection: $\tru(P) = \labs(\tr(P))$.
+\item The untimed decision tree $\tru(P)$ is obtained from $\tr(P)$
+  via first projection: $\tru(P) = \labs(\tr(P))$.
+\end{enumerate}
 \end{definition}
 
-If the execution of a configuration $\conf$ runs forever or gets stuck at an unhandled operation,
-then $\tr(\conf)(bs)$ will be undefined for all $bs$.
-Although this is admitted by our definition of decision tree, we wish to exclude such behaviours
-for the terms we accept as valid predicates. Specifically, we frame the following definition:
+If the execution of a configuration $\conf$ runs forever or gets stuck
+at an unhandled operation, then $\tr(\conf)(bs)$ will be undefined for
+all $bs$.  Although this is admitted by our definition of decision
+tree, we wish to exclude such behaviours for the terms we accept as
+valid predicates. Specifically, we frame the following definition:
 
 \begin{definition}  \label{def:n-predicate}
 A decision tree $\tree$ is an \emph{$n$-predicate tree} if it satisfies the following:
@@ -16407,9 +16414,9 @@ A decision tree $\tree$ is an \emph{$n$-predicate tree} if it satisfies the foll
 A closed term $P: \Predicate$ is a \emph{(syntactic) $n$-predicate} if $\tru(P)$ is an $n$-predicate tree.
 \end{definition}
 
-If $\tree$ is an $n$-predicate tree, clearly any semantic $n$-point $\pi$ gives rise to a path $b_0 b_1 \dots $
-through $\tree$, given inductively by:
-{
+If $\tree$ is an $n$-predicate tree, clearly any semantic $n$-point
+$\pi$ gives rise to a path $b_0 b_1 \dots $ through $\tree$, given
+inductively by: {
 \[  \forall j.~ \mbox{if~} \tau(b_0\dots b_{j-1}) = \query k_j \mbox{~then~} b_j = \pi(k_j)  \]
 }%
 This path will terminate at some answer node $b_0 b_1 \dots b_{r-1}$ of $\tree$,
@@ -16421,10 +16428,10 @@ $P\,Q \reducesto^\ast \Return\;b$ where $b = \tru(P) \bullet \val{Q}$.
 \end{proposition}
 
 \begin{proof}
-By interleaving the computation for the relevant path through $\tru(P)$
-with computations for queries to $Q$, and appealing to the correspondence between
-the small-step reduction and abstract machine semantics.
-We omit the routine details.
+  By interleaving the computation for the relevant path through
+  $\tru(P)$ with computations for queries to $Q$, and appealing to the
+  correspondence between the small-step reduction and abstract machine
+  semantics.  We omit the routine details.
 \end{proof}
 
 It is thus natural to define the \emph{denotation} of an $n$-predicate
@@ -16446,8 +16453,9 @@ decision tree ($bs \mapsto \tree(bs).1$) is so.
 An $n$-predicate $P$ is $n$-standard if $\tr(P)$ is $n$-standard.
 \end{definition}
 
-Clearly, in an $n$-standard tree, each of the $n$ queries $\query 0,\dots, \query(n-1)$
-appears exactly once on the path to any leaf, and there are $2^n$ leaves, all of them answer nodes.
+Clearly, in an $n$-standard tree, each of the $n$ queries
+$\query 0,\dots, \query(n-1)$ appears exactly once on the path to any
+leaf, and there are $2^n$ leaves, all of them answer nodes.
 
 \subsection{Specification of counting programs}
 \label{sec:counting}
@@ -16467,31 +16475,32 @@ This definition gives us the flexibility to talk about counting
 programs that operate on various classes of predicates, allowing us to
 state our results in their strongest natural form. On the positive
 side, we shall shortly see that there is a single `efficient' program
-in $\HCalc$ that correctly counts all $n$-standard $\lambda_h$
+in $\HPCF$ that correctly counts all $n$-standard $\HPCF$
 predicates for every $n$; in Section~\ref{sec:beyond} we improve this
-to one that correctly counts \emph{all} $n$-predicates of $\lambda_h$.
+to one that correctly counts \emph{all} $n$-predicates of $\HPCF$.
 On the negative side, we shall show that an $n$-indexed family of
-counting programs written in $\BCalc$, even if only required to work
+counting programs written in $\BPCF$, even if only required to work
 correctly on $n$-standard $\lambda_b$ predicates, can never compete
-with our $\HCalc$ program for asymptotic efficiency even in the most
+with our $\HPCF$ program for asymptotic efficiency even in the most
 favourable cases.
 
 \subsection{Efficient generic count with effects}
 \label{sec:effectful-counting}
 
-We now present the simplest version of our effectful implementation of
-counting: one that works on $n$-standard predicates.
+Now we are ready to implement a generic count function using effect
+handlers. In fact, the implementation is so generic that it works on
+all $n$-standard predicates.
 
-Our program uses a variation of the handler for
-nondeterministic computation that we gave in
-Section~\ref{sec:handlers-primer}.
-The main idea is to implement points as `nondeterministic computations'
-using the $\Branch$ operation such that the handler may respond to every query twice,
-by invoking the provided resumption with $\True$ and subsequently $\False$.
-The key insight is that the resumption restarts computation at the invocation
-site of $\Branch$, which means that prior computation need not be repeated.
-In other words, the resumption ensures that common portions of computations
-prior to any query are shared between both branches.
+The program uses a variation of the handler for nondeterministic
+computation from Section~\ref{sec:tiny-unix-time}.  The main idea is
+to implement points as nondeterministic computations using the
+$\Branch$ operation such that the handler may respond to every query
+twice, by invoking the provided resumption with $\True$ and
+subsequently $\False$.  The key insight is that the resumption
+restarts computation at the invocation site of $\Branch$, which means
+that prior computation need not be repeated.  In other words, the
+resumption ensures that common portions of computations prior to any
+query are shared between both branches.
 
 We assert that $\Branch : \One \to \Bool \in \Sigma$ is a
 distinguished operation that may not be handled in the definition of
@@ -16526,7 +16535,7 @@ single solution, whilst $\Branch$ is interpreted by alternately
 supplying $\True$ and $\False$ to the resumption and summing the
 results.  The sharing enabled by the use of the resumption is exactly
 the `magic' we need to make it possible to implement generic count
-more efficiently in $\HCalc$ than in $\BCalc$.
+more efficiently in $\HPCF$ than in $\BPCF$.
 %
 A curious feature of $\ECount$ is that it works for all $n$-standard
 predicates without having to know the value of $n$. This is because
@@ -16537,7 +16546,7 @@ We may now articulate the crucial correctness and efficiency
 properties of $\ECount$.
 
 \begin{theorem}\label{thm:complexity-effectful-counting}
-  The following hold for any $n \in \N$ and any $n$-standard predicate $P$ of $\HCalc$:
+  The following hold for any $n \in \N$ and any $n$-standard predicate $P$ of $\HPCF$:
   %
   \begin{enumerate}
   \item $\ECount$ correctly counts $P$.
@@ -16886,11 +16895,13 @@ be performed `in turn' but might be nested in some complex way).
   {
   \begin{mathpar}
   \begin{eqs}
-     Q[P]~k & \reducesto^\ast & \EC_0[P~Q_0[P], P] ~\reducesto^\ast~ \EC_0[\Return\;b_0, P]
-            ~\reducesto^\ast~ \EC_1[P~Q_1[P], P] ~\reducesto^\ast~ \EC_1[\Return\;b_1, P] \\
-            & \reducesto^\ast & \dots
-            ~\reducesto^\ast~ \EC_{r-1}[P~Q_{r-1}[P], P] ~\reducesto^\ast~ \EC_{r-1}[\Return\;b_{r-1}, P]
-            ~\reducesto~ \Return\;b
+     Q[P]~k & \reducesto^\ast & \EC_0[P~Q_0[P], P] ~\reducesto^\ast \EC_0[\Return\;b_0, P]
+              \reducesto^\ast \EC_1[P~Q_1[P], P]\\
+            &\reducesto^\ast & \EC_1[\Return\;b_1, P]
+             \reducesto^\ast \dots
+             \reducesto^\ast \EC_{r-1}[P~Q_{r-1}[P], P]\\
+             &\reducesto^\ast& \EC_{r-1}[\Return\;b_{r-1}, P]
+            \reducesto~ \Return\;b
   \end{eqs}
   \end{mathpar}
   }%
@@ -16910,11 +16921,13 @@ be performed `in turn' but might be nested in some complex way).
   {
   \begin{mathpar}
   \begin{eqs}
-     Q[P']~k & \reducesto^\ast & \EC_0[P'~Q_0[P'], P'] ~\reducesto^\ast~ \EC_0[\Return\;b_0, P']
-            ~\reducesto^\ast~ \EC_1[P'~Q_1[P'], P'] ~\reducesto^\ast~ \EC_1[\Return\;b_1, P'] \\
-            & \reducesto^\ast & \dots
-            ~\reducesto^\ast~ \EC_{r-1}[P'~Q_{r-1}[P'], P'] ~\reducesto^\ast~ \EC_{r-1}[\Return\;b_{r-1}, P']
-            ~\reducesto~ \Return\;b
+     Q[P']~k & \reducesto^\ast & \EC_0[P'~Q_0[P'], P'] \reducesto^\ast~ \EC_0[\Return\;b_0, P']
+                \reducesto^\ast \EC_1[P'~Q_1[P'], P']\\
+            & \reducesto^\ast & \EC_1[\Return\;b_1, P']
+             \reducesto^\ast  \dots
+             \reducesto^\ast \EC_{r-1}[P'~Q_{r-1}[P'], P']\\
+            &\reducesto^\ast & \EC_{r-1}[\Return\;b_{r-1}, P']
+            \reducesto \Return\;b
   \end{eqs}
   \end{mathpar}
   }%
@@ -17116,19 +17129,17 @@ to support repeated queries as follows.
              \Return\; x          &\mapsto& \lambda s. \If\; x\; \Then\; 1 \;\Else\; 0 \\
              \OpCase{\Branch}{i}{r} &\mapsto&
                \ba[t]{@{}l}\lambda s.
-                 \ba[t]{@{}l}
                  \Case\; \dec{lookup}_n~i~s\; \{\\
-                   \quad\ba[t]{@{~}l@{~}c@{~}l}
+                   \ba[t]{@{~}l@{~}c@{~}l}
                          \Inl\,\Unit &\mapsto&
                            \ba[t]{@{}l}
-                           \Let\;x_\True \revto  r~\True~(\dec{add}_n~\Record{i, \True}~s)\; \In\\
-                           \Let\;x_\False \revto r~\False~(\dec{add}_n~\Record{i, \False}~s)\; \In\\
+                           \Let\;x_\True \revto  r~\True~(\dec{add}_n\,\Record{i, \True}\,s)\; \In\\
+                           \Let\;x_\False \revto r~\False~(\dec{add}_n\,\Record{i, \False}\,s)\; \In\\
                              x_\True + x_\False; \\
                            \ea\\
                          \Inr~x &\mapsto& r~x~s\; \} \\
                          \ea \\
                  \ea \\
-               \ea \\
            \ea\\
       \In\;h~\dec{empty}_n \\
       \el \\
@@ -17736,22 +17747,17 @@ at least $n2^n$ steps in the overall reduction sequence.
 
 \newcommand{\tablethree}
 {\begin{table*}
-\footnotesize
-  \begin{tabular}{@{}| l | r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} | r@{\,} | r@{\,} |@{}}
-    \cline{2-16}
+  \centering
+   \begin{tabular}{@{} | l | r@{\,} | r@{\,} | r@{\,} | @{\,} | r@{\,} | r@{\,} | r@{\,} |}
+    \cline{2-7}
     \multicolumn{1}{l |}{} &
-    \multicolumn{6}{@{}c@{} |@{\,}|}{\textbf{Queens}} &
-    \multicolumn{9}{@{}c@{} |}{\textbf{Integration}}
-    \\\cline{2-16}
+    \multicolumn{6}{@{}c@{} |@{\,}|}{\textbf{Queens}}
+    \\\cline{2-7}
     \multicolumn{1}{c |}{} &
     %% Queens subheadings
     \multicolumn{3}{| @{}c@{} |@{\,}|}{\textbf{First solution}} &
-    \multicolumn{3}{| @{}c@{} |@{\,}|}{\textbf{All solutions}} &
-    %% Integration subheadings
-    \multicolumn{1}{@{}c@{} |@{\,}|}{\textbf{Id}} &
-    \multicolumn{3}{  @{}c@{} |@{\,}|}{\textbf{Squaring}} &
-    \multicolumn{5}{  @{}c@{} |}{\textbf{Logistic}}
-    \\\cline{2-16}
+    \multicolumn{3}{| @{}c@{} |@{\,}|}{\textbf{All solutions}}
+    \\\cline{2-7}
 
     \multicolumn{1}{c |}{\emph{Parameter\!\!}} &
     %% Queens parameters.
@@ -17762,7 +17768,85 @@ at least $n2^n$ steps in the overall reduction sequence.
     %%% all solutions
     \multicolumn{1}{@{}c@{} |}{$8$} &
     \multicolumn{1}{@{}c@{} |}{$10$} &
-    \multicolumn{1}{@{}c@{} |@{\,}|}{$12$} &
+    \multicolumn{1}{@{}c@{} |@{\,}|}{$12$}
+    \\\hline
+
+    %% Results: \Naive.
+    \Naive   &
+    %%% Queens.
+    $\tooslow$ &
+    $\tooslow$ &
+    $\tooslow$ &
+    $0.49$ &
+    $\tooslow$ &
+    $\tooslow$
+    \\\hline
+
+    %% Results: Berger.
+    Berger &
+    %%% Queens.
+    $0.62$ &
+    $0.64$ &
+    $\tooslow$ &
+    $0.73$ &
+    $0.65$ &
+    $0.68$
+    \\\hline
+
+    %% Results: Modulus.
+    Pruned &
+    %%% Queens.
+    $0.70$ &
+    $0.68$ &
+    $0.71$ &
+    $0.74$ &
+    $0.70$ &
+    $0.71$
+    \\\hline
+
+    %% Results: Control.
+    Effectful &
+    %%% Queens.
+    $12.87$ &
+    $13.99$ &
+    $14.90$ &
+    $8.00$ &
+    $8.60$ &
+    $12.19$
+    \\\hline
+
+    %% Results: bespoke
+    Bespoke &
+    % $0.14$ &
+    % $0.14$ &
+    $0.56$ &
+    $0.56$ &
+    $0.56$ &
+    $0.69$ &
+    $0.63$ &
+    $0.59$
+    \\\hline
+  \end{tabular}
+  \caption{MLton: $n$-Queens benchmark runtime relative to SML/NJ.}
+  \label{tbl:results-mlton-vs-smlnj-queens}
+\end{table*}}
+
+\newcommand{\tablemltonvssmlnjintegration}
+{\begin{table*}
+ \centering
+  \begin{tabular}{ @{} | l | r@{\,} | @{\,} | r@{\,} | r@{\,} | r@{\,} | @{\,} | r@{\,} | r@{\,} | r@{\,} | r@{\,} | r@{\,} | @{} }
+    \cline{2-10}
+    \multicolumn{1}{l |}{} &
+    \multicolumn{9}{@{}c@{} |}{\textbf{Integration}}
+    \\\cline{2-10}
+    \multicolumn{1}{c |}{} &
+    %% Integration subheadings
+    \multicolumn{1}{@{}c@{} |@{\,}|}{\textbf{Id}} &
+    \multicolumn{3}{  @{}c@{} |@{\,}|}{\textbf{Squaring}} &
+    \multicolumn{5}{  @{}c@{} |}{\textbf{Logistic}}
+    \\\cline{2-10}
+
+    \multicolumn{1}{c |}{\emph{Parameter\!\!}} &
     %% Integration parameters.
     %%% Identity
     \multicolumn{1}{@{}c@{} |@{\,}|}{$20$} &
@@ -17780,13 +17864,6 @@ at least $n2^n$ steps in the overall reduction sequence.
 
     %% Results: \Naive.
     \Naive   &
-    %%% Queens.
-    $\tooslow$ &
-    $\tooslow$ &
-    $\tooslow$ &
-    $0.49$ &
-    $\tooslow$ &
-    $\tooslow$ &
     %%% Integration.
     $0.55$ &
     $0.35$ &
@@ -17801,13 +17878,6 @@ at least $n2^n$ steps in the overall reduction sequence.
 
     %% Results: Berger.
     Berger &
-    %%% Queens.
-    $0.62$ &
-    $0.64$ &
-    $\tooslow$ &
-    $0.73$ &
-    $0.65$ &
-    $0.68$ &
     %%% Integration.
     $0.41$ &
     $0.35$ &
@@ -17822,13 +17892,6 @@ at least $n2^n$ steps in the overall reduction sequence.
 
     %% Results: Modulus.
     Pruned &
-    %%% Queens.
-    $0.70$ &
-    $0.68$ &
-    $0.71$ &
-    $0.74$ &
-    $0.70$ &
-    $0.71$ &
     %%% Integration.
     $0.34$ &
     $0.36$ &
@@ -17843,13 +17906,6 @@ at least $n2^n$ steps in the overall reduction sequence.
 
     %% Results: Control.
     Effectful &
-    %%% Queens.
-    $12.87$ &
-    $13.99$ &
-    $14.90$ &
-    $8.00$ &
-    $8.60$ &
-    $12.19$ &
     %%% Integration.
     $4.93$ &
     $3.53$ &
@@ -17860,46 +17916,37 @@ at least $n2^n$ steps in the overall reduction sequence.
     $2.62$ &
     $2.46$ &
     $2.37$
-    \\\cline{1-16}
-
-    %% Results: bespoke
-    Bespoke &
-    % $0.14$ &
-    % $0.14$ &
-    $0.56$ &
-    $0.56$ &
-    $0.56$ &
-    $0.69$ &
-    $0.63$ &
-    $0.59$ &
-    \multicolumn{9}{l}{}
-    \\\cline{1-7}
+    \\\hline
   \end{tabular}
-  \caption{MLton: runtime relative to SML/NJ.}
-  \label{tbl:results-mlton-vs-smlnj}
+  \caption{MLton: integration benchmarks runtime relative to SML/NJ.}
+  \label{tbl:results-mlton-vs-smlnj-integration}
 \end{table*}}
+
 
 \tableone
 \tablesmlnjintegration
 \tabletwo
 \tablemltonintegration
+\tablethree
+\tablemltonvssmlnjintegration
 
 %%
 %% Experiments
 %%
 \section{Experiments}
 \label{sec:experiments}
-The theoretical efficiency gap between realisations of $\BCalc$ and
-$\HCalc$ manifests in practice. We observe it empirically on
+The theoretical efficiency gap between realisations of $\BPCF$ and
+$\HPCF$ manifests in practice. We observe it empirically on
 instantiations of $n$-queens and exact real number integration, which
-can be cast as generic search. Table~\ref{tbl:results} shows the
-speedup of using an effectful implementation of generic search over
-various pure implementations. We discuss the benchmarks and results in
-further detail below.
+can be cast as generic search. Tables~\ref{tbl:results-smlnj-queens}
+and \ref{tbl:results-smlnj-integration} show the speedup of using an
+effectful implementation of generic search over various pure
+implementations of the $n$-Queens and integration benchmarks,
+respectively. We discuss the benchmarks and results in further detail
+below.
 
-\setlength{\floatsep}{1.0ex}
-\setlength{\textfloatsep}{1.0ex}
-
+% \setlength{\floatsep}{1.0ex}
+% \setlength{\textfloatsep}{1.0ex}
 
 \paragraph{Methodology}
 We evaluated an effectful implementation of generic search against
@@ -17964,19 +18011,20 @@ call/cc by copying the stack.
 %
 We repeated our experiments using MLton 20180207.
 %
-Table~\ref{tbl:results-mlton} shows the results. The effectful
+Tables~\ref{tbl:results-mlton-queens} and
+\ref{tbl:results-mlton-integration} show the results. The effectful
 implementation performs much worse under MLton than SML/NJ, being
 surpassed in nearly every case by the pruned search procedure and in
 some cases by the Berger search procedure.
 %
-Table~\ref{tbl:results-mlton-vs-smlnj} summarises the runtime of MLton
-relative to SML/NJ. Berger, Pruned, and Bespoke run between 1 and 3
-times as fast with MLton compared to SML/NJ.
+Tables~\ref{tbl:results-mlton-vs-smlnj-queens} and
+\ref{tbl:results-mlton-vs-smlnj-integration} summarise the runtime of
+MLton relative to SML/NJ for both benchmarks. Berger, Pruned, and
+Bespoke run between 1 and 3 times as fast with MLton compared to
+SML/NJ.
 %
 However, the effectful implementation runs between 2 and 14 times as
 fast with SML/NJ compared with MLton.
-
-\tablethree
 
 \section{Related work}
 
