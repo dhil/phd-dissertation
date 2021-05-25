@@ -304,7 +304,7 @@
   \href{http://pervasiveparallelism.inf.ed.ac.uk}{EP/L01503X/1} (EPSRC
   Centre for Doctoral Training in Pervasive Parallelism), and by ERC
   Consolidator Grant Skye (grant number 682315). I finished this
-  dissertation whilst being employed by the UKRI Future Leaders
+  dissertation whilst being employed on the UKRI Future Leaders
   Fellowship ``Effect Handler Oriented Programming'' (reference number
   MR/T043830/1).
 
@@ -420,12 +420,12 @@ meaning the programmer can compose any number of complementary
 handlers to obtain a full implementation of some
 interface~\cite{HillerstromL16}.
 %
-The ability to seamless compose handlers gives to a programming
-paradigm which we shall call \emph{effect handler oriented
+The ability to seamless compose handlers gives rise to a new
+programming paradigm which we shall call \emph{effect handler oriented
   programming} in which the meaning of effectful programs may be
 decomposed into a collection of fine-grained effect handlers.
 
-The key enabler for seamless composition is \emph{first-class
+The key enabler for seamlessly composition is \emph{first-class
   control}, which provides a mechanism for reifying the program
 control state as a first-class data object known as a
 continuation~\cite{FriedmanHK84}.
@@ -17109,23 +17109,23 @@ to support repeated queries as follows.
 \[
   \bl
     \ECount'_n : ((\Nat_n \to \Bool) \to \Bool) \to \Nat\\
-    \ECount'_n\,pred \defas
+    \ECount'_n~pred \defas
       \bl
       \Let\; h \revto \Handle\; pred\,(\lambda i. \Do\; \Branch~i)\; \With\\
-      \quad\ba[t]{@{}l@{\hspace{1.5ex}}c@{\hspace{1.5ex}}l@{}}
+      \quad\ba[t]{@{}l@{}c@{}l@{}}
              \Return\; x          &\mapsto& \lambda s. \If\; x\; \Then\; 1 \;\Else\; 0 \\
              \OpCase{\Branch}{i}{r} &\mapsto&
                \ba[t]{@{}l}\lambda s.
                  \ba[t]{@{}l}
                  \Case\; \dec{lookup}_n~i~s\; \{\\
                    \quad\ba[t]{@{~}l@{~}c@{~}l}
-                         \Inl\, \Unit &\mapsto&
+                         \Inl\,\Unit &\mapsto&
                            \ba[t]{@{}l}
                            \Let\;x_\True \revto  r~\True~(\dec{add}_n~\Record{i, \True}~s)\; \In\\
                            \Let\;x_\False \revto r~\False~(\dec{add}_n~\Record{i, \False}~s)\; \In\\
-                             (x_\True + x_\False); \\
+                             x_\True + x_\False; \\
                            \ea\\
-                         \Inr\,x &\mapsto& r~x~s\; \} \\
+                         \Inr~x &\mapsto& r~x~s\; \} \\
                          \ea \\
                  \ea \\
                \ea \\
@@ -17147,7 +17147,7 @@ Similarly, we can use parameter-passing to support missing queries.
 \[
   \bl
     \ECount''_n : ((\Nat_n \to \Bool) \to \Bool) \to \Nat\\
-    \ECount''_n\,pred \defas
+    \ECount''_n~pred \defas
       \bl
       \Let\;h \revto \bl
                      \Handle\;pred\,(\lambda i. \Do\;\Branch~\Unit)\;\With\\
@@ -17918,6 +17918,8 @@ However, the effectful implementation runs between 2 and 14 times as
 fast with SML/NJ compared with MLton.
 
 \tablethree
+
+\section{Related work}
 
 \part{Conclusions}
 \label{p:conclusions}
