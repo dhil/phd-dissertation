@@ -15406,14 +15406,15 @@ program.
 Computations are extended with operation invocation ($\Do\;\ell\;V$)
 and effect handling ($\Handle\; M \;\With\; H$).
 %
-Handlers are constructed from one success clause $(\{\Val\; x \mapsto
-M\})$ and one operation clause $(\{ \ell \; p \; r \mapsto N \})$ for
+Handlers are constructed from one success clause $(\{\Return\; x \mapsto
+M\})$ and one operation clause $(\{ \OpCase{\ell}{p}{r} \mapsto N \})$ for
 each operation $\ell$ in $\Sigma$.
 %
 Following \citet{PlotkinP13}, we adopt the convention that a handler
 with missing operation clauses (with respect to $\Sigma$) is syntactic
 sugar for one in which all missing clauses perform explicit
 forwarding:
+%
 \[
    \{\OpCase{\ell}{p}{r} \mapsto \Let\; x \revto \Do \; \ell \, p \;\In\; r \, x\}.
 \]
@@ -16508,7 +16509,7 @@ The algorithm is then as follows.
       \Handle\; pred\,(\lambda\_. \Do\; \Branch\; \Unit)\; \With\\
       \quad\ba[t]{@{}l@{\hspace{1.5ex}}c@{\hspace{1.5ex}}l@{}}
            \Val\, x         &\mapsto& \If\; x\; \Then\;\Return\; 1 \;\Else\;\Return\; 0 \\
-           \Branch\,\Unit\,\,r &\mapsto&
+           \OpCase{\Branch}{\Unit}{r} &\mapsto&
               \ba[t]{@{}l}
                 \Let\;x_\True \revto  r\,\True\; \In\\
                 \Let\;x_\False \revto r\,\False\;\In\;
@@ -16549,7 +16550,7 @@ properties of $\ECount$.
 \end{enumerate}
 \end{theorem}
 %
-\begin{proof}[Proof Outline]
+\begin{proof}[Proof outline]
   Suppose $bs \in \Addr_n$, with $|bs|=j$.  From the construction of
   $\tr(P)$, one may easily read off a configuration $\conf_{bs}$ whose
   execution is expected to compute the count for the subtree below
@@ -16565,7 +16566,7 @@ properties of $\ECount$.
 The $9*(2^{n-j}-1)$ expression is the number of machine steps
 contributed by the $\Branch$-case inside the handler, whilst the
 $2*2^{n-j}$ expression is the number of machine steps contributed by
-the $\Val$-case.
+the $\Return$-case.
 %
 We prove $\dec{Hyp}(bs)$ by a laborious but routine downwards
 induction on the length of $bs$. The proof combines counting of
@@ -16574,7 +16575,7 @@ behaviour of $P$ as modelled by $\tr(P)$. Once
 $\dec{Hyp}(\nil)$ is established, both halves of the theorem
 follow easily.
 %
-Full details are given in Appendix~\ref{sec:positive-theorem}.
+Full details are published in Appendix~C of \citet{HillerstromLL20a}.
 \end{proof}
 %
 
@@ -16833,17 +16834,20 @@ be performed `in turn' but might be nested in some complex way).
 
   For example, our current hypotheses imply that $\Countprog~P$ is safe
   (formally, $\Countprog'[-] \defas \Countprog\;-$ is safe).
-
+  %
   We may now prove the following:
 
-  \begin{lemma}  \label{lem:replacement}
-    (i) Suppose $Q[-] : \Point$ and $k : \Nat$ are values such that
+  \begin{lemma}\label{lem:replacement}
+    ~
+    \begin{enumerate}[(i)]
+      \item Suppose $Q[-] : \Point$ and $k : \Nat$ are values such that
     $Q[P]~k$ is safe, and suppose $Q[P]~k \reducesto^m \Return\;b$
     where $m \in \N$.  Then also $Q[P']~k \reducesto^\ast \Return\;b$.
 
-    (ii) Suppose $P~Q[P]$ is safe and $P~Q[P] \reducesto^m
+    \item Suppose $P~Q[P]$ is safe and $P~Q[P] \reducesto^m
     \Return\;b$. Then also
     $P'~Q[P'] \reducesto^\ast \Return\;b$.
+    \end{enumerate}
   \end{lemma}
 
   We prove these claims by simultaneous induction on the computation
@@ -17020,17 +17024,17 @@ thus proved:
 
 Although we shall not go into details, it is not too hard to apply our
 proof strategy with minor adjustments to certain richer languages: for
-instance, an extension of $\BCalc$ with exceptions, or one containing
+instance, an extension of $\BPCF$ with exceptions, or one containing
 the memoisation primitive required for $\BergerCount$
-(Appendix~\ref{sec:berger-count}). A deeper adaptation is required
-for languages with state: we will return to this in
+(Appendix~\ref{sec:berger-count}). A deeper adaptation is required for
+languages with state: we will return to this in
 Section~\ref{sec:robustness}.
 
-It is worth noting where the above argument breaks down if applied to $\HCalc$.
-In $\BCalc$, in the course of computing $\Countprog~P$, every $Q$ to which $P$ is applied
+It is worth noting where the above argument breaks down if applied to $\HPCF$.
+In $\BPCF$, in the course of computing $\Countprog~P$, every $Q$ to which $P$ is applied
 will be a self-contained closed term denoting some specific point $\pi$.
 This is intuitively why we may only learn about one point at a time.
-In $\HCalc$, this is not the case, because of the presence of operation symbols.
+In $\HPCF$, this is not the case, because of the presence of operation symbols.
 For instance, our $\ECount$ program from Section~\ref{sec:effectful-counting}
 will apply $P$ to the `generic point' $\Superpoint$.
 Thus, for example, in our treatment of Lemma~\ref{lem:replacement}(i),
@@ -17047,7 +17051,7 @@ at some invocation of $\ell$, so that control will then pass to the effect handl
 Our complexity result is robust in that it continues to hold in more
 general settings. We outline here how it generalises: beyond
 $n$-standard predicates, from generic count to generic search, and
-from pure $\BCalc$ to stateful $\BCalcS$.
+from pure $\BPCF$ to stateful $\BSPCF$.
 
 \subsection{Beyond $n$-standard predicates}
 \label{sec:beyond}
@@ -17109,8 +17113,8 @@ to support repeated queries as follows.
       \bl
       \Let\; h \revto \Handle\; pred\,(\lambda i. \Do\; \Branch~i)\; \With\\
       \quad\ba[t]{@{}l@{\hspace{1.5ex}}c@{\hspace{1.5ex}}l@{}}
-             \Val\, x          &\mapsto& \lambda s. \If\; x\; \Then\; 1 \;\Else\; 0 \\
-             \Branch\,i\,\,r &\mapsto&
+             \Return\; x          &\mapsto& \lambda s. \If\; x\; \Then\; 1 \;\Else\; 0 \\
+             \OpCase{\Branch}{i}{r} &\mapsto&
                \ba[t]{@{}l}\lambda s.
                  \ba[t]{@{}l}
                  \Case\; \dec{lookup}_n~i~s\; \{\\
@@ -17149,12 +17153,12 @@ Similarly, we can use parameter-passing to support missing queries.
                      \Handle\;pred\,(\lambda i. \Do\;\Branch~\Unit)\;\With\\
                      \quad
                        \ba[t]{@{}l@{\hspace{1.5ex}}c@{\hspace{1.5ex}}l@{}}
-                         \Val~x &\mapsto& \lambda d.
+                         \Return~x &\mapsto& \lambda d.
                            \ba[t]{@{}l}
-                             \Let\; result \revto \If\;x\;\Then\;1\;\Else\;0\;\In\;
+                             \Let\; result \revto \If\;x\;\Then\;1\;\Else\;0\;\In\;\\
                              result \times 2^{n - d}\\
                            \ea\\
-                         \Branch~\Unit~r &\mapsto& \lambda d.
+                         \OpCase{\Branch}{\Unit}{r} &\mapsto& \lambda d.
                            \ba[t]{@{}l}
                              \Let\;x_\True \revto r~\True~(d+1)\;\In\\
                              \Let\;x_\False \revto r~\False~(d+1)\;\In\\
@@ -17207,19 +17211,19 @@ results $xs_\True$ and $xs_\False$ as follows.
 \[
   \bl
     \ESearch_n : ((\Nat_n \to \Bool) \to \Bool) \to \List_{\Nat_n \to \Bool}\\
-    \ESearch_n\,pred \defas
+    \ESearch_n~pred \defas
          \bl\Let\; f \revto \bl
                              \Handle\; pred\,(\lambda i. \Do\; \Branch~i)\; \With\\
-                             \ba[t]{@{}l@{\hspace{1.5ex}}c@{\hspace{1.5ex}}l@{}}
-                                           \Val\, x        &\mapsto& \lambda q. \If\, x \;\Then\; \Singleton~q \;\Else\; \dec{nil} \\
-                                           \Branch\,i\,\,r &\mapsto&
-                                             \ba[t]{@{}l}\lambda q.
+                             ~~\ba[t]{@{}l@{}l}
+                                           \Return\; x &\mapsto \lambda q. \If\, x \;\Then\; \Singleton~q \;\Else\; \dec{nil} \\
+                                           \OpCase{\Branch}{i}{r} &\mapsto\\
+                                             \multicolumn{2}{l}{\quad\ba[t]{@{}l}\lambda q.
                                                 \ba[t]{@{}l}
                                                  \Let\;xs_\True \revto  r~\True~(\lambda j.\If\;i=j\;\Then\;\True\;\Else\;q~j) \;\In\\
                                                  \Let\;xs_\False \revto r~\False~(\lambda j. \If\;i=j\;\Then\;\False\;\Else\;q~j) \;\In\\
                                                  \Concat~\Record{xs_\True,xs_\False} \\
                                                  \ea\\
-                                             \ea\\
+                                             \ea}\\
                               \ea \\
                               \el \\
              \In\;\ToConsList~(f~(\lambda j. \bot))
@@ -17243,14 +17247,20 @@ $\dec{nil} : \HughesList_A$ is defined as the identity function:
 $\dec{nil} \defas \lambda xs. xs$.
 %
 {
-  \[
-  \ba{@{}l@{\qquad}l@{\qquad}l}
-     \Singleton_A : A \to \HughesList_A
-   & \Concat_A : \HughesList_A \times \HughesList_A \to \HughesList_A
-   & \ToConsList_A : \HughesList \to \List_A\\
-     \Singleton_A~x \defas \lambda xs. x \cons xs
-   & \Concat_A~f\,g \defas \lambda xs. g~(f~xs)
-   & \ToConsList_A~f \defas f~\nil
+\[
+  \ba{@{}l@{\qquad}l}
+  \bl
+    \Singleton_A : A \to \HughesList_A\\
+    \Singleton_A~x \defas \lambda xs. x \cons xs
+  \el &
+  \bl
+     \Concat_A : \HughesList_A \times \HughesList_A \to \HughesList_A\\
+     \Concat_A~f\,g \defas \lambda xs. g~(f~xs)
+  \el \smallskip\\
+   \bl
+      \ToConsList_A : \HughesList \to \List_A\\
+      \ToConsList_A~f \defas f~\nil
+   \el &
    \ea
 \]}%
 We use the function $\ToConsList$ to convert the final Hughes list to
@@ -17315,9 +17325,13 @@ some $\EC[\Return\;b]$, via a reduction sequence which, modulo
 $\EC[-]$, has the following form:
 %
 {
-\[ P\,Q \reducesto^\ast \EC_0[Q~k_0] \reducesto^\ast \EC_0[\Return\,b_0] \reducesto^\ast \cdots
-   \reducesto^\ast \EC_{n-1}[Q~k_{n-1}] \reducesto^\ast \EC_{n-1}[\Return\,b_{n-1}]
-   \reducesto^\ast \Return\;b
+\[
+  P\,Q~
+    \bl \reducesto^\ast \EC_0[Q~k_0] \reducesto^\ast \EC_0[\Return\,b_0] \reducesto^\ast \cdots
+        \reducesto^\ast \EC_{n-1}[Q~k_{n-1}]\\
+        \reducesto^\ast \EC_{n-1}[\Return\,b_{n-1}]
+        \reducesto^\ast \Return\;b
+    \el
 \]}%
 %
 (For notational clarity, we suppress mention of the location and store
@@ -17418,9 +17432,6 @@ at least $n2^n$ steps in the overall reduction sequence.
 \newcommand{\tableone}
 {\begin{table*}
     \footnotesize
-  \caption{SML/NJ: Runtime Relative to Effectful Implementation}
-  \label{tbl:results}
-  \vspace{-2.5ex}
   \begin{tabular}{@{}| l | r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} | r@{\,} | r@{\,} |@{}}
     \cline{2-16}
     \multicolumn{1}{l |}{} &
@@ -17536,14 +17547,13 @@ at least $n2^n$ steps in the overall reduction sequence.
     \multicolumn{9}{l}{}
     \\\cline{1-7}
   \end{tabular}
+  \caption{SML/NJ: runtime relative to effectful implementation.}
+  \label{tbl:results}
 \end{table*}}
 
 \newcommand{\tabletwo}
 {\begin{table*}
   \footnotesize
-  \caption{MLton: Runtime Relative to Effectful Implementation}
-  \label{tbl:results-mlton}
-  \vspace{-2.5ex}
   \begin{tabular}{@{}| l | r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} | r@{\,} | r@{\,} |@{}}
     \cline{2-16}
     \multicolumn{1}{l |}{} &
@@ -17661,15 +17671,14 @@ at least $n2^n$ steps in the overall reduction sequence.
     \multicolumn{9}{l}{}
     \\\cline{1-7}
   \end{tabular}
+  \caption{MLton: runtime relative to effectful implementation.}
+  \label{tbl:results-mlton}
 \end{table*}}
 
 %
 
 \newcommand{\tablethree}
 {\begin{table*}
-  \caption{MLton: Runtime Relative to SML/NJ}
-  \label{tbl:results-mlton-vs-smlnj}
-  \vspace{-2.5ex}
 \footnotesize
   \begin{tabular}{@{}| l | r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} | r@{\,} | r@{\,} |@{}}
     \cline{2-16}
@@ -17809,6 +17818,8 @@ at least $n2^n$ steps in the overall reduction sequence.
     \multicolumn{9}{l}{}
     \\\cline{1-7}
   \end{tabular}
+  \caption{MLton: runtime relative to SML/NJ.}
+  \label{tbl:results-mlton-vs-smlnj}
 \end{table*}}
 
 \tableone
@@ -17849,7 +17860,7 @@ runtime ratio between the particular implementation and the baseline
 effectful implementation. Benchmarks that failed to terminate within a
 threshold (1 minute for single solution, 8 minutes for enumerations),
 are reported as $\tooslow$. The experiments were conducted in
-\citet{smlnj} v110.97 64-bit with factory settings on an Intel Xeon
+SML/NJ~\cite{AppelM91} v110.97 64-bit with factory settings on an Intel Xeon
 CPU E5-1620 v2 @ 3.70GHz powered workstation running Ubuntu 16.04. The
 effectful implementation uses an encoding of delimited control akin to
 effect handlers based on top of SML/NJ's call/cc.
@@ -17889,7 +17900,7 @@ function becomes harder to compute.
 SML/NJ is compiled into CPS, thus providing a particularly efficient
 implementation of call/cc.
 %
-\citet{mlton}, a whole program compiler for SML, implements
+MLton~\cite{Fluet20}, a whole program compiler for SML, implements
 call/cc by copying the stack.
 %
 We repeated our experiments using MLton 20180207.
