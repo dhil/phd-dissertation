@@ -17429,35 +17429,22 @@ at least $n2^n$ steps in the overall reduction sequence.
 
 \newcommand{\tooslow}{-}
 
-\newcommand{\tableone}
+\newcommand{\tablesmlnjintegration}
 {\begin{table*}
-    \footnotesize
-  \begin{tabular}{@{}| l | r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} | r@{\,} | r@{\,} |@{}}
-    \cline{2-16}
+  \centering
+  \begin{tabular}{ @{} | l | r@{\,} | @{\,} | r@{\,} | r@{\,} | r@{\,} | @{\,} | r@{\,} | r@{\,} | r@{\,} | r@{\,} | r@{\,} | @{} }
+    \cline{2-10}
     \multicolumn{1}{l |}{} &
-    \multicolumn{6}{@{}c@{} |@{\,}|}{\textbf{Queens}} &
     \multicolumn{9}{@{}c@{} |}{\textbf{Integration}}
-    \\\cline{2-16}
+    \\\cline{2-10}
     \multicolumn{1}{c |}{} &
-    %% Queens subheadings
-    \multicolumn{3}{| @{}c@{} |@{\,}|}{\textbf{First solution}} &
-    \multicolumn{3}{| @{}c@{} |@{\,}|}{\textbf{All solutions}} &
     %% Integration subheadings
     \multicolumn{1}{@{}c@{} |@{\,}|}{\textbf{Id}} &
     \multicolumn{3}{  @{}c@{} |@{\,}|}{\textbf{Squaring}} &
     \multicolumn{5}{  @{}c@{} |}{\textbf{Logistic}}
-    \\\cline{2-16}
+    \\\cline{2-10}
 
     \multicolumn{1}{c |}{\emph{Parameter\!\!}} &
-    %% Queens parameters.
-    %%% first solution
-    \multicolumn{1}{@{}c@{} |}{$20$} &
-    \multicolumn{1}{@{}c@{} |}{$24$} &
-    \multicolumn{1}{@{}c@{} |@{\,}|}{$28$} &
-    %%% all solutions
-    \multicolumn{1}{@{}c@{} |}{$8$} &
-    \multicolumn{1}{@{}c@{} |}{$10$} &
-    \multicolumn{1}{@{}c@{} |@{\,}|}{$12$} &
     %% Integration parameters.
     %%% Identity
     \multicolumn{1}{@{}c@{} |@{\,}|}{$20$} &
@@ -17475,13 +17462,6 @@ at least $n2^n$ steps in the overall reduction sequence.
 
     %% Results: \Naive.
     \Naive   &
-    %%% Queens.
-    $\tooslow$ &
-    $\tooslow$ &
-    $\tooslow$ &
-    $\!\!217.74$ &
-    $\tooslow$ &
-    $\tooslow$ &
     %%% Integration.
     $\!\!12.89$ &
     $\!\!45.04$ &
@@ -17496,13 +17476,6 @@ at least $n2^n$ steps in the overall reduction sequence.
 
     %% Results: Berger.
     Berger &
-    %%% Queens.
-    $11.24$ &
-    $15.70$ &
-    $\tooslow$ &
-    $2.06$ &
-    $2.86$ &
-    $3.64$ &
     %%% Integration.
     $5.18$ &
     $\!\!20.62$ &
@@ -17517,13 +17490,6 @@ at least $n2^n$ steps in the overall reduction sequence.
 
     %% Results: Modulus.
     Pruned &
-    %%% Queens.
-    $2.13$ &
-    $2.54$ &
-    $2.91$ &
-    $1.04$ &
-    $1.24$ &
-    $1.39$ &
     %%% Integration.
     $2.07$ &
     $3.78$ &
@@ -17534,41 +17500,25 @@ at least $n2^n$ steps in the overall reduction sequence.
     $6.42$ &
     $7.26$ &
     $7.94$
-    \\\cline{1-16}
-
-    %% Results: bespoke
-    Bespoke &
-    $0.12$ &
-    $0.12$ &
-    $0.12$ &
-    $0.13$ &
-    $0.13$ &
-    $0.12$ &
-    \multicolumn{9}{l}{}
-    \\\cline{1-7}
+    \\\cline{1-10}
   \end{tabular}
-  \caption{SML/NJ: runtime relative to effectful implementation.}
-  \label{tbl:results}
+  \caption{SML/NJ: integration benchmark runtime relative to effectful implementation.}
+  \label{tbl:results-smlnj-integration}
 \end{table*}}
 
-\newcommand{\tabletwo}
+\newcommand{\tableone}
 {\begin{table*}
-  \footnotesize
-  \begin{tabular}{@{}| l | r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} |@{\,}| r@{\,} | r@{\,} | r@{\,} | r@{\,} | r@{\,} |@{}}
-    \cline{2-16}
+    \centering
+  \begin{tabular}{@{} | l | r@{\,} | r@{\,} | r@{\,} | @{\,} | r@{\,} | r@{\,} | r@{\,} |}
+    \cline{2-7}
     \multicolumn{1}{l |}{} &
-    \multicolumn{6}{@{}c@{} |@{\,}|}{\textbf{Queens}} &
-    \multicolumn{9}{@{}c@{} |}{\textbf{Integration}}
-    \\\cline{2-16}
+    \multicolumn{6}{@{}c@{} |}{\textbf{Queens}}
+    \\\cline{2-7}
     \multicolumn{1}{c |}{} &
     %% Queens subheadings
     \multicolumn{3}{| @{}c@{} |@{\,}|}{\textbf{First solution}} &
-    \multicolumn{3}{| @{}c@{} |@{\,}|}{\textbf{All solutions}} &
-    %% Integration subheadings
-    \multicolumn{1}{@{}c@{} |@{\,}|}{\textbf{Id}} &
-    \multicolumn{3}{  @{}c@{} |@{\,}|}{\textbf{Squaring}} &
-    \multicolumn{5}{  @{}c@{} |}{\textbf{Logistic}}
-    \\\cline{2-16}
+    \multicolumn{3}{ @{}c@{} |}{\textbf{All solutions}}
+    \\\cline{2-7}
 
     \multicolumn{1}{c |}{\emph{Parameter\!\!}} &
     %% Queens parameters.
@@ -17579,7 +17529,147 @@ at least $n2^n$ steps in the overall reduction sequence.
     %%% all solutions
     \multicolumn{1}{@{}c@{} |}{$8$} &
     \multicolumn{1}{@{}c@{} |}{$10$} &
-    \multicolumn{1}{@{}c@{} |@{\,}|}{$12$} &
+    \multicolumn{1}{@{}c@{} |}{$12$}
+    \\\hline
+
+    %% Results: \Naive.
+    \Naive   &
+    %%% Queens.
+    $\tooslow$ &
+    $\tooslow$ &
+    $\tooslow$ &
+    $\!\!217.74$ &
+    $\tooslow$ &
+    $\tooslow$
+    \\\hline
+
+    %% Results: Berger.
+    Berger &
+    %%% Queens.
+    $11.24$ &
+    $15.70$ &
+    $\tooslow$ &
+    $2.06$ &
+    $2.86$ &
+    $3.64$
+    \\\hline
+
+    %% Results: Modulus.
+    Pruned &
+    %%% Queens.
+    $2.13$ &
+    $2.54$ &
+    $2.91$ &
+    $1.04$ &
+    $1.24$ &
+    $1.39$
+    \\\cline{1-7}
+
+    %% Results: bespoke
+    Bespoke &
+    $0.12$ &
+    $0.12$ &
+    $0.12$ &
+    $0.13$ &
+    $0.13$ &
+    $0.12$
+    \\\cline{1-7}
+  \end{tabular}
+  \caption{SML/NJ: $n$-Queens benchmark runtime relative to effectful implementation.}
+  \label{tbl:results-smlnj-queens}
+\end{table*}}
+
+\newcommand{\tabletwo}
+{\begin{table*}
+  \centering
+   \begin{tabular}{@{} | l | r@{\,} | r@{\,} | r@{\,} | @{\,} | r@{\,} | r@{\,} | r@{\,} |}
+    \cline{2-7}
+    \multicolumn{1}{l |}{} &
+    \multicolumn{6}{@{}c@{} |}{\textbf{Queens}}
+    \\\cline{2-7}
+    \multicolumn{1}{c |}{} &
+    %% Queens subheadings
+    \multicolumn{3}{ @{}c@{} |@{\,}|}{\textbf{First solution}} &
+    \multicolumn{3}{ @{}c@{} |}{\textbf{All solutions}}
+    \\\cline{2-7}
+
+    \multicolumn{1}{c |}{\emph{Parameter\!\!}} &
+    %% Queens parameters.
+    %%% first solution
+    \multicolumn{1}{@{}c@{} |}{$20$} &
+    \multicolumn{1}{@{}c@{} |}{$24$} &
+    \multicolumn{1}{@{}c@{} |@{\,}|}{$28$} &
+    %%% all solutions
+    \multicolumn{1}{@{}c@{} |}{$8$} &
+    \multicolumn{1}{@{}c@{} |}{$10$} &
+    \multicolumn{1}{@{}c@{} |}{$12$}
+    \\\hline
+
+    %% Results: \Naive.
+    \Naive   &
+    %%% Queens.
+    $\tooslow$ &
+    $\tooslow$ &
+    $\tooslow$ &
+    $17.31$ &
+    $\tooslow$ &
+    $\tooslow$
+    \\\hline
+
+    %% Results: Berger.
+    Berger &
+    %%% Queens.
+    $0.52$ &
+    $0.66$ &
+    $\tooslow$ &
+    $0.19$ &
+    $0.22$ &
+    $0.20$
+    \\\hline
+
+    %% Results: Modulus.
+    Pruned &
+    %%% Queens.
+    $0.11$ &
+    $0.11$ &
+    $0.13$ &
+    $0.10$ &
+    $0.10$ &
+    $0.08$
+    \\\hline
+
+    %% Results: bespoke
+    Bespoke &
+    % $0.14$ &
+    % $0.14$ &
+    $0.005$ &
+    $0.004$ &
+    $0.004$ &
+    $0.01$ &
+    $0.009$ &
+    $0.006$
+    \\\hline
+  \end{tabular}
+  \caption{MLton: $n$-Queens benchmark runtime relative to effectful implementation.}
+  \label{tbl:results-mlton-queens}
+\end{table*}}
+
+\newcommand{\tablemltonintegration}
+{\begin{table*}
+  \centering
+  \begin{tabular}{ @{} | l | r@{\,} | @{\,} | r@{\,} | r@{\,} | r@{\,} | @{\,} | r@{\,} | r@{\,} | r@{\,} | r@{\,} | r@{\,} | @{} }
+    \cline{2-10}
+    \multicolumn{1}{l |}{} &
+    \multicolumn{9}{@{}c@{} |}{\textbf{Integration}}
+    \\\cline{2-10}
+    \multicolumn{1}{c |}{} &
+    %% Integration subheadings
+    \multicolumn{1}{@{}c@{} |@{\,}|}{\textbf{Id}} &
+    \multicolumn{3}{  @{}c@{} |@{\,}|}{\textbf{Squaring}} &
+    \multicolumn{5}{  @{}c@{} |}{\textbf{Logistic}}
+    \\\cline{2-10}
+
+    \multicolumn{1}{c |}{\emph{Parameter\!\!}} &
     %% Integration parameters.
     %%% Identity
     \multicolumn{1}{@{}c@{} |@{\,}|}{$20$} &
@@ -17597,13 +17687,6 @@ at least $n2^n$ steps in the overall reduction sequence.
 
     %% Results: \Naive.
     \Naive   &
-    %%% Queens.
-    $\tooslow$ &
-    $\tooslow$ &
-    $\tooslow$ &
-    $17.31$ &
-    $\tooslow$ &
-    $\tooslow$ &
     %%% Integration.
     $1.45$ &
     $4.51$ &
@@ -17618,13 +17701,6 @@ at least $n2^n$ steps in the overall reduction sequence.
 
     %% Results: Berger.
     Berger &
-    %%% Queens.
-    $0.52$ &
-    $0.66$ &
-    $\tooslow$ &
-    $0.19$ &
-    $0.22$ &
-    $0.20$ &
     %%% Integration.
     $0.43$ &
     $2.02$ &
@@ -17639,13 +17715,6 @@ at least $n2^n$ steps in the overall reduction sequence.
 
     %% Results: Modulus.
     Pruned &
-    %%% Queens.
-    $0.11$ &
-    $0.11$ &
-    $0.13$ &
-    $0.10$ &
-    $0.10$ &
-    $0.08$ &
     %%% Integration.
     $0.14$ &
     $0.39$ &
@@ -17656,24 +17725,12 @@ at least $n2^n$ steps in the overall reduction sequence.
     $0.86$ &
     $1.03$ &
     $1.21$
-    \\\cline{1-16}
-
-    %% Results: bespoke
-    Bespoke &
-    % $0.14$ &
-    % $0.14$ &
-    $0.005$ &
-    $0.004$ &
-    $0.004$ &
-    $0.01$ &
-    $0.009$ &
-    $0.006$ &
-    \multicolumn{9}{l}{}
-    \\\cline{1-7}
+    \\\hline
   \end{tabular}
-  \caption{MLton: runtime relative to effectful implementation.}
-  \label{tbl:results-mlton}
+  \caption{MLton: integration benchmark runtime relative to effectful implementation.}
+  \label{tbl:results-mlton-integration}
 \end{table*}}
+
 
 %
 
@@ -17823,7 +17880,9 @@ at least $n2^n$ steps in the overall reduction sequence.
 \end{table*}}
 
 \tableone
+\tablesmlnjintegration
 \tabletwo
+\tablemltonintegration
 
 %%
 %% Experiments
