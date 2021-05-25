@@ -383,16 +383,18 @@
 \newcommand{\conf}{\mathcal{C}}
 
 % effect sugar
-\newcommand{\xcomp}[1]{\sembr{#1}}
-\newcommand{\xval}[1]{\sembr{#1}}
-\newcommand{\xpre}[1]{\sembr{#1}}
-\newcommand{\xrow}[1]{\sembr{#1}}
-\newcommand{\xeff}[1]{\sembr{#1}}
-\newcommand{\pcomp}[1]{\sembr{#1}}
-\newcommand{\pval}[1]{\sembr{#1}}
-\newcommand{\ppre}[1]{\sembr{#1}}
-\newcommand{\prow}[1]{\sembr{#1}}
-\newcommand{\peff}[1]{\sembr{#1}}
+\newcommand{\inward}[1]{\mathcal{I}\sembr{#1}}
+\newcommand{\outward}[1]{\mathcal{O}\sembr{#1}}
+\newcommand{\xcomp}[1]{\outward{#1}}
+\newcommand{\xval}[1]{\outward{#1}}
+\newcommand{\xpre}[1]{\outward{#1}}
+\newcommand{\xrow}[1]{\outward{#1}}
+\newcommand{\xeff}[1]{\outward{#1}}
+\newcommand{\pcomp}[1]{\inward{#1}}
+\newcommand{\pval}[1]{\inward{#1}}
+\newcommand{\ppre}[1]{\inward{#1}}
+\newcommand{\prow}[1]{\inward{#1}}
+\newcommand{\peff}[1]{\inward{#1}}
 \newcommand{\eamb}{\ensuremath{E_{\mathsf{amb}}}}
 \newcommand{\trval}[1]{\mathcal{T}\sembr{#1}}
 

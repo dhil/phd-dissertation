@@ -6500,18 +6500,27 @@ getting stuck on an unhandled operation.
 \subsection{Effect sugar}
 \label{sec:effect-sugar}
 
-Every effect row which share the same effect variable must mention the
-exact same operations to be complete. Their presence information may
-differ. In higher-order effectful programming this can lead to
-duplication of information, and thus verbose effect
-signature. Verbosity can be a real nuisance in larger codebases.
+The row polymorphism formalism underlying the effect system is rigid
+with regard to presence information. Every effect row which share the
+same effect variable must mention the exact same operations to be
+complete, that is they must mention whether an operation is present,
+absent, or polymorphic in their its presence. Consequently, in
+higher-order effectful programming this can cause duplication of
+information, which in turn can cause effect signatures to become
+overly verbose. In most cases verbosity is undesirable if the extra
+information is redundant, and in practice it can be real nuisance in
+larger codebases.
 %
 We can retrospectively fix this issue with some syntactic sugar rather
 than redesigning the entire effect system to rectify this problem.
+
+To this end, I will take inspiration from the effect system of Frank,
+which allows eliding redundant information in many
+cases~\cite{LindleyMM17}.
 %
-I will describe an ad-hoc elaboration scheme, which is designed to
-emulate Frank's effect polymorphic system~\cite{LindleyMM17} for
-first-order and second-order functions, but might not work so well for
+In the following I will describe an ad-hoc elaboration scheme for
+effect rows, which is designed to guess the programmer's intent for
+first-order and second-order functions, but it might not work so well for
 third-order and above. The reason for focusing on first-order and
 second-order functions is that many familiar and useful functions are
 either first-order or second-order, and in the following sections we
@@ -6521,44 +6530,50 @@ higher order, e.g. in Chapter~\ref{ch:handlers-efficiency} we shall
 use third-order functions; for an example of a sixth order function
 see \citet{Okasaki98}).
 
-First, let us consider some small instances of the kind of incomplete
-effect rows we would like to be able to write. Consider the type of
-$\map$ function for lists.
+First, let us consider the familiar second-order function $\map$ for
+lists which is completely parametric in its effects.
 %
 \[
-  \map : \Record{\alpha \to \beta;\List~\alpha} \to \List~\beta
+  \ba{@{~}l@{~}l@{}l@{~}l}
+        &\map : \Record{\alpha \to \beta &;\List~\alpha} \to &\List~\beta\\
+  \equiv&\map : \Record{\alpha \to \beta \eff \{\varepsilon\}&;\List~\alpha}
+          \to &\List~\beta \eff \{\varepsilon\}
+  \ea
 \]
 %
 For this type to be correct in $\HCalc$ (and $\BCalc$ for that matter)
-we must annotate the arrows with their effect signatures, e.g.
+we must annotate the computation type with their effect row.
 %
-\[
-  \map : \Record{\alpha \to \beta \eff \{\varepsilon\};\List~\alpha}
-         \to \List~\beta \eff \{\varepsilon\}
-\]
-%
-The effect annotations do not convey any additional information,
+These effect annotations do not convey any additional information,
 because the function is entirely parametric in all effects, thus the
-ink spent on the effect annotations is really wasted in this instance.
+ink spent on the annotations is really wasted in this instance.
 %
 To fix this we simply need to instantiate each computation type with
 the same effect variable $\varepsilon$.
 
-A slight variation of this example is an effectful second-order
-function that is parametric in its argument's effects.
+A slightly more interesting example is a second-order function which
+itself performs some operation, but is otherwise parametric in the
+effects of its argument.
 %
 \[
-  (A \to B_1 \eff \{\varepsilon\}) \to B_2 \eff \{\ell : A' \opto B';\varepsilon\} \simeq (A \to B_1 \eff \{\ell : A' \opto B';\varepsilon\}) \to B_2 \eff \{\ell : A' \opto B';\varepsilon\}
+  \ba{@{~}l@{~}l@{}l@{~}l}
+        &(A \to B_1 \eff \{                   &\varepsilon\}) &\to B_2 \eff \{\ell : A' \opto B';\varepsilon\}\\
+  \equiv&(A \to B_1 \eff \{\ell : A' \opto B';&\varepsilon\}) &\to B_2 \eff \{\ell : A' \opto B';\varepsilon\}
+  \ea
 \]
 %
-For the effect row of the functional parameter to be correct it must
-mention the $\ell$ operation.
+To be type-correct both rows must mention the $\ell$
+operation. However, this information is redundant on the functional
+parameter.  The idea here is to push the information of the ambient
+effect row $B_2$ inwards to $B_1$ such that the functional argument
+can be granted the ability to perform $\ell$.
 %
-The idea here is to push the effect signature inwards. The following
-infix function $\vartriangleleft$ copies operations and their presence
-information from its right argument to its left argument.
+The following infix function $\vartriangleleft$ implements the inward
+push of information by copying operations from its right parameter to
+its left parameter.
 %
-\begin{equations}
+\[
+\ba{@{~}r@{~}c@{~}l}
   \vartriangleleft &:& \EffectCat \times \EffectCat \to \EffectCat\\
   E \vartriangleleft \{\cdot\} &\defas& E\\
   E \vartriangleleft \{\varepsilon\} &\defas& E\\
@@ -6567,30 +6582,36 @@ information from its right argument to its left argument.
     \{\ell : P\} \uplus (E \vartriangleleft \{R\}) & \text{if } \ell \notin E\\
     \{R\} \vartriangleleft E & \text{otherwise}
   \end{cases}\\
-\end{equations}
+\ea
+\]
 %
 This function essentially computes the union of the two effect rows.
 
-Another example is an observably pure function whose input is
-effectful, meaning the function must be handling the effects of its
-argument internally (or not apply its argument at all). To capture the
-intuition that operations have been handled, we would like to not
-mention the handled operations in the function's effect signature,
-however, the underlying row polymorphism formalism requires us to
-explicitly mention handled operations as being polymorphic in their
-presence, e.g.
+The most frequent case to occur is a second-order function which
+handles the effects of its argument.
 %
 \[
-  (A \to B_1 \eff \{\ell : A' \opto B';\varepsilon\}) \to B_2 \eff \{\varepsilon\} \simeq (A \to B_1 \eff \{\ell : A' \opto B';\varepsilon\}) \to B_2 \eff \{\ell : \theta;\varepsilon\}
+  \ba{@{~}l@{~}l@{}l}
+        & (A \to B_1 \eff \{\ell : A' \opto B';\varepsilon\}) \to B_2 \eff \{              &\varepsilon\}\\
+  \equiv& (A \to B_1 \eff \{\ell : A' \opto B';\varepsilon\}) \to B_2 \eff \{\ell : \theta;&\varepsilon\}
+  \ea
 \]
 %
-The idea is to extract the effect signature of the domain $A$ and then
-copy every operation from this signature into the function's signature
-as polymorphic in its presence if it is not mentioned by the
-function's signature. The following function implements the copy
-aspect of this idea.
+To capture the intuition that operations have been handled, we would
+like to not mention the handled operations in the effect row attached
+to $B_2$.
 %
-\begin{equations}
+The idea is to propagate the information of the effect row attached to
+$B_1$ outwards such that this information can be used to complete the
+effect row on $B_2$. To complete the row we need to copy the
+operations unique to the effect row of $B_1$ into the effect row of
+$B_2$ and instantiate them with a fresh presence variable.
+%
+The following function $\vartriangleright$ propagates information from
+its left parameter to its right parameter.
+%
+\[
+\ba{@{~}r@{~}c@{~}l}
   \vartriangleright &:& \EffectCat \times \EffectCat \to \EffectCat\\
   \{\cdot\} \vartriangleright E &\defas& E\\
   \{\varepsilon\} \vartriangleright E &\defas& E\\
@@ -6604,62 +6625,144 @@ aspect of this idea.
     \{\ell : P\} \uplus (\{R\} \vartriangleright E) & \text{if } \ell \notin E\\
     \{R\} \vartriangleright E & \text{otherwise}
   \end{cases}
-\end{equations}
+\ea
+\]
 %
 The only subtlety occur in the interesting case which is when an
-operation is present in the left signature, but not in the right
-signature. In this case we instantiate the operation with a fresh
-presence variable in the output signature.
+operation is present in the left row, but not in the right row. In
+this case we instantiate the operation with a fresh presence variable
+in the output row.
+
+Propagation of information in either direction should only happen if
+the effect rows share the same effect variable. To avoid erroneous
+propagation of information we implement and use the following guarded
+variations of $\vartriangleleft$ and $\vartriangleright$.
+%
+\[
+\ba{@{}l@{\qquad}@{}l}
+  \ba[t]{@{~}r@{~}l@{~}c@{~}l}
+  \{R;\varepsilon\} \blacktriangleleft &\{R';\varepsilon\} &\defas&
+      \{R;\varepsilon\} \vartriangleleft \{R';\varepsilon\}\\
+  \{R;\varepsilon\} \blacktriangleleft &\{R';\varepsilon'\} &\defas&
+      \{R;\varepsilon\}
+  \ea &
+  \ba[t]{@{~}r@{~}l@{~}c@{~}l}
+  \{R;\varepsilon\} \blacktriangleright &\{R';\varepsilon\} &\defas&
+      \{R;\varepsilon\} \vartriangleright \{R';\varepsilon\}\\
+  \{R;\varepsilon\} \blacktriangleright &\{R';\varepsilon'\} &\defas&
+      \{R';\varepsilon'\}
+  \ea
+\ea
+\]
+%
+The following function $\inward{-}$ pushes the ambient effect row
+$\eamb$ inward a given type. I will omit the homomorphic cases as
+there is only one interesting case.
 %
 \begin{equations}
-  \xval{-} &:& \ValTypeCat \to \EffectCat\\
-  \xval{\alpha} &\defas& \{\cdot\}\\
-  \xval{\Record{R}} &\defas& \xval{[R]} \defas \xval{R}\\
-  \xval{A \to C} &\defas& \xval{A} \vartriangleright \xcomp{C} \\
-  \xval{\forall \alpha^K.C} &\defas& \xcomp{C} \smallskip\\
-  \xcomp{-} &:& \CompTypeCat \to \EffectCat\\
-  \xcomp{A \eff E} &\defas& \xval{A} \vartriangleright E \smallskip\\
-  \xrow{-}  &:& \RowCat \to \Effect\\
-  \xrow{\cdot} &\defas& \xval{\rho} \defas \{\cdot\}\\
-  \xrow{\ell : P;R} &\defas& \xval{P} \vartriangleright \xval{R} \smallskip\\
-  \xpre{-}    &:& \PresenceCat \to \EffectCat\\
-  \xpre{\Pre{A}} &\defas& \xval{A}\\
-  \xpre{\Abs}    &\defas& \xpre{\theta} \defas \{\cdot\}
-\end{equations}
-%
-\begin{equations}
-  \pval{-} &:& \ValTypeCat \times \EffectCat \to \ValTypeCat\\
-  \pval{\alpha}_{\eamb} &\defas& \alpha\\
-  \pval{\Record{R}}_{\eamb} &\defas& \Record{\prow{R}_{\eamb}}\\
-  \pval{[R]}_{\eamb} &\defas& [\prow{R}_{\eamb}]\\
-  \pval{A \to C}_{\eamb} &\defas& \pval{A}_{\eamb} \to \pcomp{C}_{\eamb} \\
-  \pval{\forall \alpha^K.C}_{\eamb} &\defas& \forall\alpha^K.\pcomp{C} \smallskip\\
   \pcomp{-} &:& \CompTypeCat \times \EffectCat \to \CompTypeCat\\
-  \pcomp{A \eff E}_{\eamb} &\defas& \pval{A}_{\eamb} \eff E \vartriangleleft \eamb \smallskip\\
-  \prow{-}  &:& \RowCat \times \EffectCat \to \RowCat\\
-  \prow{\cdot}_{\eamb} &\defas& \{\cdot\}\\
-  \prow{\rho}_{\eamb} &\defas& \{\rho\}\\
-  \prow{\ell : P;R}_{\eamb} &\defas& \ppre{P};\prow{R} \smallskip\\
-  \ppre{-}    &:& \PresenceCat \times \EffectCat \to \EffectCat\\
-  \ppre{\Pre{A}}_{\eamb} &\defas& \pval{A}_{\eamb}\\
-  \ppre{\Abs}_{\eamb}    &\defas& \Abs\\
-  \ppre{\theta} &\defas& \theta
+  \pcomp{A \eff E}_{\eamb} &\defas& \pval{A}_{\eamb} \eff E \blacktriangleleft \eamb
 \end{equations}
+%
+The following function $\outward{-}$ combines and propagates the
+effect rows of a type outward. Again, I omit the homomorphic cases.
+%
+\[
+ \ba{@{}l@{\qquad}@{}l}
+ \ba[t]{@{~}r@{~}c@{~}l}
+   \xval{-} &:& \ValTypeCat \to \EffectCat\\
+   \xval{\alpha} &\defas& \{\cdot\}\\
+   \xval{A \to C} &\defas& \xval{A} \blacktriangleright \xcomp{C} \\
+  \ea &
+ \ba[t]{@{~}r@{~}c@{~}l}
+   \xcomp{-} &:& \CompTypeCat \to \EffectCat\\
+   \xcomp{A \eff E} &\defas& \xval{A} \blacktriangleright E \smallskip\\
+  \ea \smallskip\\
+  \ba[t]{@{~}r@{~}c@{~}l}
+      \xpre{-}    &:& \PresenceCat \to \EffectCat\\
+      % \xpre{\Pre{A}} &\defas& \xval{A}\\
+      \xpre{\Abs}    &\defas& \xpre{\theta} \defas \{\cdot\}
+  \ea &
+  \ba[t]{@{~}r@{~}c@{~}l}
+   \xrow{-}  &:& \RowCat \to \Effect\\
+   \xrow{\cdot} &\defas& \xval{\rho} \defas \{\cdot\}\\
+   \xrow{\ell : P;R} &\defas& \xval{P} \blacktriangleright \xval{R}
+   \ea
+ \ea
+\]
+% \[
+%  \ba{@{}l@{\qquad}@{}l}
+%  \ba[t]{@{~}r@{~}c@{~}l}
+%    \xval{-} &:& \ValTypeCat \to \EffectCat\\
+%    \xval{\alpha} &\defas& \{\cdot\}\\
+%    \xval{\Record{R}} &\defas& \xval{[R]} \defas \xval{R}\\
+%    \xval{A \to C} &\defas& \xval{A} \blacktriangleright \xcomp{C} \\
+%    \xval{\forall \alpha^K.C} &\defas& \xcomp{C}
+%   \ea &
+%  \ba[t]{@{~}r@{~}c@{~}l}
+%   \xcomp{-} &:& \CompTypeCat \to \EffectCat\\
+%    \xcomp{A \eff E} &\defas& \xval{A} \blacktriangleright E \smallskip\\
+%    \xrow{-}  &:& \RowCat \to \Effect\\
+%    \xrow{\cdot} &\defas& \xval{\rho} \defas \{\cdot\}\\
+%    \xrow{\ell : P;R} &\defas& \xval{P} \blacktriangleright \xval{R}
+%    \ea\\
+%    \multicolumn{2}{c}{
+%     \ba{@{~}r@{~}c@{~}l}
+%       \xpre{-}    &:& \PresenceCat \to \EffectCat\\
+%       \xpre{\Pre{A}} &\defas& \xval{A}\\
+%       \xpre{\Abs}    &\defas& \xpre{\theta} \defas \{\cdot\}
+%     \ea}
+%  \ea
+% \]
+%
+% \[
+%  \ba{@{}l@{\qquad}@{}l}
+%  \ba[t]{@{~}r@{~}c@{~}l}
+%   \pval{-} &:& \ValTypeCat \times \EffectCat \to \ValTypeCat\\
+%   \pval{\alpha}_{\eamb} &\defas& \alpha\\
+%   \pval{\Record{R}}_{\eamb} &\defas& \Record{\prow{R}_{\eamb}}\\
+%   \pval{[R]}_{\eamb} &\defas& [\prow{R}_{\eamb}]\\
+%   \pval{A \to C}_{\eamb} &\defas& \pval{A}_{\eamb} \to \pcomp{C}_{\eamb} \\
+%   \pval{\forall \alpha^K.C}_{\eamb} &\defas& \forall\alpha^K.\pcomp{C}
+%  \ea &
+%  \ba[t]{@{~}r@{~}c@{~}l}
+%   \pcomp{-} &:& \CompTypeCat \times \EffectCat \to \CompTypeCat\\
+%   \pcomp{A \eff E}_{\eamb} &\defas& \pval{A}_{\eamb} \eff E \blacktriangleleft \eamb \smallskip\\
+%   \prow{-}  &:& \RowCat \times \EffectCat \to \RowCat\\
+%   \prow{\cdot}_{\eamb} &\defas& \{\cdot\}\\
+%   \prow{\rho}_{\eamb} &\defas& \{\rho\}\\
+%   \prow{\ell : P;R}_{\eamb} &\defas& \ppre{P};\prow{R}
+%  \ea\\
+%  \multicolumn{2}{c}{
+%    \ba[t]{@{~}r@{~}c@{~}l}
+%      \ppre{-}    &:& \PresenceCat \times \EffectCat \to \EffectCat\\
+%      \ppre{\Pre{A}}_{\eamb} &\defas& \pval{A}_{\eamb}\\
+%      \ppre{\Abs}_{\eamb}    &\defas& \Abs\\
+%      \ppre{\theta} &\defas& \theta
+%      \ea}
+%   \ea
+% \]
+%
+We combine all of the above functions to implement the effect row
+elaboration for top-level function types.
 %
 \begin{equations}
   \trval{-} &:& \ValTypeCat \to \ValTypeCat\\
-  \trval{A \to B \eff E} &\defas& \pval{A}_{E'} \to \pval{B}_{E'} \eff E' \vartriangleright E\\
-  \multicolumn{3}{l}{\quad\where~E' = \xval{A} \vartriangleright \xval{B}}
+  \trval{A \to B \eff E} &\defas& \pval{A}_{E'} \to \pval{B}_{E'} \eff E'\\
+  \multicolumn{3}{l}{\quad\where~E' = (\xval{A} \blacktriangleright E) \blacktriangleright (\xval{B} \blacktriangleright E)}
 \end{equations}
-% \begin{equations}
-%   \trval{-} &:& \ValTypeCat \to \ValTypeCat\\
-%   \trval{A \to B \eff E} &\defas& A' \to B' \eff E'\\
-%   \multicolumn{3}{l}{\quad\where~(A', E_A) \defas \trval{A}_{E}\;\keyw{and}\;(B', \_) = \trval{B}_{\{\varepsilon\}}\;\keyw{and}\; E' = E_A \vartriangleright E} \medskip\\
-%   \trval{-} &:& \ValTypeCat \times \EffectCat \to \ValTypeCat \times \EffectCat\\
-%   \trval{\UnitType}_{E_{amb}} &\defas& (\UnitType, \{\cdot\})\\
-%   \trval{A \to B \eff E}_{E_{amb}} &\defas& (A' \to B' \eff E', E_A \vartriangleright E)\\
-%   \multicolumn{3}{l}{\quad\where~E' = (E_A \vartriangleright E) \vartriangleleft E_{amb}\;\keyw{and}\;(A', E_A) = \trval{A}_{E'}\;\keyw{and}\;(B', \_) = \trval{B}_{\{\varepsilon\}}}
-% \end{equations}
+%
+The function $\trval{-}$ traverses the abstract syntax of its argument
+twice. The first traversal propagates effect information outwards to
+the ambient effect row $E$. The second traversal pushes the full
+ambient information $E'$ inwards.
+%
+As a remark, note that the function $\trval{-}$ do not have to
+consider handler types, because they cannot appear at the top-level in
+$\HCalc$. With this syntactic sugar in place we can program with
+second-order effectful functions without having to write down
+redundant information.
+
 
 \section{Composing \UNIX{} with effect handlers}
 \label{sec:deep-handlers-in-action}
