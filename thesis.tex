@@ -14839,7 +14839,7 @@ the captured context and continuation invocation context to coincide.
 % Felleisen's macro-expressiveness, Longley's type-respecting
 % expressiveness, Kammar's typability-preserving expressiveness.
 
-\chapter{Asymptotic speedup with first-class control}
+\chapter{Asymptotic speedup with effect handlers}
 \label{ch:handlers-efficiency}
 \def\LLL{{\mathcal L}}
 \def\N{{\mathbb N}}
@@ -15068,12 +15068,12 @@ The rest of the paper is structured as follows.
  \item Section~\ref{sec:handlers-primer} provides an introduction to
    effect handlers as a programming abstraction.
  \item Section~\ref{sec:calculi} presents a PCF-like language
-   $\BCalc$ and its extension $\HCalc$ with effect handlers.
+   $\BPCF$ and its extension $\HPCF$ with effect handlers.
  \item Section~\ref{sec:abstract-machine-semantics} defines abstract
-   machines for $\BCalc$ and $\HCalc$, yielding a runtime cost model.
+   machines for $\BPCF$ and $\HPCF$, yielding a runtime cost model.
  \item Section~\ref{sec:generic-search} introduces generic count and
    some associated machinery, and presents an implementation in
-   $\HCalc$ with runtime $\BigO(2^n)$.
+   $\HPCF$ with runtime $\BigO(2^n)$.
  \item Section~\ref{sec:pure-counting} establishes that any generic
    count implementation in $\BCalc$ must have runtime $\Omega(n2^n)$.
  \item Section~\ref{sec:robustness} shows that our results scale to
@@ -15081,11 +15081,11 @@ The rest of the paper is structured as follows.
    the adaptation from generic count to generic search, and an
    extension of the base language with state.
  \item Section~\ref{sec:experiments} evaluates implementations of
-   generic search based on $\BCalc$ and $\HCalc$ in Standard ML.
+   generic search based on $\BPCF$ and $\HPCF$ in Standard ML.
  \item Section \ref{sec:conclusions} concludes.
 \end{itemize}
 %
-The languages $\BCalc$ and $\HCalc$ are rather minimal versions of
+The languages $\BPCF$ and $\HPCF$ are rather minimal versions of
 previously studied systems --- we only include the machinery needed
 for illustrating the generic search efficiency phenomenon.
 %
@@ -15097,11 +15097,11 @@ version of the paper~\citep{HillerstromLL20}.
 %%
 \section{Calculi}
 \label{sec:calculi}
-In this section, we present our base language $\BCalc$ and its
-extension with effect handlers $\HCalc$.
+In this section, we present our base language $\BPCF$ and its
+extension with effect handlers $\HPCF$.
 
 \subsection{Base Calculus}
-The base calculus $\BCalc$ is a fine-grain
+The base calculus $\BPCF$ is a fine-grain
 call-by-value~\cite{LevyPT03} variation of PCF~\cite{Plotkin77}.
 %
 Fine-grain call-by-value is similar to A-normal
@@ -15109,11 +15109,10 @@ form~\cite{FlanaganSDF93} in that every intermediate computation is
 named, but unlike A-normal form is closed under reduction.
 
 The syntax of $\BCalc$ is as follows.
-{\small
-\noindent
+{\noindent
   \begin{syntax}
     \slab{Types}          &A,B,C,D\in\TypeCat  &::= & \Nat \mid \One \mid A \to B \mid A \times B \mid A + B \\
-    \slab{Type Environments} &\Gamma\in\CtxCat &::= & \cdot \mid \Gamma, x:A \\
+    \slab{Type\textrm{ }Environments} &\Gamma\in\CtxCat &::= & \cdot \mid \Gamma, x:A \\
 \slab{Values}        &V,W\in\ValCat  &::= & x \mid k \mid c \mid \lambda x^A .\, M \mid \Rec \; f^{A \to B}\, x.M \\
                      &               &\mid& \Unit \mid \Record{V, W} \mid (\Inl\, V)^B \mid (\Inr\, W)^A\\
 %                      &     &    &
@@ -15168,9 +15167,7 @@ A trivial computation $(\Return\;V)$ returns value $V$. The sequencing
 expression $(\Let \; x \revto M \; \In \; N)$ evaluates $M$ and binds
 the result value to $x$ in $N$.
 
-
 \begin{figure*}
-\small
 \raggedright\textbf{Values}
 \begin{mathpar}
 % Variable
@@ -15257,7 +15254,7 @@ the result value to $x$ in $N$.
     }
     {\typ{\Gamma}{\Let \; x \revto M\; \In \; N : C}}
 \end{mathpar}
-\caption{Typing Rules for $\BCalc$}
+\caption{Typing rules for $\BPCF$.}
 \label{fig:typing}
 \end{figure*}
 
@@ -15272,7 +15269,7 @@ either a value term ($V$) or a computation term ($M$).
 %
 The constants have the following types.
 %
-{\small
+{
 \begin{mathpar}
 \{(+), (-)\} : \Nat \times \Nat \to \Nat
 
@@ -15280,15 +15277,14 @@ The constants have the following types.
 \end{mathpar}}
 %
 \begin{figure*}
-\small
 \begin{reductions}
 \semlab{App}     & (\lambda x^A . \, M) V   &\reducesto& M[V/x] \\
-\semlab{App-Rec} & (\Rec\; f^A \,x.\, M) V  &\reducesto& M[(\Rec\;f^A\,x .\,M)/f,V/x]\\
+\semlab{App\textrm{-}Rec} & (\Rec\; f^A \,x.\, M) V  &\reducesto& M[(\Rec\;f^A\,x .\,M)/f,V/x]\\
 \semlab{Const}   & c~V                      &\reducesto& \Return\;(\const{c}\,(V)) \\
 \semlab{Split} & \Let \; \Record{x,y} = \Record{V,W} \; \In \; N &\reducesto& N[V/x,W/y] \\
-\semlab{Case-inl} &
+\semlab{Case\textrm{-}inl} &
   \Case \; (\Inl\, V)^B \; \{\Inl \; x \mapsto M;\Inr \; y \mapsto N\} &\reducesto& M[V/x] \\
-\semlab{Case-inr} &
+\semlab{Case\textrm{-}inr} &
   \Case \; (\Inr\, V)^A \; \{\Inl \; x \mapsto M; \Inr \; y \mapsto N\} &\reducesto& N[V/y]\\
 \semlab{Let} &
   \Let \; x \revto \Return \; V \; \In \; N &\reducesto& N[V/x] \\
@@ -15296,9 +15292,9 @@ The constants have the following types.
   \EC[M] &\reducesto& \EC[N], \hfill \text{if }M \reducesto N \\
 \end{reductions}
 \begin{syntax}
-\slab{Evaluation contexts} &  \mathcal{E} &::=& [\,] \mid \Let \; x \revto \mathcal{E} \; \In \; N
+\slab{Evaluation\textrm{ }contexts} &  \mathcal{E} &::=& [\,] \mid \Let \; x \revto \mathcal{E} \; \In \; N
 \end{syntax}
-\caption{Contextual Small-Step Operational Semantics}
+\caption{Contextual small-step operational semantics.}
 \label{fig:small-step}
 \end{figure*}
 %
@@ -15326,7 +15322,7 @@ call-by-value~\citep{Moggi91, FlanaganSDF93}.
 For example, the expression $f\,(h\,w) + g\,\Unit$ is syntactic sugar
 for:
 %
-{\small
+{
 \[
       \ba[t]{@{~}l}
       \Let\; x \revto h\,w \;\In\;
@@ -15338,7 +15334,7 @@ for:
 %
 We define sequencing of computations in the standard way.
 %
-{\small
+{
 \[
   M;N \defas \Let\;x \revto M \;\In\;N, \quad \text{where $x \notin FV(N)$}
 \]}%
@@ -15346,7 +15342,7 @@ We define sequencing of computations in the standard way.
 We make use of standard syntactic sugar for pattern matching. For
 instance, we write
 %
-{\small
+{
 \[
   \lambda\Unit.M \defas \lambda x^{\One}.M, \quad \text{where $x \notin FV(M)$}
 \]}%
@@ -15354,13 +15350,13 @@ instance, we write
 for suspended computations, and if the binder has a type other than
 $\One$, we write:
 %
-{\small
+{
 \[
   \lambda\_^A.M \defas \lambda x^A.M, \quad \text{where $x \notin FV(M)$}
 \]}%
 %
 We use the standard encoding of booleans as a sum:
-{\small
+{
 \begin{mathpar}
 \Bool \defas \One + \One
 
@@ -15379,15 +15375,15 @@ We use the standard encoding of booleans as a sum:
 
 We now define $\HCalc$ as an extension of $\BCalc$.
 %
-{\small
+{
 \begin{syntax}
-\slab{Operation symbols} &\ell \in \mathcal{L} & & \\
+\slab{Operation\textrm{ }symbols} &\ell \in \mathcal{L} & & \\
 \slab{Signatures}        &\Sigma&::=& \cdot \mid \{\ell : A \to B\} \cup \Sigma\\
-\slab{Handler types}     &F     &::=& C \Rightarrow D\\
+\slab{Handler\textrm{ }types}     &F     &::=& C \Rightarrow D\\
 \slab{Computations} &M, N &::=& \dots \mid \Do \; \ell \; V
                           \mid  \Handle \; M \; \With \; H \\
-\slab{Handlers}     &H&::=& \{ \Val \; x \mapsto M \}
-                      \mid  \{ \ell \; p \; r \mapsto N \} \uplus H\\
+\slab{Handlers}     &H&::=& \{ \Return \; x \mapsto M \}
+                      \mid  \{ \OpCase{\ell}{p}{r} \mapsto N \} \uplus H\\
 \end{syntax}}%
 %
 We assume a countably infinite set $\mathcal{L}$ of operation symbols
@@ -15398,7 +15394,7 @@ types, thus we assume that each operation symbol in a signature is
 distinct. An operation type $A \to B$ classifies operations that take
 an argument of type $A$ and return a result of type $B$.
 %
-We write $dom(\Sigma) \subseteq \mathcal{L}$ for the set of operation
+We write $\dom(\Sigma) \subseteq \mathcal{L}$ for the set of operation
 symbols in a signature $\Sigma$.
 %
 A handler type $C \Rightarrow D$ classifies effect handlers that
@@ -15419,11 +15415,10 @@ with missing operation clauses (with respect to $\Sigma$) is syntactic
 sugar for one in which all missing clauses perform explicit
 forwarding:
 \[
-   \{\ell \; p \; r \mapsto \Let\; x \revto \Do \; \ell \, p \;\In\; r \, x\}
+   \{\OpCase{\ell}{p}{r} \mapsto \Let\; x \revto \Do \; \ell \, p \;\In\; r \, x\}.
 \]
 
 \begin{figure*}
-\small
 \raggedright
 \textbf{Computations}
 \begin{mathpar}
@@ -15447,11 +15442,11 @@ forwarding:
     {{\Gamma} \vdash {H : C \Rightarrow D}}
 \end{mathpar}
 
-\caption{Additional Typing Rules for $\HCalc$}
+\caption{Additional typing rules for $\HPCF$}
 \label{fig:typing-handlers}
 \end{figure*}
 
-The typing rules for $\HCalc$ are those of $\BCalc$
+The typing rules for $\HPCF$ are those of $\BPCF$
 (Figure~\ref{fig:typing}) plus three additional rules for operations,
 handling, and handlers given in Figure~\ref{fig:typing-handlers}.
 %
@@ -15473,11 +15468,11 @@ be handled by $H$.
 %
 We write $\hell$ and $\hret$ for projecting success and operation
 clauses.
-{\small
+{
 \[
   \ba{@{~}r@{~}c@{~}l@{~}l}
-    \hret &\defas& \{\Val\, x \mapsto M \}, &\quad \text{where } \{\Val\, x \mapsto M \} \in H\\
-    \hell &\defas& \{\ell\, p\,r \mapsto M \}, &\quad \text{where } \{\ell\, p\;r \mapsto M \} \in H
+    \hret &\defas& \{\Return\, x \mapsto N \}, &\quad \text{where } \{\Return\, x \mapsto N \} \in H\\
+    \hell &\defas& \{\OpCase{\ell}{p}{r} \mapsto N \}, &\quad \text{where } \{\OpCase{\ell}{p}{r} \mapsto N \} \in H
   \ea
 \]}%
 
@@ -15485,11 +15480,11 @@ We extend the operational semantics to $\HCalc$. Specifically, we add
 two new reduction rules: one for handling return values and another
 for handling operation invocations.
 %
-{\small
+{
 \begin{reductions}
 \semlab{Ret} & \Handle \; (\Return \; V) \; \With \; H &\reducesto& N[V/x], \qquad
-                                      \text{where } \hret = \{ \Val \; x \mapsto N \} \smallskip\\
-                                      \semlab{Op}  & \Handle \; \EC[\Do \; \ell \, V] \; \With \; H &\reducesto& N[V/p,\; (\lambda y.\Handle \; \EC[\Return \; y] \; \With \; H)/r],\\
+                                      \text{where } \hret = \{ \Return \; x \mapsto N \} \smallskip\\
+                                      \semlab{Op}  & \Handle \; \EC[\Do \; \ell \, V] \; \With \; H &\reducesto& N[V/p,(\lambda y.\Handle \; \EC[\Return \; y] \; \With \; H)/r],\\
     \multicolumn{4}{@{}r@{}}{
       \hfill\text{where } \hell = \{ \ell\, p \; r \mapsto N \}
     }
@@ -15508,15 +15503,15 @@ In order to ensure that the semantics is deterministic, we instead add
 a distinct form of evaluation context for effectful computation, which
 we call handler contexts.
 %
-{\small
+{
 \begin{syntax}
-\slab{Handler contexts} &  \HC &::= & [\,] \mid \Handle \; \HC \; \With \; H
+\slab{Handler\textrm{ }contexts} &  \HC &::= & [\,] \mid \Handle \; \HC \; \With \; H
                                 \mid  \Let\;x \revto \HC\; \In\; N\\
 \end{syntax}}%
 %
 We replace the $\semlab{Lift}$ rule with a corresponding rule for
 handler contexts.
-{\small
+{
 \[
   \HC[M] ~\reducesto~ \HC[N], \qquad\hfill\text{if } M \reducesto N
 \]}%
@@ -15544,7 +15539,7 @@ property of $\HCalc$.
 %%
 %% Abstract machine semantics
 %%
-\subsection{The Role of Types}
+\subsection{The role of types}
 
 Readers familiar with backtracking search algorithms may wonder where
 types come into the expressiveness picture.
@@ -15566,10 +15561,10 @@ include effect types.
 Future work includes reconciling effect typing with our approach to
 expressiveness.
 
-\section{Abstract Machine Semantics}
+\section{Abstract machine semantics}
 \label{sec:abstract-machine-semantics}
-Thus far we have introduced the base calculus $\BCalc$ and its
-extension with effect handlers $\HCalc$.
+Thus far we have introduced the base calculus $\BPCF$ and its
+extension with effect handlers $\HPCF$.
 %
 For each calculus we have given a \emph{small-step operational
   semantics} which uses a substitution model for evaluation. Whilst
@@ -15578,7 +15573,7 @@ realistic account of practical computation as substitution is an
 expensive operation. We now develop a more practical model of
 computation based on an \emph{abstract machine semantics}.
 
-\subsection{Base Machine}
+\subsection{Base machine}
 \label{sec:base-abstract-machine}
 
 \newcommand{\Conf}{\dec{Conf}}
@@ -15597,7 +15592,7 @@ third component contains the continuation which instructs the machine
 how to proceed once evaluation of the current computation is complete.
 %
 The syntax of abstract machine states is as follows.
-{\small
+{
 \begin{syntax}
 \slab{Configurations}           & \conf \in \Conf  &::=& \cek{M \mid \env \mid \sigma} \\
                                 % &       &\mid& \cekop{M \mid \env \mid \kappa \mid \kappa'} \\
@@ -15623,7 +15618,6 @@ pattern matching to deconstruct pure continuations.
 %
 
 \begin{figure*}
-\small
 \raggedright
 \textbf{Transition relation}
 \begin{reductions}
@@ -15703,7 +15697,7 @@ pattern matching to deconstruct pure continuations.
 \el
 \]
 
-\caption{Abstract Machine Semantics for $\BCalc$}
+\caption{Abstract machine semantics for $\BPCF$.}
 \label{fig:abstract-machine-semantics}
 \end{figure*}
 
@@ -15749,19 +15743,19 @@ terms~\citep{HillerstromLA20}.
 \newcommand{\contapp}[2]{#1 #2}
 \newcommand{\contappp}[2]{#1(#2)}
 
-\subsection{Handler Machine}
+\subsection{Handler machine}
 \newcommand{\HClosure}{\dec{HClo}}
-We now enrich the $\BCalc$ machine to a $\HCalc$ machine.
+We now enrich the $\BPCF$ machine to a $\HPCF$ machine.
 %
 We extend the syntax as follows.
 %
-{\small
+{
 \begin{syntax}
   \slab{Configurations}            &\conf \in \Conf &::=& \cek{M \mid \env \mid \kappa}\\
   \slab{Resumptions}               &\rho \in \dec{Res} &::=& (\sigma, \chi)\\
   \slab{Continuations}             &\kappa \in \Cont &::=& \nil \mid \rho \cons \kappa\\
-  \slab{Handler closures}          &\chi \in \HClosure   &::=& (\env, H) \\
-  \slab{Machine values}            &v, w \in \MVal  &::=& \cdots \mid \rho \\
+  \slab{Handler\textrm{ }closures}          &\chi \in \HClosure   &::=& (\env, H) \\
+  \slab{Machine\textrm{ }values}            &v, w \in \MVal  &::=& \cdots \mid \rho \\
 \end{syntax}}%
 %
 The notion of configurations changes slightly in that the continuation
@@ -15777,7 +15771,7 @@ The identity continuation is a singleton list containing the identity
 resumption, which is an empty pure continuation paired with the
 identity handler closure:
 %
-{\small
+{
 \[
 \kappa_0 \defas [(\nil, (\emptyset, \{\Val\;x \mapsto x\}))]
 \]}%
@@ -15810,7 +15804,6 @@ The handler machine has two possible final states: either it yields a
 value or it gets stuck on an unhandled operation.
 
 \begin{figure*}
-\small
 \raggedright
 
 \textbf{Transition relation}
@@ -15848,14 +15841,14 @@ value or it gets stuck on an unhandled operation.
                    \text{ and } \hell = \{\ell\; p \; r \mapsto M\}
                           \el\\
 \end{reductions}
-\caption{Abstract Machine Semantics for $\HCalc$}
+\caption{Abstract machine semantics for $\HPCF$.}
 \label{fig:abstract-machine-semantics-handlers}
 \end{figure*}
 
 \paragraph{Correctness}
 %
 The handler machine faithfully simulates the operational semantics of
-$\HCalc$.
+$\HPCF$.
 %
 Extending the result for the base machine, we formally state and prove
 the correspondence in
@@ -15913,11 +15906,11 @@ thus would add nothing but noise to the overall analysis.
 %%
 %% Generic search
 %%
-\section{Predicates, Decision Trees and Generic Count}
+\section{Predicates, decision trees, and generic count}
 \label{sec:generic-search}
 
-We now come to the crux of the paper. In this section and the next, we
-prove that $\HCalc$ supports implementations of certain operations
+We now come to the crux of the chapter. In this section and the next, we
+prove that $\HPCF$ supports implementations of certain operations
 with an asymptotic runtime bound that cannot be achieved in $\BCalc$
 (Section~\ref{sec:pure-counting}).
 %
@@ -15939,7 +15932,6 @@ $n$-queens problem~\citep{BellS09} and graph colouring
 can be cast as instances of generic search, and similar ideas have
 been explored in connection with Nash equilibria and
 exact real integration~\citep{Simpson98, Daniels16}.
-% Taken out Nash equilibria.
 
 For simplicity, we will restrict attention to search spaces of the form $\B^n$,
 the set of bit vectors of length $n$.
@@ -15956,9 +15948,9 @@ We will often informally write $\Nat_n$ in place of $\Nat$ to indicate that
 only the values $0,\dots,n-1$ are relevant, but this convention has no
 formal status since our setup does not support dependent types.
 
-To summarise, in both $\BCalc$ and $\HCalc$ we will be working with the types
+To summarise, in both $\BPCF$ and $\HPCF$ we will be working with the types
 %
-{\small
+{
 \[
 \begin{twoeqs}
   \Point  & \defas & \Nat \to \Bool        & \hspace*{2.0em} &
@@ -15971,7 +15963,7 @@ To summarise, in both $\BCalc$ and $\HCalc$ we will be working with the types
 %
 and will be looking for programs
 %
-{\small
+{
 \[
   \Count_n : \Predicate_n \to \Nat
 \]}%
@@ -15983,10 +15975,10 @@ Before formalising these ideas more closely, let us look at some examples,
 which will also illustrate the machinery of \emph{decision trees} that we will be using.
 
 
-\subsection{Examples of Points, Predicates and Trees}
+\subsection{Examples of points, predicates and trees}
 \label{sec:predicates-points}
 Consider first the following terms of type $\Point$:
-{\small
+{
 \begin{mathpar}
 \dec{q}_0 \defas \lambda \_. \True
 
@@ -16004,7 +15996,7 @@ and $\dec{q}_2$ represents $\langle{\True,\False}\rangle \in \B^2$.
 
 Next some predicates.
 First, the following terms all represent the constant true predicate $\B^2 \to \B$:
-{\small
+{
 \begin{mathpar}
 \dec{T}_0 \defas \lambda q. \True
 
@@ -16017,7 +16009,7 @@ for each $i<n$ the value of $\dec{q}$ at $i$ may be inspected zero, one or many 
 
 Likewise, the following all represent the `identity' predicate $\B^1 \to \B$
 (here $\&\&$ is shortcut `and'):
-{\small
+{
 \begin{mathpar}
 \dec{I}_0 \defas \lambda q. q\,0
 
@@ -16029,13 +16021,13 @@ Likewise, the following all represent the `identity' predicate $\B^1 \to \B$
 Slightly more interestingly, for each $n$ we have the following program which determines
 whether a point contains an odd number of $\True$ components:
 %
-{\small
+{
 \[
-  \dec{Odd}_n \defas \lambda q.\, \dec{fold}\otimes\False~(\dec{map}~q~[0,\dots,n-1])
+  \dec{odd}_n \defas \lambda q.\, \dec{fold}\otimes\False~(\dec{map}~q~[0,\dots,n-1])
 \]}%
 %
 Here $\dec{fold}$ and $\dec{map}$ are the standard combinators on lists, and $\otimes$ is exclusive-or.
-Applying $\dec{Odd}_2$ to $\dec{q}_0$ yields $\False$;
+Applying $\dec{odd}_2$ to $\dec{q}_0$ yields $\False$;
 applying it to $\dec{q}_1$ or $\dec{q}_2$ yields $\True$.
 %
 \medskip
@@ -16180,7 +16172,7 @@ applying it to $\dec{q}_1$ or $\dec{q}_2$ yields $\True$.
     \caption{$\dec{Odd}_2$}
     \label{fig:xor2-tree}
   \end{subfigure}
-  \caption{Examples of Decision Trees}
+  \caption{Examples of decision trees.}
   \label{fig:example-models}
 \end{figure}
 
@@ -16242,7 +16234,7 @@ those for $\dec{I}_0$ and $\dec{I}_1$ are 1-standard; that for
 $\dec{Odd}_n$ is $n$-standard; and the rest are not $n$-standard for
 any $n$.
 
-\subsection{Formal Definitions}
+\subsection{Formal definitions}
 \label{sec:predicate-models}
 We now formalise the above notions.  We will present our definitions
 in the setting of $\HCalc$, but everything can clearly be relativised
@@ -16259,7 +16251,7 @@ as follows.
 \begin{definition}[$n$-points]\label{def:semantic-n-point}
   A closed value $Q : \Point$ is said to be a \emph{syntactic $n$-point} if:
   %
-{\small
+{
   \[
     \forall k \in \N_n.\,\exists b \in \B.~ Q~k \reducesto^\ast \Return\;b
   \]}%
@@ -16269,7 +16261,7 @@ $\pi: \N_n \to \B$.  (We shall also write $\pi \in \B^n$.)  Any
 syntactic $n$-point $Q$ is said to \emph{denote} the semantic
 $n$-point $\val{Q}$ given by:
   %
-{\small
+{
   \[
   \forall k \in \N_n,\, b \in \B.~ \val{Q}(k) = b \,\Iff\, Q~k \reducesto^\ast \Return\;b
   \]}%
@@ -16303,7 +16295,7 @@ label will represent the information present at a node. Formally:
 
   (ii) The label set $\Lab$ consists of \emph{queries} parameterised by a natural
        number and \emph{answers} parameterised by a boolean:
-{\small
+{
   \[
   \Lab \defas \{\query k \mid k \in \N \} \cup \{\ans b \mid b \in \B \}
   \]
@@ -16361,7 +16353,7 @@ It is convenient to define the timed tree and then extract the untimed one from 
   minimal family of partial functions satisfying the following
   equations:
 %
-{\small
+{
 \begin{mathpar}
 \ba{@{}r@{~}c@{~}l@{\qquad}l@{}}
   \tr(\cek{\Return\;W \mid \env \mid \nil})\, \nil  &~=~& (!b, 0),
@@ -16416,7 +16408,7 @@ A closed term $P: \Predicate$ is a \emph{(syntactic) $n$-predicate} if $\tru(P)$
 
 If $\tree$ is an $n$-predicate tree, clearly any semantic $n$-point $\pi$ gives rise to a path $b_0 b_1 \dots $
 through $\tree$, given inductively by:
-{\small
+{
 \[  \forall j.~ \mbox{if~} \tau(b_0\dots b_{j-1}) = \query k_j \mbox{~then~} b_j = \pi(k_j)  \]
 }%
 This path will terminate at some answer node $b_0 b_1 \dots b_{r-1}$ of $\tree$,
@@ -16456,7 +16448,7 @@ An $n$-predicate $P$ is $n$-standard if $\tr(P)$ is $n$-standard.
 Clearly, in an $n$-standard tree, each of the $n$ queries $\query 0,\dots, \query(n-1)$
 appears exactly once on the path to any leaf, and there are $2^n$ leaves, all of them answer nodes.
 
-\subsection{Specification of Counting Programs}
+\subsection{Specification of counting programs}
 \label{sec:counting}
 
 We can now specify what it means for a program
@@ -16483,7 +16475,7 @@ correctly on $n$-standard $\lambda_b$ predicates, can never compete
 with our $\HCalc$ program for asymptotic efficiency even in the most
 favourable cases.
 
-\subsection{Efficient Generic Count with Effects}
+\subsection{Efficient generic count with effects}
 \label{sec:effectful-counting}
 
 We now present the simplest version of our effectful implementation of
@@ -16507,7 +16499,7 @@ convention).
 %
 The algorithm is then as follows.
 %
-{\small
+{
 \[
   \bl
     \ECount : ((\Nat \to \Bool) \to \Bool) \to \Nat\\
@@ -16550,7 +16542,7 @@ properties of $\ECount$.
   \item $\ECount$ correctly counts $P$.
   \item The number of machine steps required to evaluate $\ECount~P$ is
   %
-{\small
+{
   \[
      \left( \displaystyle\sum_{bs \in \Addr_n} \steps(\tr(P))(bs) \right) ~+~ \BigO(2^n)
   \]}%
@@ -16636,7 +16628,7 @@ these, each taking at most $d$ space.
 %
 Thus the total space is $\BigO(n(d + c(\log c + \log n)))$.
 
-\section{Pure Generic Count: A Lower Bound}
+\section{Pure generic count: a lower bound}
 \label{sec:pure-counting}
 
 \newcommand{\naivecount}{\dec{naivecount}}
@@ -16647,8 +16639,8 @@ Thus the total space is $\BigO(n(d + c(\log c + \log n)))$.
 \newcommand{\GG}{\mathcal{G}}
 
 We have shown that there is an implementation of generic count in
-$\HCalc$ with a runtime bound of $\BigO(2^n)$ for certain well-behaved
-predicates. We now prove that no implementation in $\BCalc$ can match
+$\HPCF$ with a runtime bound of $\BigO(2^n)$ for certain well-behaved
+predicates. We now prove that no implementation in $\BPCF$ can match
 this: in fact, we establish a lower bound of $\Omega(n2^n)$ for the
 runtime of any counting program on \emph{any} $n$-standard predicate.
 This mathematically rigorous characterisation of the efficiency gap
@@ -16673,7 +16665,7 @@ a count of those on which $P$ yields true.  It is a routine exercise to
 implement this approach in $\BCalc$, yielding (parametrically in $n$)
 a program
 %
-{\small
+{
 \[
   \naivecount_n ~: ((\Nat_n \to \Bool) \to \Bool) \to \Nat
 \]}%
@@ -16697,7 +16689,7 @@ implementations that cleverly exploit \emph{nesting} of calls to $P$.
 The germ of the idea may be illustrated within $\BCalc$ itself.
 Suppose that we first construct some program
 %
-{\small
+{
 \[
   \bestshot_n ~: ((\Nat_n \to \Bool) \to \Bool) \to (\Nat_n \to \Bool)
 \]}%
@@ -16716,7 +16708,7 @@ deferred until the argument of type $\Nat_n$ is supplied.
 
 Now consider the following program:
 %
-{\small
+{
 \[
   \lazycount_n \defas \lambda pred.\; \If \; pred~(\bestshot_n\;pred)\; \Then\; \naivecount_n\;pred\; \Else\; \Return\;0
 \]}%
@@ -16755,7 +16747,7 @@ proof of this and tells us that such a proof will need to pay
 particular attention to the possibility of nesting.
 
 We now proceed to the proof itself. We here present the argument in
-the basic setting of $\BCalc$; later we will see how a more delicate
+the basic setting of $\BPCF$; later we will see how a more delicate
 argument applies to languages with mutable state
 (Section~\ref{sec:mutable-state}).
 
@@ -16772,11 +16764,11 @@ any generic program program in $\BCalc$ on any $n$-standard predicate
 is $\Omega(n2^n)$, this will establish the desired lower bound on the
 runtime.
 
-Let us suppose, then, that $\Countprog$ is a program of $\BCalc$ that correctly counts
-all $n$-standard predicates of $\BCalc$ for some specific $n$.
+Let us suppose, then, that $\Countprog$ is a program of $\BPCF$ that correctly counts
+all $n$-standard predicates of $\BPCF$ for some specific $n$.
 We now establish a key lemma, which vindicates the \naive intuition
 that if $P$ is $n$-standard, the only way for $\Countprog$ to discover the correct
-value for $\sharp \val{P}$ is to perform $2^n$ separate applications $P\;Q$
+value for $\sharp \val{P}$ is to perform $2^n$ separate applications $P~Q$
 (allowing for the possibility that these applications need not
 be performed `in turn' but might be nested in some complex way).
 
@@ -16887,7 +16879,7 @@ be performed `in turn' but might be nested in some complex way).
   By continuing in this way, we may analyse the reduction of $Q[P]~k$
   as follows.
   %
-  {\small
+  {
   \begin{mathpar}
   \begin{eqs}
      Q[P]~k & \reducesto^\ast & \EC_0[P~Q_0[P], P] ~\reducesto^\ast~ \EC_0[\Return\;b_0, P]
@@ -16911,7 +16903,7 @@ be performed `in turn' but might be nested in some complex way).
   reduction sequence:
   %
 %
-  {\small
+  {
   \begin{mathpar}
   \begin{eqs}
      Q[P']~k & \reducesto^\ast & \EC_0[P'~Q_0[P'], P'] ~\reducesto^\ast~ \EC_0[\Return\;b_0, P']
@@ -16932,7 +16924,7 @@ be performed `in turn' but might be nested in some complex way).
   Definition~\ref{def:model-construction}.  In this way we may analyse
   the computation of $P~Q[P]$ as:
   %
-  {\small
+  {
   \begin{mathpar}
   \begin{eqs}
      P~Q[P] & ~\reducesto^\ast~ & \EC_0[Q[P]~k_0, Q[P]] ~\reducesto^\ast~ \EC_0[\Return\;b_0, Q[P]]
@@ -16978,7 +16970,7 @@ that $P~Q[P'] \reducesto^\ast \Return\;b$.
 
   To finish off the proof of Lemma~\ref{lem:no-shortcuts}, we apply the same analysis
   one last time to the reduction of $\Countprog~P$ itself. This will have the form
-  {\small
+  {
   \begin{mathpar}
   \begin{eqs}
   \Countprog~P & ~\reducesto^\ast~ & \EC_0[P~Q_0[P], P] ~\reducesto^\ast \EC_0[\Return\;b_0,P]
@@ -17049,7 +17041,7 @@ at some invocation of $\ell$, so that control will then pass to the effect handl
 %%
 %% Generalising
 %%
-\section{Extensions and Variations}
+\section{Extensions and variations}
 \label{sec:robustness}
 
 Our complexity result is robust in that it continues to hold in more
@@ -17057,7 +17049,7 @@ general settings. We outline here how it generalises: beyond
 $n$-standard predicates, from generic count to generic search, and
 from pure $\BCalc$ to stateful $\BCalcS$.
 
-\subsection{Beyond $n$-Standard Predicates}
+\subsection{Beyond $n$-standard predicates}
 \label{sec:beyond}
 The $n$-standard restriction on predicates serves to make the
 efficiency phenomenon stand out as clearly as possible. However, we
@@ -17084,7 +17076,7 @@ second argument is the updated state of type $S$.
 repeated queries by memoising previous answers. First, we generalise
 the type of $\Branch$ such that it carries an index of a query.
 %
-{\small
+{
 \[
   \Branch : \Nat \to \Bool
 \]}
@@ -17092,7 +17084,7 @@ the type of $\Branch$ such that it carries an index of a query.
 We assume a family of natural number to boolean maps, $\dec{Map}_n$
 with the following interface.
 %
-{\small
+{
   \begin{equations}
   \dec{empty}_n  &:& \dec{Map}_n \\
   \dec{add}_n    &:& (\Nat_n \times \Bool) \to \dec{Map}_n \to \dec{Map}_n \\
@@ -17109,7 +17101,7 @@ $\dec{add}_n$ and $\dec{lookup}_n$ is
 $\BigO(\log n)$~\cite{Okasaki99}.  We can then use parameter-passing
 to support repeated queries as follows.
 %
-{\small
+{
 \[
   \bl
     \ECount'_n : ((\Nat_n \to \Bool) \to \Bool) \to \Nat\\
@@ -17147,7 +17139,7 @@ predicates performing the same query multiple times.
 %
 Similarly, we can use parameter-passing to support missing queries.
 %
-{\small
+{
 \[
   \bl
     \ECount''_n : ((\Nat_n \to \Bool) \to \Bool) \to \Nat\\
@@ -17186,14 +17178,14 @@ We leave it as an exercise for the reader to combine $\ECount'_n$ and
 $\ECount''_n$ in order to handle both repeated queries and missing
 queries.
 
-\subsection{From Generic Count to Generic Search}
+\subsection{From generic count to generic search}
 \label{sec:count-vs-search}
 
 We can generalise the problem of generic counting to generic
 searching. The main operational difference is that a generic search
 procedure must materialise a list of solutions, thus its type is
 %
-{\small
+{
 \[
   \mathsf{search}_{n} : ((\Nat_n \to \Bool) \to \Bool) \to \List_{\Nat_n \to \Bool}
 \]}%
@@ -17211,7 +17203,7 @@ results $xs_\True$ and $xs_\False$ as follows.
 \newcommand{\Concat}{\mathsf{concat}}
 \newcommand{\HughesList}{\mathsf{HList}}
 \newcommand{\ToConsList}{\mathsf{toConsList}}
-{\small
+{
 \[
   \bl
     \ESearch_n : ((\Nat_n \to \Bool) \to \Bool) \to \List_{\Nat_n \to \Bool}\\
@@ -17250,7 +17242,7 @@ $\HughesList_A \defas \List_A \to \List_A$. The empty Hughes list
 $\dec{nil} : \HughesList_A$ is defined as the identity function:
 $\dec{nil} \defas \lambda xs. xs$.
 %
-{\small
+{
   \[
   \ba{@{}l@{\qquad}l@{\qquad}l}
      \Singleton_A : A \to \HughesList_A
@@ -17266,7 +17258,7 @@ a standard cons-list at the end; this conversion has linear time
 complexity (it just conses all of the elements of the list together).
 
 
-\subsection{From Pure $\BCalc$ to Stateful $\BCalcS$}
+\subsection{From pure $\BPCF$ to stateful $\BSPCF$}
 \label{sec:mutable-state}
 
 Mutable state is a staple ingredient of many practical programming
@@ -17275,7 +17267,7 @@ extended to a language with state.  We will not give full details, but
 merely point out the respects in which our earlier treatment needs to
 be modified.
 
-We have in mind an extension $\BCalcS$ of $\BCalc$ with ML-style
+We have in mind an extension $\BSPCF$ of $\BPCF$ with ML-style
 reference cells: we extend our grammar for types with a reference type
 ($\PCFRef~A$), and that for computation terms with forms for creating
 references ($\keyw{letref}\; x = V\; \In\; N$), dereferencing ($!x$),
@@ -17303,7 +17295,7 @@ state.  In this situation, there is not even a clear specification for
 what an $n$-count program ought to do.
 
 The simplest way to circumvent this difficulty is to restrict
-attention to predicates $P$ \emph{within the sublanguage $\BCalc$}.
+attention to predicates $P$ \emph{within the sublanguage $\BPCF$}.
 For such predicates, the notions of decision tree, counting and
 $n$-standardness are unproblematic. Our result will establish a
 runtime lower bound of $\Omega(n2^n)$ for programs $\Countprog \in
@@ -17322,7 +17314,7 @@ $\Countprog~P$ will feature terms $\EC[P~Q]$ which are then reduced to
 some $\EC[\Return\;b]$, via a reduction sequence which, modulo
 $\EC[-]$, has the following form:
 %
-{\small
+{
 \[ P\,Q \reducesto^\ast \EC_0[Q~k_0] \reducesto^\ast \EC_0[\Return\,b_0] \reducesto^\ast \cdots
    \reducesto^\ast \EC_{n-1}[Q~k_{n-1}] \reducesto^\ast \EC_{n-1}[\Return\,b_{n-1}]
    \reducesto^\ast \Return\;b
@@ -17378,7 +17370,7 @@ abstract on all these occurrences via an evident notion of
 argument of Lemma~\ref{lem:no-shortcuts} goes through.
 
 A further argument is then needed to show that any two threads are
-indeed ‘disjoint’ as regards their $P$-sections, so that there must be
+indeed `disjoint' as regards their $P$-sections, so that there must be
 at least $n2^n$ steps in the overall reduction sequence.
 
 %% Since each thread involves at least the $n$ terms $\EC_j[Q~k_j]$, our
@@ -17862,9 +17854,10 @@ CPU E5-1620 v2 @ 3.70GHz powered workstation running Ubuntu 16.04. The
 effectful implementation uses an encoding of delimited control akin to
 effect handlers based on top of SML/NJ's call/cc.
 %
-The complete source code for the benchmarks is available at:
+The complete source code for the benchmarks and instructions on how to
+run them are available at:
 \begin{center}
-  \url{https://github.com/dhil/effects-for-efficiency-code}
+  \url{https://dl.acm.org/do/10.1145/3410231/abs/}
 \end{center}
 %
 
@@ -17878,7 +17871,7 @@ but less so over the Berger procedure. The pruned procedure is more
 competitive, but still slower than the baseline. Unsurprisingly, the
 baseline is slower than the bespoke implementation.
 
-\paragraph{Exact Real Integration}
+\paragraph{Exact real integration}
 The integration benchmarks are adapted from \citet{Simpson98}. We
 integrate three different functions with varying precision in the
 interval $[0,1]$. For the identity function (Id) at precision $20$ the
