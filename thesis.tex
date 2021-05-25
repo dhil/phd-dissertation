@@ -6749,13 +6749,16 @@ elaboration for top-level function types.
 \begin{equations}
   \trval{-} &:& \ValTypeCat \to \ValTypeCat\\
   \trval{A \to B \eff E} &\defas& \pval{A}_{E'} \to \pval{B}_{E'} \eff E'\\
-  \multicolumn{3}{l}{\quad\where~E' = (\xval{A} \blacktriangleright E) \blacktriangleright (\xval{B} \blacktriangleright E)}
+  \multicolumn{3}{l}{\quad\where~E' = (\xval{A} \blacktriangleright E) \vartriangleright (\xval{B} \blacktriangleright E)}
 \end{equations}
 %
 The function $\trval{-}$ traverses the abstract syntax of its argument
 twice. The first traversal propagates effect information outwards to
 the ambient effect row $E$. The second traversal pushes the full
 ambient information $E'$ inwards.
+%
+The construction of $E'$ makes use of the fact that
+$E \vartriangleright E = E$.
 %
 As a remark, note that the function $\trval{-}$ do not have to
 consider handler types, because they cannot appear at the top-level in
