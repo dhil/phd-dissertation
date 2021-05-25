@@ -6510,16 +6510,16 @@ We can retrospectively fix this issue with some syntactic sugar rather
 than redesigning the entire effect system to rectify this problem.
 %
 I will describe an ad-hoc elaboration scheme, which is designed to
-work well for first-order and second-order functions, but might not
-work so well for third-order and above. The reason for focusing on
-first-order and second-order functions is that many familiar and
-useful functions are either first-order or second-order, and in the
-following sections we will mostly be working with first-order and
-second-order functions (although, it should be noted that there exist
-useful functions at higher order, e.g. in
-Chapter~\ref{ch:handlers-efficiency} we shall use third-order
-functions; for an example of a sixth order function see
-\citet{Okasaki98}).
+emulate Frank's effect polymorphic system~\cite{LindleyMM17} for
+first-order and second-order functions, but might not work so well for
+third-order and above. The reason for focusing on first-order and
+second-order functions is that many familiar and useful functions are
+either first-order or second-order, and in the following sections we
+will mostly be working with first-order and second-order functions
+(although, it should be noted that there exist useful functions at
+higher order, e.g. in Chapter~\ref{ch:handlers-efficiency} we shall
+use third-order functions; for an example of a sixth order function
+see \citet{Okasaki98}).
 
 First, let us consider some small instances of the kind of incomplete
 effect rows we would like to be able to write. Consider the type of
@@ -6612,46 +6612,54 @@ signature. In this case we instantiate the operation with a fresh
 presence variable in the output signature.
 %
 \begin{equations}
-  \trval{-} &:& \ValTypeCat \to \ValTypeCat\\
-  \trval{A \to B \eff E} &\defas& A' \to B' \eff E'\\
-  \multicolumn{3}{l}{\quad\where~(A', E_A) \defas \trval{A}_{E}\;\keyw{and}\;(B', \_) = \trval{B}_{\{\varepsilon\}}\;\keyw{and}\; E' = E_A \vartriangleright E} \medskip\\
-  \trval{-} &:& \ValTypeCat \times \EffectCat \to \ValTypeCat \times \EffectCat\\
-  \trval{\UnitType}_{E_{amb}} &\defas& (\UnitType, \{\cdot\})\\
-  \trval{A \to B \eff E}_{E_{amb}} &\defas& (A' \to B' \eff E', E_A \vartriangleright E)\\
-  \multicolumn{3}{l}{\quad\where~E' = E \vartriangleleft E_{amb}\;\keyw{and}\;(A', E_A) = \trval{A}_{E'}\;\keyw{and}\;(B', \_) = \trval{B}_{\{\varepsilon\}}}
+  \xval{-} &:& \ValTypeCat \to \EffectCat\\
+  \xval{\alpha} &\defas& \{\cdot\}\\
+  \xval{\Record{R}} &\defas& \xval{[R]} \defas \xval{R}\\
+  \xval{A \to C} &\defas& \xval{A} \vartriangleright \xcomp{C} \\
+  \xval{\forall \alpha^K.C} &\defas& \xcomp{C} \smallskip\\
+  \xcomp{-} &:& \CompTypeCat \to \EffectCat\\
+  \xcomp{A \eff E} &\defas& \xval{A} \vartriangleright E \smallskip\\
+  \xrow{-}  &:& \RowCat \to \Effect\\
+  \xrow{\cdot} &\defas& \xval{\rho} \defas \{\cdot\}\\
+  \xrow{\ell : P;R} &\defas& \xval{P} \vartriangleright \xval{R} \smallskip\\
+  \xpre{-}    &:& \PresenceCat \to \EffectCat\\
+  \xpre{\Pre{A}} &\defas& \xval{A}\\
+  \xpre{\Abs}    &\defas& \xpre{\theta} \defas \{\cdot\}
 \end{equations}
-
-% which can be a real nuisance for programming as it scales poorly to large codebases.
-% The idea is to push the effects inwards.
 %
+\begin{equations}
+  \pval{-} &:& \ValTypeCat \times \EffectCat \to \ValTypeCat\\
+  \pval{\alpha}_{\eamb} &\defas& \alpha\\
+  \pval{\Record{R}}_{\eamb} &\defas& \Record{\prow{R}_{\eamb}}\\
+  \pval{[R]}_{\eamb} &\defas& [\prow{R}_{\eamb}]\\
+  \pval{A \to C}_{\eamb} &\defas& \pval{A}_{\eamb} \to \pcomp{C}_{\eamb} \\
+  \pval{\forall \alpha^K.C}_{\eamb} &\defas& \forall\alpha^K.\pcomp{C} \smallskip\\
+  \pcomp{-} &:& \CompTypeCat \times \EffectCat \to \CompTypeCat\\
+  \pcomp{A \eff E}_{\eamb} &\defas& \pval{A}_{\eamb} \eff E \vartriangleleft \eamb \smallskip\\
+  \prow{-}  &:& \RowCat \times \EffectCat \to \RowCat\\
+  \prow{\cdot}_{\eamb} &\defas& \{\cdot\}\\
+  \prow{\rho}_{\eamb} &\defas& \{\rho\}\\
+  \prow{\ell : P;R}_{\eamb} &\defas& \ppre{P};\prow{R} \smallskip\\
+  \ppre{-}    &:& \PresenceCat \times \EffectCat \to \EffectCat\\
+  \ppre{\Pre{A}}_{\eamb} &\defas& \pval{A}_{\eamb}\\
+  \ppre{\Abs}_{\eamb}    &\defas& \Abs\\
+  \ppre{\theta} &\defas& \theta
+\end{equations}
+%
+\begin{equations}
+  \trval{-} &:& \ValTypeCat \to \ValTypeCat\\
+  \trval{A \to B \eff E} &\defas& \pval{A}_{E'} \to \pval{B}_{E'} \eff E' \vartriangleright E\\
+  \multicolumn{3}{l}{\quad\where~E' = \xval{A} \vartriangleright \xval{B}}
+\end{equations}
 % \begin{equations}
-%   \pp &:& \EffectCat \to \EffectCat\\
-%   \pp(\{\cdot\})         &\defas& \{\cdot\}\\
-%   \pp(\{\varepsilon\})   &\defas& \{\varepsilon\}\\
-%   \pp(\{\ell : A \opto B;R\}) &\defas& \{\ell : \theta \} \cup \pp(\{R\}),\quad \text{fresh}~\theta
+%   \trval{-} &:& \ValTypeCat \to \ValTypeCat\\
+%   \trval{A \to B \eff E} &\defas& A' \to B' \eff E'\\
+%   \multicolumn{3}{l}{\quad\where~(A', E_A) \defas \trval{A}_{E}\;\keyw{and}\;(B', \_) = \trval{B}_{\{\varepsilon\}}\;\keyw{and}\; E' = E_A \vartriangleright E} \medskip\\
+%   \trval{-} &:& \ValTypeCat \times \EffectCat \to \ValTypeCat \times \EffectCat\\
+%   \trval{\UnitType}_{E_{amb}} &\defas& (\UnitType, \{\cdot\})\\
+%   \trval{A \to B \eff E}_{E_{amb}} &\defas& (A' \to B' \eff E', E_A \vartriangleright E)\\
+%   \multicolumn{3}{l}{\quad\where~E' = (E_A \vartriangleright E) \vartriangleleft E_{amb}\;\keyw{and}\;(A', E_A) = \trval{A}_{E'}\;\keyw{and}\;(B', \_) = \trval{B}_{\{\varepsilon\}}}
 % \end{equations}
-% %
-% \[
-%   \bl
-%   \trcomp{-} : \ValTypeCat \to \ValTypeCat\\
-%   \trcomp{A} \defas \trcomp{A}_{\{\varepsilon\}} \smallskip\\
-%   \ba{@{}r@{~}c@{~}l}
-%     \trcomp{-} &:& \ValTypeCat \times \EffectCat \to \ValTypeCat \times \EffectCat\\
-%     \trcomp{A \to B}_E          &\defas& (A' \to B' \eff E', E')\\
-%     \multicolumn{3}{l}{\quad\where~(A', E_A) = \trval{A}_E\;\keyw{and}\;(B', \_) = \trval{B}_{\{\varepsilon\}}\;\keyw{and}\;E' = E \cup \pp(E_A)}\\
-%     \trcomp{A \to B \eff E}_{E'} &\defas& \trval{A}_{E \cup E'} \to \trval{B}_{\{\varepsilon\}} \eff E \cup E'
-%     \ea\smallskip\\
-%   %
-%   \ba{@{}r@{~}c@{~}l}
-%    \trcomp{-} &:& \HandlerTypeCat \to \HandlerTypeCat\\
-%     \trcomp{A \Harrow B}       &\defas& \trcomp{B}_{\{\varepsilon\}} \eff \{\varepsilon\} \Harrow \trcomp{B}_{\{\varepsilon\}} \eff \{\varepsilon\}\\
-%     \trcomp{A \eff E_A \Harrow B} &\defas& \trcomp{A}_{E_A} \Harrow \trcomp{B}_{\{\varepsilon\}} \eff \pp(E),\quad \text{fresh}~\varepsilon\\
-%      \trcomp{A \Harrow B \eff E_B} &\defas& \trcomp{A}_{E_B} \Harrow \trcomp{B}_{\{\varepsilon\}} \eff E_B\\
-%      \trcomp{A \eff E_A \Harrow B \eff E_B} &\defas& \trcomp{A}_{E} \eff E \Harrow \trcomp{B}_{\{\varepsilon\}} \eff E'\\
-%      \multicolumn{3}{l}{\quad \where~E = E_A \cup E_B\;\keyw{and}\;E' = \pp(E_A) \cup E_B}
-%    \ea\\
-%   \el
-% \]
 
 \section{Composing \UNIX{} with effect handlers}
 \label{sec:deep-handlers-in-action}
