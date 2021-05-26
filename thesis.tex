@@ -15027,7 +15027,7 @@ third-order function.
 \[ \Count_n : ((\Nat \to \Bool) \to \Bool) \to \Nat  \]
 %
 A \naive implementation strategy is simply to apply $P$ to each of the
-$2^n$ vectors in turn.  However, one can do better with an arcane
+$2^n$ vectors in turn.  However, one can do better with a curious
 approach due to \citet{Berger90}, which achieves the effect of `pruned
 search' where the predicate allows it. This should be taken as a
 warning that counter-intuitive phenomena can arise in this territory.
@@ -15054,43 +15054,44 @@ asymptotic gain of a factor of $n$.
 % $\BigO(2^n)$ runtime for generic count with effect handlers also
 % transfers to generic search.
 
-The idea behind the speedup is readily explained and will already be
-familiar, at least informally, to programmers who have worked with
-multi-shot continuations.
+The key to enabling the speedup is \emph{backtracking} via multi-shot
+resumptions. The idea is to memorise the control state at each
+component inspection to make it possible to quickly backtrack to a
+prior inspection and make a different decision as soon as one
+possible result has been computed.
 %
-Suppose for example $n=3$, and suppose that the predicate $P$ always
-inspects the components of its argument in the order $0,1,2$.
+Concretely, suppose for example $n = 3$, and suppose that the predicate
+$P$ always inspects the components of its argument in the order
+$0,1,2$.
 %
-A \naive implementation of $\Count_3$ might start by applying the given
-$P$ to $q_0 = (\True,\True,\True)$, and then to
-$q_1 = (\True,\True,\False)$.  Clearly there is some duplication here:
-the computations of $P\,q_0$ and $P\,q_1$ will proceed identically up
-to the point where the value of the final component is requested. What
-we would like to do, then, is to record the state of the computation
-of $P\,q_0$ at just this point, so that we can later resume this
+A \naive implementation of $\Count_3$ might start by applying the
+given predicate $P$ to $q_0 = (\True,\True,\True)$, and then to
+$q_1 = (\True,\True,\False)$.  Note that there is some duplication
+here: the computations of $P\,q_0$ and $P\,q_1$ will proceed
+identically up to the point where the value of the final component is
+requested. Ideally, we would record the state of the computation of
+$P\,q_0$ at just this point, so that we can later resume this
 computation with $\False$ supplied as the final component value in
-order to obtain the value of $P\,q_1$. (Similarly for all other
-internal nodes in the evident binary tree of boolean vectors.) Of
-course, this `backup' approach would be standardly applied if one were
-implementing a bespoke search operation for some \emph{particular}
-choice of $P$ (corresponding, say, to the $n$-queens problem); but to
-apply this idea of resuming previous subcomputations in the
-\emph{generic} setting (that is, uniformly in $P$) requires some
-special language feature such as effect handlers or multi-shot
-continuations.
+order to obtain the value of $P\,q_1$.  Of course, a bespoke search
+function implementation would apply this backtracking behaviour in a
+standard manner for some \emph{particular} choice of $P$ (e.g. the
+$n$-queens problem); but to apply this idea of resuming previous
+subcomputations in the \emph{generic} setting (i.e. uniformly in $P$)
+requires some special control feature such as effect handlers with
+multi-shot resumptions.
 %
-One could also obviate the need for such a feature by choosing to
-present the predicate $P$ in some other way, but from our present
-perspective this would be to move the goalposts: our intention is
-precisely to show that our languages differ in an essential way
-\emph{as regards their power to manipulate data of type} $(\Nat \to
-\Bool) \to \Bool$.
+Obviously, one can remove the need a special control feature by a
+change of type for the predicate $P$, but this such a change shifts
+the perspective. The intention is precisely to show that the languages
+differ in an essential way as regards to their power to manipulate
+data of type $(\Nat \to \Bool) \to \Bool$.
 
-This idea of using first-class control to achieve backtracking has
-been exploited before and is fairly widely known (see
-e.g. \citep{KiselyovSFA05}), and there is a clear programming
-intuition that this yields a speedup unattainable in languages without
-such control features.  % Our main contribution in this paper is to
+The idea of using first-class control achieve backtracking is fairly
+well-known in the literature~\cite{KiselyovSFA05}, and there is a
+clear programming intuition that this yields a speedup unattainable in
+languages without such control features.
+
+% Our main contribution in this paper is to
 % provide, for the first time, a precise mathematical theorem that pins
 % down this fundamental efficiency difference, thus giving formal
 % substance to this intuition.  Since our goal is to give a realistic
@@ -15189,8 +15190,7 @@ Fine-grain call-by-value is similar to A-normal
 form~\cite{FlanaganSDF93} in that every intermediate computation is
 named, but unlike A-normal form is closed under reduction.
 
-The syntax of $\BPCF$ is as follows.
-{\noindent
+\begin{figure}
   \begin{syntax}
     \slab{Types}          &A,B,C,D\in\TypeCat  &::= & \Nat \mid \One \mid A \to B \mid A \times B \mid A + B \\
     \slab{Type\textrm{ }environments} &\Gamma\in\TyEnvCat &::= & \cdot \mid \Gamma, x:A \\
@@ -15203,7 +15203,12 @@ The syntax of $\BPCF$ is as follows.
                      &     &\mid&\Case \; V \;\{ \Inl \; x \mapsto M; \Inr \; y \mapsto N\}\\
                      &    &\mid& \Return\; V
                            \mid \Let \; x \revto M \; \In \; N \\
-\end{syntax}}%
+\end{syntax}
+\caption{Syntax of $\BPCF$.}\label{fig:bpcf}
+\end{figure}
+%
+Figure~\ref{fig:bpcf} depicts the type syntax, type environment
+syntax, and term syntax of $\BPCF$.
 %
 The ground types are $\Nat$ and $\One$ which classify natural number
 values and the unit value, respectively. The function type $A \to B$
@@ -15213,7 +15218,7 @@ whose first and second components have types $A$ and $B$
 respectively. The sum type $A + B$ classifies tagged values of either
 type $A$ or $B$.
 %
-Type environments $\Gamma$ map term variables to their types.
+Type environments $\Gamma$ map variables to their types.
 
 We let $k$ range over natural numbers and $c$ range over primitive
 operations on natural numbers ($+, -, =$).
@@ -15224,17 +15229,17 @@ For convenience, we also use $f$, $g$, and $h$ for variables of
 function type, $i$ and $j$ for variables of type $\Nat$, and $r$ to
 denote resumptions.
 %
-The value terms are standard.
-% Value terms comprise variables ($x$), the unit value ($\Unit$),
-% natural number literals ($n$), primitive constants ($c$), lambda
-% abstraction ($\lambda x^A . \, M$), recursion
-% ($\Rec \; f^{A \to B}\, x.M$), pairs ($\Record{V, W}$), left
-% ($(\Inl~V)^B$) and right $((\Inr~W)^A)$ injections.
+% The value terms are standard.
+Value terms comprise variables ($x$), the unit value ($\Unit$),
+natural number literals ($n$), primitive constants ($c$), lambda
+abstraction ($\lambda x^A . \, M$), recursion
+($\Rec \; f^{A \to B}\, x.M$), pairs ($\Record{V, W}$), left
+($(\Inl~V)^B$) and right $((\Inr~W)^A)$ injections.
 
 %
-We will occasionally blur the distinction between object and meta
-language by writing $A$ for the meta level type of closed value terms
-of type $A$.
+% We will occasionally blur the distinction between object and meta
+% language by writing $A$ for the meta level type of closed value terms
+% of type $A$.
 %
 All elimination forms are computation terms. Abstraction is eliminated
 using application ($V\,W$).
