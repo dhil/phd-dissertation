@@ -14910,31 +14910,31 @@ data, but a program within the language typically has no access to
 this internal representation, and can interact with the value only by
 applying it to an argument.
 
-Most work in this area to date has focused on computability
-differences. One of the best known examples is the \emph{parallel if}
-operation which is computable in a language with parallel evaluation
-but not in a typical `sequential' programming
-language~\cite{Plotkin77}. It is also well known that the presence of
-control features or local state enables observational distinctions
-that cannot be made in a purely functional setting: for instance,
-there are programs involving call/cc that detect the order in which a
-(call-by-name) `+' operation evaluates its arguments
-\citep{CartwrightF92}. Such operations are `non-functional' in the
-sense that their output is not determined solely by the extension of
-their input (seen as a mathematical function
-$\N_\bot \times \N_\bot \rightarrow \N_\bot$);
-%%
-however, there are also programs with `functional' behaviour that can
-be implemented with control or local state but not without them
-\citep{Longley99}.  More recent results have exhibited differences
-lower down in the language expressivity spectrum: for instance, in a
-purely functional setting \textit{\`a la} Haskell, the expressive
-power of \emph{recursion} increases strictly with its type level
-\citep{Longley18a}, and there are natural operations computable by
-low-order recursion but not by high-order iteration
-\citep{Longley19}. Much of this territory, including the mathematical
-theory of some of the natural notions of higher-order computability
-that arise in this way, is mapped out by \citet{LongleyN15}.
+% Most work in this area to date has focused on computability
+% differences. One of the best known examples is the \emph{parallel if}
+% operation which is computable in a language with parallel evaluation
+% but not in a typical `sequential' programming
+% language~\cite{Plotkin77}. It is also well known that the presence of
+% control features or local state enables observational distinctions
+% that cannot be made in a purely functional setting: for instance,
+% there are programs involving call/cc that detect the order in which a
+% (call-by-name) `+' operation evaluates its arguments
+% \citep{CartwrightF92}. Such operations are `non-functional' in the
+% sense that their output is not determined solely by the extension of
+% their input (seen as a mathematical function
+% $\N_\bot \times \N_\bot \rightarrow \N_\bot$);
+% %%
+% however, there are also programs with `functional' behaviour that can
+% be implemented with control or local state but not without them
+% \citep{Longley99}.  More recent results have exhibited differences
+% lower down in the language expressivity spectrum: for instance, in a
+% purely functional setting \textit{\`a la} Haskell, the expressive
+% power of \emph{recursion} increases strictly with its type level
+% \citep{Longley18a}, and there are natural operations computable by
+% low-order recursion but not by high-order iteration
+% \citep{Longley19}. Much of this territory, including the mathematical
+% theory of some of the natural notions of higher-order computability
+% that arise in this way, is mapped out by \citet{LongleyN15}.
 
 % Relatively few results of this character have so far been established
 % on the complexity side. \citet{Pippenger96} gives an example of an
@@ -14985,18 +14985,18 @@ the other hand, if we extend our language with effect handlers, it
 becomes possible to bring the runtime down to $\BigO(2^n)$: an
 asymptotic gain of a factor of $n$.
 
-The \emph{generic search} problem is just like the generic count
-problem, except rather than counting the vectors $q$ such that $P\,q =
-\True$, it returns the list of all such vectors.
-%
-The $\Omega(n 2^n)$ runtime for purely functional implementations
-transfers directly to generic search, as generic count reduces to
-generic search composed with computing the length of the resulting
-list.
-%
-In Section~\ref{sec:count-vs-search} we illustrate that the
-$\BigO(2^n)$ runtime for generic count with effect handlers also
-transfers to generic search.
+% The \emph{generic search} problem is just like the generic count
+% problem, except rather than counting the vectors $q$ such that $P\,q =
+% \True$, it returns the list of all such vectors.
+% %
+% The $\Omega(n 2^n)$ runtime for purely functional implementations
+% transfers directly to generic search, as generic count reduces to
+% generic search composed with computing the length of the resulting
+% list.
+% %
+% In Section~\ref{sec:count-vs-search} we illustrate that the
+% $\BigO(2^n)$ runtime for generic count with effect handlers also
+% transfers to generic search.
 
 The idea behind the speedup is easily explained and will already be
 familiar, at least informally, to programmers who have worked with
@@ -18080,22 +18080,50 @@ However, the effectful implementation runs between 2 and 14 times as
 fast with SML/NJ compared with MLton.
 
 \section{Related work}
-Relatively few results of character of the result in this chapter have
-thus far been established in literature. \citet{Pippenger96} gives an
-example of an `online' operation on infinite sequences of atomic
-symbols (essentially a function from streams to streams) such that the
-first $n$ output symbols can be produced within time $\BigO(n)$ if one
-is working in an effectful version of Lisp (one which allows mutation
-of cons pairs) but with a worst-case runtime no better than
-$\Omega(n \log n)$ for any implementation in pure Lisp (without such
-mutation). This example was reconsidered by \citet{BirdJdM97} who
-showed that the same speedup can be achieved in a pure language by
-using lazy evaluation.  \citet{Jones01} explores the approach of
-manifesting expressivity and efficiency differences between certain
-languages by artificially restricting attention to `cons-free'
-programs; in this setting, the classes of representable first-order
-functions for the various languages are found to coincide with some
-well-known complexity classes.
+There are relatively little work in the present literature on
+expressivity that has focused on complexity difference.
+%
+\citet{Pippenger96} gives an example of an online operation on
+infinite sequences of atomic symbols (essentially a function from
+streams to streams) such that the first $n$ output symbols can be
+produced within time $\BigO(n)$ if one is working in an effectful
+version of Lisp (one which allows mutation of cons pairs) but with a
+worst-case runtime no better than $\Omega(n \log n)$ for any
+implementation in pure Lisp (without such mutation). This example was
+reconsidered by \citet{BirdJdM97} who showed that the same speedup can
+be achieved in a pure language by using lazy evaluation.
+\citet{Jones01} explores the approach of manifesting expressivity and
+efficiency differences between certain languages by artificially
+restricting attention to `cons-free' programs; in this setting, the
+classes of representable first-order functions for the various
+languages are found to coincide with some well-known complexity
+classes.
+
+The vast majority of work in this area has focused on computability
+differences. One of the best known examples is the \emph{parallel if}
+operation which is computable in a language with parallel evaluation
+but not in a typical sequential programming
+language~\cite{Plotkin77}. It is also well known that the presence of
+control features or local state enables observational distinctions
+that cannot be made in a purely functional setting: for instance,
+there are programs involving call/cc that detect the order in which a
+(call-by-name) `+' operation evaluates its arguments
+\citep{CartwrightF92}. Such operations are `non-functional' in the
+sense that their output is not determined solely by the extension of
+their input (seen as a mathematical function
+$\N_\bot \times \N_\bot \rightarrow \N_\bot$);
+%%
+however, there are also programs with `functional' behaviour that can
+be implemented with control or local state but not without them
+\citep{Longley99}.  More recent results have exhibited differences
+lower down in the language expressivity spectrum: for instance, in a
+purely functional setting \textit{\`a la} Haskell, the expressive
+power of \emph{recursion} increases strictly with its type level
+\citep{Longley18a}, and there are natural operations computable by
+low-order recursion but not by high-order iteration
+\citep{Longley19}. Much of this territory, including the mathematical
+theory of some of the natural notions of higher-order computability
+that arise in this way, is mapped out by \citet{LongleyN15}.
 
 \part{Conclusions}
 \label{p:conclusions}
