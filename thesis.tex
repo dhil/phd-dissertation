@@ -14864,6 +14864,10 @@ the captured context and continuation invocation context to coincide.
 % (global or local) syntactic structure. If the translation of some
 % $\LLL$-program into $\LLL'$ requires a complete global restructuring,
 % we may say that $\LLL'$ is in some way less expressive than $\LLL$.
+
+% Start with talking about the power of backtracking (folklore)
+% giving a precise and robust mathematical characterisation of this phenomenon
+
 However, in this chapter we will look at even more fundamental
 expressivity differences that would not be bridged even if
 whole-program translations were admitted. These fall under two
@@ -15109,7 +15113,7 @@ dissertation.
 %%
 %% Base calculus
 %%
-\section{Calculi}
+\section{Simply-typed base and handler calculi}
 \label{sec:calculi}
 In this section, we present a base language $\BPCF$ and its extension
 with effect handlers $\HPCF$, both of which amounts to simply-typed
@@ -15133,7 +15137,7 @@ Fine-grain call-by-value is similar to A-normal
 form~\cite{FlanaganSDF93} in that every intermediate computation is
 named, but unlike A-normal form is closed under reduction.
 
-The syntax of $\BCalc$ is as follows.
+The syntax of $\BPCF$ is as follows.
 {\noindent
   \begin{syntax}
     \slab{Types}          &A,B,C,D\in\TypeCat  &::= & \Nat \mid \One \mid A \to B \mid A \times B \mid A + B \\
@@ -15323,7 +15327,7 @@ The constants have the following types.
 \label{fig:small-step}
 \end{figure*}
 %
-We give a small-step operational semantics for \BCalc{} with
+We give a small-step operational semantics for $\BPCF$ with
 \emph{evaluation contexts} in the style of \citet{Felleisen87}. The
 reduction rules are given in Figure~\ref{fig:small-step}.
 %
@@ -15398,7 +15402,7 @@ We use the standard encoding of booleans as a sum:
 \subsection{Handler calculus}
 \label{sec:handlers-calculus}
 
-We now define $\HCalc$ as an extension of $\BCalc$.
+We now define $\HPCF$ as an extension of $\BPCF$.
 %
 {
 \begin{syntax}
@@ -15513,7 +15517,7 @@ clauses.
   \ea
 \]}%
 
-We extend the operational semantics to $\HCalc$. Specifically, we add
+We extend the operational semantics to $\HPCF$. Specifically, we add
 two new reduction rules: one for handling return values and another
 for handling operation invocations.
 %
@@ -15558,7 +15562,7 @@ contexts $\HC$ ensures that the $\semlab{Op}$ rule always selects the
 innermost handler.
 
 We now characterise normal forms and state the standard type soundness
-property of $\HCalc$.
+property of $\HPCF$.
 %
 \begin{definition}[Computation normal forms]
   A computation term $N$ is normal with respect to $\Sigma$, if $N =
@@ -15598,7 +15602,7 @@ include effect types.
 Future work includes reconciling effect typing with our approach to
 expressiveness.
 
-\section{Abstract machine semantics}
+\section{A practical model of computation}
 \label{sec:abstract-machine-semantics}
 Thus far we have introduced the base calculus $\BPCF$ and its
 extension with effect handlers $\HPCF$.
@@ -15772,7 +15776,7 @@ by the denotation $\val{V}{\env}$ of $V$ under environment $\gamma$.
 \paragraph{Correctness}
 %
 The base machine faithfully simulates the operational semantics for
-$\BCalc$; most transitions correspond directly to $\beta$-reductions,
+$\BPCF$; most transitions correspond directly to $\beta$-reductions,
 but $\mlab{Let}$ performs an administrative step to bring the
 computation $M$ into evaluation position.
 %
@@ -15967,15 +15971,15 @@ thus would add nothing but noise to the overall analysis.
 
 We now come to the crux of the chapter. In this section and the next, we
 prove that $\HPCF$ supports implementations of certain operations
-with an asymptotic runtime bound that cannot be achieved in $\BCalc$
+with an asymptotic runtime bound that cannot be achieved in $\BPCF$
 (Section~\ref{sec:pure-counting}).
 %
 While the positive half of this claim essentially consolidates a
 known piece of folklore, the negative half appears to be new.
 %
 To establish our result, it will suffice to exhibit a single
-`efficient' program in $\HCalc$, then show that no equivalent program
-in $\BCalc$ can achieve the same asymptotic efficiency.  We take
+`efficient' program in $\HPCF$, then show that no equivalent program
+in $\BPCF$ can achieve the same asymptotic efficiency.  We take
 \emph{generic search} as our example.
 
 Generic search is a modular search procedure that takes as input
@@ -15999,7 +16003,7 @@ are also applicable to generic search proper.
 
 We shall view $\B^n$ as the set of functions $\N_n \to \B$,
 where $\N_n \defas \{0,\dots,n-1\}$.
-In both $\BCalc$ and $\HCalc$ we may represent such functions by terms of type $\Nat \to \Bool$.
+In both $\BPCF$ and $\HPCF$ we may represent such functions by terms of type $\Nat \to \Bool$.
 We will often informally write $\Nat_n$ in place of $\Nat$ to indicate that
 only the values $0,\dots,n-1$ are relevant, but this convention has no
 formal status since our setup does not support dependent types.
@@ -16253,7 +16257,7 @@ Decision trees for a sample of the above predicate terms are depicted
 in Figure~\ref{fig:example-models}; the relevant formal definitions
 are given in the next subsection.  In the case of $\dec{I}_2$, one of
 the $\ans \False$ leaves will be `unreachable' if we are working in
-$\BCalc$ (but reachable in a language supporting mutable state).
+$\BPCF$ (but reachable in a language supporting mutable state).
 
 We think of the edges in the tree as corresponding to portions of
 computation undertaken by $P$ between queries, or before delivering
@@ -16293,12 +16297,12 @@ any $n$.
 \subsection{Formal definitions}
 \label{sec:predicate-models}
 We now formalise the above notions.  We will present our definitions
-in the setting of $\HCalc$, but everything can clearly be relativised
-to $\BCalc$ with no change to the meaning in the case of $\BCalc$
+in the setting of $\HPCF$, but everything can clearly be relativised
+to $\BPCF$ with no change to the meaning in the case of $\BPCF$
 terms.  For the purpose of this subsection we fix $n \in \N$, set
 $\N_n \defas \{0,\ldots,n-1\}$, and use $k$ to range over $\N_n$. We
 write $\B$ for the set of booleans, which we shall identify with the
-(encoded) boolean values of $\HCalc$, and use $b$ to range over $\B$.
+(encoded) boolean values of $\HPCF$, and use $b$ to range over $\B$.
 
 As suggested by the foregoing discussion, we will need to work with
 both syntax and semantics.  For points, the relevant definitions are
@@ -16345,25 +16349,29 @@ position of a node in the tree via the path that leads to it, while a
 label will represent the information present at a node. Formally:
 
 \begin{definition}[untimed decision tree]\label{def:decision-tree}
-  (i) The address set $\Addr$ is simply the set $\B^\ast$ of finite lists of booleans.
-      If $bs,bs' \in \Addr$, we write $bs \sqsubseteq bs'$ (resp.\ $bs \sqsubset bs'$)
-      to mean that $bs$ is a prefix (resp.\ proper prefix) of $bs'$.
+  ~
+  \begin{enumerate}[(i)]
+  \item The address set $\Addr$ is simply the set $\B^\ast$ of finite
+    lists of booleans.  If $bs,bs' \in \Addr$, we write
+    $bs \sqsubseteq bs'$ (resp.\ $bs \sqsubset bs'$) to mean that $bs$
+    is a prefix (resp.\ proper prefix) of $bs'$.
 
-  (ii) The label set $\Lab$ consists of \emph{queries} parameterised by a natural
-       number and \emph{answers} parameterised by a boolean:
-{
+  \item The label set $\Lab$ consists of \emph{queries} parameterised
+    by a natural number and \emph{answers} parameterised by a boolean:
+ {
   \[
   \Lab \defas \{\query k \mid k \in \N \} \cup \{\ans b \mid b \in \B \}
   \]
 }%
 
- (iii) An (untimed) decision tree is a partial function $\tree : \Addr
-\pto \Lab$ such that:
+\item An (untimed) decision tree is a partial function
+  $\tree : \Addr \pto \Lab$ such that:
 \begin{itemize}
   \item The domain of $\tree$ (written $dom(\tree)$) is prefix closed.
   \item Answer nodes are always leaves:
     if $\tree(bs) = \ans b$ then $\tree(bs')$ is undefined whenever $bs \sqsubset bs'$.
-\end{itemize}
+  \end{itemize}
+\end{enumerate}
 \end{definition}
 
 As our goal is to reason about the time complexity of generic count
@@ -16425,8 +16433,8 @@ It is convenient to define the timed tree and then extract the untimed one from 
                                                     &\text{if } \gamma(z) = q \smallskip\\
   \tr(\cek{z\,V \mid \env \mid \kappa})\, (b \cons bs) &~\simeq~& \tr(\cek{\Return\;b \mid \env \mid \kappa})\,bs,
                                                                 & \text{if } \gamma(z) = q \smallskip\\
-  \tr(\cek{M \mid \env \mid \kappa})\, bs &~\simeq~& \mathsf{inc}\,(\tr(\cek{M' \mid \env' \mid \kappa'})\, bs),
-  &\text{if } \cek{M \mid \env \mid \kappa} \stepsto \cek{M' \mid \env' \mid \kappa'}
+  \tr(\cek{M \mid \env \mid \kappa})\, bs &~\simeq~& \mathsf{inc}\,(\tr(\cek{M' \mid \env' \mid \kappa'})\, bs), &\\
+  &&\multicolumn{2}{l}{\quad\text{if } \cek{M \mid \env \mid \kappa} \stepsto \cek{M' \mid \env' \mid \kappa'}}
 \ea
 \end{mathpar}}%
 %
@@ -16573,8 +16581,8 @@ The algorithm is then as follows.
            \Val\, x         &\mapsto& \If\; x\; \Then\;\Return\; 1 \;\Else\;\Return\; 0 \\
            \OpCase{\Branch}{\Unit}{r} &\mapsto&
               \ba[t]{@{}l}
-                \Let\;x_\True \revto  r\,\True\; \In\\
-                \Let\;x_\False \revto r\,\False\;\In\;
+                \Let\;x_\True \revto  r~\True\; \In\\
+                \Let\;x_\False \revto r~\False\;\In\;
                 x_\True + x_\False \\
               \ea
            \ea \\
@@ -16662,7 +16670,7 @@ Thus, the time for each step in the computation remains $\BigO(\log c
 c + \log n))$.
 
 One might also ask about the execution time for an implementation of
-$\HCalc$ that performs genuine copying of continuations, as in systems
+$\HPCF$ that performs genuine copying of continuations, as in systems
 such as \citet{mlton}.
 %
 As MLton copies the entire continuation (stack), whose size is
@@ -16714,18 +16722,17 @@ One might ask at this point whether the claimed lower bound could not
 be obviated by means of some known continuation passing style (CPS) or
 monadic transform of effect handlers
 \cite{HillerstromLAS17,Leijen17}. This can indeed be done, but only by
-dint of changing the type of our predicates $P$ --- which, as noted in
-the introduction, would defeat the purpose of our enquiry.
-Our intention is precisely to investigate the relative power of various
-languages for manipulating predicates that are given to us in a
-certain way which we do not have the luxury of choosing.
+dint of changing the type of our predicates $P$ which would defeat the
+purpose of our enquiry.  We want to investigate the relative power of
+various languages for manipulating predicates that are given to us in
+a certain way which we do not have the luxury of choosing.
 
 To get a feel for the issues that our proof must address, let us
 consider how one might construct a counting program in
-$\BCalc$.  The \naive approach, of course, would be simply to apply the
+$\BPCF$.  The \naive approach, of course, would be simply to apply the
 given predicate $P$ to all $2^n$ possible $n$-points in turn, keeping
 a count of those on which $P$ yields true.  It is a routine exercise to
-implement this approach in $\BCalc$, yielding (parametrically in $n$)
+implement this approach in $\BPCF$, yielding (parametrically in $n$)
 a program
 %
 {
@@ -16742,14 +16749,14 @@ of $\naivecount_n$ on \emph{any} predicate $P$ (at level $n$) must
 take time $\Omega(2^n)$.
 
 One might at first suppose that these properties are inevitable for
-any implementation of generic count within $\BCalc$, or indeed any
+any implementation of generic count within $\BPCF$, or indeed any
 purely functional language: surely, the only way to learn something
 about the behaviour of $P$ on every possible $n$-point is to apply $P$
 to each of these points in turn?  It turns out, however, that the
 $\Omega(2^n)$ lower bound can sometimes be circumvented by
 implementations that cleverly exploit \emph{nesting} of calls to $P$.
 %
-The germ of the idea may be illustrated within $\BCalc$ itself.
+The germ of the idea may be illustrated within $\BPCF$ itself.
 Suppose that we first construct some program
 %
 {
@@ -16796,7 +16803,7 @@ modelled largely on Berger's PCF implementation of the so-called
 \emph{fan functional}~\citep{Berger90, LongleyN15}. This program is of
 interest in its own right and is briefly presented in
 Appendix~\ref{sec:berger-count}. It actually requires a mild
-extension of $\BCalc$ with a `memoisation' primitive to achieve the
+extension of $\BPCF$ with a `memoisation' primitive to achieve the
 effect of call-by-need evaluation; but such a language can still be
 seen as purely `functional' in the same sense as Haskell.
 
@@ -16816,14 +16823,14 @@ argument applies to languages with mutable state
 
 As a first step, we note that where lower bounds are concerned, it
 will suffice to work with the small-step operational semantics of
-$\BCalc$ rather than the more elaborate abstract machine model
+$\BPCF$ rather than the more elaborate abstract machine model
 employed in Section~\ref{sec:base-abstract-machine}. This is because,
 as observed in Section~\ref{sec:base-abstract-machine}, there is a
 tight correspondence between these two execution models such that for
 the evaluation of any closed term, the number of abstract machine
 steps is always at least the number of small-step reductions.  Thus,
 if we are able to show that the number of small-step reductions for
-any generic program program in $\BCalc$ on any $n$-standard predicate
+any generic program program in $\BPCF$ on any $n$-standard predicate
 is $\Omega(n2^n)$, this will establish the desired lower bound on the
 runtime.
 
@@ -16836,7 +16843,7 @@ value for $\sharp \val{P}$ is to perform $2^n$ separate applications $P~Q$
 be performed `in turn' but might be nested in some complex way).
 
 \begin{lemma}[No shortcuts]\label{lem:no-shortcuts}
-  Suppose $\Countprog$ correctly counts all $n$-standard predicates of $\BCalc$.
+  Suppose $\Countprog$ correctly counts all $n$-standard predicates of $\BPCF$.
   If $P$ is an $n$-standard predicate,
   then $\Countprog$ applies $P$ to at least $2^n$ distinct $n$-points.
   More formally, for any of the $2^n$ possible semantic $n$-points
@@ -16855,7 +16862,7 @@ be performed `in turn' but might be nested in some complex way).
   the tree obtained from $\tree$ by simply negating this answer value
   at $l$.
 
-  It is a simple matter to construct a $\BCalc$ $n$-standard predicate
+  It is a simple matter to construct a $\BPCF$ $n$-standard predicate
   $P'$ whose decision tree is $\tree'$. This may be done just by
   mirroring the structure of $\tree'$ by nested $\If$ statements; we
   omit the easy details.
@@ -17022,21 +17029,25 @@ that $P~Q[P'] \reducesto^\ast \Return\;b$.
   leaf $l$. We now have everything we need to establish that $P'~Q[P']
   \reducesto^\ast \Return\;b$ as required.
 
-  More formally, in view of the correspondence between small-step reduction
-  and abstract machine semantics, we may readily correlate the above computation of $P~Q[P]$
-  with an exploration of the path $bs = b_0 \dots b_{r-1}$ in $\tau = \tru(P)$,
-  leading to a leaf with label $\ans b$.
+  More formally, in view of the correspondence between small-step
+  reduction and abstract machine semantics, we may readily correlate
+  the above computation of $P~Q[P]$ with an exploration of the path
+  $bs = b_0 \dots b_{r-1}$ in $\tau = \tru(P)$, leading to a leaf with
+  label $\ans b$.
   %
-  Since $P$ is $n$-standard, this correlation shows that $r=n$, that for each $j$ we have
-  $\tau(b_0\ldots b_{j-1}) = \query k_j$, and that $\{ k_0,\ldots,k_{r-1} \} = \{ 0,\dots,n-1 \}$.
-  Furthermore, we have already ascertained that the values of $Q[P]$ and $Q[P']$ at $k_j$ are both $b_j$,
-  whence $\val{Q[P]} = \val{Q[P']} = \pi'$ where $\pi'(k_j)=b_j$ for all $j$.
-  But $P~Q[P]$ is safe, so in particular $\pi' = \val{Q[P]} \neq \pi$.
-  We therefore also have $\tau'(b_0 \dots b_{j-1}) = \query k_j$ for each $j \leq r$
-  and $\tau'(b_0 \dots b_{r-1}) = b$.
-  Since $\tau' = \tru(P')$ and $\val{Q[P']} = \pi'$, we may conclude by Proposition~\ref{prop:pred-tree}
-  that $P'~Q[P'] \reducesto^\ast \Return\;b$.
-  This completes the proof of Lemma~\ref{lem:replacement}.
+  Since $P$ is $n$-standard, this correlation shows that $r=n$, that
+  for each $j$ we have $\tau(b_0\ldots b_{j-1}) = \query k_j$, and
+  that $\{ k_0,\ldots,k_{r-1} \} = \{ 0,\dots,n-1 \}$.  Furthermore,
+  we have already ascertained that the values of $Q[P]$ and $Q[P']$ at
+  $k_j$ are both $b_j$, whence $\val{Q[P]} = \val{Q[P']} = \pi'$ where
+  $\pi'(k_j)=b_j$ for all $j$.  But $P~Q[P]$ is safe, so in particular
+  $\pi' = \val{Q[P]} \neq \pi$.  We therefore also have
+  $\tau'(b_0 \dots b_{j-1}) = \query k_j$ for each $j \leq r$ and
+  $\tau'(b_0 \dots b_{r-1}) = b$.  Since $\tau' = \tru(P')$ and
+  $\val{Q[P']} = \pi'$, we may conclude by
+  Proposition~\ref{prop:pred-tree} that
+  $P'~Q[P'] \reducesto^\ast \Return\;b$.  This completes the proof of
+  Lemma~\ref{lem:replacement}.
 
   To finish off the proof of Lemma~\ref{lem:no-shortcuts}, we apply the same analysis
   one last time to the reduction of $\Countprog~P$ itself. This will have the form
@@ -17083,9 +17094,10 @@ $\Countprog~P$, so the reduction has length $\geq n 2^n$.  We have
 thus proved:
 
 \begin{theorem}
-  If $\Countprog$ is a $\BCalc$ program that correctly counts all $n$-standard $\BCalc$ predicates,
-  and $P$ is any $n$-standard $\BCalc$ predicate, then the evaluation of $\Countprog~P$ must take time
-  $\Omega(n2^n)$.  \qed
+  If $\Countprog$ is a $\BPCF$ program that correctly counts all
+  $n$-standard $\BPCF$ predicates, and $P$ is any $n$-standard
+  $\BPCF$ predicate, then the evaluation of $\Countprog~P$ must take
+  time $\Omega(n2^n)$.  \qed
 \end{theorem}
 
 Although we shall not go into details, it is not too hard to apply our
@@ -17096,17 +17108,19 @@ the memoisation primitive required for $\BergerCount$
 languages with state: we will return to this in
 Section~\ref{sec:robustness}.
 
-It is worth noting where the above argument breaks down if applied to $\HPCF$.
-In $\BPCF$, in the course of computing $\Countprog~P$, every $Q$ to which $P$ is applied
-will be a self-contained closed term denoting some specific point $\pi$.
-This is intuitively why we may only learn about one point at a time.
-In $\HPCF$, this is not the case, because of the presence of operation symbols.
-For instance, our $\ECount$ program from Section~\ref{sec:effectful-counting}
-will apply $P$ to the `generic point' $\Superpoint$.
-Thus, for example, in our treatment of Lemma~\ref{lem:replacement}(i),
-it need no longer be the case that the reduction of $Q[p]~k$ either yields a value
-or gets stuck at some $\EC_0[p~Q_0[p],p]$: a third possibility is that it gets stuck
-at some invocation of $\ell$, so that control will then pass to the effect handler.
+It is worth noting where the above argument breaks down if applied to
+$\HPCF$.  In $\BPCF$, in the course of computing $\Countprog~P$, every
+$Q$ to which $P$ is applied will be a self-contained closed term
+denoting some specific point $\pi$.  This is intuitively why we may
+only learn about one point at a time.  In $\HPCF$, this is not the
+case, because of the presence of operation symbols.  For instance, our
+$\ECount$ program from Section~\ref{sec:effectful-counting} will apply
+$P$ to the `generic point' $\Superpoint$.  Thus, for example, in our
+treatment of Lemma~\ref{lem:replacement}(i), it need no longer be the
+case that the reduction of $Q[p]~k$ either yields a value or gets
+stuck at some $\EC_0[p~Q_0[p],p]$: a third possibility is that it gets
+stuck at some invocation of $\ell$, so that control will then pass to
+the effect handler.
 
 %%
 %% Generalising
@@ -17166,7 +17180,7 @@ if $i$ is not present in $map$, and $\Inr~ans$ if $i$ is
 associated by $map$ with the value $ans : \Bool$.
 %
 Allowing ourselves a few extra constant-time arithmetic operations, we
-can realise suitable maps in $\BCalc$ such that the time complexity of
+can realise suitable maps in $\BPCF$ such that the time complexity of
 $\dec{add}_n$ and $\dec{lookup}_n$ is
 $\BigO(\log n)$~\cite{Okasaki99}.  We can then use parameter-passing
 to support repeated queries as follows.
@@ -17373,7 +17387,7 @@ attention to predicates $P$ \emph{within the sublanguage $\BPCF$}.
 For such predicates, the notions of decision tree, counting and
 $n$-standardness are unproblematic. Our result will establish a
 runtime lower bound of $\Omega(n2^n)$ for programs $\Countprog \in
-\BCalcS$ that correctly count predicates $P$ of this kind.
+\BSPCF$ that correctly count predicates $P$ of this kind.
 %
 On the other hand, since $\Countprog$ itself may be stateful, we
 cannot exclude the possibility that $\Countprog~P$ will apply $P$ to a
@@ -17381,7 +17395,7 @@ term $Q$ that is itself stateful. Such a $Q$ will no longer
 unambiguously denote a semantic point $\pi$, hence the proof of
 Section~\ref{sec:pure-counting} must be adapted.
 
-To adapt our proof to the setting of $\BCalcS$, some more machinery is
+To adapt our proof to the setting of $\BSPCF$, some more machinery is
 needed.  If $\Countprog$ is an $n$-count program and $P$ an
 $n$-standard predicate, we expect that the evaluation of
 $\Countprog~P$ will feature terms $\EC[P~Q]$ which are then reduced to
@@ -18003,7 +18017,7 @@ below.
 
 \paragraph{Methodology}
 We evaluated an effectful implementation of generic search against
-three ``pure'' implementations which are realisable in $\BCalc$
+three ``pure'' implementations which are realisable in $\BPCF$
 extended with mutable state:
 %
 \begin{itemize}
