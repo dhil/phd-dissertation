@@ -14882,22 +14882,21 @@ headings.
 % might be considered as a significant advantage of $\LLL$ over $\LLL'$.
 
 If the `operations' we are asking about are ordinary first-order
-functions --- that is, both their inputs and outputs are of ground
-type (strings, arbitrary-size integers etc.)\ --- then the situation
-is easily summarised.  At such types, all reasonable languages give
-rise to the same class of programmable functions, namely the
-Church-Turing computable ones.  As for complexity, the runtime of a
-program is typically analysed with respect to some cost model for
-basic instructions (e.g.\ one unit of time per array access).
-Although the realism of such cost models in the asymptotic limit can
-be questioned (see, e.g., \citep[Section~2.6]{Knuth97}), it is broadly
-taken as read that such models are equally applicable whatever
-programming language we are working with, and moreover that all
-respectable languages can represent all algorithms of interest; thus,
-one does not expect the best achievable asymptotic run-time for a
-typical algorithm (say in number theory or graph theory) to be
-sensitive to the choice of programming language, except perhaps in
-marginal cases.
+functions, that is both their inputs and outputs are of ground type
+(strings, arbitrary-size integers etc), then the situation is easily
+summarised.  At such types, all reasonable languages give rise to the
+same class of programmable functions, namely the Church-Turing
+computable ones.  As for complexity, the runtime of a program is
+typically analysed with respect to some cost model for basic
+instructions (e.g.\ one unit of time per array access).  Although the
+realism of such cost models in the asymptotic limit can be questioned
+(see, e.g., \citet[Section~2.6]{Knuth97}), it is broadly taken as read
+that such models are equally applicable whatever programming language
+we are working with, and moreover that all respectable languages can
+represent all algorithms of interest; thus, one does not expect the
+best achievable asymptotic run-time for a typical algorithm (say in
+number theory or graph theory) to be sensitive to the choice of
+programming language, except perhaps in marginal cases.
 
 The situation changes radically, however, if we consider
 \emph{higher-order} operations: programmable operations whose inputs
