@@ -14846,24 +14846,25 @@ the captured context and continuation invocation context to coincide.
 \def\LLL{{\mathcal L}}
 \def\N{{\mathbb N}}
 %
-In today's programming languages we find a wealth of powerful
-constructs and features --- exceptions, higher-order store, dynamic
-method dispatch, coroutines, explicit continuations, concurrency
-features, Lisp-style `quote' and so on --- which may be present or
-absent in various combinations in any given language.  There are of
-course many important pragmatic and stylistic differences between
-languages, but here we are concerned with whether languages may differ
-more essentially in their expressive power, according to the selection
-of features they contain.
 
-One can interpret this question in various ways.  For instance,
-\citet{Felleisen91} considers the question of whether a language
-$\LLL$ admits a translation into a sublanguage $\LLL'$ in a way which
-respects not only the behaviour of programs but also aspects of their
-(global or local) syntactic structure. If the translation of some
-$\LLL$-program into $\LLL'$ requires a complete global restructuring,
-we may say that $\LLL'$ is in some way less expressive than $\LLL$.
-In the present paper, however, we have in mind even more fundamental
+% In today's programming languages we find a wealth of powerful
+% constructs and features --- exceptions, higher-order store, dynamic
+% method dispatch, coroutines, explicit continuations, concurrency
+% features, Lisp-style `quote' and so on --- which may be present or
+% absent in various combinations in any given language.  There are of
+% course many important pragmatic and stylistic differences between
+% languages, but here we are concerned with whether languages may differ
+% more essentially in their expressive power, according to the selection
+% of features they contain.
+
+% One can interpret this question in various ways.  For instance,
+% \citet{Felleisen91} considers the question of whether a language
+% $\LLL$ admits a translation into a sublanguage $\LLL'$ in a way which
+% respects not only the behaviour of programs but also aspects of their
+% (global or local) syntactic structure. If the translation of some
+% $\LLL$-program into $\LLL'$ requires a complete global restructuring,
+% we may say that $\LLL'$ is in some way less expressive than $\LLL$.
+However, in this chapter we will look at even more fundamental
 expressivity differences that would not be bridged even if
 whole-program translations were admitted. These fall under two
 headings.
@@ -14876,9 +14877,9 @@ headings.
   achieved in $\LLL'$?
 \end{enumerate}
 %
-We may also ask: are there examples of \emph{natural, practically
-  useful} operations that manifest such differences?  If so, this
-might be considered as a significant advantage of $\LLL$ over $\LLL'$.
+% We may also ask: are there examples of \emph{natural, practically
+%   useful} operations that manifest such differences?  If so, this
+% might be considered as a significant advantage of $\LLL$ over $\LLL'$.
 
 If the `operations' we are asking about are ordinary first-order
 functions --- that is, both their inputs and outputs are of ground
@@ -14917,8 +14918,8 @@ but not in a typical `sequential' programming
 language~\cite{Plotkin77}. It is also well known that the presence of
 control features or local state enables observational distinctions
 that cannot be made in a purely functional setting: for instance,
-there are programs involving `call/cc' that detect the order in which
-a (call-by-name) `+' operation evaluates its arguments
+there are programs involving call/cc that detect the order in which a
+(call-by-name) `+' operation evaluates its arguments
 \citep{CartwrightF92}. Such operations are `non-functional' in the
 sense that their output is not determined solely by the extension of
 their input (seen as a mathematical function
@@ -14936,28 +14937,28 @@ low-order recursion but not by high-order iteration
 theory of some of the natural notions of higher-order computability
 that arise in this way, is mapped out by \citet{LongleyN15}.
 
-Relatively few results of this character have so far been established
-on the complexity side. \citet{Pippenger96} gives an example of an
-`online' operation on infinite sequences of atomic symbols
-(essentially a function from streams to streams) such that the first
-$n$ output symbols can be produced within time $\BigO(n)$ if one is
-working in an `impure' version of Lisp (in which mutation of `cons'
-pairs is admitted), but with a worst-case runtime no better than
-$\Omega(n \log n)$ for any implementation in pure Lisp (without such
-mutation). This example was reconsidered by \citet{BirdJdM97} who
-showed that the same speedup can be achieved in a pure language by
-using lazy evaluation.  Another candidate is the familiar $\log n$
-overhead involved in implementing maps (supporting lookup and
-extension) in a pure functional language \cite{Okasaki99}, although to
-our knowledge this situation has not yet been subjected to theoretical
-scrutiny.  \citet{Jones01} explores the approach of manifesting
-expressivity and efficiency differences between certain languages by
-artificially restricting attention to `cons-free' programs; in this
-setting, the classes of representable first-order functions for the
-various languages are found to coincide with some well-known
-complexity classes.
+% Relatively few results of this character have so far been established
+% on the complexity side. \citet{Pippenger96} gives an example of an
+% `online' operation on infinite sequences of atomic symbols
+% (essentially a function from streams to streams) such that the first
+% $n$ output symbols can be produced within time $\BigO(n)$ if one is
+% working in an `impure' version of Lisp (in which mutation of `cons'
+% pairs is admitted), but with a worst-case runtime no better than
+% $\Omega(n \log n)$ for any implementation in pure Lisp (without such
+% mutation). This example was reconsidered by \citet{BirdJdM97} who
+% showed that the same speedup can be achieved in a pure language by
+% using lazy evaluation.  Another candidate is the familiar $\log n$
+% overhead involved in implementing maps (supporting lookup and
+% extension) in a pure functional language \cite{Okasaki99}, although to
+% our knowledge this situation has not yet been subjected to theoretical
+% scrutiny.  \citet{Jones01} explores the approach of manifesting
+% expressivity and efficiency differences between certain languages by
+% artificially restricting attention to `cons-free' programs; in this
+% setting, the classes of representable first-order functions for the
+% various languages are found to coincide with some well-known
+% complexity classes.
 
-The purpose of the present paper is to give a clear example of such an
+The purpose of this chapter is to give a clear example of such an
 inherent complexity difference higher up in the expressivity spectrum.
 Specifically, we consider the following \emph{generic count} problem,
 parametric in $n$: given a boolean-valued predicate $P$ on the space
@@ -14981,9 +14982,8 @@ $\Omega(n 2^n)$ runtime.  Moreover, we shall show that in a typical
 call-by-value language without advanced control features, one cannot
 improve on this: \emph{any} implementation of $\Count_n$ must
 necessarily take time $\Omega(n2^n)$ on \emph{any} predicate $P$.  On
-the other hand, if we extend our language with a feature such as
-\emph{effect handlers} (see Section~\ref{sec:handlers-primer} below),
-it becomes possible to bring the runtime down to $\BigO(2^n)$: an
+the other hand, if we extend our language with effect handlers, it
+becomes possible to bring the runtime down to $\BigO(2^n)$: an
 asymptotic gain of a factor of $n$.
 
 The \emph{generic search} problem is just like the generic count
@@ -15031,78 +15031,102 @@ precisely to show that our languages differ in an essential way
 \emph{as regards their power to manipulate data of type} $(\Nat \to
 \Bool) \to \Bool$.
 
-This idea of using first-class control to achieve `backtracking' has
+This idea of using first-class control to achieve backtracking has
 been exploited before and is fairly widely known (see
 e.g. \citep{KiselyovSFA05}), and there is a clear programming
 intuition that this yields a speedup unattainable in languages without
-such control features.  Our main contribution in this paper is to
-provide, for the first time, a precise mathematical theorem that pins
-down this fundamental efficiency difference, thus giving formal
-substance to this intuition.  Since our goal is to give a realistic
-analysis of the efficiency achievable in various settings without
-getting bogged down in inessential implementation details, we shall
-work concretely and operationally with the languages in question,
-using a CEK-style abstract machine semantics as our basic model of
-execution time, and with some specific programs in these languages.
-In the first instance, we formulate our results as a comparison
-between a purely functional base language (a version of call-by-value
-PCF) and an extension with first-class control; we then indicate how
-these results can be extended to base languages with other features
-such as mutable state.
+such control features.  % Our main contribution in this paper is to
+% provide, for the first time, a precise mathematical theorem that pins
+% down this fundamental efficiency difference, thus giving formal
+% substance to this intuition.  Since our goal is to give a realistic
+% analysis of the efficiency achievable in various settings without
+% getting bogged down in inessential implementation details, we shall
+% work concretely and operationally with the languages in question,
+% using a CEK-style abstract machine semantics as our basic model of
+% execution time, and with some specific programs in these languages.
+% In the first instance, we formulate our results as a comparison
+% between a purely functional base language (a version of call-by-value
+% PCF) and an extension with first-class control; we then indicate how
+% these results can be extended to base languages with other features
+% such as mutable state.
 
-In summary, our purpose is to exhibit an efficiency gap which, in our
-view, manifests a fundamental feature of the programming language
-landscape, challenging a common assumption that all real-world
-programming languages are essentially `equivalent' from an asymptotic
-point of view.  We believe that such results are important not only
-for a rounded understanding of the relative merits of existing
-languages, but also for informing future language design.
+\paragraph{Relation to prior work} This chapter is based entirely on
+the following previously published paper.
+\begin{enumerate}
+  \item[~] \bibentry{HillerstromLL20}
+\end{enumerate}
+The contents of Sections~\ref{sec:calculi},
+\ref{sec:abstract-machine-semantics}, \ref{sec:generic-search},
+\ref{sec:pure-counting}, \ref{sec:robustness}, and
+\ref{sec:experiments} are almost verbatim copies of Sections 3, 4, 5,
+6, 7, and 8 of the above paper. I have made a few stylistic
+adjustments to make the Sections fit with the rest of this
+dissertation.
 
-For their convenience as structured delimited control operators we
-adopt effect handlers as our universal control abstraction of choice,
-but our results adapt mutatis mutandis to other first-class control
-abstractions such as `call/cc'~\cite{AbelsonHAKBOBPCRFRHSHW85}, `control'
-($\mathcal{F}$) and 'prompt' ($\textbf{\#}$)~\citep{Felleisen88}, or
-`shift' and `reset'~\citep{DanvyF90}.
+% In summary, our purpose is to exhibit an efficiency gap which, in our
+% view, manifests a fundamental feature of the programming language
+% landscape, challenging a common assumption that all real-world
+% programming languages are essentially `equivalent' from an asymptotic
+% point of view.  We believe that such results are important not only
+% for a rounded understanding of the relative merits of existing
+% languages, but also for informing future language design.
 
-The rest of the paper is structured as follows.
-\begin{itemize}
- \item Section~\ref{sec:handlers-primer} provides an introduction to
-   effect handlers as a programming abstraction.
- \item Section~\ref{sec:calculi} presents a PCF-like language
-   $\BPCF$ and its extension $\HPCF$ with effect handlers.
- \item Section~\ref{sec:abstract-machine-semantics} defines abstract
-   machines for $\BPCF$ and $\HPCF$, yielding a runtime cost model.
- \item Section~\ref{sec:generic-search} introduces generic count and
-   some associated machinery, and presents an implementation in
-   $\HPCF$ with runtime $\BigO(2^n)$.
- \item Section~\ref{sec:pure-counting} establishes that any generic
-   count implementation in $\BCalc$ must have runtime $\Omega(n2^n)$.
- \item Section~\ref{sec:robustness} shows that our results scale to
-   richer settings including support for a wider class of predicates,
-   the adaptation from generic count to generic search, and an
-   extension of the base language with state.
- \item Section~\ref{sec:experiments} evaluates implementations of
-   generic search based on $\BPCF$ and $\HPCF$ in Standard ML.
- \item Section \ref{sec:conclusions} concludes.
-\end{itemize}
-%
-The languages $\BPCF$ and $\HPCF$ are rather minimal versions of
-previously studied systems --- we only include the machinery needed
-for illustrating the generic search efficiency phenomenon.
-%
-Auxiliary results are included in the appendices of the extended
-version of the paper~\citep{HillerstromLL20}.
+% For their convenience as structured delimited control operators we
+% adopt effect handlers as our universal control abstraction of choice,
+% but our results adapt mutatis mutandis to other first-class control
+% abstractions such as `call/cc'~\cite{AbelsonHAKBOBPCRFRHSHW85}, `control'
+% ($\mathcal{F}$) and 'prompt' ($\textbf{\#}$)~\citep{Felleisen88}, or
+% `shift' and `reset'~\citep{DanvyF90}.
+
+% The rest of the paper is structured as follows.
+% \begin{itemize}
+%  \item Section~\ref{sec:handlers-primer} provides an introduction to
+%    effect handlers as a programming abstraction.
+%  \item Section~\ref{sec:calculi} presents a PCF-like language
+%    $\BPCF$ and its extension $\HPCF$ with effect handlers.
+%  \item Section~\ref{sec:abstract-machine-semantics} defines abstract
+%    machines for $\BPCF$ and $\HPCF$, yielding a runtime cost model.
+%  \item Section~\ref{sec:generic-search} introduces generic count and
+%    some associated machinery, and presents an implementation in
+%    $\HPCF$ with runtime $\BigO(2^n)$.
+%  \item Section~\ref{sec:pure-counting} establishes that any generic
+%    count implementation in $\BCalc$ must have runtime $\Omega(n2^n)$.
+%  \item Section~\ref{sec:robustness} shows that our results scale to
+%    richer settings including support for a wider class of predicates,
+%    the adaptation from generic count to generic search, and an
+%    extension of the base language with state.
+%  \item Section~\ref{sec:experiments} evaluates implementations of
+%    generic search based on $\BPCF$ and $\HPCF$ in Standard ML.
+%  \item Section \ref{sec:conclusions} concludes.
+% \end{itemize}
+% %
+% The languages $\BPCF$ and $\HPCF$ are rather minimal versions of
+% previously studied systems --- we only include the machinery needed
+% for illustrating the generic search efficiency phenomenon.
+% %
+% Auxiliary results are included in the appendices of the extended
+% version of the paper~\citep{HillerstromLL20}.
 
 %%
 %% Base calculus
 %%
 \section{Calculi}
 \label{sec:calculi}
-In this section, we present our base language $\BPCF$ and its
-extension with effect handlers $\HPCF$.
+In this section, we present a base language $\BPCF$ and its extension
+with effect handlers $\HPCF$, both of which amounts to simply-typed
+variations of $\BCalc$ and $\HCalc$,
+respectively. Sections~\ref{sec:base-calculus}--\ref{sec:handler-machine}
+essentially recast the developments of
+Chapters~\ref{ch:base-language}, \ref{ch:unary-handlers}, and
+\ref{ch:abstract-machine} to fit the calculi $\BPCF$ and $\HPCF$. I
+reproduce the details here, even though, they are mostly the same as
+in the previous chapters save for a few tricks such as a crucial
+design decision in Section~\ref{sec:handlers-calculus} which makes it
+possible to implement continuation reification as a constant time
+operation.
 
-\subsection{Base Calculus}
+\subsection{Base calculus}
+\label{sec:base-calculus}
 The base calculus $\BPCF$ is a fine-grain
 call-by-value~\cite{LevyPT03} variation of PCF~\cite{Plotkin77}.
 %
@@ -15114,7 +15138,7 @@ The syntax of $\BCalc$ is as follows.
 {\noindent
   \begin{syntax}
     \slab{Types}          &A,B,C,D\in\TypeCat  &::= & \Nat \mid \One \mid A \to B \mid A \times B \mid A + B \\
-    \slab{Type\textrm{ }Environments} &\Gamma\in\CtxCat &::= & \cdot \mid \Gamma, x:A \\
+    \slab{Type\textrm{ }environments} &\Gamma\in\TyEnvCat &::= & \cdot \mid \Gamma, x:A \\
 \slab{Values}        &V,W\in\ValCat  &::= & x \mid k \mid c \mid \lambda x^A .\, M \mid \Rec \; f^{A \to B}\, x.M \\
                      &               &\mid& \Unit \mid \Record{V, W} \mid (\Inl\, V)^B \mid (\Inr\, W)^A\\
 %                      &     &    &
@@ -15281,7 +15305,7 @@ The constants have the following types.
 \begin{figure*}
 \begin{reductions}
 \semlab{App}     & (\lambda x^A . \, M) V   &\reducesto& M[V/x] \\
-\semlab{App\textrm{-}Rec} & (\Rec\; f^A \,x.\, M) V  &\reducesto& M[(\Rec\;f^A\,x .\,M)/f,V/x]\\
+\semlab{AppRec} & (\Rec\; f^A \,x.\, M) V  &\reducesto& M[(\Rec\;f^A\,x .\,M)/f,V/x]\\
 \semlab{Const}   & c~V                      &\reducesto& \Return\;(\const{c}\,(V)) \\
 \semlab{Split} & \Let \; \Record{x,y} = \Record{V,W} \; \In \; N &\reducesto& N[V/x,W/y] \\
 \semlab{Case\textrm{-}inl} &
@@ -15310,8 +15334,8 @@ on closed values. The reduction relation $\reducesto$ is defined on
 computation terms. The statement $M \reducesto N$ reads: term $M$
 reduces to term $N$ in one step.
 %
-We write $R^+$ for the transitive closure of relation $R$ and $R^*$
-for the reflexive, transitive closure of relation $R$.
+% We write $R^+$ for the transitive closure of relation $R$ and $R^*$
+% for the reflexive, transitive closure of relation $R$.
 
 \paragraph{Notation}
 %
@@ -15372,7 +15396,7 @@ We use the standard encoding of booleans as a sum:
 %
 % Handlers extension
 %
-\subsection{Handler Calculus}
+\subsection{Handler calculus}
 \label{sec:handlers-calculus}
 
 We now define $\HCalc$ as an extension of $\BCalc$.
@@ -15420,6 +15444,17 @@ forwarding:
 \[
    \{\OpCase{\ell}{p}{r} \mapsto \Let\; x \revto \Do \; \ell \, p \;\In\; r \, x\}.
 \]
+%
+\paragraph{Remark}
+  This convention makes effect forwarding explicit, whereas in
+  $\HCalc$ effect forwarding was implicit. As we shall see soon, an
+  important semantic consequence of making effect forwarding explicit
+  is that the abstract machine model in
+  Section~\ref{sec:handler-machine} has no rule for effect forwarding
+  as it instead happens as a sequence of explicit $\Do$ invocations in
+  the term language. As a result, we become able to reason about
+  continuation reification as a constant time operation, because a
+  $\Do$ invocation will just reify the top-most continuation frame.\medskip
 
 \begin{figure*}
 \raggedright
@@ -15437,15 +15472,15 @@ forwarding:
 \textbf{Handlers}
 \begin{mathpar}
 \inferrule*[Lab=\tylab{Handler}]
-    {  \hret = \{\Val \; x \mapsto M\} \\
-      [\hell = \{\ell \, p \; r \mapsto N_\ell\}]_{\ell \in dom(\Sigma)} \\\\
+    {  \hret = \{\Return \; x \mapsto M\} \\
+      [\hell = \{\OpCase{\ell}{p}{r} \mapsto N_\ell\}]_{\ell \in dom(\Sigma)} \\\\
       \typ{\Gamma, x : C}{M : D} \\
       [\typ{\Gamma, p : A_\ell, r : B_\ell \to D}{N_\ell : D}]_{(\ell : A_\ell \to B_\ell) \in \Sigma}
     }
     {{\Gamma} \vdash {H : C \Rightarrow D}}
 \end{mathpar}
 
-\caption{Additional typing rules for $\HPCF$}
+\caption{Additional typing rules for $\HPCF$.}
 \label{fig:typing-handlers}
 \end{figure*}
 
@@ -15489,7 +15524,7 @@ for handling operation invocations.
                                       \text{where } \hret = \{ \Return \; x \mapsto N \} \smallskip\\
                                       \semlab{Op}  & \Handle \; \EC[\Do \; \ell \, V] \; \With \; H &\reducesto& N[V/p,(\lambda y.\Handle \; \EC[\Return \; y] \; \With \; H)/r],\\
     \multicolumn{4}{@{}r@{}}{
-      \hfill\text{where } \hell = \{ \ell\, p \; r \mapsto N \}
+      \hfill\text{where } \hell = \{ \OpCase{\ell}{p}{r} \mapsto N \}
     }
 \end{reductions}}%
 %
@@ -15558,7 +15593,7 @@ Readers familiar with effect handlers may wonder why our handler
 calculus does not include an effect type system.
 %
 As types frame the comparison of programs between languages, we
-require that types be fixed across languages; hence $\HCalc$ does not
+require that types be fixed across languages; hence $\HPCF$ does not
 include effect types.
 %
 Future work includes reconciling effect typing with our approach to
@@ -15573,8 +15608,10 @@ For each calculus we have given a \emph{small-step operational
   semantics} which uses a substitution model for evaluation. Whilst
 this model is semantically pleasing, it falls short of providing a
 realistic account of practical computation as substitution is an
-expensive operation. We now develop a more practical model of
-computation based on an \emph{abstract machine semantics}.
+expensive operation. Instead we shall use a slightly simpler variation
+of the abstract machine from Chapter~\ref{ch:abstract-machine} as it
+provides a more practical model of computation (it is simpler, because
+the source language is simpler).
 
 \subsection{Base machine}
 \label{sec:base-abstract-machine}
@@ -15583,16 +15620,12 @@ computation based on an \emph{abstract machine semantics}.
 \newcommand{\EConf}{\dec{EConf}}
 \newcommand{\MVal}{\dec{MVal}}
 
-We choose a \emph{CEK}-style abstract machine
-semantics~\citep{FelleisenF86} for \BCalc{} based on that of
-\citet{HillerstromLA20}.
-%
-The CEK machine operates on configurations which are triples of the
-form $\cek{M \mid \gamma \mid \sigma}$. The first component contains
-the computation currently being evaluated. The second component
-contains the environment $\gamma$ which binds free variables. The
-third component contains the continuation which instructs the machine
-how to proceed once evaluation of the current computation is complete.
+The base machine operates on configurations of the form
+$\cek{M \mid \gamma \mid \sigma}$. The first component contains the
+computation currently being evaluated. The second component contains
+the environment $\gamma$ which binds free variables. The third
+component contains the continuation which instructs the machine how to
+proceed once evaluation of the current computation is complete.
 %
 The syntax of abstract machine states is as follows.
 {
@@ -15600,10 +15633,10 @@ The syntax of abstract machine states is as follows.
 \slab{Configurations}           & \conf \in \Conf  &::=& \cek{M \mid \env \mid \sigma} \\
                                 % &       &\mid& \cekop{M \mid \env \mid \kappa \mid \kappa'} \\
 \slab{Environments}       &\env \in \Env   &::=& \emptyset \mid \env[x \mapsto v] \\
-\slab{Machine values}           &v, w \in \MVal  &::= & x \mid n \mid c \mid \Unit \mid \Record{v, w} \\
-                                &                &\mid& (\env, \lambda x^A .\, M) \mid (\env, \Rec\, f^{A \to B}\,x . \, M)
-                                                  \mid  (\Inl\, v)^B \mid (\Inr\,w)^A \\
-\slab{Pure continuations}            &\sigma \in \PureCont &::=& \nil \mid (\env, x, N) \cons \sigma \\
+\slab{Machine\textrm{ }values} &v, w \in \MValCat  &::= & x \mid n \mid c \mid \Unit \mid \Record{v, w} \\
+                                &                &\mid& (\env, \lambda x^A .\, M) \mid (\env, \Rec\, f^{A \to B}\,x . \, M)\\
+                                &                &\mid&  (\Inl\, v)^B \mid (\Inr\,w)^A \\
+\slab{Pure\textrm{ }continuations}  &\sigma \in \MPContCat &::=& \nil \mid (\env, x, N) \cons \sigma \\
 \end{syntax}}%
 %
 Values consist of function closures, constants, pairs, and left or
@@ -15622,15 +15655,17 @@ pattern matching to deconstruct pure continuations.
 
 \begin{figure*}
 \raggedright
-\textbf{Transition relation}
-\begin{reductions}
+\textbf{Transition relation} $\qquad\qquad~~\,\stepsto\, \subseteq\! \MConfCat \times \MConfCat$
+\[
+  \bl
+  \ba{@{}l@{\quad}r@{~}c@{~}l@{~~}l@{}}
 % App
 \mlab{App} & \cek{ V\;W \mid \env \mid \sigma}
            &\stepsto& \cek{ M \mid \env'[x \mapsto \val{W}{\env}] \mid \sigma},\\
            &&& \quad\text{ if }\val{V}{\env} = (\env', \lambda x^A . \, M)\\
 
 % App rec
-\mlab{Rec} & \cek{ V\;W \mid \env \mid \sigma}
+\mlab{AppRec} & \cek{ V\;W \mid \env \mid \sigma}
            &\stepsto& \cek{ M \mid \env'[\bl
                                          f \mapsto (\env', \Rec\,f^{A \to B}\,x. M), \\
                                          x \mapsto \val{W}{\env}] \mid \sigma},\\
@@ -15641,6 +15676,8 @@ pattern matching to deconstruct pure continuations.
 \mlab{Const} & \cek{ V~W \mid \env \mid \sigma}
              &\stepsto& \cek{ \Return\; (\const{c}\,(\val{W}\env)) \mid \env \mid \sigma},\\
              &&& \quad\text{ if }\val{V}{\env} = c \\
+\ea \medskip\\
+\ba{@{}l@{\quad}r@{~}c@{~}l@{~~}l@{}}
 \mlab{Split} & \cek{ \Let \; \Record{x,y} = V \; \In \; N \mid \env \mid \sigma}
              &\stepsto& \cek{ N \mid \env[x \mapsto v, y \mapsto w] \mid \sigma}, \\
              &&& \quad\text{ if }\val{V}{\env} = \Record{v; w} \\
@@ -15650,52 +15687,54 @@ pattern matching to deconstruct pure continuations.
                \cekl \Case\; V\, \{&\Inl\, x \mapsto M; \\
                                    &\Inr\, y \mapsto N\} \mid \env \mid \sigma \cekr \\
                \ea
-             &\stepsto& \cek{ M \mid \env[x \mapsto v] \mid \sigma},\\
-             &&& \quad\text{ if }\val{V}{\env} = \Inl\, v \\
+             &\stepsto& \ba[t]{@{~}l}\cek{ M \mid \env[x \mapsto v] \mid \sigma},\\
+             \quad\text{ if }\val{V}{\env} = \Inl\, v\ea \\
 
 % Case right
 \mlab{CaseR} & \ba{@{}l@{}l@{}}
                \cekl \Case\; V\, \{&\Inl\, x \mapsto M; \\
                                    &\Inr\, y \mapsto N\} \mid \env \mid \sigma \cekr \\
                \ea
-             &\stepsto& \cek{ N \mid \env[y \mapsto v] \mid \sigma},\\
-             &&& \quad\text{ if }\val{V}{\env} = \Inr\, v \\
+             &\stepsto& \ba[t]{@{~}l}\cek{ N \mid \env[y \mapsto v] \mid \sigma},\\
+             \quad\text{ if }\val{V}{\env} = \Inr\, v \ea\\
 
 % Let - eval M
 \mlab{Let} & \cek{ \Let \; x \revto M \; \In \; N \mid \env \mid \sigma}
     &\stepsto& \cek{ M \mid \env \mid (\env,x,N) \cons \sigma} \\
 
 % Return - let binding
-\mlab{RetCont} &\cek{ \Return \; V \mid \env \mid (\env',x,N) \cons \sigma}
+\mlab{PureCont} &\cek{ \Return \; V \mid \env \mid (\env',x,N) \cons \sigma}
           &\stepsto& \cek{ N \mid \env'[x \mapsto \val{V}{\env}] \mid \sigma} \\
 
-\end{reductions}
+\ea
+\el
+\]
 
-\textbf{Value interpretation}
+\textbf{Value interpretation} $\qquad\qquad~~\,\val{-} : \ValCat \times \MEnvCat \to \MValCat$
 \[
 \bl
 \begin{eqs}
-\val{x}{\env}                    &=& \env(x) \\
-\val{\Unit{}}{\env}              &=& \Unit{} \\
+\val{x}{\env}                    &\defas& \env(x) \\
+\val{\Unit{}}{\env}              &\defas& \Unit{} \\
 \end{eqs}
-\qquad\qquad\qquad
+\qquad\qquad
 \begin{eqs}
-\val{n}{\env}                    &=& n \\
-\val{c}\env                      &=& c \\
+\val{n}{\env}                    &\defas& n \\
+\val{c}\env                      &\defas& c \\
 \end{eqs}
-\qquad\qquad\qquad
+\qquad\qquad
 \begin{eqs}
-\val{\lambda x^A.M}{\env}      &=& (\env, \lambda x^A.M) \\
-\val{\Rec\, f^{A \to B}\, x.M}{\env}   &=& (\env, \Rec\,f^{A \to B}\, x.M) \\
+\val{\lambda x^A.M}{\env}      &\defas& (\env, \lambda x^A.M) \\
+\val{\Rec\, f^{A \to B}\, x.M}{\env}   &\defas& (\env, \Rec\,f^{A \to B}\, x.M) \\
 \end{eqs}
 \medskip \\
 \begin{eqs}
-\val{\Record{V, W}}{\env} &=& \Record{\val{V}{\env}, \val{W}{\env}} \\
+\val{\Record{V, W}}{\env} &\defas& \Record{\val{V}{\env}, \val{W}{\env}} \\
 \end{eqs}
-\qquad\qquad\qquad
+\qquad\qquad
 \ba{@{}r@{~}c@{~}l@{}}
-\val{(\Inl\, V)^B}{\env}         &=& (\Inl\; \val{V}{\env})^B \\
-\val{(\Inr\, V)^A}{\env}         &=& (\Inr\; \val{V}{\env})^A \\
+\val{(\Inl\, V)^B}{\env}         &\defas& (\Inl\; \val{V}{\env})^B \\
+\val{(\Inr\, V)^A}{\env}         &\defas& (\Inr\; \val{V}{\env})^A \\
 \ea
 \el
 \]
@@ -15714,14 +15753,14 @@ The machine is initialised by placing a term in a configuration
 alongside the empty environment ($\emptyset$) and identity
 pure continuation ($\nil$).
 %
-The rules (\mlab{App}), (\mlab{Rec}), (\mlab{Const}), (\mlab{Split}),
-(\mlab{CaseL}), and (\mlab{CaseR}) eliminate values.
+The rules (\mlab{App}), (\mlab{AppRec}), (\mlab{Const}),
+(\mlab{Split}), (\mlab{CaseL}), and (\mlab{CaseR}) eliminate values.
 %
 The (\mlab{Let}) rule extends the current pure continuation with let
 bindings.
 %
-The (\mlab{RetCont}) rule extends the environment in the top frame of
-the pure continuation with a returned value.
+The (\mlab{PureCont}) rule pops the top frame of the pure continuation
+and extends the environment with the returned value.
 %
 Given an input of a well-typed closed computation term $\typ{}{M :
   A}$, the machine will either diverge or return a value of type $A$.
@@ -15738,34 +15777,43 @@ $\BCalc$; most transitions correspond directly to $\beta$-reductions,
 but $\mlab{Let}$ performs an administrative step to bring the
 computation $M$ into evaluation position.
 %
-We formally state and prove the correspondence in
-Appendix~\ref{sec:base-machine-correctness}, relying on an
-inverse map $\inv{-}$ from configurations to
-terms~\citep{HillerstromLA20}.
+The proof of correctness is similar to the proof of
+Theorem~\ref{thm:handler-simulation} and the required proof gadgetry
+is the same. The full details are published in Appendix A of
+\citet{HillerstromLL20a}.
+% We formally state and prove the correspondence in
+% Appendix~\ref{sec:base-machine-correctness}, relying on an
+% inverse map $\inv{-}$ from configurations to
+% terms~\citep{HillerstromLA20}.
 %
 \newcommand{\contapp}[2]{#1 #2}
 \newcommand{\contappp}[2]{#1(#2)}
 
 \subsection{Handler machine}
+\label{sec:handler-machine}
 \newcommand{\HClosure}{\dec{HClo}}
-We now enrich the $\BPCF$ machine to a $\HPCF$ machine.
 %
-We extend the syntax as follows.
+We now extend the $\BPCF$ machine with functionality to evaluate
+$\HPCF$ terms. The resulting machine is almost the same as the machine
+in Chapter~\ref{ch:abstract-machine}, though, this machine supports
+only deep handlers.
+%
+The syntax is extended as follows.
 %
 {
 \begin{syntax}
   \slab{Configurations}            &\conf \in \Conf &::=& \cek{M \mid \env \mid \kappa}\\
   \slab{Resumptions}               &\rho \in \dec{Res} &::=& (\sigma, \chi)\\
-  \slab{Continuations}             &\kappa \in \Cont &::=& \nil \mid \rho \cons \kappa\\
-  \slab{Handler\textrm{ }closures}          &\chi \in \HClosure   &::=& (\env, H) \\
-  \slab{Machine\textrm{ }values}            &v, w \in \MVal  &::=& \cdots \mid \rho \\
+  \slab{Continuations}             &\kappa \in \MGContCat &::=& \nil \mid \rho \cons \kappa\\
+  \slab{Handler\textrm{ }closures} &\chi \in \MGFrameCat  &::=& (\env, H) \\
+  \slab{Machine\textrm{ }values}   &v, w \in \MValCat  &::=& \cdots \mid \rho \\
 \end{syntax}}%
 %
 The notion of configurations changes slightly in that the continuation
 component is replaced by a generalised continuation
-$\kappa \in \Cont$~\cite{HillerstromLA20}; a continuation is now a
-list of resumptions. A resumption is a pair of a pure continuation (as
-in the base machine) and a handler closure ($\chi$).
+$\kappa \in \MGContCat$; a continuation is now a list of
+resumptions. A resumption is a pair of a pure continuation (as in the
+base machine) and a handler closure ($\chi$).
 %
 A handler closure consists of an environment and a handler definition,
 where the former binds the free variables that occur in the latter.
@@ -15776,7 +15824,7 @@ identity handler closure:
 %
 {
 \[
-\kappa_0 \defas [(\nil, (\emptyset, \{\Val\;x \mapsto x\}))]
+\kappa_0 \defas [(\nil, (\emptyset, \{\Return\;x \mapsto x\}))]
 \]}%
 %
 Machine values are augmented to include resumptions as an operation
@@ -15786,7 +15834,7 @@ clause).
 %
 
 The handler machine adds transition rules for handlers, and modifies
-$(\mlab{Let})$ and $(\mlab{RetCont})$ from the base machine to account
+$(\mlab{Let})$ and $(\mlab{PureCont})$ from the base machine to account
 for the richer continuation
 structure. Figure~\ref{fig:abstract-machine-semantics-handlers}
 depicts the new and modified rules.
@@ -15794,10 +15842,10 @@ depicts the new and modified rules.
 The $(\mlab{Handle})$ rule pushes a handler closure along with an
 empty pure continuation onto the continuation stack.
 %
-The $(\mlab{RetHandler})$ rule transfers control to the success clause
+The $(\mlab{GenCont})$ rule transfers control to the success clause
 of the current handler once the pure continuation is empty.
 %
-The $(\mlab{Handle-Op})$ rule transfers control to the matching
+The $(\mlab{Op})$ rule transfers control to the matching
 operation clause on the topmost handler, and during the process it
 reifies the handler closure. Finally, the $(\mlab{Resume})$ rule
 applies a reified handler closure, by pushing it onto the continuation
@@ -15810,7 +15858,9 @@ value or it gets stuck on an unhandled operation.
 \raggedright
 
 \textbf{Transition relation}
-\begin{reductions}
+\[
+  \bl
+  \ba{@{}l@{~}r@{~}c@{~}l@{~~}l@{}}
 % Resume resumption
 \mlab{Resume} & \cek{ V\;W \mid \env \mid \kappa}
                &\stepsto& \cek{ \Return \; W \mid \env \mid (\sigma, \chi) \cons \kappa},\\
@@ -15821,7 +15871,7 @@ value or it gets stuck on an unhandled operation.
     &\stepsto& \cek{ M \mid \env \mid ((\env,x,N) \cons \sigma, \chi) \cons \kappa} \\
 
 % Apply (machine) continuation - let binding
-\mlab{RetCont} &\cek{ \Return \; V \mid \env \mid ((\env',x,N) \cons \sigma, \chi) \cons \kappa}
+\mlab{PureCont} &\cek{ \Return \; V \mid \env \mid ((\env',x,N) \cons \sigma, \chi) \cons \kappa}
         &\stepsto& \cek{ N \mid \env'[x \mapsto \val{V}{\env}] \mid (\sigma, \chi) \cons \kappa} \\
 
 % Handle
@@ -15829,21 +15879,23 @@ value or it gets stuck on an unhandled operation.
        &\stepsto& \cek{ M \mid \env \mid (\nil, (\env, H)) \cons \kappa} \\
 
 % Return - handler
-\mlab{RetHandler} & \cek{ \Return \; V \mid \env \mid (\nil, (\env',H)) \cons \kappa}
+\mlab{GenCont} & \cek{ \Return \; V \mid \env \mid (\nil, (\env',H)) \cons \kappa}
                   &\stepsto& \cek{ M \mid \env'[x \mapsto \val{V}{\env}] \mid \kappa},\\
                   &&&\quad\text{ if } \hret = \{\Val\; x \mapsto M\} \\
 
 % Handle op
-\mlab{Handle-Op} & \cek{ \Do \; \ell~V \mid \env \mid (\sigma, (\env', H)) \cons \kappa }
+\mlab{Op} & \cek{ \Do \; \ell~V \mid \env \mid (\sigma, (\env', H)) \cons \kappa }
                  &\stepsto& \cek{ M \mid \env'[\bl
                                                p \mapsto \val{V}\env, \\
                                                r \mapsto (\sigma, (\env', H))] \mid \kappa }, \\
                                                \el \\
                  &&&\quad\bl
                    \text{ if } \ell : A \to B \in \Sigma\\
-                   \text{ and } \hell = \{\ell\; p \; r \mapsto M\}
-                          \el\\
-\end{reductions}
+                   \text{ and } \hell = \{\OpCase{\ell}{p}{r} \mapsto M\}
+                   \el\\
+\ea
+\el
+\]
 \caption{Abstract machine semantics for $\HPCF$.}
 \label{fig:abstract-machine-semantics-handlers}
 \end{figure*}
@@ -15853,15 +15905,17 @@ value or it gets stuck on an unhandled operation.
 The handler machine faithfully simulates the operational semantics of
 $\HPCF$.
 %
-Extending the result for the base machine, we formally state and prove
-the correspondence in
-Appendix~\ref{sec:handler-machine-correctness}.
+The proof of correctness is almost a carbon copy of the proof of
+Theorem~\ref{thm:handler-simulation}. The full details are published
+in Appendix B of \citet{HillerstromLL20a}.%   Extending the result for
+% the base machine, we formally state and prove the correspondence in
+% Appendix~\ref{sec:handler-machine-correctness}.
 
-\subsection{Realisability and Asymptotic Complexity}
+\subsection{Realisability and asymptotic complexity}
 \label{sec:realisability}
-As witnessed by the work of \citet{HillerstromL18} the machine
-structures are readily realisable using standard persistent functional
-data structures.
+As discussed in Section~\ref{subsec:machine-realisability} the machine
+is readily realisable using standard persistent functional data
+structures.
 %
 Pure continuations on the base machine and generalised continuations
 on the handler machine can be implemented using linked lists with a
@@ -18027,6 +18081,22 @@ However, the effectful implementation runs between 2 and 14 times as
 fast with SML/NJ compared with MLton.
 
 \section{Related work}
+Relatively few results of character of the result in this chapter have
+thus far been established in literature. \citet{Pippenger96} gives an
+example of an `online' operation on infinite sequences of atomic
+symbols (essentially a function from streams to streams) such that the
+first $n$ output symbols can be produced within time $\BigO(n)$ if one
+is working in an effectful version of Lisp (one which allows mutation
+of cons pairs) but with a worst-case runtime no better than
+$\Omega(n \log n)$ for any implementation in pure Lisp (without such
+mutation). This example was reconsidered by \citet{BirdJdM97} who
+showed that the same speedup can be achieved in a pure language by
+using lazy evaluation.  \citet{Jones01} explores the approach of
+manifesting expressivity and efficiency differences between certain
+languages by artificially restricting attention to `cons-free'
+programs; in this setting, the classes of representable first-order
+functions for the various languages are found to coincide with some
+well-known complexity classes.
 
 \part{Conclusions}
 \label{p:conclusions}
