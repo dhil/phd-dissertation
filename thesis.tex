@@ -2467,10 +2467,10 @@ $\CC~k.M$ to denote a control operator, or control reifier, which that
 reifies the control state and binds it to $k$ in the computation
 $M$. Here the control state will simply be an evaluation context. We
 will denote continuations by a special value $\cont_{\EC}$, which is
-indexed by the reified evaluation context $\EC$ to make notionally
-convenient to reflect the context again. To characterise delimited
-continuations we also need a control delimiter. We will write
-$\Delim{M}$ to denote a syntactic marker that delimits some
+indexed by the reified evaluation context $\EC$ to make it
+notationally convenient to reflect the context again. To characterise
+delimited continuations we also need a control delimiter. We will
+write $\Delim{M}$ to denote a syntactic marker that delimits some
 computation $M$.
 
 \paragraph{Undelimited continuation} The extent of an undelimited
@@ -14847,16 +14847,44 @@ the captured context and continuation invocation context to coincide.
 \def\N{{\mathbb N}}
 %
 
-Effect handlers are capable of codifying a wealth of powerful
-programming constructs and features such as exceptions, state,
-backtracking, coroutines, await/async, inversion of control, and so
-on.
+When extending some programming language $\LLL \subset \LLL'$ with
+some new feature it is desirable to know exactly how the new feature
+impacts the language. At a bare minimum it is useful to know whether
+the extended language $\LLL'$ is unsound as a result of inhabiting the
+new feature (although, some languages are designed deliberately to be
+unsound~\cite{BiermanAT14}). More fundamentally, it may be useful for
+theoreticians and practitioners alike to know whether the extended
+language is more expressive than the base language as it may inform
+programming practice.
 %
-Thus, effect handlers are expressive enough to implement a wide
-variety of other programming abstractions.
+Specifically, it may be of interest to know whether the extended
+language $\LLL'$ exhibits any \emph{essential} expressivity when
+compared to the base language $\LLL$. Questions about essential
+expressivity fall under three different headings.
+
+% There are various ways in which we can consider how some new feature
+% impacts the expressiveness of its host language.  For instance,
+% \citet{Felleisen91} considers the question of whether a language
+% $\LLL$ admits a translation into a sublanguage $\LLL'$ in a way which
+% respects not only the behaviour of programs but also aspects of their
+% global or local syntactic structure. If the translation of some
+% $\LLL$-program into $\LLL'$ requires a complete global restructuring,
+% we may say that $\LLL'$ is in some way less expressive than $\LLL$.
+
+
+% Effect handlers are capable of codifying a wealth of powerful
+% programming constructs and features such as exceptions, state,
+% backtracking, coroutines, await/async, inversion of control, and so
+% on.
 %
-We may wonder about the exact nature of this expressiveness, i.e. do
-effect handlers exhibit any \emph{essential} expressivity?
+
+% Partial continuations as the difference of continuations a duumvirate of control operators
+
+% Thus, effect handlers are expressive enough to implement a wide
+% variety of other programming abstractions.
+% %
+% We may wonder about the exact nature of this expressiveness, i.e. do
+% effect handlers exhibit any \emph{essential} expressivity?
 
 % In today's programming languages we find a wealth of powerful
 % constructs and features --- exceptions, higher-order store, dynamic
@@ -14879,51 +14907,56 @@ effect handlers exhibit any \emph{essential} expressivity?
 % Start with talking about the power of backtracking (folklore)
 % giving a precise and robust mathematical characterisation of this phenomenon
 
-However, in this chapter we will look at even more fundamental
-expressivity differences that would not be bridged even if
-whole-program translations were admitted. These fall under two
-headings.
+% However, in this chapter we will look at even more fundamental
+% expressivity differences that would not be bridged even if
+% whole-program translations were admitted. These fall under two
+% headings.
+
+% Questions regarding essential expressivity differences fall under two
+% headings.
 %
-\begin{enumerate}
-\item \emph{Computability}: Are there operations of a given type
-  that are programmable in $\LLL$ but not expressible at all in $\LLL'$?
-\item \emph{Complexity}: Are there operations programmable in $\LLL$
-  with some asymptotic runtime bound (e.g.\ `$\BigO(n^2)$') that cannot be
-  achieved in $\LLL'$?
-\end{enumerate}
+\begin{description}
+\item[Programmability] Are there programmable operations that can be
+  done more easily in $\LLL'$ than in $\LLL$?
+\item[Computability] Are there operations of a given type
+  that are programmable in $\LLL'$ but not expressible at all in $\LLL$?
+\item[Complexity] Are there operations programmable in $\LLL'$
+  with some asymptotic runtime bound (e.g. `$\BigO(n^2)$') that cannot be
+  achieved in $\LLL$?
+\end{description}
 %
 % We may also ask: are there examples of \emph{natural, practically
 %   useful} operations that manifest such differences?  If so, this
 % might be considered as a significant advantage of $\LLL$ over $\LLL'$.
 
-If the `operations' we are asking about are ordinary first-order
-functions, that is both their inputs and outputs are of ground type
-(strings, arbitrary-size integers etc), then the situation is easily
-summarised.  At such types, all reasonable languages give rise to the
-same class of programmable functions, namely the Church-Turing
-computable ones.  As for complexity, the runtime of a program is
-typically analysed with respect to some cost model for basic
-instructions (e.g.\ one unit of time per array access).  Although the
-realism of such cost models in the asymptotic limit can be questioned
-(see, e.g., \citet[Section~2.6]{Knuth97}), it is broadly taken as read
-that such models are equally applicable whatever programming language
-we are working with, and moreover that all respectable languages can
-represent all algorithms of interest; thus, one does not expect the
-best achievable asymptotic run-time for a typical algorithm (say in
-number theory or graph theory) to be sensitive to the choice of
-programming language, except perhaps in marginal cases.
+% If the `operations' we are asking about are ordinary first-order
+% functions, that is both their inputs and outputs are of ground type
+% (strings, arbitrary-size integers etc), then the situation is easily
+% summarised.  At such types, all reasonable languages give rise to the
+% same class of programmable functions, namely the Church-Turing
+% computable ones.  As for complexity, the runtime of a program is
+% typically analysed with respect to some cost model for basic
+% instructions (e.g.\ one unit of time per array access).  Although the
+% realism of such cost models in the asymptotic limit can be questioned
+% (see, e.g., \citet[Section~2.6]{Knuth97}), it is broadly taken as read
+% that such models are equally applicable whatever programming language
+% we are working with, and moreover that all respectable languages can
+% represent all algorithms of interest; thus, one does not expect the
+% best achievable asymptotic run-time for a typical algorithm (say in
+% number theory or graph theory) to be sensitive to the choice of
+% programming language, except perhaps in marginal cases.
 
-The situation changes radically, however, if we consider
-\emph{higher-order} operations: programmable operations whose inputs
-may themselves be programmable operations.  Here it turns out that
-both what is computable and the efficiency with which it can be
-computed can be highly sensitive to the selection of language features
-present. This is in fact true more widely for \emph{abstract data
-  types}, of which higher-order types can be seen as a special case: a
-higher-order value will be represented within the machine as ground
-data, but a program within the language typically has no access to
-this internal representation, and can interact with the value only by
-applying it to an argument.
+% The situation changes radically, however, if we consider
+% \emph{higher-order} operations: programmable operations whose inputs
+% may themselves be programmable operations.  Here it turns out that
+% both what is computable and the efficiency with which it can be
+% computed can be highly sensitive to the selection of language features
+% present. This is in fact true more widely for \emph{abstract data
+%   types}, of which higher-order types can be seen as a special case: a
+% higher-order value will be represented within the machine as ground
+% data, but a program within the language typically has no access to
+% this internal representation, and can interact with the value only by
+% applying it to an argument.
 
 % Most work in this area to date has focused on computability
 % differences. One of the best known examples is the \emph{parallel if}
@@ -14972,31 +15005,39 @@ applying it to an argument.
 % various languages are found to coincide with some well-known
 % complexity classes.
 
-The purpose of this chapter is to give a clear example of such an
-inherent complexity difference higher up in the expressivity spectrum.
-Specifically, we consider the following \emph{generic count} problem,
+The purpose of this chapter is to give a clear example of an essential
+complexity difference. Specifically, we will show that if we take a
+typical PCF-like base language, $\BPCF$, and extend it with effect
+handlers, $\HPCF$, then there exists a class of programs that have
+asymptotically more efficient realisations in $\HPCF$ than possible in
+$\BPCF$, hence establishing that effect handlers enable an asymptotic
+speedup for some programs.
+%
+% The purpose of this chapter is to give a clear example of such an
+% inherent complexity difference higher up in the expressivity spectrum.
+
+To this end, we consider the following \emph{generic count} problem,
 parametric in $n$: given a boolean-valued predicate $P$ on the space
-${\mathbb B}^n$ of boolean vectors of length $n$, return the number of
+$\mathbb{B}^n$ of boolean vectors of length $n$, return the number of
 such vectors $q$ for which $P\,q = \True$.  We shall consider boolean
 vectors of any length to be represented by the type $\Nat \to \Bool$;
 thus for each $n$, we are asking for an implementation of a certain
-third-order operation
+third-order function.
 %
 \[ \Count_n : ((\Nat \to \Bool) \to \Bool) \to \Nat  \]
 %
-A \naive implementation strategy, supported by any reasonable
-language, is simply to apply $P$ to each of the $2^n$ vectors in turn.
-A much less obvious, but still purely `functional', approach due to
-\citet{Berger90} achieves the effect of `pruned search' where the
-predicate allows it (serving as a warning that counter-intuitive
-phenomena can arise in this territory).  Nonetheless, under a mild
-condition on $P$ (namely that it must inspect all $n$ components of
-the given vector before returning), both these approaches will have a
-$\Omega(n 2^n)$ runtime.  Moreover, we shall show that in a typical
-call-by-value language without advanced control features, one cannot
-improve on this: \emph{any} implementation of $\Count_n$ must
-necessarily take time $\Omega(n2^n)$ on \emph{any} predicate $P$.  On
-the other hand, if we extend our language with effect handlers, it
+A \naive implementation strategy is simply to apply $P$ to each of the
+$2^n$ vectors in turn.  A much less obvious, but still purely
+`functional', approach due to \citet{Berger90} achieves the effect of
+`pruned search' where the predicate allows it (serving as a warning
+that counter-intuitive phenomena can arise in this territory).
+Nonetheless, under the mild condition that $P$ must inspect all $n$
+components of the given vector before returning, both these approaches
+will have a $\Omega(n 2^n)$ runtime.  Moreover, we shall show that in
+$\BPCF$, a typical call-by-value language without advanced control
+features, one cannot improve on this: \emph{any} implementation of
+$\Count_n$ must necessarily take time $\Omega(n2^n)$ on \emph{any}
+predicate $P$.  Conversely, in the extended language $\HPCF$ it
 becomes possible to bring the runtime down to $\BigO(2^n)$: an
 asymptotic gain of a factor of $n$.
 
@@ -18166,7 +18207,12 @@ the various kinds of control phenomena that appear in the literature
 as well as providing an overview of the operational characteristics of
 control operators appearing in the literature. To the best of my
 knowledge this survey is the only of its kind in the present
-literature.
+literature (other studies survey a particular control phenomenon,
+e.g. \citet{FelleisenS99} survey undelimited continuations as provided
+by call/cc in programming practice, \citet{DybvigJS07} classify
+delimited control operators according to their delimiter placement,
+and \citet{Brachthauser20} provides a delimited control perspective on
+effect handlers).
 
 In Part~\ref{p:design} I have presented the design of a ML-like
 programming language equipped an effect-and-type system and a
