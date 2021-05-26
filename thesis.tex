@@ -15027,10 +15027,10 @@ third-order function.
 \[ \Count_n : ((\Nat \to \Bool) \to \Bool) \to \Nat  \]
 %
 A \naive implementation strategy is simply to apply $P$ to each of the
-$2^n$ vectors in turn.  A much less obvious, but still purely
-`functional', approach due to \citet{Berger90} achieves the effect of
-`pruned search' where the predicate allows it (serving as a warning
-that counter-intuitive phenomena can arise in this territory).
+$2^n$ vectors in turn.  However, one can do better with an arcane
+approach due to \citet{Berger90}, which achieves the effect of `pruned
+search' where the predicate allows it. This should be taken as a
+warning that counter-intuitive phenomena can arise in this territory.
 Nonetheless, under the mild condition that $P$ must inspect all $n$
 components of the given vector before returning, both these approaches
 will have a $\Omega(n 2^n)$ runtime.  Moreover, we shall show that in
@@ -15054,7 +15054,7 @@ asymptotic gain of a factor of $n$.
 % $\BigO(2^n)$ runtime for generic count with effect handlers also
 % transfers to generic search.
 
-The idea behind the speedup is easily explained and will already be
+The idea behind the speedup is readily explained and will already be
 familiar, at least informally, to programmers who have worked with
 multi-shot continuations.
 %
