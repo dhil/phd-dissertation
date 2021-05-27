@@ -14562,6 +14562,12 @@ $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
   By case analysis on $\reducesto$ and induction on $\approxa$ using
   Lemma~\ref{lem:sdtrans-subst} and Lemma~\ref{lem:sdtrans-admin}.
   %
+  By induction on $M' \approxa \sdtrans{M}$ and side induction on
+  $M \reducesto N$.
+  %
+  The interesting case is reflexivity of $\approxa$ where
+  $M \reducesto N$ is an application of $\semlab{Op^\dagger}$.
+
   \noindent\textbf{Case} $\ShallowHandle\;\EC[\Do\;\ell~V]\;\With\;H \reducesto
   N_\ell[V/p,\lambda y.\EC[\Return\;y]/r]$ where
   $\ell \notin \BL(\EC)$ and
@@ -14572,14 +14578,63 @@ $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
     $M' = \sdtrans{\ShallowHandle\;\EC[\Do\;\ell~V]\;\With\;H}$. We
     can compute $N'$ by direct calculation starting from $M'$ yielding
     %
-    \begin{derivation}
+  %   \begin{derivation}
+  %   & \sdtrans{\ShallowHandle\;\EC[\Do\;\ell~V]\;\With\;H}\\
+  %   =\reducesto^+& \reason{\semlab{Op} ($\ell \notin \BL(\sdtrans{\EC})$), $2\times$\semlab{Let},\semlab{Split},\semlab{App}, Lemma~\ref{lem:sdtrans-subst}}\\
+  %  &\sdtrans{N_\ell[\lambda x.
+  %            \bl
+  %            \Let\;z \revto (\lambda y.\Handle\;\EC[\Return\;y]\;\With\;H)~x\;\In\\
+  %            \Let\;\Record{f;g} = z\;\In\;f\,\Unit/r,V/p]}
+  %          \el\\
+  %        \end{derivation}
+      \begin{derivation}
     & \sdtrans{\ShallowHandle\;\EC[\Do\;\ell~V]\;\With\;H}\\
-    =\reducesto^+& \reason{\semlab{Op} ($\ell \notin \BL(\sdtrans{\EC})$), $2\times$\semlab{Let},\semlab{Split},\semlab{App}, Lemma~\ref{lem:sdtrans-subst}}\\
+    =& \reason{definition of $\sdtrans{-}$}\\
+    &\bl
+      \Let\;z \revto \Handle\;\sdtrans{\EC}[\Do\;\ell~\sdtrans{V}]\;\With\;\sdtrans{H}\;\In\\
+      \Let\;\Record{f;g} = z\;\In\;g\,\Unit
+     \el\\
+     \reducesto^+& \reason{\semlab{Op} using assumption $\ell \notin \BL(\sdtrans{\EC})$, \semlab{Let}, \semlab{Let}}\\
+   % &\bl
+   %    \Let\;z \revto
+   %     (\bl
+   %       \Let\;r \revto \lambda x.\Let\;z \revto r~x\;\In\;\Let\;\Record{f;g} = z\;\In\;f\,\Unit\;\In\\
+   %       \Return\;\Record{
+   %         \bl
+   %         \lambda\Unit.\Let\;x \revto \Do\;\ell~p\;\In\;r~x;\\
+   %         \lambda\Unit.\sdtrans{N_\ell}})[
+   %           \bl
+   %             \sdtrans{V}/p,\\
+   %             \lambda y.\Handle\;\sdtrans{\EC}[\Return\;y]\;\With\;\sdtrans{H}/r]
+   %           \el
+   %       \el
+   %       \el\\
+   %   \In\;\Let\;\Record{f;g} = z\;\In\;g\,\Unit
+   %   \el\\
+   % \reducesto^+& \reason{\semlab{Let}, \semlab{Let}}\\
+   &\bl
+   \Let\;\Record{f;g} = \Record{
+     \bl
+     \lambda\Unit.\Let\;x \revto \Do\;\ell~\sdtrans{V}\;\In\;r~x;\\
+     \lambda\Unit.\sdtrans{N_\ell}}[\lambda x.
+             \bl
+             \Let\;z \revto (\lambda y.\Handle\;\sdtrans{\EC}[\Return\;y]\;\With\;\sdtrans{H})~x\;\In\\
+             \Let\;\Record{f;g} = z\;\In\;f\,\Unit/r,\sdtrans{V}/p]\;\In\; g\,\Unit
+             \el
+     \el\\
+     \el\\
+  \reducesto^+ &\reason{\semlab{Split}, \semlab{App}}\\
+  &\sdtrans{N_\ell}[\lambda x.
+             \bl
+             \Let\;z \revto (\lambda y.\Handle\;\sdtrans{\EC}[\Return\;y]\;\With\;\sdtrans{H})~x\;\In\\
+             \Let\;\Record{f;g} = z\;\In\;f\,\Unit/r,\sdtrans{V}/p]
+             \el\\
+  =& \reason{by Lemma~\ref{lem:sdtrans-subst}}\\
    &\sdtrans{N_\ell[\lambda x.
              \bl
              \Let\;z \revto (\lambda y.\Handle\;\EC[\Return\;y]\;\With\;H)~x\;\In\\
              \Let\;\Record{f;g} = z\;\In\;f\,\Unit/r,V/p]}
-           \el\\
+             \el
   \end{derivation}
   %
   Take the final term to be $N'$. If the resumption
@@ -14628,6 +14683,12 @@ $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
     desired.
   \item Inductive step: Assume $admin(\EC')$ and
     $M' \approxa \sdtrans{\ShallowHandle\;\EC[\Do\;\ell~V]\;\With\;H}$.
+    %
+    By the induction the hypothesis $M' \reducesto N''$.  Take
+    $N' = \EC'[N'']$. The result follows by an application of the
+    admin rule.
+  \item Compatibility step: We check every syntax constructor,
+    however, since the relation is compositional\dots
   \end{enumerate}
 \end{proof}
 % \begin{proof}
