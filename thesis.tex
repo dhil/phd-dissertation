@@ -123,6 +123,7 @@
 \newtheorem{lemma}[theorem]{Lemma}
 \newtheorem{proposition}[theorem]{Proposition}
 \newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{claim}[theorem]{Claim}
 \theoremstyle{definition}
 \newtheorem{definition}[theorem]{Definition}
 % Example environment.
@@ -682,6 +683,7 @@ operations and separate the from their handling.
 \dhil{Maybe expand this a bit more to really sell it}
 
 \section{State of effectful programming}
+\label{sec:state-of-effprog}
 
 Functional programmers tend to view programs as impenetrable black
 boxes, whose outputs are determined entirely by their
@@ -1535,6 +1537,7 @@ The free monad brings us close to the essence of programming with
 effect handlers.
 
 \subsection{Back to direct-style}
+\label{sec:back-to-directstyle}
 Monads do not freely compose, because monads must satisfy a
 distributive property in order to combine~\cite{KingW92}. Alas, not
 every monad has a distributive property.
@@ -5813,10 +5816,10 @@ contexts.
 \end{proof}
 
 %
-The calculus enjoys a rather strong \emph{progress} property, which
-states that \emph{every} closed computation term reduces to a trivial
-computation term $\Return\;V$ for some value $V$. In other words, any
-realisable function in \BCalc{} is effect-free and total.
+The calculus satisfies the standard \emph{progress} property, which
+states that \emph{every} closed computation term either reduces to a
+trivial computation term $\Return\;V$ for some value $V$, or there
+exists some $N$ such that $M \reducesto N$.
 %
 \begin{definition}[Computation normal form]\label{def:base-language-comp-normal}
   A computation $M \in \CompCat$ is said to be \emph{normal} if it is
@@ -5841,29 +5844,41 @@ which states that if some computation $M$ is well typed and reduces to
 some other computation $M'$, then $M'$ is also well typed.
 %
 \begin{theorem}[Subject reduction]\label{thm:base-language-preservation}
-  Suppose $\typ{\Gamma}{M : C}$ and $M \reducesto M'$, then
-  $\typ{\Gamma}{M' : C}$.
+  Suppose $\typ{\Delta;\Gamma}{M : C}$ and $M \reducesto N$, then
+  $\typ{\Delta;\Gamma}{N : C}$.
 \end{theorem}
 %
 \begin{proof}
   By induction on the typing derivations.
 \end{proof}
 
+Even more the calculus, as specified, is \emph{strongly normalising},
+meaning that every closed computation term reduces to a trivial
+computation term. In other words, any realisable function in $\BCalc$
+is effect-free and total.
+%
+\begin{claim}[Type soundness]
+  If $\typ{}{M : C}$, then there exists $\typ{}{N : C}$ such that
+  $M \reducesto^\ast N \not\reducesto$ and $N$ is normal.
+\end{claim}
+%
+We will not prove this theorem here as the required proof gadgetry is
+rather involved~\cite{LindleyS05}, and we will soon dispense of this
+property.
+
 \section{A primitive effect: recursion}
 \label{sec:base-language-recursion}
 %
-As evident from Theorem~\ref{thm:base-language-progress} \BCalc{}
-admit no computational effects. As a consequence every realisable
-program is terminating. Thus the calculus provide a solid and minimal
-basis for studying the expressiveness of any extension, and in
-particular, which primitive effects any such extension may sneak into
-the calculus.
+As $\BCalc$ is (claimed to be) strongly normalising it provides a
+solid and minimal basis for studying the expressiveness of any
+extension, and in particular, which primitive effects any such
+extension may sneak into the calculus.
 
 However, we cannot write many (if any) interesting programs in
 \BCalc{}. The calculus is simply not expressive enough. In order to
-bring it closer to the ML-family of languages we endow the calculus
-with a fixpoint operator which introduces recursion as a primitive
-effect. We dub the resulting calculus \BCalcRec{}.
+bring the calculus closer to the ML-family of languages we endow the
+calculus with a fixpoint operator which introduces recursion as a
+primitive effect. % We dub the resulting calculus \BCalcRec{}.
 %
 
 First we augment the syntactic category of values with a new
@@ -5908,7 +5923,7 @@ progress theorem as some programs may now diverge.
 \subsection{Tracking divergence via the effect system}
 \label{sec:tracking-div}
 %
-With the $\Rec$-operator in \BCalcRec{} we can now implement the
+With the $\Rec$-operator in place we can now implement the
 factorial function.
 %
 \[
@@ -5953,16 +5968,17 @@ In this typing rule we have chosen to inject an operation named
 $\dec{Div}$ into the effect row of the computation type on the
 recursive binder $f$. The operation is primitive, because it can never
 be directly invoked, rather, it occurs as a side-effect of applying a
-$\Rec$-definition.
+$\Rec$-definition (this is also why we ascribe it type $\ZeroType$,
+though, we may use whatever type we please).
 %
 Using this typing rule we get that
 $\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\ZeroType\}$. Consequently,
 every application-site of $\dec{fac}$ must now permit the $\dec{Div}$
 operation in order to type check.
-%
-\begin{example}
-  We will use the following suspended computation to demonstrate
-  effect tracking in action.
+
+% \begin{example}
+To illustrate effect tracking in action consider the following
+suspended computation.
   %
   \[
     \bl
@@ -5972,10 +5988,11 @@ operation in order to type check.
   %
   The computation calculates $3!$ when forced.
   %
-  We will now give a typing derivation for this computation to
-  illustrate how the application of $\dec{fac}$ causes its effect row
-  to be propagated outwards. Let
-  $\Gamma = \{\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\ZeroType\}\}$.
+  The typing derivation for this computation illustrates how the
+  application of $\dec{fac}$ causes its effect row to be propagated
+  outwards. Let
+  $\Gamma = \{\dec{fac} : \Int \to \Int \eff
+  \{\dec{Div}:\ZeroType\}\}$.
   %
   \begin{mathpar}
     \inferrule*[Right={\tylab{Lam}}]
@@ -5990,8 +6007,8 @@ operation in order to type check.
   %
   The information that the computation applies a possibly divergent
   function internally gets reflected externally in its effect
-  signature.
-\end{example}
+  signature.\medskip
+
 %
 A possible inconvenience of the current formulation of
 $\tylab{Rec}^\ast$ is that it recursion cannot be mixed with other
@@ -6027,15 +6044,24 @@ The term `pure' is heavily overloaded in the programming literature.
 %
 \dhil{In this thesis we use the Haskell notion of purity.}
 
-\section{Row polymorphism}
-\label{sec:row-polymorphism}
-\dhil{A discussion of alternative row systems}
+\section{Related work}
 
-% \section{Type and effect inference}
-% \dhil{While I would like to detail the type and effect inference, it
-%   may not be worth the effort. The reason I would like to do this goes
-%   back to 2016 when Richard Eisenberg asked me about how we do effect
-%   inference in Links.}
+\paragraph{Row polymorphism} Row polymorphism was originally
+introduced by \citet{Wand87} as a typing discipline for extensible
+records. The style of row polymorphism used in this chapter was
+originally developed by \citet{Remy94}.
+
+\citet{MorrisM19} have developed a unifying theory of rows, which
+collects the aforementioned row systems under one umbrella. Their
+system provides a general account of record extension and projection,
+and dually, variant injection and branching.
+
+\paragraph{Effect tracking} As mentioned in
+Section~\ref{sec:back-to-directstyle} the original effect system
+was developed by \citet{LucassenG88} to provide a lightweight facility
+for static concurrency analysis.  \citet{NielsonN99} \citet{TofteT97}
+\citet{BentonK99} \citet{BentonB07}
+
 
 \chapter{Effect handler oriented programming}
 \label{ch:unary-handlers}
@@ -6073,17 +6099,17 @@ interpret the effect signature of the whole program.
 % trees. Dually, \emph{shallow} handlers are defined as case-splits over
 % computation trees.
 %
-The purpose of the chapter is to augment the base calculi \BCalc{} and
-\BCalcRec{} with effect handlers, and demonstrate their practical
-versatility by way of a programming case study. The primary focus is
-on so-called \emph{deep} and \emph{shallow} variants of handlers. In
+The purpose of the chapter is to augment the base calculi \BCalc{}
+with effect handlers, and demonstrate their practical versatility by
+way of a programming case study. The primary focus is on so-called
+\emph{deep} and \emph{shallow} variants of handlers. In
 Section~\ref{sec:unary-deep-handlers} we endow \BCalc{} with deep
 handlers, which we put to use in
 Section~\ref{sec:deep-handlers-in-action} where we implement a
 \UNIX{}-style operating system. In
-Section~\ref{sec:unary-shallow-handlers} we extend \BCalcRec{} with
-shallow handlers, and subsequently we use them to extend the
-functionality of the operating system example. Finally, in
+Section~\ref{sec:unary-shallow-handlers} we extend \BCalc{} with shallow
+handlers, and subsequently we use them to extend the functionality of
+the operating system example. Finally, in
 Section~\ref{sec:unary-parameterised-handlers} we will look at
 \emph{parameterised} handlers, which are a refinement of ordinary deep
 handlers.
@@ -6122,7 +6148,7 @@ without the recursion operator and extend it with deep handlers to
 yield the calculus \HCalc{}. We elect to do so because deep handlers
 do not require the power of an explicit fixpoint operator to be a
 practical programming abstraction. Building \HCalc{} on top of
-\BCalcRec{} require no change in semantics.
+\BCalc{} with the recursion operator requires no change in semantics.
 %
 Deep handlers~\cite{PlotkinP09,Pretnar10} are defined by folds
 (specifically \emph{catamorphisms}~\cite{MeijerFP91}) over computation
@@ -9067,9 +9093,9 @@ in terms of two mutually recursive functions (specifically
 implement with deep
 handlers~\cite{KammarLO13,HillerstromL18,HillerstromLA20}.
 
-In this section we take $\BCalcRec$ as our starting point and extend
-it with shallow handlers, resulting in the calculus $\SCalc$.  The
-calculus borrows some syntax and semantics from \HCalc{}, whose
+In this section we take the full $\BCalc$ as our starting point and
+extend it with shallow handlers, resulting in the calculus $\SCalc$.
+The calculus borrows some syntax and semantics from \HCalc{}, whose
 presentation will not be duplicated in this section.
 % Often deep handlers are attractive because they are semantically
 % well-behaved and provide appropriate structure for efficient
@@ -10500,7 +10526,7 @@ labels ($\ell$).
 Computations ($M$) comprise values ($V$), applications ($M~V$), pair
 elimination ($\Let\; \Record{x, y} = V \;\In\; N$), label elimination
 ($\Case\; V \;\{\ell \mapsto M; x \mapsto N\}$), and explicit marking
-of unreachable code ($\Absurd$). A key difference from $\BCalcRec$ is
+of unreachable code ($\Absurd$). A key difference from $\BCalc$ is
 that the function position of an application is allowed to be a
 computation (i.e., the application form is $M~W$ rather than
 $V~W$). Later, when we refine the initial CPS translation we will be
@@ -16844,25 +16870,25 @@ predicates. We now prove that no implementation in $\BPCF$ can match
 this: in fact, we establish a lower bound of $\Omega(n2^n)$ for the
 runtime of any counting program on \emph{any} $n$-standard predicate.
 This mathematically rigorous characterisation of the efficiency gap
-between languages with and without first-class control constructs is
-the central contribution of the paper.
+between languages with and without effect handlers is the objective of
+this chapter.
 
-One might ask at this point whether the claimed lower bound could not
-be obviated by means of some known continuation passing style (CPS) or
-monadic transform of effect handlers
-\cite{HillerstromLAS17,Leijen17}. This can indeed be done, but only by
-dint of changing the type of our predicates $P$ which would defeat the
-purpose of our enquiry.  We want to investigate the relative power of
-various languages for manipulating predicates that are given to us in
-a certain way which we do not have the luxury of choosing.
+% One might ask at this point whether the claimed lower bound could not
+% be obviated by means of some known continuation passing style (CPS) or
+% monadic transform of effect handlers
+% \cite{HillerstromLAS17,Leijen17}. This can indeed be done, but only by
+% dint of changing the type of our predicates $P$ which would defeat the
+% purpose of our enquiry.  We want to investigate the relative power of
+% various languages for manipulating predicates that are given to us in
+% a certain way which we do not have the luxury of choosing.
 
-To get a feel for the issues that our proof must address, let us
-consider how one might construct a counting program in
-$\BPCF$.  The \naive approach, of course, would be simply to apply the
-given predicate $P$ to all $2^n$ possible $n$-points in turn, keeping
-a count of those on which $P$ yields true.  It is a routine exercise to
-implement this approach in $\BPCF$, yielding (parametrically in $n$)
-a program
+To get a feel for the issues that the proof must address, let us
+consider how one might construct a counting program in $\BPCF$.  The
+\naive approach, of course, would be simply to apply the given
+predicate $P$ to all $2^n$ possible $n$-points in turn, keeping a
+count of those on which $P$ yields true.  It is a routine exercise to
+implement this approach in $\BPCF$, yielding (parametrically in $n$) a
+program
 %
 {
 \[
