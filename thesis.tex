@@ -3718,14 +3718,22 @@ is same as $\FelleisenF$. However, the presentation here is close to
 actual implementations of $\Control$.
 
 The static semantics of control and prompt were absent in
-\citeauthor{Felleisen88}'s original treatment.
+\citeauthor{Felleisen88}'s original treatment. Later,
+\citet{KameyamaY08} have given a polymorphic type system with answer
+type modifications for control and prompt (we will discuss answer type
+modification when discussing shift/reset). It is also worth mentioning
+that \citet{DybvigJS07} present a typed embedding of control and
+prompts in Haskell (actually, they present an entire general monadic
+framework for implementing control operators based on the idea of
+\emph{multi-prompts}, which are a slight generalisation of prompts ---
+we will revisit multi-prompts when we discuss cupto).
 %
-\dhil{Mention Yonezawa and Kameyama's type system.}
-%
-\citet{DybvigJS07} gave a typed embedding of multi-prompts in
-Haskell. In the multi-prompt setting the prompts are named and an
-instance of $\Control$ is indexed by the prompt name of its designated
-delimiter.
+% \dhil{Mention Yonezawa and Kameyama's type system.}
+% %
+% \citet{DybvigJS07} gave a typed embedding of multi-prompts in
+% Haskell. In the multi-prompt setting the prompts are named and an
+% instance of $\Control$ is indexed by the prompt name of its designated
+% delimiter.
 
 % Typing them, particularly using a simple type system,
 % affect their expressivity, because the type of the continuation object
@@ -3855,12 +3863,37 @@ second application of $\Control$ captures the remainder of the
 computation of to $\Prompt$. However, the captured context gets
 discarded, because the continuation $k'$ is never invoked.
 %
-\dhil{Mention control0/prompt0 and the control hierarchy}
+
+A slight variation on control and prompt is $\Controlz$ and
+$\Promptz$~\cite{Shan04}. The main difference is that $\Controlz$
+removes its corresponding prompt, i.e.
+%
+\begin{reductions}
+  % \slab{Value} &
+  %    \Prompt~V &\reducesto& V\\
+  \slab{Capture_0} &
+     \Promptz~\EC[\Controlz~k.M] &\reducesto& M[\qq{\cont_{\EC}}/k], \text{ where $\EC$ contains no \Promptz}\\
+  % \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
+\end{reductions}
+%
+Higher-order programming with control and prompt (and delimited
+control in general) is fragile, because the body of a higher-order
+function may inadvertently trap instances of control in its functional
+arguments.
+%
+This observation led \citet{SitaramF90} to define an indexed family of
+control and prompt pairs such that instances of control and prompt can
+be layered on top of one another. The idea is that the index on each
+pair denotes their level $i$ such that $\Control^i$ matches
+$\Prompt^i$ and may capture any other instances of $\Prompt^j$ where
+$j < i$.
+% \dhil{Mention control0/prompt0 and
+%   the control hierarchy}
 
 \paragraph{\citeauthor{DanvyF90}'s shift and reset} Shift and reset
 first appeared in a technical report by \citeauthor{DanvyF89} in
 1989. Although, perhaps the most widely known account of shift and
-reset appeared in \citeauthor{DanvyF90}'s treatise on abstracting
+reset appeared in \citeauthor{DanvyF90}'s seminal work on abstracting
 control the following year~\cite{DanvyF90}.
 %
 Shift and reset differ from control and prompt in that the contexts
@@ -3928,7 +3961,7 @@ substructural type system with answer type modification, whilst
 language with answer type modification into a system without using
 typed multi-prompts.
 
-Differences between shift/reset and control/prompt manifests in the
+Differences between shift/reset and control/prompt manifest in the
 dynamic semantics as well.
 %
 \begin{reductions}
@@ -3966,12 +3999,11 @@ previous continuation invocation.
 
 This difference naturally raises the question whether shift/reset and
 control/prompt are interdefinable or exhibit essential expressivity
-differences. This question was answered by \citet{Shan04}, who
-demonstrated that shift/reset and control/prompt are
-macro-expressible. The translations are too intricate to be reproduced
-here, however, it is worth noting that \citeauthor{Shan04} were
-working in the untyped setting of Scheme and the translation of
-control/prompt made use of recursive
+differences. \citet{Shan04} answered this question demonstrating that
+shift/reset and control/prompt are macro-expressible. The translations
+are too intricate to be reproduced here, however, it is worth noting
+that \citeauthor{Shan04} were working in the untyped setting of Scheme
+and the translation of control/prompt made use of recursive
 continuations. \citet{BiernackiDS05} typed and reimplemented this
 translation in Standard ML New Jersey~\cite{AppelM91}, using
 \citeauthor{Filinski94}'s encoding of shift/reset in terms of callcc
@@ -4007,7 +4039,7 @@ Splitter and the two operations abort and calldc are value forms.
   V,W ::= \cdots \mid \splitter \mid \abort \mid \calldc
 \]
 %
-In their treatise of splitter, \citeauthor{QueinnecS91} gave three
+In their treatment of splitter, \citeauthor{QueinnecS91} gave three
 different presentations of splitter. The presentation that I have
 opted for here is close to their second presentation, which is in
 terms of multi-prompt continuations. This variation of splitter admits
@@ -4518,7 +4550,7 @@ The $\slab{Capture}$ reifies the continuation up to the handler, and
 thus the $\slab{Resume}$ rule can only reinstate the captured
 continuation without the handler.
 %
-\dhil{Revisit the toss example with shallow handlers}
+%\dhil{Revisit the toss example with shallow handlers}
 % \begin{reductions}
 %   \slab{Capture}  & \Handle\;\EC[\Do\;\ell~V] \;\With\; H &\reducesto& M[V/p,\qq{\cont_{\EC}}/k],\\
 %   \multicolumn{4}{l}{\hfill\bl\text{where $\ell$ is not handled in $\EC$}\\\text{and }\{\ell~p~k \mapsto M\} \in H\el}\\
