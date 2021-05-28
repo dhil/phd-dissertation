@@ -4719,55 +4719,95 @@ continuation without the handler.
 Chapter~\ref{ch:unary-handlers} contains further examples of deep and
 shallow handlers in action.
 %
-\dhil{Consider whether to present the below encodings\dots}
-%
-Deep handlers can be used to simulate shift0 and
-reset0~\cite{KammarLO13}.
-%
-\begin{equations}
-  \sembr{\shiftz~k.M} &\defas& \Do\;\dec{Shift0}~(\lambda k.M)\\
-  \sembr{\resetz{M}} &\defas&
-              \ba[t]{@{~}l}\Handle\;m\,\Unit\;\With\\
-                  ~\ba{@{~}l@{~}c@{~}l}
-                      \Return\;x &\mapsto& x\\
-                      \OpCase{\dec{Shift0}}{f}{k} &\mapsto& f\,k
-                   \ea
-              \ea
-\end{equations}
-%
+% \dhil{Consider whether to present the below encodings\dots}
+% %
+% Deep handlers can be used to simulate shift0 and
+% reset0~\cite{KammarLO13}.
+% %
+% \begin{equations}
+%   \sembr{\shiftz~k.M} &\defas& \Do\;\dec{Shift0}~(\lambda k.M)\\
+%   \sembr{\resetz{M}} &\defas&
+%               \ba[t]{@{~}l}\Handle\;m\,\Unit\;\With\\
+%                   ~\ba{@{~}l@{~}c@{~}l}
+%                       \Return\;x &\mapsto& x\\
+%                       \OpCase{\dec{Shift0}}{f}{k} &\mapsto& f\,k
+%                    \ea
+%               \ea
+% \end{equations}
+% %
 
-Shallow handlers can be used to simulate control0 and
-prompt0~\cite{KammarLO13}.
-%
-\begin{equations}
-  \sembr{\Controlz~k.M} &\defas& \Do\;\dec{Control0}~(\lambda k.M)\\
-  \sembr{\Promptz~M} &\defas&
-     \bl
-       prompt0\,(\lambda\Unit.M)\\
-       \textbf{where}\;
-         \bl
-            prompt0~m \defas
-              \ba[t]{@{~}l}\ShallowHandle\;m\,\Unit\;\With\\
-                  ~\ba{@{~}l@{~}c@{~}l}
-                      \Return\;x &\mapsto& x\\
-                      \OpCase{\dec{Control0}}{f}{k} &\mapsto& prompt0\,(\lambda\Unit.f\,k)
-                   \ea
-              \ea
-          \el
-      \el
-\end{equations}
+% Shallow handlers can be used to simulate control0 and
+% prompt0~\cite{KammarLO13}.
+% %
+% \begin{equations}
+%   \sembr{\Controlz~k.M} &\defas& \Do\;\dec{Control0}~(\lambda k.M)\\
+%   \sembr{\Promptz~M} &\defas&
+%      \bl
+%        prompt0\,(\lambda\Unit.M)\\
+%        \textbf{where}\;
+%          \bl
+%             prompt0~m \defas
+%               \ba[t]{@{~}l}\ShallowHandle\;m\,\Unit\;\With\\
+%                   ~\ba{@{~}l@{~}c@{~}l}
+%                       \Return\;x &\mapsto& x\\
+%                       \OpCase{\dec{Control0}}{f}{k} &\mapsto& prompt0\,(\lambda\Unit.f\,k)
+%                    \ea
+%               \ea
+%           \el
+%       \el
+% \end{equations}
 %
 %Recursive types are required to type the image of this translation
 
 \paragraph{\citeauthor{Longley09}'s catch-with-continue}
 %
-\dhil{TODO}
+The control operator \emph{catch-with-continue} (abbreviated
+catchcont) is a delimited extension of the $\Catch$ operator. It was
+designed by \citet{Longley09} in 2008~\cite{LongleyW08}. Its origin is
+in game semantics, in which program evaluation is viewed as an
+interactive dialogue with the ambient environment~\cite{Hyland97} ---
+this view aligns neatly with the view of effect handler oriented
+programming. Curiously, \citeauthor{Longley09} and
+\citeauthor{PlotkinP09} developed catchcont and effect handlers,
+respectively, during the same time, in the same country, in the same
+city, in the same building. Despite all of this the two operators have
+not yet been related formally.
+
+The catchcont operator appears as a computation form in our calculus.
+%
+\begin{syntax}
+   &M,N \in \CompCat &::=& \cdots \mid \Catchcont~f.M
+\end{syntax}
+%
+Unlike other delimited control operators, $\Catchcont$ does not
+introduce separate explicit syntactic constructs for the control
+delimiter and control reifier. Instead it leverages the higher-order
+facilities of $\lambda$-calculus: the syntactic construct $\Catchcont$
+play the role of control delimiter and the (generative) function name
+$f$ is the name of the control reifier. \citet{LongleyW08} describe
+$f$ as a `dummy variable'.
+
+The typing rule for $\Catchcont$ is as follows.
 %
 \begin{mathpar}
   \inferrule*
     {\typ{\Gamma, f : A \to B}{M : C \times D} \\ \Ground\;C}
     {\typ{\Gamma}{\Catchcont\;f.M : C \times ((A \to B) \to D) + (A \times (B \to (A \to B) \to C \times D))}}
 \end{mathpar}
+%
+The computation handled by $\Catchcont$ must return a pair, where the
+first component must be a ground value. This restriction ensures that
+the value is not a $\lambda$-abstraction, which means that the value
+cannot contain any further occurrence of the control reifier $f$. The
+second component is unrestricted, and thus, it may contain further
+occurrences of $f$.  If $M$ fully reduces then $\Catchcont$ returns a
+pair consisting of a ground value (i.e. an answer from $M$) and a
+continuation function which allow $M$ to yield further
+`answers'. Alternatively, if $M$ invokes the control reifier $f$, then
+$\Catchcont$ returns a pair consisting of the argument supplied to $f$
+and the current continuation of the invocation of $f$.
+
+The operational rules for $\Catchcont$ are as follows.
 %
 \begin{reductions}
   \slab{Value} &
@@ -4776,7 +4816,15 @@ prompt0~\cite{KammarLO13}.
      \Catchcont \; f .\EC[\,f\,V]   &\reducesto& \Inr\; \Record{V; \lambda x. \lambda f. \Continue~\cont_{\EC}~x}\\
   \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
-
+%
+The \slab{Value} makes sure to bind any lingering instances of $f$ in
+$W$ before escaping the delimiter. The \slab{Capture} rule reifies and
+aborts the current evaluation up to, but no including, the delimiter,
+which gets uninstalled. The reified evaluation context gets stored in
+the second component of the returned pair. Importantly, the second
+$\lambda$-abstraction makes sure to bind any instances of $f$ in the
+captured evaluation context once it has been reinstated by the
+\slab{Resume} rule.
 % \subsection{Second-class control operators}
 % Coroutines, async/await, generators/iterators, amb.
 
