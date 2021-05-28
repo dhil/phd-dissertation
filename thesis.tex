@@ -3732,7 +3732,7 @@ that \citet{DybvigJS07} present a typed embedding of control and
 prompts in Haskell (actually, they present an entire general monadic
 framework for implementing control operators based on the idea of
 \emph{multi-prompts}, which are a slight generalisation of prompts ---
-we will revisit multi-prompts when we discuss cupto).
+we will revisit multi-prompts when we discuss splitter and cupto).
 %
 % \dhil{Mention Yonezawa and Kameyama's type system.}
 % %
@@ -3972,19 +3972,19 @@ dynamic semantics as well.
 %
 \begin{reductions}
   \slab{Value}    & \reset{V}               &\reducesto& V\\
-  \slab{Capture}  & \reset{\EC[\shift\;k.M]} &\reducesto& \reset{M[\qq{\cont_{\EC}}/k]}, \text { where $\EC$ contains no $\reset{-}$}\\
+  \slab{Capture}  & \reset{\EC[\shift\;k.M]} &\reducesto& \reset{M[\qq{\cont_{\reset{\EC}}}/k]}, \text { where $\EC$ contains no $\reset{-}$}\\
   % \slab{Resume}   & \reset{\EC[\Continue~\cont_{\reset{\EC'}}~V]} &\reducesto& \reset{\EC[\reset{\EC'[V]}]}\\
-  \slab{Resume}   & \Continue~\cont_{\EC}~V &\reducesto& \reset{\EC[V]}\\
+  \slab{Resume}   & \Continue~\cont_{\reset{\EC}}~V &\reducesto& \reset{\EC[V]}\\
 \end{reductions}
 %
-The $\slab{Value}$ and $\slab{Capture}$ rules are the same as for
-control/prompt (modulo the syntactic differences). The static nature
-of shift/reset manifests operationally in the $\slab{Resume}$ rule,
-where the reinstalled context $\EC$ gets enclosed in a new reset. The
-extra reset has ramifications for the operational behaviour of
-subsequent occurrences of $\shift$ in $\EC$. To put this into
-perspective, let us revisit the second control/prompt example with
-shift/reset instead.
+The key difference between \citeauthor{Felleisen88}'s control/prompt
+and shift/reset is that the $\slab{Capture}$ rule for the latter
+includes a copy of the delimiter in the reified continuation. This
+delimiter gets installed along with the captured context $\EC$ when
+the continuation object is resumed. The extra reset has ramifications
+for the operational behaviour of subsequent occurrences of $\shift$ in
+$\EC$. To put this into perspective, let us revisit the second
+control/prompt example with shift/reset instead.
 %
 \begin{derivation}
   & 1 + \reset{2 + (\shift\;k.3 + k\,0) + (\shift\;k'.4)}\\
@@ -4015,9 +4015,60 @@ translation in Standard ML New Jersey~\cite{AppelM91}, using
 \citeauthor{Filinski94}'s encoding of shift/reset in terms of callcc
 and state~\cite{Filinski94}.
 %
+
+As with control and prompt there exist various variation of shift and
+reset. \citet{DanvyF89} also considered $\shiftz$ and
+$\resetz{-}$. The operational difference between $\shiftz$/$\resetz{-}$
+and $\shift$/$\reset{-}$ manifests in the capture rule.
 %
-\dhil{Maybe mention the implication is that control/prompt has CPS semantics.}
-\dhil{Mention shift0/reset0, dollar0\dots}
+\begin{reductions}
+  \slab{Capture_0}  & \resetz{\EC[\shiftz\,k.M]} &\reducesto& M[\qq{\cont_{\resetz{\EC}}}/k], \text { where $\EC$ contains no $\resetz{-}$}\\
+\end{reductions}
+%
+The control reifier captures the continuation up to and including its
+delimiter, however, unlike $\shift$, it removes the control delimiter
+from the current evaluation context. Thus $\shiftz$/$\resetz{-}$ are
+`dynamic' variations on $\shift$/$\reset{-}$. \citet{MaterzokB12}
+introduced $\dollarz{-}{-}$ (pronounced ``dollar0'') as an
+alternative control delimiter for $\shiftz$.
+\begin{reductions}
+  \slab{Value_{\$_0}} & \dollarz{x.N}{V}  &\reducesto& N[V/x]\\
+  \slab{Capture_{\$_0}}  & \dollarz{x.N}{\EC[\shiftz\,k.M]} &\reducesto& M[\qq{\cont_{(\dollarzh{x.N}{\EC})}}/k],\\
+  &&&\quad\text{where $\EC$ contains no $\reset{-\mid-}$}\\
+  \slab{Resume_{\$_0}}   & \Continue~\cont_{(\dollarz{x.N}{\EC})}~V &\reducesto& \dollarz{x.N}{\EC[V]}\\
+\end{reductions}
+%
+The intuition here is that $\dollarz{x.N}{M}$ evaluates $M$ to some
+value $V$ in a fresh context, and then continues as $N$ with $x$ bound
+to $V$. Thus it builds in a form of ``success continuation'' that
+makes it possible to post-process the result of a reset0 term. In
+fact, reset0 is macro-expressible in terms of
+dollar0~\cite{MaterzokB12}.
+%
+\[
+ \sembr{\resetz{M}} \defas \dollarz{x.x}{\sembr{M}}\\
+\]
+%
+By taking the success continuation to be the identity function dollar0
+becomes operationally equivalent to reset0. As it turns out reset0 and
+shift0 (together) can macro-express dollar0~\cite{MaterzokB12}.
+%
+\[
+ \sembr{\dollarz{x.N}{M}} \defas (\lambda k.\resetz{(\lambda x.\shiftz~z.k~x)\,\sembr{M}})\,(\lambda x.\sembr{N})
+\]
+%
+This translation is a little more involved. The basic idea is to first
+explicit pass in the success continuation, then evaluate $M$ under a
+reset to yield value which gets bound to $x$, and then subsequently
+uninstall the reset by invoking $\shiftz$ and throwing away the
+captured continuation, afterwards we invoke the success continuation
+with the value $x$.
+
+% Even though the two constructs are equi-expressive (in the sense of macro-expressiveness) there are good reason for preferring dollar0 over reset0 Since the two constructs are equi-expressive, the curious reader might
+% wonder why \citet{MaterzokB12} were
+
+% \dhil{Maybe mention the implication is that control/prompt has CPS semantics.}
+% \dhil{Mention shift0/reset0, dollar0\dots}
 % \begin{reductions}
 %   % \slab{Value}    & \reset{V}               &\reducesto& V\\
 %   \slab{Capture}  & \reset{\EC[\shift\,k.M]} &\reducesto& M[\cont_{\reset{\EC}}/k]\\
@@ -4026,18 +4077,18 @@ and state~\cite{Filinski94}.
 %
 
 \paragraph{\citeauthor{QueinnecS91}'s splitter} The `splitter' control
-operator reconciles abortive undelimited control and composable
-delimited control. It was introduced by \citet{QueinnecS91} in
-1991. The name `splitter' is derived from it operational behaviour, as
-an application of `splitter' marks evaluation context in order for it
-to be split into two parts, where the context outside the mark
-represents the rest of computation, and the context inside the mark
-may be reified into a delimited continuation. The operator supports
-two operations `abort' and `calldc' to control the splitting of
-evaluation contexts. The former has the effect of escaping to the
-outer context, whilst the latter reifies the inner context as a
-delimited continuation (the operation name is short for ``call with
-delimited continuation'').
+operator reconciles abortive continuations and composable
+continuations. It was introduced by \citet{QueinnecS91} in 1991. The
+name `splitter' is derived from it operational behaviour, as an
+application of `splitter' marks evaluation context in order for it to
+be split into two parts, where the context outside the mark represents
+the rest of computation, and the context inside the mark may be
+reified into a delimited continuation. The operator supports two
+operations `abort' and `calldc' to control the splitting of evaluation
+contexts. The former has the effect of escaping to the outer context,
+whilst the latter reifies the inner context as a delimited
+continuation (the operation name is short for ``call with delimited
+continuation'').
 
 Splitter and the two operations abort and calldc are value forms.
 %
@@ -4111,8 +4162,8 @@ track of which prompt names have already been allocated.
 \begin{reductions}
   \slab{AppSplitter} & \splitter~V,\rho &\reducesto& \Prompt_p~V\,p,\rho \uplus \{p\}\\
   \slab{Value}    & \Prompt_p~V,\rho &\reducesto& V,\rho\\
-  \slab{Abort}    & \Prompt_p~\EC[\abort~\Record{p;V}],\rho &\reducesto& V\,\Unit,\rho,\quad \text{where $\EC$ contains no $\Prompt_p$}\\
-  \slab{Capture}  & \Prompt_p~\EC[\calldc~V] &\reducesto& V~\qq{\cont_{\EC}},\rho\\
+  \slab{Abort}    & \Prompt_p~\EC[\abort\,\Record{p;V}],\rho &\reducesto& V\,\Unit,\rho\\%, \quad \text{where $\EC$ contains no $\Prompt_p$}\\
+  \slab{Capture}  & \Prompt_p~\EC[\calldc\,\Record{p;V}] &\reducesto& V~\qq{\cont_{\EC}},\rho\\
   \slab{Resume}   & \Continue~\cont_{\EC}~V,\rho &\reducesto& \EC[V],\rho
 \end{reductions}
 %
@@ -4133,13 +4184,58 @@ operation the prompt is removed. % Thus, $\calldc$ behaves as a
 % delimited variation of $\Callcc$.
 %
 
-It is clear by the prompt semantics that invocation of either $\abort$
-and $\calldc$ is only well-defined within the dynamic extent of
-$\splitter$. Since the prompt is eliminated after use of either
+It is clear by the prompt semantics that an invocation of either
+$\abort$ and $\calldc$ is only well-defined within the dynamic extent
+of $\splitter$. Since the prompt is eliminated after use of either
 operation subsequent operation invocations must be guarded by a new
 instance of $\splitter$.
 %
-\dhil{Show an example}
+\begin{derivation}
+  &2 + \splitter\,(\lambda p.2 + \splitter\,(\lambda p'.3 + \calldc\,\Record{p;\lambda k. k~0 + \abort\,\Record{p';\lambda\Unit.k~1}})),\emptyset\\
+  \reducesto& \reason{\slab{AppSplitter}}\\
+  &2 + \Prompt_p~2 + \splitter\,(\lambda p'.3 + \calldc\,\Record{p;\lambda k. k~0 + \abort\,\Record{p';\lambda\Unit.k~1}}), \{p\}\\
+  \reducesto& \reason{\slab{AppSplitter}}\\
+  &2 + \Prompt_p~2 + \Prompt_{p'}~3 + \calldc\,\Record{p;\lambda k. k~0 + \abort\,\Record{p';\lambda\Unit.k~1}}, \{p,p'\}\\
+  \reducesto& \reason{\slab{Capture} $\EC = 2 + \Prompt_{p'}~3 + [\,]$}\\
+  &2 + k~0 + \abort\,\Record{p';\lambda\Unit.k~1}, \{p,p'\}\\
+  \reducesto& \reason{\slab{Resume} $\EC$ with $0$}\\
+  &2 + 2 + \Prompt_{p'}~3 + \abort\,\Record{p';\lambda\Unit.\qq{\cont_{\EC}}\,1}, \{p,p'\}\\
+  \reducesto^+& \reason{\slab{Abort}}\\
+  & 4 + \qq{\cont_{\EC}}\,1, \{p,p'\}\\
+  \reducesto& \reason{\slab{Resume} $\EC$ with $1$}\\
+  & 4 + 2 + \Prompt_{p'}~3 + 1, \{p,p'\}\\
+  \reducesto^+& \reason{\slab{Value}}\\
+  & 6 + 4, \{p,p'\} \reducesto 10, \{p,p'\}
+\end{derivation}
+%
+The important thing to observe here is that the application of
+$\calldc$ skips over the inner prompt and reifies it as part of the
+continuation. The first application of $k$ restores the context with
+the prompt. The $\abort$ application erases the evaluation context up
+to this prompt, however, the body of the functional argument to
+$\abort$ reinvokes the continuation $k$ which restores the prompt
+context once again.
+% \begin{derivation}
+%   &1 + \splitter\,(\lambda p.2 + \splitter\,(\lambda p'.3 + \calldc\,\Record{p';\lambda k. k\,0 + \calldc\,\Record{p';\lambda k'. k\,(k'\,1)}}))), \emptyset\\
+%   \reducesto& \reason{\slab{AppSplitter}}\\
+%   &1 + \Prompt_p~2 + \splitter\,(\lambda p'.3 + \calldc\,\Record{p;\lambda k.k~1 + \calldc\,\Record{p';\lambda k'. k\,(k'~1)}})), \{p\}\\
+%   \reducesto& \reason{\slab{AppSplitter}}\\
+%   &1 + \Prompt_p~2 + \Prompt_{p'} 3 + \calldc\,\Record{p';\lambda k.k~0 + \calldc\,\Record{p';\lambda k'. k\,(k'~1)}}, \{p,p'\}\\
+%   \reducesto& \reason{\slab{Capture} $\EC = 2 + \Prompt_{p'}~3 + [\,]$}, \{p,p'\}\\
+%   &1 + ((\lambda k.k~0 + \calldc\,\Record{p';\lambda k'. k\,(k'~1)})\,\qq{\cont_\EC}),\{p,p'\}\\
+%   \reducesto^+& \reason{\slab{Resume} $\EC$ with $0$}\\
+%   &1 + 2 + \Prompt_{p'}~3 + 0 + \calldc\,\Record{p';\lambda k'. \qq{\cont_\EC}\,(k'~1)}\\
+%   \reducesto^+& \reason{\slab{Capture} $\EC' = 3 + [\,]$}\\
+%   &3 + (\lambda k'. \qq{\cont_\EC}\,(k'~1)\,\qq{\cont_{\EC'}})\\
+%   \reducesto^+& \reason{\slab{Resume} $\EC'$ with $1$}\\
+%   &3 + \qq{\cont_\EC}\,(3 + 1)\\
+%   \reducesto^+& \reason{\slab{Resume} $\EC$ with $4$}\\
+%   &3 + 2 + \Prompt_{p'}~3 + 4\\
+%   \reducesto^+& \reason{\slab{Value}}\\
+%   &5 + 7 \reducesto 13
+% \end{derivation}
+%
+
 % \begin{reductions}
 %   \slab{Value}   & \splitter~abort~calldc.V &\reducesto& V\\
 %   \slab{Throw}   & \splitter~abort~calldc.\EC[\,abort~V] &\reducesto& V~\Unit\\
