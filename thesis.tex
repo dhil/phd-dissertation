@@ -232,10 +232,10 @@
   expressiveness that affirms the existence of encodings between
   handlers, but it provides no information about the computational
   content of the encodings. Second, using the semantic notion of
-  \emph{type-respecting expressiveness} I show that for a class of
-  programs a programming language with first-class control
-  (e.g. effect handlers) admits asymptotically faster implementations
-  than possible in a language without first-class control.
+  expressiveness I show that for a class of programs a programming
+  language with first-class control (e.g. effect handlers) admits
+  asymptotically faster implementations than possible in a language
+  without first-class control.
 %
 }
 
@@ -1937,8 +1937,12 @@ deep handlers, which provide a form of lexical scoping for effect
 operations, thus statically binding them to their handlers.
 %
 \citeauthor{Geron19}'s PhD dissertation develops the mathematical
-theory of scoped effect operations, whilst \citet{WuSH14} and
-\citet{BiernackiPPS20} study them from a programming perspective.
+theory of scoped effect operations, whilst \citet{BiernackiPPS20}
+study them in conjunction with ordinary handlers from a programming
+perspective.
+
+% \citet{WuSH14} study scoped effects, which are effects whose payloads
+% are effectful computations
 
 % Effect handlers were conceived in the realm of category theory to give
 % an algebraic treatment of exception handling~\cite{PlotkinP09}. They
@@ -1950,13 +1954,13 @@ either added language-level support for handlers~
 or embedded them in
 libraries~\cite{KiselyovSS13,KiselyovI15,KiselyovS16,KammarLO13,BrachthauserS17,Brady13,XieL20}. Thus
 functional perspectives on effect handlers are plentiful in the
-literature. There are only a a few takes on effect handlers outside
-functional programming: \citeauthor{Brachthauser20}'s PhD dissertation
-contains an object-oriented perspective on effect handlers in
-Java~\cite{Brachthauser20}; \citeauthor{Saleh19}'s PhD dissertation
-offers a logic programming perspective via an effect handlers
-extension to Prolog; and \citet{Leijen17b} has an imperative take on
-effect handlers in C.
+literature. Some notable examples of perspectives on effect handlers
+outside functional programming are: \citeauthor{Brachthauser20}'s PhD
+dissertation, which contains an object-oriented perspective on effect
+handlers in Java~\cite{Brachthauser20}; \citeauthor{Saleh19}'s PhD
+dissertation offers a logic programming perspective via an effect
+handlers extension to Prolog; and \citet{Leijen17b} has an imperative
+take on effect handlers in C.
 
 \section{Contributions}
 The key contributions of this dissertation are scattered across the
@@ -2092,15 +2096,15 @@ recommend \citeauthor{Harper16}'s book \emph{Practical Foundations for
   Programming Languages}~\cite{Harper16} (do not let the ``practical''
 qualifier deceive you) --- the two books complement each other nicely.
 
-\section{Relations and functions}
-\label{sec:functions}
+\section{Relations}
+\label{sec:relations}
 
-Relations and functions feature prominently in the design and
-understanding of the static and dynamic properties of programming
-languages. The interested reader is likely to already be familiar with
-the basic concepts of relations and functions, although this section
-briefly introduces the concepts, its purpose is to introduce the
-notation that I am using pervasively throughout this dissertation.
+Relations feature prominently in the design and understanding of the
+static and dynamic properties of programming languages. The interested
+reader is likely to already be familiar with the basic concepts of
+relations, although this section briefly introduces the concepts, its
+real purpose is to introduce the notation that I am using pervasively
+throughout this dissertation.
 %
 
 I assume familiarity with basic set theory.
@@ -2123,7 +2127,7 @@ this raises the question in which order the product operator
 taken to be right associative, meaning
 $A \times B \times C = A \times (B \times C)$.
 %
-\dhil{Define tuples (and ordered pairs)?}
+%\dhil{Define tuples (and ordered pairs)?}
 %
 % To make the notation more compact for the special case of $n$-fold
 % product of some set $A$ with itself we write
@@ -2138,7 +2142,7 @@ $A \times B \times C = A \times (B \times C)$.
   An element $a \in A$ is related to an element $b \in B$ if
   $(a, b) \in R$, sometimes written using infix notation $a\,R\,b$.
   %
-  If $A = B$ then $R$ is said to be a homogeneous relation.
+  If $A = B$ then $R$ is said to be a \emph{homogeneous} relation.
 \end{definition}
 %
 
@@ -2218,7 +2222,10 @@ related to one $b \in B$. Note this does not mean that every $a$
 \emph{is} related to some $b$. The serial property guarantees that
 every $a \in A$ is related to one or more elements in $B$.
 %
-We use these properties to define partial and total functions.
+
+\section{Functions}
+\label{sec:functions}
+We define partial and total functions in terms of relations.
 %
 \begin{definition}
   A partial function $f : A \pto B$ is a functional relation
@@ -2258,7 +2265,6 @@ written $\dec{Im}(f)$, is the set of values that it can return, i.e.
 \[
     \dec{Im}(f) \defas \{\, f(a) \mid a \in \dom(f) \}.
 \]
-
 
 \begin{definition}
   A function $f : A \to B$ is injective and surjective if it satisfies
@@ -2330,242 +2336,242 @@ of growth of $f$ is constant.
   \]
 \end{definition}
 
-\section{Typed programming languages}
-\label{sec:pls}
-We will be working mostly with statically typed programming
-languages. The following definition informally describes the core
-components used to construct a statically typed programming language.
-%
-The objective here is not to be mathematical
-rigorous.% but rather to give
-% an idea of what constitutes a programming language.
-%
-\begin{definition}
-  A statically typed programming language $\LLL$ consists of a syntax
-  $S$, static semantics $T$, and dynamic semantics $E$ where
-  \begin{itemize}
-  \item $S$ is a collection of, possibly mutually, inductively defined
-    syntactic categories (e.g. terms, types, and kinds). Each
-    syntactic category contains a collection of syntax constructors
-    with nonnegative arities $\{(\SC_i,\ar_i)\}$ which construct
-    abstract syntax trees. We insist that $S$ contains at least two
-    syntactic categories for constructing terms and types of
-    $\LLL$. We write $\Tm(S)$ for the terms category and $\Ty(S)$ for
-    the types category;
-  \item $T : \Tm(S) \times \Ty(S) \to \B$ is \emph{typechecking}
-    function, which decides whether a given term is well-typed; and
-  \item $E : P \pto R$ is an \emph{evaluation} function, which maps
-    well-typed programs
-    \[
-      P \defas \{ M \in \Tm(S) \mid A \in \Ty(S), T(M, A)~\text{is true} \},
-    \]
-    to some unspecified set of answers $R$.
-  \end{itemize}
-\end{definition}
-%
-We will always present the syntax of a programming language on
-Backus-Naur form.
-%
-The static semantics will always be given in form a typing judgement
-(and a kinding judgement for languages with polymorphism), and the
-dynamic semantics will be given as either a reduction relation or an
-abstract machine.
-
-We will take the view that an untyped programming language is a
-special instance of a statically typed programming language, where the
-typechecking function $T$ is the constant function that always returns
-true.
-
-Often we will build programming languages incrementally by starting
-from a base language and extend it with new facilities. A
-\emph{conservative extension} is a particularly well-behaved extension
-in the sense that it preserves the all of the behaviour of the
-original language.
-%
-\begin{definition}
-  A programming language $\LLL = (S, T, E)$ is said to be a
-  \emph{conservative extension} of a language $\LLL' = (S', T', E')$
-  if the following conditions are met.
-  \begin{itemize}
-    \item $\LLL$ syntactically extends $\LLL'$, i.e. $S'$ is a proper
-      subset of $S$.
-    \item $\LLL$ preserves the static semantics and dynamic semantics
-      of $\LLL'$, that is $T(M, A) = T'(M, A)$ and $E(M)$ holds if and
-      only if $E'(M)$ holds for all types $A \in \Ty(S)$ and programs
-      $M \in \Tm(S)$.
-  \end{itemize}
-  Conversely, $\LLL'$ is a \emph{conservative restriction} of $\LLL$.
-\end{definition}
-
-We will often work with translations on syntax between languages. It
-is often the case that a syntactic translation is \emph{homomorphic}
-on most syntax constructors, which is a technical way of saying it
-does not perform any interesting transformation on those
-constructors. Therefore we will omit homomorphic cases in definitions
-of translations.
-%
-\begin{definition}
-  Let $\LLL = (S, T, E)$ and $\LLL' = (S', T', E')$ be programming
-  languages. A translation $\sembr{-} : S \to S'$ on the syntax
-  between $\LLL$ and $\LLL'$ is a homomorphism if it distributes over
-  the syntax constructors, i.e. for every $\{(\SC_i,\ar_i)\}_i \in S$
-  \[
-    \sembr{\SC_i(t_1,\dots,t_{\ar_i})} = \sembr{\SC_i}(\sembr{t_1},\cdots,\sembr{t_{\ar_i}}),
-  \]
-  %
-  where $t_1,\dots,t_{\ar_i}$ are abstract syntax trees. We say that
-  $\sembr{-}$ is homomorphic on $S_i$.
-\end{definition}
-
-We will be using a typed variation of \citeauthor{Felleisen91}'s
-macro-expressivity to compare the relative expressiveness of different
-languages~\cite{Felleisen90,Felleisen91}. Macro-expressivity is a
-syntactic notion based on the idea of macro rewrites as found in the
-programming language Scheme~\cite{SperberDFSFM10}.
-%
-Informally, if $\LLL$ admits a translation into a sublanguage $\LLL'$
-in a way which respects not only the behaviour of programs but also
-their local syntactic structure, then $\LLL'$ macro-expresses
-$\LLL$. % If the translation of some $\LLL$-program into $\LLL'$
-% requires a complete global restructuring, then we may say that $\LLL'$
-% is in some way less expressive than $\LLL$.
-%
-\begin{definition}[Typability-preserving macro-expressiveness]
-  Let both $\LLL = (S, T, E)$ and $\LLL' = (S', T', E')$ be
-  programming languages such that the syntax constructors
-  $\SC_1,\dots,\SC_k$ are unique to $\LLL$. If there exists a
-  translation $\sembr{-} : S \to S'$ on the syntax of $\LLL$ that is
-  homomorphic on all syntax constructors but $\SC_1,\dots,\SC_k$, such
-  that for all $A \in \Ty(S)$ and $M \in \Tm(S)$
-  %
-  \[
-     T(M,A) = T'(\sembr{M},\sembr{A})~\text{and}~
-     E(M)~\text{holds if and only if}~E'(\sembr{M})~\text{holds},
-  \]
-  %
-  then we say that $\LLL'$ can \emph{macro-express} the
-  $\SC_1,\dots,\SC_k$ facilities of $\LLL$.
-\end{definition}
-%
-In general, it is not the case that $\sembr{-}$ preserves types, it is
-only required to ensure that the translated term is typable in the
-target language $\LLL'$.
-
-\begin{definition}[Type-respecting expressiveness]
-  Let $\LLL = (S,T,E)$ and $\LLL' = (S',T',E')$ be programming
-  languages and $A$ be a type such that $A \in \Ty(S)$ and
-  $A \in \Ty(S')$.
-\end{definition}
-
-% \dhil{Definition of (typed) programming language, conservative extension, macro-expressiveness~\cite{Felleisen90,Felleisen91}}
-
-% \begin{definition}
-%   A signature $\Sigma$ is a collection of abstract syntax constructors
-%   with arities $\{(\SC_i, \ar_i)\}_i$, where $\ST_i$ are syntactic
-%   entities and $\ar_i$ are natural numbers. Syntax constructors with
-%   arities $0$, $1$, $2$, and $3$ are referred to as nullary, unary,
-%   binary, and ternary, respectively.
-% \end{definition}
-
-% \begin{definition}[Terms in contexts]
-%   A context $\mathcal{X}$ is set of variables $\{x_1,\dots,x_n\}$. For
-%   a signature $\Sigma = \{(\SC_i, \ar_i)\}_i$ the $\Sigma$-terms in
-%   some context $\mathcal{X}$ are generated according to the following
-%   inductive rules:
-%   \begin{itemize}
-%     \item each variable $x_i \in \mathcal{X}$ is a $\Sigma$-term,
-%     \item if $t_1,\dots,t_{\ar_i}$ are $\Sigma$-terms in context
-%       $\mathcal{X}$, then $\SC_i(t_1,\dots,t_{\ar_i})$ is
-%       $\Sigma$-term in context $\mathcal{X}$.
-%     \end{itemize}
-%     We write $\mathcal{X} \vdash t$ to indicate that $t$ is a
-%     $\Sigma$-term in context $\mathcal{X}$. A $\Sigma$-term $t$ is
-%     said to be closed if $\emptyset \vdash t$, i.e. no variables occur
-%     in $t$.
-% \end{definition}
-
-% \begin{definition}
-%   A $\Sigma$-equation is a pair of terms $t_1,t_2 \in \Sigma$ in
-%   context $\mathcal{X}$, which we write as
-%   $\mathcal{X} \vdash t_1 = t_2$.
-% \end{definition}
-
-% The notation $\mathcal{X} \vdash t_1 = t_2$ begs to be read as a
-% logical statement, though, in universal algebra the notation is simply
-% a syntax. In order to give it a meaning we must first construct a
-% \emph{model} which interprets the syntax. We shall not delve deeper
-% here; for our purposes we may think of a $\Sigma$-equation as a
-% logical statement (the attentive reader may already have realised that .
-
-
-% The following definition is an adaptation of
-% \citeauthor{Felleisen90}'s definition of programming language to
-% define statically typed programming languages~\cite{Felleisen90}.
+% \section{Typed programming languages}
+% \label{sec:pls}
+% We will be working mostly with statically typed programming
+% languages. The following definition informally describes the core
+% components used to construct a statically typed programming language.
+% %
+% The objective here is not to be mathematical
+% rigorous.% but rather to give
+% % an idea of what constitutes a programming language.
 % %
 % \begin{definition}
-%   %
-%   A statically typed programming language $\LLL$ consists of the
-%   following components.
-%   %
+%   A statically typed programming language $\LLL$ consists of a syntax
+%   $S$, static semantics $T$, and dynamic semantics $E$ where
 %   \begin{itemize}
-%   \item A signature $\Sigma_T = \{(\ST_i,\ar_i)\}_i$ of \emph{type syntax constructors}.
-%   \item A signature $\Sigma_t = \{(\SC_i,\ar_i)\}_i$ of \emph{term syntax constructors}.
-%   \item A signature $\Sigma_p = \{(\SC_i,
-%   \item A static semantics, which is a function
-%     $typecheck : \Sigma_t \to \B$, which decides whether a
-%     given closed term is well-typed.
-%   \item An operational semantics, which is a partial function
-%     $eval : P \pto R$, where $P$ is the set of well-typed terms, i.e.
-%     %
+%   \item $S$ is a collection of, possibly mutually, inductively defined
+%     syntactic categories (e.g. terms, types, and kinds). Each
+%     syntactic category contains a collection of syntax constructors
+%     with nonnegative arities $\{(\SC_i,\ar_i)\}$ which construct
+%     abstract syntax trees. We insist that $S$ contains at least two
+%     syntactic categories for constructing terms and types of
+%     $\LLL$. We write $\Tm(S)$ for the terms category and $\Ty(S)$ for
+%     the types category;
+%   \item $T : \Tm(S) \times \Ty(S) \to \B$ is \emph{typechecking}
+%     function, which decides whether a given term is well-typed; and
+%   \item $E : P \pto R$ is an \emph{evaluation} function, which maps
+%     well-typed programs
 %     \[
-%       P = \{ t \in \Sigma_t \mid typecheck~t~\text{is true} \},
+%       P \defas \{ M \in \Tm(S) \mid A \in \Ty(S), T(M, A)~\text{is true} \},
 %     \]
-%     %
-%     and $R$ is some unspecified set of answers.
+%     to some unspecified set of answers $R$.
 %   \end{itemize}
 % \end{definition}
 % %
+% We will always present the syntax of a programming language on
+% Backus-Naur form.
+% %
+% The static semantics will always be given in form a typing judgement
+% (and a kinding judgement for languages with polymorphism), and the
+% dynamic semantics will be given as either a reduction relation or an
+% abstract machine.
 
-% An untyped programming language is just a special instance of a
-% statically typed programming language, where the signature of type
-% syntax constructors is a singleton containing a nullary type syntax
-% constructor for the \emph{universal type}, and the function
-% $typecheck$ is a constant function that always returns true.
+% We will take the view that an untyped programming language is a
+% special instance of a statically typed programming language, where the
+% typechecking function $T$ is the constant function that always returns
+% true.
 
-% A statically polymorphic typed programming language $\LLL$ also
-% includes a set of $\LLL$-kinds of kind syntax constructors as well as
-% a function $kindcheck_\LLL : \LLL\text{-types} \to \B$ which checks
-% whether a given type is well-kinded.
-
+% Often we will build programming languages incrementally by starting
+% from a base language and extend it with new facilities. A
+% \emph{conservative extension} is a particularly well-behaved extension
+% in the sense that it preserves the all of the behaviour of the
+% original language.
+% %
 % \begin{definition}
-%   A context free grammar is a quadruple $(N, \Sigma, R, S)$, where
-%   \begin{enumerate}
-%     \item $N$ is a finite set called the nonterminals.
-%     \item $\Sigma$ is a finite set, such that
-%       $\Sigma \cap V = \emptyset$, called the alphabet (or terminals).
-%     \item $R$ is a finite set of rules, each rule is on the form
-%       \[
-%         P ::= (N \cup \Sigma)^\ast, \quad\text{where}~P \in N.
-%       \]
-%     \item $S$ is the initial nonterminal.
-%   \end{enumerate}
+%   A programming language $\LLL = (S, T, E)$ is said to be a
+%   \emph{conservative extension} of a language $\LLL' = (S', T', E')$
+%   if the following conditions are met.
+%   \begin{itemize}
+%     \item $\LLL$ syntactically extends $\LLL'$, i.e. $S'$ is a proper
+%       subset of $S$.
+%     \item $\LLL$ preserves the static semantics and dynamic semantics
+%       of $\LLL'$, that is $T(M, A) = T'(M, A)$ and $E(M)$ holds if and
+%       only if $E'(M)$ holds for all types $A \in \Ty(S)$ and programs
+%       $M \in \Tm(S)$.
+%   \end{itemize}
+%   Conversely, $\LLL'$ is a \emph{conservative restriction} of $\LLL$.
 % \end{definition}
 
+% We will often work with translations on syntax between languages. It
+% is often the case that a syntactic translation is \emph{homomorphic}
+% on most syntax constructors, which is a technical way of saying it
+% does not perform any interesting transformation on those
+% constructors. Therefore we will omit homomorphic cases in definitions
+% of translations.
+% %
+% \begin{definition}
+%   Let $\LLL = (S, T, E)$ and $\LLL' = (S', T', E')$ be programming
+%   languages. A translation $\sembr{-} : S \to S'$ on the syntax
+%   between $\LLL$ and $\LLL'$ is a homomorphism if it distributes over
+%   the syntax constructors, i.e. for every $\{(\SC_i,\ar_i)\}_i \in S$
+%   \[
+%     \sembr{\SC_i(t_1,\dots,t_{\ar_i})} = \sembr{\SC_i}(\sembr{t_1},\cdots,\sembr{t_{\ar_i}}),
+%   \]
+%   %
+%   where $t_1,\dots,t_{\ar_i}$ are abstract syntax trees. We say that
+%   $\sembr{-}$ is homomorphic on $S_i$.
+% \end{definition}
 
-% \chapter{State of effectful programming}
-% \label{ch:related-work}
+% We will be using a typed variation of \citeauthor{Felleisen91}'s
+% macro-expressivity to compare the relative expressiveness of different
+% languages~\cite{Felleisen90,Felleisen91}. Macro-expressivity is a
+% syntactic notion based on the idea of macro rewrites as found in the
+% programming language Scheme~\cite{SperberDFSFM10}.
+% %
+% Informally, if $\LLL$ admits a translation into a sublanguage $\LLL'$
+% in a way which respects not only the behaviour of programs but also
+% their local syntactic structure, then $\LLL'$ macro-expresses
+% $\LLL$. % If the translation of some $\LLL$-program into $\LLL'$
+% % requires a complete global restructuring, then we may say that $\LLL'$
+% % is in some way less expressive than $\LLL$.
+% %
+% \begin{definition}[Typeability-preserving macro-expressiveness]
+%   Let both $\LLL = (S, T, E)$ and $\LLL' = (S', T', E')$ be
+%   programming languages such that the syntax constructors
+%   $\SC_1,\dots,\SC_k$ are unique to $\LLL$. If there exists a
+%   translation $\sembr{-} : S \to S'$ on the syntax of $\LLL$ that is
+%   homomorphic on all syntax constructors but $\SC_1,\dots,\SC_k$, such
+%   that for all $A \in \Ty(S)$ and $M \in \Tm(S)$
+%   %
+%   \[
+%      T(M,A) = T'(\sembr{M},\sembr{A})~\text{and}~
+%      E(M)~\text{holds if and only if}~E'(\sembr{M})~\text{holds},
+%   \]
+%   %
+%   then we say that $\LLL'$ can \emph{macro-express} the
+%   $\SC_1,\dots,\SC_k$ facilities of $\LLL$.
+% \end{definition}
+% %
+% In general, it is not the case that $\sembr{-}$ preserves types, it is
+% only required to ensure that the translated term is typeable in the
+% target language $\LLL'$.
 
-% % \section{Type and effect systems}
-% % \section{Monadic programming}
-% \section{Golden age of impurity}
-% \section{Monadic enlightenment}
-% \dhil{Moggi's seminal work applies the notion of monads to effectful
-%   programming by modelling effects as monads. More importantly,
-%   Moggi's work gives a precise characterisation of what's \emph{not}
-%   an effect}
-% \section{Direct-style revolution}
+% \begin{definition}[Type-respecting expressiveness]
+%   Let $\LLL = (S,T,E)$ and $\LLL' = (S',T',E')$ be programming
+%   languages and $A$ be a type such that $A \in \Ty(S)$ and
+%   $A \in \Ty(S')$.
+% \end{definition}
 
-% \subsection{Monadic reflection: best of both worlds}
+% % \dhil{Definition of (typed) programming language, conservative extension, macro-expressiveness~\cite{Felleisen90,Felleisen91}}
+
+% % \begin{definition}
+% %   A signature $\Sigma$ is a collection of abstract syntax constructors
+% %   with arities $\{(\SC_i, \ar_i)\}_i$, where $\ST_i$ are syntactic
+% %   entities and $\ar_i$ are natural numbers. Syntax constructors with
+% %   arities $0$, $1$, $2$, and $3$ are referred to as nullary, unary,
+% %   binary, and ternary, respectively.
+% % \end{definition}
+
+% % \begin{definition}[Terms in contexts]
+% %   A context $\mathcal{X}$ is set of variables $\{x_1,\dots,x_n\}$. For
+% %   a signature $\Sigma = \{(\SC_i, \ar_i)\}_i$ the $\Sigma$-terms in
+% %   some context $\mathcal{X}$ are generated according to the following
+% %   inductive rules:
+% %   \begin{itemize}
+% %     \item each variable $x_i \in \mathcal{X}$ is a $\Sigma$-term,
+% %     \item if $t_1,\dots,t_{\ar_i}$ are $\Sigma$-terms in context
+% %       $\mathcal{X}$, then $\SC_i(t_1,\dots,t_{\ar_i})$ is
+% %       $\Sigma$-term in context $\mathcal{X}$.
+% %     \end{itemize}
+% %     We write $\mathcal{X} \vdash t$ to indicate that $t$ is a
+% %     $\Sigma$-term in context $\mathcal{X}$. A $\Sigma$-term $t$ is
+% %     said to be closed if $\emptyset \vdash t$, i.e. no variables occur
+% %     in $t$.
+% % \end{definition}
+
+% % \begin{definition}
+% %   A $\Sigma$-equation is a pair of terms $t_1,t_2 \in \Sigma$ in
+% %   context $\mathcal{X}$, which we write as
+% %   $\mathcal{X} \vdash t_1 = t_2$.
+% % \end{definition}
+
+% % The notation $\mathcal{X} \vdash t_1 = t_2$ begs to be read as a
+% % logical statement, though, in universal algebra the notation is simply
+% % a syntax. In order to give it a meaning we must first construct a
+% % \emph{model} which interprets the syntax. We shall not delve deeper
+% % here; for our purposes we may think of a $\Sigma$-equation as a
+% % logical statement (the attentive reader may already have realised that .
+
+
+% % The following definition is an adaptation of
+% % \citeauthor{Felleisen90}'s definition of programming language to
+% % define statically typed programming languages~\cite{Felleisen90}.
+% % %
+% % \begin{definition}
+% %   %
+% %   A statically typed programming language $\LLL$ consists of the
+% %   following components.
+% %   %
+% %   \begin{itemize}
+% %   \item A signature $\Sigma_T = \{(\ST_i,\ar_i)\}_i$ of \emph{type syntax constructors}.
+% %   \item A signature $\Sigma_t = \{(\SC_i,\ar_i)\}_i$ of \emph{term syntax constructors}.
+% %   \item A signature $\Sigma_p = \{(\SC_i,
+% %   \item A static semantics, which is a function
+% %     $typecheck : \Sigma_t \to \B$, which decides whether a
+% %     given closed term is well-typed.
+% %   \item An operational semantics, which is a partial function
+% %     $eval : P \pto R$, where $P$ is the set of well-typed terms, i.e.
+% %     %
+% %     \[
+% %       P = \{ t \in \Sigma_t \mid typecheck~t~\text{is true} \},
+% %     \]
+% %     %
+% %     and $R$ is some unspecified set of answers.
+% %   \end{itemize}
+% % \end{definition}
+% % %
+
+% % An untyped programming language is just a special instance of a
+% % statically typed programming language, where the signature of type
+% % syntax constructors is a singleton containing a nullary type syntax
+% % constructor for the \emph{universal type}, and the function
+% % $typecheck$ is a constant function that always returns true.
+
+% % A statically polymorphic typed programming language $\LLL$ also
+% % includes a set of $\LLL$-kinds of kind syntax constructors as well as
+% % a function $kindcheck_\LLL : \LLL\text{-types} \to \B$ which checks
+% % whether a given type is well-kinded.
+
+% % \begin{definition}
+% %   A context free grammar is a quadruple $(N, \Sigma, R, S)$, where
+% %   \begin{enumerate}
+% %     \item $N$ is a finite set called the nonterminals.
+% %     \item $\Sigma$ is a finite set, such that
+% %       $\Sigma \cap V = \emptyset$, called the alphabet (or terminals).
+% %     \item $R$ is a finite set of rules, each rule is on the form
+% %       \[
+% %         P ::= (N \cup \Sigma)^\ast, \quad\text{where}~P \in N.
+% %       \]
+% %     \item $S$ is the initial nonterminal.
+% %   \end{enumerate}
+% % \end{definition}
+
+
+% % \chapter{State of effectful programming}
+% % \label{ch:related-work}
+
+% % % \section{Type and effect systems}
+% % % \section{Monadic programming}
+% % \section{Golden age of impurity}
+% % \section{Monadic enlightenment}
+% % \dhil{Moggi's seminal work applies the notion of monads to effectful
+% %   programming by modelling effects as monads. More importantly,
+% %   Moggi's work gives a precise characterisation of what's \emph{not}
+% %   an effect}
+% % \section{Direct-style revolution}
+
+% % \subsection{Monadic reflection: best of both worlds}
 
 \chapter{Continuations}
 \label{ch:continuations}
@@ -6065,7 +6071,7 @@ semantics of \BCalc{}. In this section, we state and prove some
 customary metatheoretic properties about \BCalc{}.
 %
 
-We begin by showing that substitutions preserve typability.
+We begin by showing that substitutions preserve typeability.
 %
 \begin{lemma}[Preservation of typing under substitution]\label{lem:base-language-subst}
   Let $\sigma$ be any type substitution and $V \in \ValCat$ be any
@@ -14418,17 +14424,18 @@ setting.
 %
 
 We will restrict our attention to the calculi $\HCalc$, $\SCalc$, and
-$\HPCalc$ and use the notion of \emph{typability-preserving
+$\HPCalc$ and use the notion of \emph{typeability-preserving
   macro-expressiveness} to determine whether handlers are
-interdefinable. In our particular setting, typability-preserving
-macro-expressiveness asks whether there exists a \emph{local}
-transformation that can transform one kind of handler into another
-kind of handler, whilst preserving typability in the image of the
-transformation. By mandating that the transform is local we rule out
-the possibility of rewriting the entire program in, say, CPS notation
-to implement deep and shallow handlers as in Chapter~\ref{ch:cps}.
+interdefinable~\cite{ForsterKLP19}. In our particular setting,
+typeability-preserving macro-expressiveness asks whether there exists
+a \emph{local} transformation that can transform one kind of handler
+into another kind of handler, whilst preserving typeability in the
+image of the transformation. By mandating that the transform is local
+we rule out the possibility of rewriting the entire program in, say,
+CPS notation to implement deep and shallow handlers as in
+Chapter~\ref{ch:cps}.
 %
-In this chapter we use the notion of typability-preserving
+In this chapter we use the notion of typeability-preserving
 macro-expressiveness to show that shallow handlers and general
 recursion can simulate deep handlers up to congruence, and that deep
 handlers can simulate shallow handlers up to administrative
@@ -14527,7 +14534,7 @@ The deep semantics are simulated by generating the name $env$ for the
 shallow handlers and recursively apply the handler under the modified
 resumption.
 
-The translation commutes with substitution and preserves typability.
+The translation commutes with substitution and preserves typeability.
 %
 \begin{lemma}\label{lem:dstrans-subst}
   Let $\sigma$ denote a substitution. The translation $\dstrans{-}$
@@ -14721,13 +14728,13 @@ $\BigO(1)$ time in the source, but in the image it takes $\BigO(k)$
 time.
 %
 Thus this translation is more of theoretical significance than
-practical interest. It also demonstrates that typability-preserving
+practical interest. It also demonstrates that typeability-preserving
 macro-expressiveness is rather coarse-grained notion of
 expressiveness, as it blindly considers whether some construct is
 computable using another construct without considering the
 computational cost.
 
-The translation commutes with substitution and preserves typability.
+The translation commutes with substitution and preserves typeability.
 %
 \begin{lemma}\label{lem:sdtrans-subst}
   Let $\sigma$ denote a substitution. The translation $\sdtrans{-}$
@@ -14758,7 +14765,7 @@ If $\Delta; \Gamma \vdash M : C$ then $\sdtrans{\Delta};
 \newcommand{\approxa}{\gtrsim}
 
 As with the implementation of deep handlers as shallow handlers, the
-implementation is again given by a typability-preserving local
+implementation is again given by a typeability-preserving local
 translation. However, this time the administrative overhead is more
 significant. Reduction up to congruence is insufficient and we require
 a more semantic notion of administrative reduction.
@@ -15295,7 +15302,7 @@ handler into an ordinary deep handler that makes use of the
 parameter-passing idiom to maintain the state of the handled
 computation~\cite{Pretnar15}.
 
-The translation commutes with substitution and preserves typability.
+The translation commutes with substitution and preserves typeability.
 %
 \begin{lemma}\label{lem:pd-subst}
   Let $\sigma$ denote a substitution. The translation $\PD{-}$
@@ -15401,7 +15408,7 @@ myself on the inherited efficiency of effect handlers
 (c.f. Chapter~\ref{ch:handlers-efficiency}) and \citet{ForsterKLP17}, who
 investigate various relationships between effect handlers, delimited
 control in the form of shift/reset, and monadic reflection using the
-notions of typability-preserving macro-expressiveness and untyped
+notions of typeability-preserving macro-expressiveness and untyped
 macro-expressiveness~\cite{ForsterKLP17,ForsterKLP19}. They show that
 in an untyped setting all three are interdefinable, whereas in a
 simply typed setting effect handlers cannot macro-express
@@ -15426,7 +15433,7 @@ the captured context and continuation invocation context to coincide.
 % \label{ch:expressiveness}
 % \section{Notions of expressiveness}
 % Felleisen's macro-expressiveness, Longley's type-respecting
-% expressiveness, Kammar's typability-preserving expressiveness.
+% expressiveness, Kammar's typeability-preserving expressiveness.
 
 \chapter{Asymptotic speedup with effect handlers}
 \label{ch:handlers-efficiency}
