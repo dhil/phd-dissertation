@@ -4189,6 +4189,8 @@ $\abort$ and $\calldc$ is only well-defined within the dynamic extent
 of $\splitter$. Since the prompt is eliminated after use of either
 operation subsequent operation invocations must be guarded by a new
 instance of $\splitter$.
+
+Let us consider an example using both $\calldc$ and $\abort$.
 %
 \begin{derivation}
   &2 + \splitter\,(\lambda p.2 + \splitter\,(\lambda p'.3 + \calldc\,\Record{p;\lambda k. k~0 + \abort\,\Record{p';\lambda\Unit.k~1}})),\emptyset\\
@@ -4210,11 +4212,12 @@ instance of $\splitter$.
 %
 The important thing to observe here is that the application of
 $\calldc$ skips over the inner prompt and reifies it as part of the
-continuation. The first application of $k$ restores the context with
-the prompt. The $\abort$ application erases the evaluation context up
-to this prompt, however, the body of the functional argument to
-$\abort$ reinvokes the continuation $k$ which restores the prompt
-context once again.
+continuation. This behaviour stands differ from the original
+formulations of control/prompt, shift/reset. The first application of
+$k$ restores the context with the prompt. The $\abort$ application
+erases the evaluation context up to this prompt, however, the body of
+the functional argument to $\abort$ reinvokes the continuation $k$
+which restores the prompt context once again.
 % \begin{derivation}
 %   &1 + \splitter\,(\lambda p.2 + \splitter\,(\lambda p'.3 + \calldc\,\Record{p';\lambda k. k\,0 + \calldc\,\Record{p';\lambda k'. k\,(k'\,1)}}))), \emptyset\\
 %   \reducesto& \reason{\slab{AppSplitter}}\\
@@ -4295,8 +4298,29 @@ rules. The interesting rule is the $\slab{Capture}$. When $\fcontrol$
 is applied to some value $W$ the enclosing context $\EC$ gets reified
 and aborted up to the nearest enclosing prompt, which invokes the
 handler $V$ with the argument $W$ and the continuation.
+
+Consider the following, slightly involved, example.
 %
-\dhil{Show an example\dots}
+\begin{derivation}
+  &2 + \fprompt\,(\lambda y~k'.1 + k'~y).\fprompt\,(\lambda x~k. x + k\,(\fcontrol~k)).3 + \fcontrol~1\\
+  \reducesto& \reason{\slab{Capture} $\EC = 3 + [\,]$}\\
+  &2 + \fprompt\,(\lambda y~k'.1 + k'~y).(\lambda x~k. x + k\,(\fcontrol~k))\,1\,\qq{\cont_{\EC}}\\
+  \reducesto^+& \reason{\slab{Capture} $\EC' = 1 + \qq{\cont_{\EC}}\,[\,]$}\\
+  &2 + (\lambda k~k'.k'\,(k~1))\,\qq{\cont_{\EC}}\,\qq{\cont_{\EC'}}\\
+  \reducesto^+& \reason{\slab{Resume} $\EC$ with $1$}\\
+  &2 + \qq{\cont{\EC'}}\,(3 + 1)\\
+  \reducesto^+& \reason{\slab{Resume} $\EC'$ with $4$}\\
+  &2 + 1 + \qq{\cont_{\EC}}\,4\\
+  \reducesto^+& \reason{\slab{Resume} $\EC$ with 4}\\
+  &3 + 3 + 4 \reducesto^+ 10
+\end{derivation}
+%
+This example makes use of nontrivial control manipulation as it passes
+a captured continuation around. However, the point is that the
+separation of the handling of continuations from their capture makes
+it considerably easier to implement complicated control idioms,
+because the handling code is compartmentalised.
+
 
 \paragraph{Cupto} The control operator cupto is a variation of
 control0/prompt0 designed to fit into the typed ML-family of
