@@ -4374,18 +4374,18 @@ here, only the essential rules for the $\Cupto$ constructs.
 The typing rule for $\Set$ uses the type embedded in the prompt to fix
 the type of the whole computation $N$. Similarly, the typing rule for
 $\Cupto$ uses the prompt type of its value argument to fix the answer
-type for the continuation $k$. The type of the $\Cupto$ expression is
-the same as the domain of the continuation, which at first glance may
-seem strange. The intuition is that $\Cupto$ behaves as a let binding
-for the continuation in the context of a $\Set$ expression, i.e.
-%
-\[
-  \bl
-    \Set\;p^{\prompttype~B}\;\In\;\EC[\Cupto\;p\;k^{A \to B}.M^B]^B\\
-    \reducesto \Let\;k \revto \lambda x^{A}.\EC[x]^B \;\In\;M^B
-  \el
-\]
-%
+type for the continuation $k$. % The type of the $\Cupto$ expression is
+% the same as the domain of the continuation, which at first glance may
+% seem strange. The intuition is that $\Cupto$ behaves as a let binding
+% for the continuation in the context of a $\Set$ expression, i.e.
+% %
+% \[
+%   \bl
+%     \Set\;p^{\prompttype~B}\;\In\;\EC[\Cupto\;p\;k^{A \to B}.M^B]^B\\
+%     \reducesto \Let\;k \revto \lambda x^{A}.\EC[x]^B \;\In\;M^B
+%   \el
+% \]
+% %
 
 The dynamic semantics is generative to accommodate generation of fresh
 prompts. Formally, the reduction relation is augmented with a store
@@ -4410,7 +4410,39 @@ active prompt $p$. After reification the prompt is removed and
 evaluation continues as $M$. The $\slab{Resume}$ rule reinstalls the
 captured context $\EC$ with the argument $V$ plugged in.
 %
-\dhil{Show some example of use\dots}
+
+\citeauthor{GunterRR95}'s cupto provides similar behaviour to
+\citeauthor{QueinnecS91}'s splitter in regards to being able to `jump
+over prompt'. However, the separation of prompt creation from the
+control reifier coupled with the ability to set prompts manually
+provide a considerable amount of flexibility. For instance, consider
+the following example which illustrates how control reifier $\Cupto$
+may escape a matching control delimiter. Let us assume that two
+distinct prompts $p$ and $p'$ have already been created.
+%
+\begin{derivation}
+  &2 + \Set\; p \;\In\; 3 + \Set\;p'\;\In\;(\Set\;p\;\In\;\lambda\Unit.\Cupto~p~k.k\,(k~1))\,\Unit,\{p,p'\}\\
+  \reducesto& \reason{\slab{Value}}\\
+  &2 + \Set\; p \;\In\; 3 + \Set\;p'\;\In\;(\lambda\Unit.\Cupto~p~k.k\,(k~1))\,\Unit,\{p,p'\}\\
+  \reducesto^+& \reason{\slab{Capture} $\EC = 3 + \Set\;p'\;\In\;[\,]$}\\
+  &2 + \qq{\cont_{\EC}}\,(\qq{\cont_{\EC}}\,1),\{p,p'\}\\
+  \reducesto& \reason{\slab{Resume} $\EC$ with $1$}\\
+  &2 + \qq{\cont_{\EC}}\,(3 + \Set\;p'\;\In\;1),\{p,p'\}\\
+  \reducesto^+& \reason{\slab{Value}}\\
+  &2 + \qq{\cont_{\EC}}\,4,\{p,p'\}\\
+  \reducesto& \reason{\slab{Resume} $\EC$ with $4$}\\
+  &2 + \Set\;p'\;In\;4,\{p,p'\}\\
+  \reducesto& \reason{\slab{Value}}\\
+  &2 + 4,\{p,p'\} \reducesto 6,\{p,p'\}
+\end{derivation}
+%
+The prompt $p$ is used twice, and the dynamic scoping of $\Cupto$
+means when it is evaluated it reifies the continuation up to the
+nearest enclosing usage of the prompt $p$. Contrast this with the
+morally equivalent example using splitter, which would get stuck on
+the application of the control reifier, because it has escaped the
+dynamic extent of its matching delimiter.
+%
 
 \paragraph{\citeauthor{PlotkinP09}'s effect handlers} In 2009,
 \citet{PlotkinP09} introduced handlers for \citeauthor{PlotkinP01}'s
