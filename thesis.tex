@@ -611,16 +611,33 @@ efficiency.
 % expressiveness.
 
 \section{Why first-class control matters}
+First things first, let us settle on the meaning of the qualifier
+`first-class'. A programming language entity (or citizen) is regarded
+as being first-class if it can be used on an equal footing with other
+entities.
+%
+A familiar example is functions as first-class values. A first-class
+function may be treated like any other primitive value, i.e. passed as
+an argument to other functions, returned from functions, stored in
+data structures, or let-bound.
+
+First-class control makes the control state of the program available
+as a first-class value known as a continuation object at any point
+during evaluation~\cite{FriedmanHK84}. This object comes equipped with
+at least one operation for restoring the control state. As such the
+control flow of the program becomes a first-class entity that the
+programmer may manipulate to implement interesting control phenomena.
+
 From the perspective of programmers first-class control is a valuable
 programming feature because it enables them to implement their own
-control idioms as if they were native to the programming language (in
-fact this is the very definition of first-class control). More
-important, with first-class control programmer-defined control idioms
-are local phenomena which can be encapsulated in a library such that
-the rest of the program does not need to be made aware of their
-existence. Conversely, without first-class control some control idioms
-can only be implemented using global program restructuring techniques
-such as continuation passing style.
+control idioms, such as async/await~\cite{SymePL11}, as if they were
+native to the programming language. More important, with first-class
+control programmer-defined control idioms are local phenomena which
+can be encapsulated in a library such that the rest of the program
+does not need to be made aware of their existence. Conversely, without
+first-class control some control idioms can only be implemented using
+global program restructuring techniques such as continuation passing
+style.
 
 From the perspective of compiler engineers first-class control is
 valuable because it unifies several control-related constructs under
@@ -678,9 +695,12 @@ intended purpose.
 
 In contrast, effect handlers provide a structured form of delimited
 control, where programmers can give distinct names to control reifying
-operations and separate the from their handling.
+operations and separate them from their handling. Throughout this
+dissertation we will see numerous examples of how effect handlers
+makes programming with delimited structured (c.f. the following
+section, Chapter~\ref{ch:continuations}, and
+Chapter~\ref{ch:unary-handlers}).
 %
-\dhil{Maybe expand this a bit more to really sell it}
 
 \section{State of effectful programming}
 \label{sec:state-of-effprog}
@@ -690,7 +710,8 @@ boxes, whose outputs are determined entirely by their
 inputs~\cite{Hughes89,Howard80}. This is a compelling view which
 admits a canonical mathematical model of
 computation~\cite{Church32,Church41}. Alas, this view does not capture
-the reality of practical programs, which interact their environment.
+the reality of practical programs, which interact with their
+environment.
 %
 Functional programming prominently features two distinct, but related,
 approaches to effectful programming, which \citet{Filinski96}
@@ -705,11 +726,11 @@ style~\cite{JonesW93}. The latter retains the usual direct style of
 programming either by hard-wiring the semantics of the effects into
 the language or by more flexible means via first-class control.
 
-In this section I will provide a brief programming perspective on
-different approaches to programming with effects along with an
-informal introduction to the related concepts. We will look at each
-approach through the lens of global mutable state --- which is the
-``hello world'' example of effectful programming.
+In this section I will provide a brief perspective on different
+approaches to programming with effects along with an informal
+introduction to the related concepts. We will look at each approach
+through the lens of global mutable state --- the ``hello world'' of
+effectful programming.
 
 % how
 % effectful programming has evolved as well as providing an informal
@@ -730,9 +751,9 @@ approach through the lens of global mutable state --- which is the
 %
 We can realise stateful behaviour by either using language-supported
 state primitives, globally structure our program to follow a certain
-style, or use first-class control in the form of delimited control to
-simulate state. We do not consider undelimited control, because it is
-insufficient to express mutable state~\cite{FriedmanS00}.
+style, or using first-class control in the form of delimited control
+to simulate state. We do not consider undelimited control, because it
+is insufficient to express mutable state~\cite{FriedmanS00}.
 % Programming in its infancy was effectful as the idea of first-class
 % control was conceived already during the design of the programming
 % language Algol~\cite{BackusBGKMPRSVWWW60} -- one of the early
@@ -777,13 +798,14 @@ It is common to find mutable state builtin into the semantics of
 mainstream programming languages. However, different languages vary in
 their approach to mutable state. For instance, state mutation
 underpins the foundations of imperative programming languages
-belonging to the C family of languages. They do typically not
+belonging to the C family of languages. They typically do not
 distinguish between mutable and immutable values at the level of
-types. Contrary, programming languages belonging to the ML family of
-languages use types to differentiate between mutable and immutable
-values. They reflect mutable values in types by using a special unary
-type constructor $\PCFRef^{\Type \to \Type}$. Furthermore, ML
-languages equip the $\PCFRef$ constructor with three operations.
+types. On the contrary, programming languages belonging to the ML
+family of languages use types to differentiate between mutable and
+immutable values. They reflect mutable values in types by using a
+special unary type constructor $\PCFRef^{\Type \to
+  \Type}$. Furthermore, ML languages equip the $\PCFRef$ constructor
+with three operations.
 %
 \[
   \refv : S \to \PCFRef~S \qquad\quad
@@ -815,7 +837,7 @@ The body of the function first retrieves the current value of the
 state cell and binds it to $st$. Subsequently, it destructively
 increments the value of the state cell. Finally, it applies the
 predicate $\even : \Int \to \Bool$ to the original state value to test
-whether its parity is even (remark: this example function is a slight
+whether its parity is even (this example function is a slight
 variation of an example by \citet{Gibbons12}).
 %
 We can run this computation as a subcomputation in the context of
@@ -913,8 +935,9 @@ represents the continuation of the invocation of $\shift$ (up to the
 innermost reset); it gets passed as a function to the argument of
 $\shift$.
 
-Both primitives are defined over some (globally) fixed result type
-$R$.
+We define both primitives over some fixed return type $R$ (an actual
+practical implementation would use polymorphism to make them more
+flexible).
 %
 By instantiating $R = S \to A \times S$, where $S$ is the type of
 state and $A$ is the type of return values, then we can use shift and
@@ -970,11 +993,12 @@ Modulo naming of operations, this version is similar to the version
 that uses builtin state. The type signature of the function is even
 the same.
 %
-Before we can apply this function we must first a state initialiser.
+Before we can apply this function we must first implement a state
+initialiser.
 %
 \[
   \bl
-    \runState : (\UnitType \to R) \to S \to R \times S\\
+    \runState : (\UnitType \to A) \to S \to A \times S\\
     \runState~m~st_0 \defas \reset{\lambda\Unit.\Let\;x \revto m\,\Unit\;\In\;\lambda st. \Record{x;st}}\,st_0
       \bl
       \el
@@ -994,7 +1018,7 @@ the state-accepting function returned by the reset instance. The
 application of the reset instance to $st_0$ effectively causes
 evaluation of each function in this chain to start.
 
-After instantiating $R = \Bool$ and $S = \Int$ we can use the
+After instantiating $A = \Bool$ and $S = \Int$ we can use the
 $\runState$ function to apply the $\incrEven$ function.
 %
 \[
@@ -1056,8 +1080,8 @@ Haskell~\cite{JonesABBBFHHHHJJLMPRRW99}.
     \el
   \]
   %
-  Interactions between $\Return$ and $\bind$ are governed by the
-  so-called `monad laws'.
+  Interactions between $\Return$ and $\bind$ are governed by the monad
+  laws.
   \begin{reductions}
     \slab{Left\textrm{ }identity} & \Return\;x \bind k &=& k~x\\
     \slab{Right\textrm{ }identity} & m \bind \Return &=& m\\
@@ -1397,7 +1421,7 @@ operation is another computation tree node.
   %
   \[
    \bl
-     \ba{@{~}l@{\qquad}@{~}r}
+     \ba{@{~}l@{\,\quad}@{~}r}
      \multicolumn{2}{l}{T~A \defas \Free~F~A} \smallskip\\
      \multirow{2}{*}{
        \bl
@@ -1894,10 +1918,13 @@ polymorphic $\lambda$-calculi for which I give computational
 interpretations in terms of contextual operational semantics and
 realise using two foundational operational techniques: continuation
 passing style and abstract machine semantics. When it comes to
-expressivity studies there are multiple complementary notions of
-expressiveness available in the literature; in this dissertation I
-work with typed macro-expressiveness and type-respecting
-expressiveness notions.
+expressiveness there are multiple possible dimensions to investigate
+and multiple different notions of expressivity available. I focus on
+two questions: `are deep, shallow, and parameterised handlers
+interdefinable?' which I investigate via a syntactic notion of
+expressiveness due \citet{Felleisen91}. And, `does effect handlers
+admit any essential computational efficiency?' which I investigate
+using a semantic notion of expressiveness due to \citet{LongleyN15}.
 
 \subsection{Scope extrusion}
 The literature on effect handlers is rich, and my dissertation is but
@@ -1941,8 +1968,11 @@ theory of scoped effect operations, whilst \citet{BiernackiPPS20}
 study them in conjunction with ordinary handlers from a programming
 perspective.
 
-% \citet{WuSH14} study scoped effects, which are effects whose payloads
-% are effectful computations
+% \citet{WuSH14} study scoped effects, which are effects whose
+% payloads are effectful computations. Scoped effects are
+% non-algebraic, Thinking in terms of computation trees, a scoped
+% effect is not an internal node of some computation tree, rather, it
+% is itself a whole computation tree.
 
 % Effect handlers were conceived in the realm of category theory to give
 % an algebraic treatment of exception handling~\cite{PlotkinP09}. They
@@ -1963,9 +1993,9 @@ handlers extension to Prolog; and \citet{Leijen17b} has an imperative
 take on effect handlers in C.
 
 \section{Contributions}
-The key contributions of this dissertation are scattered across the
-four main parts. The following listing summarises the contributions of
-each part.
+The key contributions of this dissertation are spread across the four
+main parts. The following listing summarises the contributions of each
+part.
 \paragraph{Background}
 \begin{itemize}
   \item A comprehensive operational characterisation of various
@@ -2010,35 +2040,40 @@ The following is a summary of the chapters belonging to each part of
 this dissertation.
 
 \paragraph{Background}
-Chapter~\ref{ch:maths-prep} defines some basic mathematical
+\begin{itemize}
+  \item Chapter~\ref{ch:maths-prep} defines some basic mathematical
 notation and constructions that are they pervasively throughout this
 dissertation.
 
-Chapter~\ref{ch:continuations} presents a literature survey of
+  \item Chapter~\ref{ch:continuations} presents a literature survey of
 continuations and first-class control. I classify continuations
 according to their operational behaviour and provide an overview of
 the various first-class sequential control operators that appear in
 the literature. The application spectrum of continuations is discussed
 as well as implementation strategies for first-class control.
+\end{itemize}
 
 \paragraph{Programming}
-Chapter~\ref{ch:base-language} introduces a polymorphic fine-grain
+\begin{itemize}
+  \item Chapter~\ref{ch:base-language} introduces a polymorphic fine-grain
 call-by-value core calculus, $\BCalc$, which makes key use of
 \citeauthor{Remy93}-style row polymorphism to implement polymorphic
 variants, structural records, and a structural effect system. The
 calculus distils the essence of the core of the Links programming
 language.
 
-Chapter~\ref{ch:unary-handlers} presents three extensions of $\BCalc$,
+  \item Chapter~\ref{ch:unary-handlers} presents three extensions of $\BCalc$,
 which are $\HCalc$ that adds deep handlers, $\SCalc$ that adds shallow
 handlers, and $\HPCalc$ that adds parameterised handlers. The chapter
 also contains a running case study that demonstrates effect handler
 oriented programming in practice by implementing a small operating
 system dubbed \OSname{} based on \citeauthor{RitchieT74}'s original
 \UNIX{}.
+\end{itemize}
 
 \paragraph{Implementation}
-Chapter~\ref{ch:cps} develops a higher-order continuation passing
+\begin{itemize}
+  \item Chapter~\ref{ch:cps} develops a higher-order continuation passing
 style translation for effect handlers through a series of step-wise
 refinements of an initial standard continuation passing style
 translation for $\BCalc$. Each refinement slightly modifies the notion
@@ -2047,18 +2082,20 @@ ultimately leads to the key invention of generalised continuation,
 which is used to give a continuation passing style semantics to deep,
 shallow, and parameterised handlers.
 
-Chapter~\ref{ch:abstract-machine} demonstrates an application of
+  \item Chapter~\ref{ch:abstract-machine} demonstrates an application of
 generalised continuations to abstract machine as we plug generalised
 continuations into \citeauthor{FelleisenF86}'s CEK machine to obtain
 an adequate abstract runtime with simultaneous support for deep,
 shallow, and parameterised handlers.
+\end{itemize}
 
 \paragraph{Expressiveness}
-Chapter~\ref{ch:deep-vs-shallow} shows that deep, shallow, and
+\begin{itemize}
+  \item Chapter~\ref{ch:deep-vs-shallow} shows that deep, shallow, and
 parameterised notions of handlers can simulate one another up to
 specific notions of administrative reduction.
 
-Chapter~\ref{ch:handlers-efficiency} studies the fundamental efficiency of effect
+  \item Chapter~\ref{ch:handlers-efficiency} studies the fundamental efficiency of effect
 handlers. In this chapter, we show that effect handlers enable an
 asymptotic improvement in runtime complexity for a certain class of
 functions. Specifically, we consider the \emph{generic count} problem
@@ -2068,9 +2105,12 @@ of $\BCalc$) and its extension with effect handlers $\HPCF$.
 We show that $\HPCF$ admits an asymptotically more efficient
 implementation of generic count than any $\BPCF$ implementation.
 %
+\end{itemize}
 
 \paragraph{Conclusions}
-Chapter~\ref{ch:conclusions} concludes and discusses future work.
+\begin{itemize}
+  \item Chapter~\ref{ch:conclusions} concludes and discusses future work.
+\end{itemize}
 
 
 \part{Background}
@@ -15114,8 +15154,9 @@ $N'$ such that $N' \approxa \sdtrans{N}$ and $M' \reducesto^+ N'$.
   % By case analysis on $\reducesto$ and induction on $\approxa$ using
   % Lemma~\ref{lem:sdtrans-subst} and Lemma~\ref{lem:sdtrans-admin}.
   %
-  By induction on $M' \approxa \sdtrans{M}$ and side induction on
-  $M \reducesto N$ using Lemma~\ref{lem:sdtrans-subst} and Lemma~\ref{lem:sdtrans-admin}.
+  By induction on $M' \approxa \sdtrans{M}$ and case analysis on
+  $M \reducesto N$ using Lemma~\ref{lem:sdtrans-subst} and
+  Lemma~\ref{lem:sdtrans-admin}.
   %
   The interesting case is reflexivity of $\approxa$ where
   $M \reducesto N$ is an application of $\semlab{Op^\dagger}$, which
