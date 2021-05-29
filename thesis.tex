@@ -262,9 +262,10 @@
   with the world.
   %
   Programs use words from this vocabulary with a preconceived idea of
-  their meaning, however, importantly words are just mere syntax. The
-  semantics of each word is determined by the operating system
-  (typically such that it aligns with the intent of the program).
+  their meaning, however, importantly, words are just mere syntax. The
+  semantics of each word is determined by the operating
+  system (typically such that it aligns with the intent of the
+  program).
 
   This separation of syntax and semantics makes it possible for
   programs and operating systems to evolve independently, because any
@@ -272,7 +273,20 @@
   to the expectations of the program. It has proven to be a remarkably
   successful model for building and maintaining computer programs.
 
-  \emph{Effect handlers} localise are tiny programmable operating systems 
+  Conventionally, an operating system has been a complex and
+  monolithic single global entity in a computer system.
+  %
+  However, \emph{effect handlers} are a novel programming abstraction,
+  which enables programs to be decomposed into syntax and semantics
+  internally, by localising the notion of operating systems. In
+  essence, an effect handler is a tiny programmable operating system,
+  that a program may use internally to determine the meaning of its
+  subprograms. The key property of effect handlers is that they
+  compose seamlessly, and as a result the semantics of a program can
+  be compartmentalised into several fine-grained and comprehensible
+  components. The ability to seamlessly swap out one component for
+  another provides a promising basis for modular construction and
+  reconfiguration of computer programs.
 
   In this dissertation I develop the foundations for programming with
   effect handlers. Specifically, I present a practical design for
@@ -280,16 +294,6 @@
   two universal implementation strategies for effect handlers, and I
   give a precise mathematical characterisation of the inherent
   computational efficiency of effect handlers.
-
-  % The meaning of words This separation of
-
- % modular reconfiguration of programs
-
-  % Computer programs interact with the real world by way of \emph{system calls}\dots this interaction
-  % is facilitated by the operating system, which is responsible for
-  % %
-  % Effect handlers provide a modular means for structuring the internal
-  % code of computer programs.
 \end{laysummary}
 
 %% Acknowledgements
