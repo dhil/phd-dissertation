@@ -706,3 +706,141 @@
     }
 ;
 \end{tikzpicture}}
+
+\newcommand{\smath}[1]{\ensuremath{{\scriptstyle #1}}}
+
+\newcommand{\InfiniteModel}{%
+\begin{tikzpicture}[->,>=stealth',level/.style={sibling distance = 3.0cm/##1,
+    level distance = 1.0cm}]
+\node (root) [draw=none] { }
+  child { node [opnode] {$\smath{\query 0}$}
+    child { node [opnode] {$\smath{\query 0}$}
+      child { node [draw=none,rotate=165] {$\vdots$}
+        edge from parent node { }
+      }
+      child { node[leaf] {$\smath{\ans\False}$}
+        edge from parent node { }
+      }
+      edge from parent node { }
+    }
+    child { node [leaf] {$\smath{\ans\False}$}
+      edge from parent node { }
+    }
+    edge from parent node { }
+  }
+;
+\end{tikzpicture}}
+%
+\newcommand{\ShortConjModel}{%
+\begin{tikzpicture}[->,>=stealth',level/.style={sibling distance = 3.5cm/##1,
+    level distance = 1.0cm}]
+\node (root) [draw=none] { }
+  child { node [opnode] {$\smath{\query 0}$}
+    child { node [opnode] {$\smath{\query 0}$}
+      child { node [treenode] {$\smath{\ans\True}$}
+        edge from parent node { }
+      }
+      child { node[treenode] {$\smath{\ans\False}$}
+        edge from parent node { }
+      }
+      edge from parent node { }
+    }
+    child { node [treenode] {$\smath{\ans\False}$}
+      edge from parent node { }
+    }
+    edge from parent node { }
+  }
+;
+\end{tikzpicture}}
+%
+
+\newcommand{\TTTwoModel}{%
+\begin{tikzpicture}[->,>=stealth',level/.style={sibling distance = 8cm/##1,
+    level distance = 1.5cm}]
+\node (root) [draw=none] { }
+  child { node [opnode] {$\smath{\query 0}$}
+    child { node [opnode] {$\smath{\query 1}$}
+      child { node [leaf] {$\smath{\ans\True}$}
+        edge from parent node { }
+      }
+      child { node[leaf] {$\smath{\ans\True}$}
+        edge from parent node { }
+      }
+      edge from parent node { }
+    }
+    child { node [opnode] {$\smath{\query 1}$}
+      child { node [leaf] {$\smath{\ans\True}$}
+        edge from parent node { }
+      }
+      child { node[leaf] {$\smath{\ans\True}$}
+        edge from parent node { }
+      }
+      edge from parent node { }
+    }
+    edge from parent node { }
+  }
+;
+\end{tikzpicture}}
+%
+\newcommand{\XORTwoModel}{%
+\begin{tikzpicture}[->,>=stealth',level/.style={sibling distance = 5.5cm/##1,
+    level distance = 1cm}]
+\node (root) [draw=none] { }
+  child { node [opnode] {$\smath{\query 0}$}
+    child { node [opnode] {$\smath{\query 1}$}
+      child { node [treenode] {$\smath{\ans\False}$}
+        edge from parent node { }
+      }
+      child { node[treenode] {$\smath{\ans\True}$}
+        edge from parent node { }
+      }
+      edge from parent node { }
+    }
+    child { node [opnode] {$\smath{\query 1}$}
+      child { node [treenode] {$\smath{\ans\True}$}
+        edge from parent node { }
+      }
+      child { node[treenode] {$\smath{\ans\False}$}
+        edge from parent node { }
+      }
+      edge from parent node { }
+    }
+    edge from parent node { }
+  }
+;
+\end{tikzpicture}}
+%
+\newcommand{\SXORTwoModel}{%
+\begin{tikzpicture}[->,>=stealth',level/.style={sibling distance = 2.5cm/##1,
+    level distance = 1cm}]
+\node (root) [opnode] {$\smath{\query 0}$}
+    child { node [opnode] {$\smath{\query 1}$}
+      child { node [treenode] {$\smath{\ans\False}$}
+        edge from parent node { }
+      }
+      child { node[treenode] {$\smath{\ans\True}$}
+        edge from parent node { }
+      }
+      edge from parent node { }
+    }
+    child { node [opnode] {$\smath{\query 1}$}
+      child { node [treenode] {$\smath{\ans\True}$}
+        edge from parent node { }
+      }
+      child { node[treenode] {$\smath{\ans\False}$}
+        edge from parent node { }
+      }
+      edge from parent node { }
+    }
+;
+\end{tikzpicture}}
+%
+\newcommand{\TTZeroModel}{%
+  \begin{tikzpicture}[->,>=stealth',level/.style={sibling distance = 1cm/##1,
+    level distance = 1cm}]
+  \node (root) [draw=none] { }
+  child { node [treenode] {$\smath{\ans\True}$}
+    edge from parent node { }
+  }
+;
+\end{tikzpicture}}%
