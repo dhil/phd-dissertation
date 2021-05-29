@@ -1226,23 +1226,25 @@ manipulating the state cell.
   equations~\cite{Gibbons12}.
   %
   \begin{reductions}
+    \slab{Get\textrm{-}get} & \getF\,\Unit \bind (\lambda st. \getF\,\Unit \bind (\lambda st'.k~st~st')) &=& \getF \bind \lambda st.k~st~st\\
     \slab{Get\textrm{-}put} & \getF\,\Unit \bind (\lambda st.\putF~st)    &=& \Return\;\Unit\\
-    \slab{Put\textrm{-}put} & \putF~st \bind (\lambda st.\putF~st') &=& \putF~st'\\
-    \slab{Put\textrm{-}get} & \putF~st \bind (\lambda\Unit.\getF\,\Unit) &=& \putF~st \bind (\lambda \Unit.\Return\;st)
+    \slab{Put\textrm{-}get} & \putF~st \bind (\lambda\Unit.\getF\,\Unit \bind (\lambda st.k~st') &=& \putF~st \bind (\lambda \Unit.k~st)\\
+    \slab{Put\textrm{-}put} & \putF~st \bind (\lambda st.\putF~st') &=& \putF~st' \bind (\lambda\Unit.k~st)
   \end{reductions}
   %
-  The first equation captures the intuition that getting a value and
-  then putting has no observable effect on the state cell. The second
-  equation states that only the latter of two consecutive puts is
-  observable. The third equation states that performing a get
+  The first equation states that performing one get after another get
+  is redundant.  The second equation captures the intuition that
+  getting a value and then putting has no observable effect on the
+  state cell. The third equation states that performing a get
   immediately after putting a value is equivalent to returning that
-  value.
+  value. The fourth equation states that only the latter of two
+  consecutive puts is observable.
 \end{definition}
 
-The literature often presents the state monad with a fourth equation,
-which states that $\getF$ is idempotent. However, this equation is
-redundant as it is derivable from the first and third
-equations~\cite{Mellies14}.
+The literature often uses the presentation (or a similar one) with the
+four equations above, even though, there exists a smaller presentation
+in which the first equation is redundant as it is derivable from the
+second and third equations (c.f. Appendix~\ref{ch:get-get}).
 
 We can implement a monadic variation of the $\incrEven$ function that
 uses the state monad to emulate manipulations of the state cell as
