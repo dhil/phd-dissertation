@@ -4880,7 +4880,7 @@ The typing rule for $\Catchcont$ is as follows.
 \begin{mathpar}
   \inferrule*
     {\typ{\Gamma, f : A \to B}{M : C \times D} \\ \Ground\;C}
-    {\typ{\Gamma}{\Catchcont\;f.M : C \times ((A \to B) \to D) + (A \times (B \to (A \to B) \to C \times D))}}
+    {\typ{\Gamma}{\Catchcont~f.M : C \times ((A \to B) \to D) + (A \times (B \to (A \to B) \to C \times D))}}
 \end{mathpar}
 %
 The computation handled by $\Catchcont$ must return a pair, where the
@@ -4899,9 +4899,9 @@ The operational rules for $\Catchcont$ are as follows.
 %
 \begin{reductions}
   \slab{Value} &
-     \Catchcont \; f . \Record{V;W} &\reducesto& \Inl\; \Record{V;\lambda\,f. W}\\
+     \Catchcont~f . \Record{V;W} &\reducesto& \Inl\; \Record{V;\lambda\,f. W}\\
   \slab{Capture} &
-     \Catchcont \; f .\EC[\,f\,V]   &\reducesto& \Inr\; \Record{V; \lambda x. \lambda f. \Continue~\cont_{\EC}~x}\\
+     \Catchcont~f .\EC[\,f\,V]   &\reducesto& \Inr\; \Record{V; \lambda x. \lambda f. \Continue~\cont_{\EC}~x}\\
   \slab{Resume} & \Continue~\cont_{\EC}~V &\reducesto& \EC[V]
 \end{reductions}
 %
@@ -4913,6 +4913,10 @@ the second component of the returned pair. Importantly, the second
 $\lambda$-abstraction makes sure to bind any instances of $f$ in the
 captured evaluation context once it has been reinstated by the
 \slab{Resume} rule.
+%
+\begin{derivation}
+  1 + (\Catchcont~f. 
+\end{derivation}
 % \subsection{Second-class control operators}
 % Coroutines, async/await, generators/iterators, amb.
 
@@ -5943,15 +5947,14 @@ calls due to \citet{Clinger98}. First, we define what it means for a
 computation to syntactically \emph{appear in tail position}.
 %
 \begin{definition}[Tail position]\label{def:tail-comp}
-  Tail position is a transitive notion for computation terms, which is
-  defined inductively as follows.
+  Tail position is defined for computation terms as follows.
   %
   \begin{itemize}
     \item The body $M$ of a $\lambda$-abstraction ($\lambda x. M$) appears in
       tail position.
     \item The body $M$ of a $\Lambda$-abstraction $(\Lambda \alpha.M)$
       appears in tail position.
-    \item If $\Case\;V\;\{\ell\,x \mapsto M; y \mapsto N\}$ appears in tail
+    \item If $\Case\;V\;\{\ell~x \mapsto M; y \mapsto N\}$ appears in tail
       position, then both $M$ and $N$ appear in tail positions.
     \item If $\Let\;\Record{\ell = x; y} = V \;\In\;N$ appears in tail
       position, then $N$ is in tail position.
@@ -6350,6 +6353,54 @@ reap the benefits from our design choices, as we shall see that the
 combination of fine-grain call-by-value and evaluation contexts
 provide the basis for a convenient, simple semantic framework for
 working with continuations.
+
+\paragraph{Syntactic sugar}
+We will adopt a few conventions to make the notation more convenient
+for writing out examples. First, we elide type annotations when they
+are clear from the context.
+%
+We will often write code in direct-style assuming the standard
+left-to-right call-by-value elaboration into fine-grain
+call-by-value~\citep{Moggi91, FlanaganSDF93}.
+%
+For example, the expression $f\,(h\,w) + g\,\Unit$ is syntactic sugar
+for:
+%
+{
+\[
+      \ba[t]{@{~}l}
+      \Let\; x \revto h\,w \;\In\;
+      \Let\; y \revto f\,x \;\In\;
+      \Let\; z \revto g\,\Unit \;\In\;
+      y + z
+      \ea
+\]}%
+%
+We define sequencing of computations in the standard way.
+%
+{
+\[
+  M;N \defas \Let\;x \revto M \;\In\;N, \quad \text{where $x \notin FV(N)$}
+\]}%
+%
+We make use of standard syntactic sugar for pattern matching. For
+instance, we write
+%
+{
+\[
+  \lambda\Unit.M \defas \lambda x^{\One}.M, \quad \text{where $x \notin FV(M)$}
+\]}%
+%
+for suspended computations.  We encode booleans using variants:
+\begin{mathpar}
+\Bool \defas [\dec{True}:\UnitType;\dec{False}:\UnitType]
+
+\True \defas \dec{True}\,\Unit
+
+\False \defas \dec{False}\,\Unit
+
+\If\;V\;\Then\;M\;\Else\;N \defas \Case\;V\;\{\dec{True}~\Unit \mapsto M; \dec{False}~\Unit \mapsto N\}
+\end{mathpar}%
 
 \section{Metatheoretic properties of \BCalc{}}
 \label{sec:base-language-metatheory}
