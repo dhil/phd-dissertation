@@ -3077,7 +3077,7 @@ language.
     \hline
   \end{tabular}
   \caption{Classification of first-class sequential control operators.}\label{tbl:classify-ctrl}
-  \dhil{TODO: Possibly split into two tables: undelimited and delimited. Change the table to display the behaviour of control reifiers.}
+  % \dhil{TODO: Possibly split into two tables: undelimited and delimited. Change the table to display the behaviour of control reifiers.}
 \end{table}
 %
 
@@ -3098,11 +3098,11 @@ depicts the syntax of types and terms in the calculus.
 \begin{figure}
   \centering
 \begin{syntax}
-  \slab{Types}        & A,B &::=& \UnitType \mid A \to B \mid A \times B \mid \Cont\,\Record{A;B} \mid A + B \smallskip\\
-  \slab{Values}       & V,W &::=& \Unit \mid \lambda x^A.M \mid \Record{V;W} \mid \cont_\EC \mid \Inl~V \mid \Inr~W \mid x\\
-  \slab{Computations} & M,N &::=& \Return\;V \mid \Let\;x \revto M \;\In\;N \mid \Let\;\Record{x;y} = V \;\In\; N \\
+  \slab{Types}        & A,B \in \TypeCat &::=& \UnitType \mid A \to B \mid A \times B \mid \Cont\,\Record{A;B} \mid A + B \smallskip\\
+  \slab{Values}       & V,W \in \ValCat &::=& \Unit \mid \lambda x^A.M \mid \Record{V;W} \mid \cont_\EC \mid \Inl~V \mid \Inr~W \mid x\\
+  \slab{Computations} & M,N \in \CompCat &::=& \Return\;V \mid \Let\;x \revto M \;\In\;N \mid \Let\;\Record{x;y} = V \;\In\; N \\
                        &     &\mid& V\,W \mid \Continue~V~W \smallskip\\
-  \slab{Evaluation\textrm{ }contexts} & \EC &::=& [\,] \mid \Let\;x \revto \EC \;\In\;N
+  \slab{Evaluation\textrm{ }contexts} & \EC \in \CatName{Ctx} &::=& [\,] \mid \Let\;x \revto \EC \;\In\;N
 \end{syntax}
 \caption{Types and term syntax}\label{fig:pcf-lang-control}
 \end{figure}
@@ -3129,6 +3129,9 @@ save some ink, we will use the following notation.
 \[
   \qq{\cont_{\EC}} \defas \lambda x. \Continue~\cont_{\EC}~x
 \]
+%
+We will permit ourselves various syntactic sugar to keep the examples
+relative concise, e.g. we write the examples in ordinary call-by-value.
 
 \subsection{Undelimited control operators}
 %
@@ -3247,7 +3250,7 @@ identical to \citeauthor{Reynolds98a}' escape operator, save for the
 syntax.
 %
 \[
-  M,N ::= \cdots \mid \Catch~k.M
+  M,N \in \CompCat ::= \cdots \mid \Catch~k.M
 \]
 %
 Although, their syntax differ, their dynamic semantics are the same.
@@ -3439,9 +3442,9 @@ The other way around also appears to be impossible, because neither
 the base calculus nor $\Callcomc$ has the ability to discard an
 evaluation context.
 %
-\dhil{Remark that $\Callcomc$ was originally obtained by decomposing
-  $\fcontrol$ a continuation composing primitive and an abortive
-  primitive. Source: Matthew Flatt, comp.lang.scheme, May 2007}
+% \dhil{Remark that $\Callcomc$ was originally obtained by decomposing
+%   $\fcontrol$ a continuation composing primitive and an abortive
+%   primitive. Source: Matthew Flatt, comp.lang.scheme, May 2007}
 
 \paragraph{\FelleisenC{} and \FelleisenF{}}
 %
@@ -3999,7 +4002,7 @@ In our setting both shift and reset appear as computation forms.
 %
 \begin{syntax}
  % & V, W &::=& \cdots \mid \shift\\
- & M, N &::=& \cdots \mid \shift\; k.M \mid \reset{M}
+ & M, N \in \CompCat &::=& \cdots \mid \shift\; k.M \mid \reset{M}
 \end{syntax}
 %
 The $\shift$ construct captures the continuation delimited by an
@@ -4181,7 +4184,7 @@ continuation'').
 Splitter and the two operations abort and calldc are value forms.
 %
 \[
-  V,W ::= \cdots \mid \splitter \mid \abort \mid \calldc
+  V,W \in \ValCat ::= \cdots \mid \splitter \mid \abort \mid \calldc
 \]
 %
 In their treatment of splitter, \citeauthor{QueinnecS91} gave three
@@ -4192,9 +4195,9 @@ a pleasant static semantics too. Thus, we further extend the syntactic
 categories with the machinery for first-class prompts.
 %
 \begin{syntax}
-  & A,B &::=& \cdots \mid \prompttype~A \smallskip\\
-  & V,W &::=& \cdots \mid p\\
-  & M,N &::=& \cdots \mid \Prompt_V~M
+  & A,B \in \TypeCat &::=& \cdots \mid \prompttype~A \smallskip\\
+  & V,W \in \ValCat &::=& \cdots \mid p\\
+  & M,N \in \CompCat &::=& \cdots \mid \Prompt_V~M
 \end{syntax}
 %
 The type $\prompttype~A$ classifies prompts whose answer type is
@@ -4360,8 +4363,8 @@ The operator fcontrol is a value and prompt with handler is a
 computation.
 %
 \begin{syntax}
-  & V, W &::=& \cdots \mid \fcontrol\\
-  & M, N &::=& \cdots \mid \fprompt~V.M
+  & V, W \in \ValCat &::=& \cdots \mid \fcontrol\\
+  & M, N \in \CompCat &::=& \cdots \mid \fprompt~V.M
 \end{syntax}
 %
 As with $\Callcc$, the value $\fcontrol$ may be regarded as a special
@@ -4420,9 +4423,9 @@ thus, augments the syntactic categories of types, values, and
 computations.
 %
 \begin{syntax}
-  & A,B  &::=& \cdots \mid \prompttype~A \smallskip\\
-  & V,W  &::=& \cdots \mid p \mid \newPrompt\\
-  & M,N  &::=& \cdots \mid \Set\;V\;\In\;N \mid \Cupto~V~k.M
+  & A,B \in \TypeCat &::=& \cdots \mid \prompttype~A \smallskip\\
+  & V,W \in \ValCat &::=& \cdots \mid p \mid \newPrompt\\
+  & M,N \in \CompCat &::=& \cdots \mid \Set\;V\;\In\;N \mid \Cupto~V~k.M
 \end{syntax}
 %
 The type $\prompttype~A$ is the type of prompts. It is parameterised
@@ -5169,11 +5172,11 @@ implementation strategies.
     \hline
     Eff      & Effect handlers & Virtual machine, interpreter \\
     \hline
-    Effekt   & Lexical effect handlers & ??\\
+    Effekt   & Lexical effect handlers & CPS\\
     \hline
     Frank    & N-ary effect handlers & CEK machine \\
-    \hline
-    Gauche   & callcc, shift/reset & Virtual machine \\
+    % \hline
+    % Gauche   & callcc, shift/reset & Virtual machine \\
     \hline
     Helium   & Effect handlers & CEK machine \\
     \hline
@@ -5199,7 +5202,6 @@ implementation strategies.
     \hline
   \end{tabular}
   \caption{Some languages and their implementation strategies for continuations.}\label{tbl:ctrl-operators-impls}
-  \dhil{TODO: Figure out which implementation strategy Effekt uses}
 \end{table}
 %
 The control stack provides a adequate runtime representation of
@@ -16405,7 +16407,7 @@ The constants have the following types.
   \EC[M] &\reducesto& \EC[N], \hfill \text{if }M \reducesto N \\
 \end{reductions}
 \begin{syntax}
-\slab{Evaluation\textrm{ }contexts} &  \mathcal{E} &::=& [\,] \mid \Let \; x \revto \mathcal{E} \; \In \; N
+\slab{Evaluation\textrm{ }contexts} &  \mathcal{E} \in \EvalCat &::=& [\,] \mid \Let \; x \revto \mathcal{E} \; \In \; N
 \end{syntax}
 \caption{Contextual small-step operational semantics.}
 \label{fig:small-step}
@@ -16491,9 +16493,9 @@ We now define $\HPCF$ as an extension of $\BPCF$.
 {
 \begin{syntax}
 \slab{Operation\textrm{ }symbols} &\ell \in \mathcal{L} & & \\
-\slab{Signatures}        &\Sigma&::=& \cdot \mid \{\ell : A \to B\} \cup \Sigma\\
-\slab{Handler\textrm{ }types}     &F     &::=& C \Rightarrow D\\
-\slab{Computations} &M, N &::=& \dots \mid \Do \; \ell \; V
+\slab{Signatures}        &\Sigma \CatName{Sig} &::=& \cdot \mid \{\ell : A \to B\} \cup \Sigma\\
+\slab{Handler\textrm{ }types}     &F \in \HandlerTypeCat    &::=& C \Rightarrow D\\
+\slab{Computations} &M, N \in \CompCat &::=& \dots \mid \Do \; \ell \; V
                           \mid  \Handle \; M \; \With \; H \\
 \slab{Handlers}     &H&::=& \{ \Return \; x \mapsto M \}
                       \mid  \{ \OpCase{\ell}{p}{r} \mapsto N \} \uplus H\\
@@ -16630,7 +16632,7 @@ we call handler contexts.
 %
 {
 \begin{syntax}
-\slab{Handler\textrm{ }contexts} &  \HC &::= & [\,] \mid \Handle \; \HC \; \With \; H
+\slab{Handler\textrm{ }contexts} &  \HC \CatName{Ctx} &::= & [\,] \mid \Handle \; \HC \; \With \; H
                                 \mid  \Let\;x \revto \HC\; \In\; N\\
 \end{syntax}}%
 %
