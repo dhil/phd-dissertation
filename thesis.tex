@@ -4339,8 +4339,55 @@ which restores the prompt context once again.
 % \end{reductions}
 
 
-\paragraph{Spawn}
-\dhil{TODO: Canonical reference \citet{HiebDA94}}
+\paragraph{Spawn} The spawn control operator appeared in a paper
+published by \citet{HiebD90} in 1990. It is designed for using
+continuations to program tree-based concurrency. Syntactically, spawn
+is just a function symbol (like callcc), whose operational behaviour
+establishes the root of a process tree, and passes the
+\emph{controller} for the tree to its argument. As we will see shortly
+a controller is a higher-order function, which grants its argument
+access to the continuation of a process.
+
+We add $\Spawn$ as a value form.
+%
+\begin{syntax}
+  &V,W \in \ValCat &::=& \Spawn
+\end{syntax}
+%
+\citet{HiebD90} do not give a static semantics for $\Spawn$. Their
+dynamic semantics depend on an extension reminiscent of multi-prompts.
+%
+\begin{syntax}
+  &\ell \in \mathcal{L} &&\\
+  &M,N \in \CompCat &::=& \ell : M \mid V\,\reflect\,\ell
+\end{syntax}
+%
+The set $\mathcal{L}$ is some countably set of labels.
+%
+The expression ($\ell : M$) is called a \emph{labelled} expression. It
+essentially plays the role of prompt. The expression
+$(V\,\reflect\,\ell)$ is called a control expression. The operator
+$\reflect$ is a control reifier which captures the continuation up to
+the label $\ell$ and supplies this continuation to $V$.
+%
+\begin{reductions}
+  \slab{AppSpawn} & \Spawn~V,\rho &\reducesto& \ell : V\,(\lambda f. f\,\reflect\,\ell), \{\ell\} \uplus \rho\\
+  \slab{Value}    & \ell : V,\rho &\reducesto& V,\rho\\
+  \slab{Capture}  & \ell : \EC[V\,\reflect\,\ell],\rho &\reducesto& V\,\qq{\cont_{\ell : \EC}},\rho\\
+  \slab{Resume}   & \Continue~\cont_{\ell : \EC}~V,\rho &\reducesto& \ell : \EC[V],\rho
+\end{reductions}
+%
+The $\slab{AppSpawn}$ rule generates a fresh $\ell$ and applies the
+functional value $V$ the controller for process tree. By the
+$\slab{Capture}$ rule, an invocation of the controller causes the
+evaluation context up to the matching label $\ell$ to be reified as a
+continuation. This continuation gets passed to the functional value of
+the control expression. The captured continuation contains the label
+$\ell$, and as specified by the $\slab{Resume}$ rule an invocation of
+the continuation causes this label to be reinstalled.
+% concas structured
+% alternative for using undelimited continuations, such as provided by
+% callcc, in concurrent programming
 
 \paragraph{\citeauthor{Sitaram93}'s fcontrol} The control operator
 `fcontrol' was introduced by \citet{Sitaram93} in 1993. It is a
@@ -5612,8 +5659,8 @@ The row kind is annotated by a set of labels $\mathcal{L}$. We use
 this set to track the labels of a given row type to ensure uniqueness
 amongst labels in each row type. For example, the kinding rule
 $\klab{ExtendRow}$ uses this set to constrain which labels may be
-mentioned in the tail of $R$. We shall elaborate on this in
-Section~\ref{sec:row-polymorphism}.
+mentioned in the tail of $R$.%  We shall elaborate on this in
+% Section~\ref{sec:row-polymorphism}.
 
 \paragraph{Environments}
 Kind and type environments are right-extended sequences of bindings. A
@@ -12246,22 +12293,21 @@ i.e. all unary applications are static.
 %
 An alternative to the explicit deconstruction of continuations is to
 implicitly deconstruct continuations on demand when static pattern
-matching fails. This was the approach taken by
-\citet*{HillerstromLAS17}. On one hand this approach leads to a
-slightly slicker presentation. On the other hand it complicates the
-proof of correctness as one must account for static pattern matching
-failure.
+matching fails. I took this approach in \citet{HillerstromLAS17}. On
+one hand this approach leads to a slightly slicker presentation. On
+the other hand it complicates the proof of correctness as one must
+account for static pattern matching failure.
 %
 A practical argument in favour of the explicit eager continuation
 deconstruction is that it is more accessible from an implementation
 point of view. No implementation details are hidden away in side
 conditions.
 %
-Furthermore, it is not clear that lazy deconstruction has any
-advantage over eager deconstruction, as the translation must reify the
-continuation when it transitions from computations to values and
-reflect the continuation when it transitions from values to
-computations, in which case static pattern matching would fail.
+Also, it is not clear that lazy deconstruction has any advantage over
+eager deconstruction, as the translation must reify the continuation
+when it transitions from computations to values and reflect the
+continuation when it transitions from values to computations, in which
+case static pattern matching would fail.
 
 \subsubsection{Correctness}
 \label{sec:higher-order-cps-deep-handlers-correctness}
@@ -13024,7 +13070,8 @@ $\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons
 $\sV_{\mops}$ are all reflected dynamic terms (i.e., of the form
 $\reflect V$). This fact is used implicitly in the proofs. For brevity
 we write $\sV_f$ to denote a statically known continuation frame
-$\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}}$.
+$\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}}$. The full
+proof details are given in Appendix~\ref{sec:proofs-cps-gen-cont}.
 
 %
 \begin{lemma}[Substitution]\label{lem:subst-gen-cont}
@@ -16970,7 +17017,7 @@ value or it gets stuck on an unhandled operation.
 % Return - handler
 \mlab{GenCont} & \cek{ \Return \; V \mid \env \mid (\nil, (\env',H)) \cons \kappa}
                   &\stepsto& \cek{ M \mid \env'[x \mapsto \val{V}{\env}] \mid \kappa},\\
-                  &&&\quad\text{ if } \hret = \{\Val\; x \mapsto M\} \\
+                  &&&\quad\text{ if } \hret = \{\Return\; x \mapsto M\} \\
 
 % Handle op
 \mlab{Op} & \cek{ \Do \; \ell~V \mid \env \mid (\sigma, (\env', H)) \cons \kappa }
@@ -17552,7 +17599,7 @@ The algorithm is then as follows.
       \bl
       \Handle\; pred\,(\lambda\_. \Do\; \Branch\; \Unit)\; \With\\
       \quad\ba[t]{@{}l@{\hspace{1.5ex}}c@{\hspace{1.5ex}}l@{}}
-           \Val\, x         &\mapsto& \If\; x\; \Then\;\Return\; 1 \;\Else\;\Return\; 0 \\
+           \Return\, x         &\mapsto& \If\; x\; \Then\;\Return\; 1 \;\Else\;\Return\; 0 \\
            \OpCase{\Branch}{\Unit}{r} &\mapsto&
               \ba[t]{@{}l}
                 \Let\;x_\True \revto  r~\True\; \In\\
@@ -17619,7 +17666,8 @@ behaviour of $P$ as modelled by $\tr(P)$. Once
 $\dec{Hyp}(\nil)$ is established, both halves of the theorem
 follow easily.
 %
-Full details are published in Appendix~C of \citet{HillerstromLL20a}.
+The proof details and development of the proof gadgets are in
+Appendix~\ref{sec:positive-theorem}.
 \end{proof}
 %
 
@@ -17645,12 +17693,13 @@ c + \log n))$.
 
 One might also ask about the execution time for an implementation of
 $\HPCF$ that performs genuine copying of continuations, as in systems
-such as \citet{mlton}.
+such as MLton~\cite{Fluet20}.
 %
 As MLton copies the entire continuation (stack), whose size is
 $\BigO(n)$, at each of the $2^n$ branches, continuation copying alone
 takes time $\BigO(n2^n)$ and the effectful implementation offers no
-performance benefit (Table~\ref{tbl:results-mlton}).
+performance benefit (Tables~\ref{tbl:results-mlton-queens} and
+\ref{tbl:results-mlton-integration}).
 %
 More refined implementations \citep{FarvardinR20, FlattD20} that are
 able to take advantage of delimited control operators or sharing in
@@ -17850,7 +17899,7 @@ be performed `in turn' but might be nested in some complex way).
   will be unable to detect any difference between $P$ and $P'$.
 
   The situation is reminiscent of Milner's \emph{context
-    lemma}~\citep{Milner77}, which (loosely) says that essentially the
+    lemma}~\cite{Milner77}, which (loosely) says that essentially the
   only way to observe a difference between two programs is to apply
   them to some argument on which they differ.  Traditional proofs of
   the context lemma reason by induction on length of reduction
@@ -19133,8 +19182,9 @@ literature (other studies survey a particular control phenomenon,
 e.g. \citet{FelleisenS99} survey undelimited continuations as provided
 by call/cc in programming practice, \citet{DybvigJS07} classify
 delimited control operators according to their delimiter placement,
-and \citet{Brachthauser20} provides a delimited control perspective on
-effect handlers).
+\citet{Brachthauser20} provides a delimited control perspective on
+effect handlers, and \citet{MouraI09} survey the use of first-class
+control operators to implement coroutines).
 
 In Part~\ref{p:design} I have presented the design of a ML-like
 programming language equipped an effect-and-type system and a
@@ -19583,7 +19633,1906 @@ constructs in the style of Chapter~\ref{ch:handlers-efficiency}.
 %%
 %% Appendices
 %%
-% \appendix
+\part{Appendices}
+\appendix
+
+\chapter{Get get is redundant}
+\label{ch:get-get}
+The global state effect is often presented with following four
+equations.
+%
+\begin{reductions}
+  \slab{Get\textrm{-}get} & x \revto \getF; y \revto \getF; M &=& x \revto \getF; M[x/y]\\
+  \slab{Get\textrm{-}put} & x \revto \getF; \putF~x; M &=& M\\
+  \slab{Put\textrm{-}get} & \putF~V; x \revto \getF; M &=& \putF~V; M[V/x]\\
+  \slab{Put\textrm{-}put} & \putF~V; \putF~W; M        &=& \putF~W;M
+\end{reductions}
+%
+However, the first equation is derivable from the second and third
+equations. I first learned this from Paul{-}Andr{\'{e}} Melli{\`{e}}s
+during Shonan Seminar No.103 \emph{Semantics of Effects, Resources,
+  and Applications}. I have been unable to find a proof of this fact
+in the literature, though, \citeauthor{Mellies14} does have published
+paper, which only states the three necessary
+equations~\cite{Mellies14}.
+%
+Therefore I include a proof of this fact here (thanks to Sam Lindley
+for helping me relearning this fact from first principles).
+
+\begin{theorem}
+  \slab{Get\textrm{-}put} and \slab{Put\textrm{-}get} implies \slab{Get\textrm{-}get}
+\end{theorem}
+\begin{proof}
+  \begin{derivation}
+    &x \revto \getF; y \revto \getF; M\\
+    =& \reason{\slab{Get\textrm{-}put} right-to-left; $z \notin \FV(M)$}\\
+    &z \revto \getF; \putF~z; x \revto \getF; y \revto \getF; M\\
+    =& \reason{\slab{Put\textrm{-}get}}\\
+    &z \revto \getF; \putF~z; y \revto \getF; M[z/x]\\
+    =& \reason{\slab{Put\textrm{-}get}}\\
+    &z \revto \getF; \putF~z; M[z/x, z/y]\\
+    =& \reason{composition of substitution}\\
+    &z \revto \getF; \putF~z; (M[x/y])[z/x]\\
+  \end{derivation}
+  \begin{derivation}
+    =& \reason{\slab{Put\textrm{-}get} right-to-left}\\
+    &z \revto \getF; \putF~z; x \revto \getF; M[x/y]\\
+    =& \reason{\slab{Get\textrm{-}put}}\\
+    &x \revto \getF; M[x/y]
+  \end{derivation}
+\end{proof}
+
+\chapter{Proofs of correctness of the higher-order uncurried CPS
+  translation}
+\label{sec:proofs-cps-gen-cont}
+\begin{lemma}[Substitution]\label{lem:subst-gen-cont-proof}
+  %
+  The CPS translation commutes with substitution in value terms
+  %
+  \[
+    \cps{W}[\cps{V}/x] = \cps{W[V/x]},
+  \]
+  %
+  and with substitution in computation terms
+  \[
+    \ba{@{}l@{~}l}
+      &(\cps{M} \sapp (\sV_f \scons \sW))[\cps{V}/x]\\
+    = &\cps{M[V/x]} \sapp (\sV_f \scons \sW)[\cps{V}/x],
+    \ea
+  \]
+  %
+  and with substitution in handler definitions
+  %
+  \begin{equations}
+     \cps{\hret}[\cps{V}/x]
+      &=& \cps{\hret[V/x]},\\
+     \cps{\hops}[\cps{V}/x]
+      &=& \cps{\hops[V/x]}.
+  \end{equations}
+\end{lemma}
+%
+\begin{proof}
+  The proof is by mutual induction on the structure of the computation
+  term $M$ and the value term $W$. For most of the cases, the
+  existence of the top level frame on the stack is not important, so
+  we just refer to the whole static continuation stack as $\sW$. Note
+  that we make implicit use of the fact that the parts of the
+  continuation stack that are statically known are all of the form of
+  right nested triples of reflected dynamic terms.
+  \begin{description}
+  \item[Case] $M = V' \, W$.
+    \begin{derivation}
+      &  (\cps{V' \, W} \sapp \sW)[\cps{V}/x]\\
+      =&           \reason{definition of $\cps{-}$} \\
+      &  ((\slam \sk . \cps{V'} \dapp \cps{W} \dapp \reify \sk) \sapp \sW)[\cps{V}/x] \\
+      =&           \reason{static $\beta$-conversion} \\
+      &  (\cps{V'} \dapp \cps{W} \dapp \reify \sW)[\cps{V}/x] \\
+      =&           \reason{definition of $[-]$} \\
+      &  (\cps{V'}[\cps{V}/x]) \dapp (\cps{W}[\cps{V}/x]) \dapp \reify \sW[\cps{V}/x] \\
+      =&           \reason{IH 2, twice} \\
+      &  \cps{V'[V/x]} \dapp \cps{W[V/x]} \dapp \reify \sW[\cps{V}/x] \\
+      =&           \reason{static $\beta$-conversion} \\
+      &  (\slam \sk . \cps{V'[V/x]} \dapp \cps{W[V/x]} \dapp \reify \sk) \sapp \sW[\cps{V}/x] \\
+      =&           \reason{definition of $\cps{-}$} \\
+      & \cps{(V'[V/x])\, (W[V/x])} \sapp \sW[\cps{V}/x] \\
+      =&           \reason{definition of $[-]$} \\
+      &  \cps{(V'\, W)[V/x]} \sapp \sW[\cps{V}/x]
+    \end{derivation}
+
+  \item[Case] $M = W\, T$.
+    \begin{derivation}
+      &  (\cps{W \, T} \sapp \sW)[\cps{V}/x]\\
+      =&           \reason{definition of $\cps{-}$} \\
+      &  ((\slam \sk . \cps{W} \dapp \Record{} \dapp \reify \sk) \sapp \sW)[\cps{V}/x] \\
+      =&           \reason{static $\beta$-conversion} \\
+      &  (\cps{W} \dapp \Record{} \dapp \reify \sW)[\cps{V}/x] \\
+      =&           \reason{definition of $[-]$} \\
+      &  \cps{W}[\cps{V}/x] \dapp \Record{} \dapp \reify \sW[\cps{V}/x] \\
+      =&           \reason{IH 2} \\
+      & \cps{W[V/x]} \dapp \Record{} \dapp \reify \sW[\cps{V}/x] \\
+    \end{derivation}
+    \begin{derivation}
+      =&           \reason{static $\beta$-conversion} \\
+      &  (\slam \sk . \cps{W[V/x]} \dapp \Record{} \dapp \reify \sk) \sapp \sW[\cps{V}/x] \\
+      =&           \reason{definition of $\cps{-}$} \\
+      &  \cps{W[V/x]\,T} \sapp \sW[\cps{V}/x] \\
+      =&           \reason{definition of $[-]$} \\
+      &  \cps{(W\,T)[V/x]} \sapp \sW[\cps{V}/x]
+    \end{derivation}
+
+  \item[Case] $M = \Let \; \Record{\ell = x'; y} = W \; \In \; N$.
+    \begin{derivation}
+      &  (\cps{\Let \; \Record{\ell = x'; y} = W \; \In \; N} \sapp \sW)[\cps{V}/x]\\
+      =&           \reason{definition of $\cps{-}$} \\
+      & ((\slam \sk . \Let \; \Record{\ell = x'; y} = \cps{W} \; \In \; \cps{N} \sapp \sk) \sapp \sW)[\cps{V}/x] \\
+      =&           \reason{static $\beta$-conversion} \\
+      & (\Let \; \Record{\ell = x'; y} = \cps{W} \; \In \; \cps{N} \sapp \sW)[\cps{V}/x] \\
+      =&           \reason{definition of $[-]$} \\
+      & \Let \; \Record{\ell = x'; y} = \cps{W}[\cps{V}/x] \; \In \; (\cps{N} \sapp \sW)[\cps{V}/x] \\
+      =&           \reason{IH 1 and IH 2} \\
+      & \Let \; \Record{\ell = x'; y} = \cps{W[V/x]} \; \In \; \cps{N[V/x]} \sapp \sW[\cps{V}/x] \\
+    %% \end{derivation}
+    %% \begin{derivation}
+      =&           \reason{static $\beta$-conversion} \\
+      & (\slam \sk . \Let \; \Record{\ell = x'; y} = \cps{W[V/x]} \; \In \; \cps{N[V/x]} \sapp \sk) \sapp \sW[\cps{V}/x] \\
+      =&           \reason{definition of $\cps{-}$} \\
+      & \cps{\Let \; \Record{\ell = x'; y} = W[V/x] \; \In \; N[V/x]} \sapp \sW[\cps{V}/x]\\
+      =&           \reason{definition of $[-]$} \\
+      & \cps{(\Let \; \Record{\ell = x'; y} = W \; \In \; N)[V/x]} \sapp \sW[\cps{V}/x]
+    \end{derivation}
+
+  \item[Case] $M = \Case\;V\;\{\ell\;x \mapsto M; y \mapsto
+    N\}$. Similar to the $M = \Let\;\Record{\ell=x;y} = V\;\In\;N$
+    case.
+
+  \item[Case] $M = \Absurd \; W$.
+    \begin{derivation}
+      &  (\cps{\Absurd \; W} \sapp \sW)[\cps{V}/x]\\
+      =&           \reason{definition of $\cps{-}$} \\
+      &  ((\slam \sk. \Absurd \; W) \sapp \sW)[\cps{V}/x] \\
+      =&           \reason{static $\beta$-conversion} \\
+      &  (\Absurd \; \cps{W})[\cps{V}/x] \\
+      =&           \reason{definition of $[-]$} \\
+      & \Absurd \; \cps{W}[\cps{V}/x] \\
+      =&           \reason{IH 2} \\
+      & \Absurd \; \cps{W[V/x]} \\
+      =&           \reason{static $\beta$-conversion} \\
+      &  (\slam \sk . \Absurd\; \cps{W[V/x]}) \sapp \sW[\cps{V}/x] \\
+      =&           \reason{definition of $\cps{-}$} \\
+      &  \cps{\Absurd\; W[V/x]} \sapp \sW[\cps{V}/x]\\
+      =&           \reason{definition of $[-]$} \\
+      & \cps{(\Absurd\; W)[V/x]} \sapp \sW[\cps{V}/x]\\
+    \end{derivation}
+
+  \item[Case] $M = \Return \; W$.
+    \begin{derivation}
+      & (\cps{\Return\; W} \sapp \sW)[\cps{V}/x] \\
+      =&       \reason{definition of $\cps{-}$}\\
+      & ((\slam \sk. \kapp\;\reify\sk\;\cps{W}) \sapp \sW)[\cps{V}/x] \\
+      =&       \reason{static $\beta$-conversion}\\
+      & (\kapp\;\reify \sW\;\cps{W})[\cps{V}/x]\\
+      =&       \reason{definition of $[-/-]$} \\
+      & \kapp\;\reify (\sW[\cps{V}/x])\;(\cps{W}[\cps{V}/x])\\
+      =&       \reason{IH 2} \\
+      & \kapp\;\reify (\sW[\cps{V}/x])\;\cps{W[V/x]}\\
+      =&       \reason{static $\beta$-conversion} \\
+      & (\slam \sk.\,\kapp\;\reify \sk\;\cps{W[V/x]}) \sapp \sW[\cps{V}/x] \\
+      =&       \reason{definition of $\cps{-}$}\\
+      & \cps{\Return\; (W[V/x])} \sapp \sW[\cps{V}/x]\\
+      =&       \reason{definition of $[-/-]$}\\
+      & \cps{(\Return\; W)[V/x]} \sapp \sW[\cps{V}/x]
+    \end{derivation}
+
+  \item[Case] $M = \Let \; y \revto M' \; \In \; N$. We have:
+    \begin{derivation}
+      &(\cps{\Let \; y \revto M' \; \In \; N} \sapp  (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))[\cps{V}/x]\\
+      =&       \reason{definition of $\cps{-}$} \\
+      &(\bl(\slam \sRecord{\theta, \sRecord{\svhret,\svhops}}\scons \sk.\\
+      \qquad \cps{M'}\sapp(\sRecord{\reflect((\dlam y\,k.\,\bl
+                                                           \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In \\
+                                                           \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))\dcons \reify\theta),\sRecord{\svhret,\svhops}} \scons \kappa)) \\
+                                                           \el \\
+      \quad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))[\cps{V}/x]\el\\
+      =&        \reason{static $\beta$-conversion}\\
+      &(\cps{M'}\sapp(\sRecord{\reflect((\dlam y\,k.\,\bl
+                                                      \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In \\
+                                                      \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))\dcons \reify \sV_{fs}),\sV_h} \scons \sW'))[\cps{V}/x] \\
+                                                    \el \\
+      =&        \reason{IH 1 on $M'$}\\
+      &\cps{M'[V/x]}\sapp
+              ((\sRecord{\reflect((\dlam y\,k.\,\bl
+                                                \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In \\
+                                                \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))\dcons \reify \sV_{fs}),\sV_h} \scons \sW')[\cps{V}/x])
+                                                \el \\
+      =&        \reason{definition of $[-/-]$}\\
+      &\cps{M'[V/x]} \sapp
+            (\sRecord{\bl
+                      \reflect((\dlam y\,k.\,\bl
+                                             \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In \\
+                                             (\cps{N} \sapp  (\sRecord{\reflect fs, \sRecord{\reflect \vhret,\reflect \vhops}} \scons \reflect k'))[\cps{V}/x])\dcons \reify(\sV_{fs}[\cps{V}/x])), \\
+                                             \el \\
+                      \sV_h[\cps{V}/x]} \scons (\sW'[\cps{V}/x])) \\
+                      \el \\
+      =&        \reason{IH 1 on $N$} \\
+      &\bl\cps{M'[V/x]}\sapp
+             (\sRecord{\bl
+                       \reflect((\dlam y\,k.\,\bl
+                                              \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In\\
+                                              \cps{N[V/x]} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret,\reflect \vhops}} \scons \reflect k'))\dcons (\reify \sV_{fs}[\cps{V}/x])),
+                                              \el \\
+                       \sV_h[\cps{V}/x]} \scons (\sW'[\cps{V}/x])) \\
+                       \el \\
+        \el \\
+      =&        \reason{static $\beta$-conversion and definition of $\cps{-}$} \\
+      &\cps{\Let\;y\revto M'[V/x]\;\In\;N[V/x]} \sapp ((\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x]) \\
+      =&        \reason{definition of $[-/-]$} \\
+      &\cps{(\Let\;y\revto M'\;\In\;N)[V/x]} \sapp ((\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x]) \\
+    \end{derivation}
+
+  \item[Case] $M = \Do \; (\ell\,W)^E$. We have:
+    \begin{derivation}
+      & (\cps{\Do \; (\ell\,W)^E} \sapp \sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x] \\
+      =&          \reason{definition of $\cps{-}$}\\
+      & (\bl
+         (\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk.\reify\svhops \dapp \dRecord{\ell, \dRecord{\cps{W}, \dRecord{\reify \shf, \dRecord{\reify \svhret, \reify \svhops}} \dcons \dnil}} \dapp \reify \sk) \\
+         \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))[\cps{V}/x] \\
+         \el \\
+      =&        \reason{static $\beta$-conversion} \\
+      & (\reify \sV_{ops} \dapp \dRecord{\ell, \dRecord{\cps{W}, \dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \dnil}} \dapp \reify \sW)[\cps{V}/x] \\
+      =&        \reason{definition of $[-/-]$} \\
+      & \reify \sV_{ops}[\cps{V}/x] \bl
+                                   \dapp \dRecord{\ell, \dRecord{\cps{W}[\cps{V}/x], \dRecord{\reify \sV_{fs}[\cps{V}/x], \dRecord{\reify \sV_{ret}[\cps{V}/x], \reify \sV_{ops}[\cps{V}/x]}} \dcons \dnil}} \\
+                                   \dapp \reify \sW[\cps{V}/x] \\
+                                   \el \\
+      =&        \reason{IH 2 on $W$} \\
+      & \reify \sV_{ops}[\cps{V}/x] \bl
+                                   \dapp \dRecord{\ell, \dRecord{\cps{W[V/x]}, \dRecord{\reify \sV_{fs}[\cps{V}/x], \dRecord{\reify \sV_{ret}[\cps{V}/x], \reify \sV_{ops}[\cps{V}/x]}} \dcons \dnil}} \\
+                                   \dapp \reify \sW[\cps{V}/x] \\
+                                   \el \\
+      =&        \reason{static $\beta$-conversion} \\
+      &\bl
+       (\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk.\vhops \dapp \dRecord{\ell, \dRecord{\cps{W[V/x]}, \dRecord{\reify \shf, \dRecord{\reify \svhret, \reify \svhops}} \dcons \dnil}} \dapp \reify \sk) \\
+       \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x] \\
+       \el \\
+      =&        \reason{definition of $\cps{-}$} \\
+      & (\cps{\Do \; (\ell\,W[V/x])^E} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x] \\
+      =&        \reason{definition of $[-/-]$} \\
+      & (\cps{(\Do \; (\ell\,W)^E)[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x] \\
+    \end{derivation}
+
+  \item[Case] $M = \Handle^\depth \; M' \; \With \; H$.
+    We make use of two auxiliary results.
+    \begin{enumerate}
+    \item $\cps{\hret}[\cps{V}/x] = \cps{\hret[V/x]}$\label{eq:hret-subst-proof}
+    \item $\cps{\hops}^\depth[\cps{V}/x] = \cps{\hops[V/x]}^\depth$\label{eq:hops-subst-proof}
+    \end{enumerate}
+    \begin{proof}
+      Suppose $\hret = \{ \Return \; y \mapsto N \}$.
+      \begin{derivation}
+        & \cps{\hret}[\cps{V}/x] \\
+        =&       \reason{definition of $\cps{-}$}\\
+        & (\dlam y\,k. \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In\;\cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))[\cps{V}/x] \\
+        =&       \reason{definition of $[-/-]$} \\
+        & \dlam y\,k. \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In\;(\cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))[\cps{V}/x] \\
+        =&       \reason{IH 1 for $N$}\\
+        & \dlam y\,k. \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In\;\cps{N[V/x]} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k') \\
+        =&       \reason{definition of $\cps{-}$}\\
+        & \cps{\hret[V/x]}
+      \end{derivation}
+      The
+      $\hops = \{(\ell\,p\,r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}$
+      case goes through similarly.
+    \end{proof}
+
+    We can now prove that substitution commutes with the translation
+    of handlers:
+    \begin{derivation}
+      & (\cps{\Handle^\depth \; M' \; \With \; H} \sapp \sW)[\cps{V}/x] \\
+      =&       \reason{definition of $\cps{-}$} \\
+      & ((\slam \sk . \cps{M'} \sapp \sRecord{\snil, \sRecord{\cps{\hret}, \cps{\hops}^\depth}} \scons \sk) \sapp \sW)[\cps{V}/x] \\
+      =&       \reason{static $\beta$-conversion} \\
+      & (\cps{M'} \sapp \sRecord{\snil, \sRecord{\cps{\hret}, \cps{\hops}^\depth}} \scons \sW)[\cps{V}/x] \\
+      =&       \reason{IH 1 for $M'$}\\
+      & \cps{M'[V/x]} \sapp \sRecord{\snil, \sRecord{\cps{\hret}[\cps{V}/x], \cps{\hops}^\depth[\cps{V}/x]}} \scons \sW[\cps{V}/x] \\
+      =&       \reason{\eqref{eq:hret-subst-proof} and \eqref{eq:hops-subst-proof}} \\
+      & \cps{M'[V/x]} \sapp \sRecord{\snil, \sRecord{\cps{\hret[V/x]}, \cps{\hops[V/x]}^\depth}} \scons \sW[\cps{V}/x] \\
+      =&       \reason{static $\beta$-conversion} \\
+      & ((\slam \sk . \cps{M'[V/x]} \sapp \sRecord{\snil, \sRecord{\cps{\hret[V/x]}, \cps{\hops[V/x]}^\depth}} \scons \sk) \sapp \sW[\cps{V}/x]) \\
+      =&       \reason{definition of $\cps{-}$} \\
+      & \cps{\Handle^\depth\; M'[V/x]; \With\; H[V/x]} \sapp \sW[\cps{V}/x] \\
+      =&       \reason{definition of $[-/-]$} \\
+      & \cps{(\Handle^\depth \; M' \; \With \; H)[V/x]} \sapp \sW[\cps{V}/x]
+    \end{derivation}
+  \end{description}
+\end{proof}
+
+% type erasure lemma
+\begin{lemma}[Type erasure]
+  \label{lem:erasure-proof}
+  \begin{enumerate}
+  \item $\cps{M} \sapp \sW = \cps{M[T/\alpha]} \sapp \sW$
+  \item $\cps{W}           = \cps{W[T/\alpha]}$
+  \end{enumerate}
+\end{lemma}
+\begin{proof}
+  Follows from the observation that the translation is oblivious to
+  types.
+\end{proof}
+
+%\addtocounter{theorem}{-7}
+
+\begin{lemma}[Evaluation context decomposition]
+  \label{lem:decomposition-gen-cont-proof}
+  \[
+   %  \cps{\EC[M]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW)
+   % =
+   % \cps{M} \sapp (\cps{\EC} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW))
+    \cps{\EC[M]} \sapp (\sV_f \scons \sW)
+   =
+    \cps{M} \sapp (\cps{\EC} \sapp (\sV_f \scons \sW))
+  \]
+\end{lemma}
+%
+\begin{proof}
+  % For reference, we repeat the translation of evaluations contexts
+  % here:
+  % \TranslateEC{}
+  The proof proceeds by structural induction on the evaluation context
+  $\EC$.
+  \begin{description}
+    % Empty context
+  \item[Case] $\EC = [\,]$.
+    \begin{derivation}
+      & \cps{\EC[M]} \sapp (\sV \scons \sW) \\
+      =&        \reason{assumption} \\
+      & \cps{M} \sapp (\sV \scons \sW) \\
+      =&        \reason{static $\beta$-conversion} \\
+      & \cps{M} \sapp ((\slam \sk . \sk) \sapp (\sV \scons \sW)) \\
+      =&        \reason{definition of $\cps{-}$} \\
+      & \cps{M} \sapp (\cps{\EC} \sapp (\sV \scons \sW))
+    \end{derivation}
+  % Let binding
+  \item[Case] $\EC = \Let \; x \revto \EC'[-] \; \In \; N$.
+    % Induction hypothesis:
+    % $\cps{\EC'[M]} \sapp (V \scons VS) = \cps{M} \sapp (\cps{\EC'} \sapp (V \scons VS))$.
+    %
+    \begin{derivation}
+      & \cps{\EC[M]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW) \\
+      =&        \reason{assumption} \\
+      & \cps{\Let \; x \revto \EC'[M] \; \In \; N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW) \\
+      =&        \reason{definition of $\cps{-}$} \\
+      & \bl(\slam \sRecord{\shf, \sRecord{\svhret, \svhops}} \scons \shk.\\
+      \qquad \cps{\EC'[M]} \sapp (\sRecord{\reflect((\dlam x\,\dhk.\bl
+                                                                   \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In \\
+                                                                   \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify \shf), \sRecord{\svhret, \svhops}} \scons \shk)) \\
+                                                                   \el \\
+      \quad\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)\el \\
+      =&        \reason{static $\beta$-conversion} \\
+      & \cps{\EC'[M]} \sapp (\sRecord{\reflect((\dlam x\,\dhk.\bl
+                                                              \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In \\
+                                                              \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify \sV_{fs}), \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW) \\
+                                                              \el \\
+      =&        \reason{IH for $\EC'[-]$}\\
+      & \cps{M} \sapp (\bl\cps{\EC'} \sapp \\\quad(\sRecord{\reflect((\dlam x\,\dhk.\bl
+                                                                                    \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In \\
+                                                                                    \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify\sV_{fs}), \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))
+                                                                                    \el \\
+                       \el \\
+      =&        \reason{static $\beta$-conversion} \\
+      & \cps{M} \sapp (\bl
+                       (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \shk.\\
+                       \quad\cps{\EC'} \sapp (\sRecord{\bl
+                                                       \reflect((\dlam x\,\dhk.\bl
+                                                                               \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In\\
+                                                                               \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify\shf), \\
+                                                                               \el \\
+                                                      \sRecord{\svhret,\svhops}} \scons \shk))
+                                                         \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)) \\
+                                                      \el \\
+                       \el \\
+      =&        \reason{definition of $\cps{-}$} \\
+      & \cps{M} \sapp (\cps{\Let \; x \revto \EC'[M] \; \In \; N}) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)) \\
+      =&        \reason{assumption} \\
+      & \cps{M} \sapp (\cps{\EC} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))
+    \end{derivation}
+  % handler
+  \item[Case] $\EC = \Handle^\depth \; \EC' \; \With \; H$.
+    % Induction hypothesis:
+    % $\cps{\EC'[M]} \sapp (V \scons VS) = \cps{M} \sapp (\cps{\EC'} \sapp (V \scons VS))$.
+    %
+    \begin{derivation}
+      & \cps{\EC[M]} \sapp (\sV \scons \sW) \\
+      =&        \reason{assumption} \\
+      & \cps{\Handle^\depth \; \EC'[M] \; \With \; H} \sapp (\sV \scons \sW) \\
+      =&        \reason{definition of $\cps{-}$} \\
+      & (\slam \sk. \cps{\EC'[M]} \sapp (\sRecord{\nil, \cps{H}^\depth}\scons \sk)) \sapp (\sV \scons \sW) \\
+      =&        \reason{static $\beta$-conversion} \\
+      & \cps{\EC'[M]} \sapp (\sRecord{\nil, \cps{H}^\depth} \scons (\sV \scons \sW)) \\
+      =&        \reason{IH} \\
+      & \cps{M} \sapp (\cps{\EC'} \sapp (\sRecord{\nil, \cps{H}^\depth} \scons (\sV \scons \sW))) \\
+      =&        \reason{static $\beta$-conversion} \\
+      & \cps{M} \sapp ((\slam \sk . \cps{\EC'} \sapp (\sRecord{\nil, \cps{H}^\depth} \scons \sk)) \sapp (\sV \scons \sW)) \\
+      =&        \reason{definition of $\cps{-}$} \\
+      & \cps{M} \sapp (\cps{\Handle^\depth \; \EC' \; \With \; H} \sapp (\sV \scons \sW)) \\
+      =&        \reason{assumption} \\
+      & \cps{M} \sapp (\cps{\EC} \sapp (\sV \scons \sW))
+    \end{derivation}
+\end{description}
+\end{proof}
+
+% reflect after reify
+\begin{lemma}[Reflect after reify]
+  \label{lem:reflect-after-reify-proof}
+%
+  \[
+  %   \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \reflect \reify \sW)
+  % =
+  % \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW).
+    \cps{M} \sapp (\sV_f \scons \reflect \reify \sW)
+  =
+  \cps{M} \sapp (\sV_f \scons \sW).
+  \]
+\end{lemma}
+\begin{proof}
+  For an inductive proof to go through in the presence of $\Let$ and
+  $\Handle$, which alter or extend the continuation stack, we
+  generalise the lemma statement to include an arbitrary list of
+  handler frames:
+  \begin{displaymath}
+    \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \sV_n \scons \reflect \reify \sW)
+    =
+    \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \sV_n \scons \sW)
+  \end{displaymath}
+  This is the lemma statement when $n = 0$. The proof now proceeds by
+  induction on the structure of $M$. Most of the translated terms do
+  not examine the top of the continuation stack, so we will write
+  $\sV_0$ for $\sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}}$ to
+  save space.
+  \begin{description}
+  \item[Case] $M = V\,W$.
+    \begin{derivation}
+      & \cps{V\,W} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+      =& \reason{definition of $\cps{-}$} \\
+      & (\slam \sk.\cps{V} \dapp \cps{W} \dapp \reify \sk) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+      =& \reason{static $\beta$-conversion} \\
+      & \cps{V} \dapp \cps{W} \dapp \reify (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+      =& \reason{definition of $\reify$} \\
+      & \cps{V} \dapp \cps{W} \dapp (\sV_1 \dcons \dots \dcons \sV_n \dcons \reify \sW)\\
+      =& \reason{definition of $\reify$} \\
+      & \cps{V} \dapp \cps{W} \dapp \reify (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+      =& \reason{static $\beta$-conversion} \\
+      & (\slam \sks.\cps{V} \dapp \cps{W} \dapp \reify \sks) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+      =& \reason{definition of $\cps{-}$} \\
+      & \cps{V\,W} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)
+    \end{derivation}
+
+  \item[Case] $M = V\,T$. Similar to the $M = V\,W$ case.
+
+  \item[Case] $M = \Let\; \Record{\ell=x; y} = V \;\In\; N$.
+    \begin{derivation}
+      & \cps{\Let\; \Record{\ell=x; y} = V \;\In\; N} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+      =& \reason{definition of $\cps{-}$} \\
+      & (\slam \sk.\Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N} \sapp \sk) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+      =& \reason{static $\beta$-conversion} \\
+      & \Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+      =& \reason{IH} \\
+      & \Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+      =& \reason{static $\beta$-conversion} \\
+      & (\slam \sk.\Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N} \sapp \sk) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+      =& \reason{definition of $\cps{-}$} \\
+      & \cps{\Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N}} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+    \end{derivation}
+
+  \item[Case] $M = \Case\; V \{\ell\; x \mapsto M; y \mapsto
+    N\}$. Similar to the $M = \Let\; \Record{\ell=x; y} = V \;\In\; N$
+    case.
+
+  \item[Case] $M = \Absurd\; V$.
+    \begin{derivation}
+      & \cps{\Absurd\; V} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+      =& \reason{definition of $\cps{-}$} \\
+      & (\slam \sk.\Absurd\; \cps{V}) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+      =& \reason{static $\beta$-conversion} \\
+      & \Absurd\; \cps{V}\\
+      =& \reason{static $\beta$-conversion} \\
+      & (\slam \sks.\Absurd\; \cps{V}) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+      =& \reason{definition of $\cps{-}$} \\
+      & \cps{\Absurd\; V} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+    \end{derivation}
+
+  \item[Case] $M = \Return\;V$.
+    \begin{derivation}
+      & \cps{\Return\;V} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW) \\
+      =&       \reason{definition of $\cps{-}$} \\
+      & (\slam \sk. \kapp\;(\reify \sk)\;\cps{V}) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW) \\
+      =&       \reason{static $\beta$-conversion} \\
+      & \kapp\; (\reify (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW))\; \cps{V}\\
+      =&       \reason{definition of $\reify$} \\
+      & \kapp\; (\reify \sV_0 \dcons \dots \dcons \reify \sV_n \dcons \reify \sW))\; \cps{V}\\
+      =&       \reason{definition of $\reify$} \\
+      & \kapp\; (\reify (\sV_0 \scons \dots \scons \sV_n \scons \sW))\; \cps{V}\\
+      =&       \reason{static $\beta$-conversion} \\
+      & (\slam \sk. \kapp\;(\reify \sk)\;\cps{V}) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW) \\
+      =&       \reason{definition of $\cps{-}$} \\
+      & \cps{\Return\;V} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW) \\
+    \end{derivation}
+
+  \item[Case] $M = \Let\; x \revto M'\;\In\; N$.
+    \begin{derivation}
+      & \cps{\Let\;x \revto M'\; \In\; N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW) \\
+      =&         \reason{definition of $\cps{-}$} \\
+      & \bl
+      (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \sk. \cps{M'} \sapp (
+        \bl\sRecord{\reflect((\dlam x\,k.
+           \bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k;\In\\
+           \cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \shf),\el\\
+           \sRecord{\svhret,\svhops}} \scons \sk)))\el \\
+      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW)
+      \el
+      \\
+      =&         \reason{static $\beta$-conversion} \\
+      & \cps{M'} \sapp (
+      \bl\sRecord{\reflect((\dlam x\,k.
+        \bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k;\In\\
+        \cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}),\el\\
+        \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\el
+      \\
+      =&         \reason{IH on $M$} \\
+      & \cps{M'} \sapp (
+      \bl\sRecord{\reflect((\dlam x\,k.
+        \bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k;\In\\
+        \cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}),\el\\
+        \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW)\el
+      \\
+   \end{derivation}
+   \begin{derivation}
+      =&         \reason{static $\beta$-conversion} \\
+      & \bl
+      (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \sk. \cps{M'} \sapp (
+        \bl\sRecord{\reflect((\dlam x\,k.
+           \bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k;\In\\
+           \cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \shf),\el\\
+           \sRecord{\svhret,\svhops}} \scons \sk)))\el \\
+      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW)
+      \el
+      \\
+      =&         \reason{definition of $\cps{-}$} \\
+      & \cps{\Let\;x \revto M'\; \In\; N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW) \\
+    \end{derivation}
+
+  \item[Case] $M = \Do\;\ell\;V$.
+    \begin{derivation}
+      & \cps{\Do\;\ell\;V} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+      =&       \reason{definition of $\cps{-}$} \\
+      & \bl
+      (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \sk. \reify \svhops \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\shf,\dRecord{\reify\svhret,\reify\svhops}}\dcons\dnil}} \dapp \reify \sk) \\
+      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW)
+      \el\\
+      =&       \reason{static $\beta$-conversion} \\
+      & \reify \sV_{ops} \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}}\dcons\dnil}} \dapp \reify (\sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW) \\
+      =&       \reason{definition of $\reify$} \\
+      & \reify \sV_{ops} \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}}\dcons\dnil}} \dapp (\reify\sV_1 \dcons \dots \dcons \reify\sV_n \dcons \reify \sW) \\
+      =&       \reason{definition of $\reify$} \\
+      & \reify \sV_{ops} \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}}\dcons\dnil}} \dapp \reify(\sV_1 \scons \dots \scons \sV_n \scons \sW) \\
+      =&       \reason{static $\beta$-conversion} \\
+      & \bl
+      (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \sk. \reify \svhops \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\shf,\dRecord{\reify\svhret,\reify\svhops}}\dcons\dnil}} \dapp \reify \sk) \\
+      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW)
+      \el\\
+      =&       \reason{definition of $\cps{-}$} \\
+      & \cps{\Do\;\ell\;V} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW)\\
+    \end{derivation}
+
+  \item[Case] $\Handle^\depth\; M \;\With\; H$.
+    \begin{derivation}
+      & \cps{\Handle^\depth\; M \;\With\; H} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+      =& \reason{definition of $\cps{-}$} \\
+      & (\slam \sk.\cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sk)) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+      =& \reason{static $\beta$-conversion} \\
+      & \cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+      =& \reason{IH} \\
+   \end{derivation}
+   \begin{derivation}
+      & \cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+      =& \reason{static $\beta$-conversion} \\
+      & (\slam \sk.\cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sk)) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+      =& \reason{definition of $\cps{-}$} \\
+      & \cps{\Handle^\depth\; M \;\With\; H} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+    \end{derivation}
+  \end{description}
+\end{proof}
+%
+\begin{lemma}[Forwarding]\label{lem:forwarding-proof}
+  If $\ell \notin dom(H_1)$ then:
+  %
+  \[
+    \bl
+    \cps{\hops_1}^\delta \dapp \dRecord{\ell, \dRecord{V_p, V_{\dhkr}}} \dapp (\dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W)
+    \reducesto^+ \qquad \\
+    \hfill
+       \cps{\hops_2}^\delta \dapp \dRecord{\ell, \dRecord{V_p, \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons V_{\dhkr}}} \dapp W. \\
+    \el
+  \]
+  %
+\end{lemma}
+\begin{proof}
+  \begin{derivation}
+    & \cps{\hops_1}^\delta \dapp \dRecord{\ell, \dRecord{V_p, V_{rk}}} \dapp (\dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W) \\
+    \reducesto^+ & \\
+    & M_{forward}((\ell, V_p, V_{rk}), \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W) \\
+    = & \\
+    & \bl
+    \Let\; \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W \;\In \\
+    \Let\; rk' = \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons V_{rk}\;\In\\
+    \vhops \dapp \dRecord{\ell,\dRecord{V_p, rk'}} \dapp \dhk' \\
+    \el\\
+    \reducesto^+ & \\
+    & \cps{\hops_2}^\delta \dapp \dRecord{\ell,\dRecord{V_p, \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons V_{rk}}} \dapp W
+  \end{derivation}
+\end{proof}
+
+\newcommand{\Append}{\mathop{+\kern-4pt+}}
+
+The following lemma is central to our simulation theorem. It
+characterises the sense in which the translation respects the handling
+of operations.  Note how the values substituted for the resumption
+variable $r$ in both cases are in the image of the translation of
+$\lambda$-terms in the CPS translation. This is thanks to the precise
+way that the reductions rules for resumption construction works in our
+dynamic language, as described above.
+%
+\begin{lemma}[Handling]\label{lem:handle-op-gen-cont-proof}
+  Suppose $\ell \notin BL(\EC)$ and
+  $\hell = \{\ell\,p\,r \mapsto N_\ell\}$. If $H$ is deep then
+  \[
+    \bl
+    \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sV_f \scons \sW)) \reducesto^+ \\
+    \quad (\cps{N_\ell} \sapp (\sV_f \scons \sW))
+    [\cps{V}/p,
+    \dlam x\,\dhk.\bl
+    \Let\;\dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dhk\;\In\;
+    \cps{\Return\;x}\\
+    \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\reflect \dlk, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect\dhk'))/r]. \\
+    \el\\
+    \el
+  \]
+  %
+  Otherwise if $H$ is shallow then
+    \[
+   \bl
+    \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}^\dagger} \scons \sV_f \scons \sW)) \reducesto^+ \\
+    \quad (\cps{N_\ell} \sapp (\sV_f \scons \sW))
+    [\cps{V}/p, \dlam x\,\dhk.  \bl
+    \Let\;\dRecord{\dlk, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dhk \;\In\;\cps{\Return\;x}\\
+    \sapp (\cps{\EC} \sapp (\sRecord{\reflect \dlk, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect\dhk'))/r]. \\
+    \el \\
+    \el
+  \]
+  %
+\end{lemma}
+\begin{proof}
+  By the definition of $\cps{-}$ on evaluation contexts we can deduce
+  that
+  \begin{equation}
+    \label{eq:evalcontext-eq-proof}
+    \cps{\EC} \sapp (\sRecord{\reflect V, \cps{H}^\depth} \scons \sW)
+    =
+    \sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect (V_n \Append V), \cps{H_n}^{\depth_n}} \scons \sW
+  \end{equation}
+  for some dynamic value terms $V_1, \dots, V_n$, depths
+  $\depth_1, \dots, \depth_n$, and handlers $H_1, \dots, H_n$, where
+  $n \geq 1$, $H_n = H$, and $\Append$ is (dynamic) list
+  concatenation.
+  \begin{derivation}
+    & \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)) \\
+    = &      \reason{definition of $\cps{-}$} \\
+    & \bl(\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk'. \reify \svhops \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify \shf, \dRecord{\reify \svhret, \reify \svhops}} \dcons \dnil}} \dapp \reify \sk)\\
+    \qquad \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))\el\\
+    = &      \reason{Equation \ref{eq:evalcontext-eq-proof}, above} \\
+    & \bl(\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk'. \reify \svhops \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify \shf, \dRecord{\reify \svhret, \reify \svhops}} \dcons \dnil}} \dapp \reify \sk)\\
+    \qquad \sapp (\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect V_n, \cps{H_n}^{\depth_n}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)\el\\
+    = &      \reason{static $\beta$-conversion} \\
+    & \cps{\hops_1}^{\depth_1} \bl
+                             \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dnil}} \\
+                             \dapp \reify (\dots \scons \sRecord{\reflect V_n, \cps{H_n}^{\depth_n}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}} \scons \sW) \\
+                             \el \\
+    = &      \reason{definition of $\reify$} \\
+    & \cps{\hops_1}^{\depth_1} \bl
+                            \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dnil}} \\
+                            \dapp (\dots \scons \sRecord{V_n, \cps{H_n}^{\depth_n}} \dcons \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}} \dcons \reify \sW)\\
+                            \el \\
+    \reducesto^+ & \reason{$\ell \notin BL(\EC)$ and repeated application of Lemma~\ref{lem:forwarding-proof}} \\
+   \end{derivation}
+   \begin{derivation}
+    & \cps{\hops_n}^{\depth} \bl
+                           \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{V_n, \cps{H_n}^{\depth_n}} \dcons \dots \dcons \dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dnil}} \\
+                           \dapp (\dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}} \dcons \reify \sW) \\
+                           \el \\
+    \reducesto^+ & \reason{$H^\ell = \{\ell\;p\;r \mapsto N_\ell\}$} \\
+    & \bl \Let\;r=\Res^\depth\; (\dRecord{V_n, \cps{H_n}^{\depth_n}} \dcons \dots \dcons \dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dnil)\;\In\\
+          \Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}} \dcons \reify \sW\;\In\\
+          (\cps{N_\ell}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons\reflect k'))[\cps{V}/p]\el\\
+    \reducesto&             \reason{$\usemlab{Res^\depth}$: there are two cases yielding different $\mathcal{R}$, see below} \\
+    & \bl \Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}} \dcons \reify \sW\;\In\\
+          (\cps{N_\ell}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons\reflect k'))[\cps{V}/p,\mathcal{R}/r]\el\\
+    \reducesto^+& \reason{$\usemlab{Split}$} \\
+    & (\cps{N_\ell}\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}}\scons\reflect \reify\sW))[\cps{V}/p,\mathcal{R}/r]\\
+    = &           \reason{Lemma~\ref{lem:reflect-after-reify-proof} (Reflect after reify)} \\
+    & (\cps{N_\ell}\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}}\scons\sW))[\cps{V}/p,\mathcal{R}/r]\\
+  \end{derivation}
+  To complete the proof, we examine the resumption term $\mathcal{R}$
+  generated by the reduction of the $\Let\;r=\Res^\depth\;rk\;\In\;N$
+  construct. There are two cases, depending on whether the handler is
+  deep or shallow. When the handler is deep, we have:
+  \begin{equations}
+    \mathcal{R}
+    &=& \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+                       \kapp\;(\dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dots \dcons \dRecord{V_n, \cps{H_n}^{\depth_n}} \dcons \dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k')\;y
+                   \el
+    \\
+    &=& \reason{static $\beta$-conversion, and definition of $\reify$} \\
+    & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+                      (\slam \sk. \kapp\;(\reify \sk)\;y) \\
+                      \quad \sapp ((\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect V_n, \cps{H_n}^{\depth_n}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k')
+                   \el\\
+    &=& \reason{definition of $\cps{-}$} \\
+    & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+                      \cps{\Return\;y} \sapp ((\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect V_n, \cps{H_n}^{\depth_n}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k')
+                   \el\\
+    &=& \reason{Equation~\ref{eq:evalcontext-eq-proof}} \\
+    & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+                      \cps{\Return\;y} \sapp (\cps{\EC} \sapp (\sRecord{\reflect \dnil, \cps{H_n}^{\depth_n}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k'))
+                   \el\\
+  \end{equations}
+  When the handler is shallow, we have:
+  \begin{equations}
+    \mathcal{R}
+    &=& \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+                       \kapp\;(\dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dots \dcons \dRecord{V_n \Append fs, \dRecord{\vhret, \vhops}}\dcons k')\;y
+                   \el
+                   \\
+    &=& \reason{static $\beta$-conversion, and definition of $\reify$} \\
+    & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+                      (\slam \sk. \kapp\;(\reify \sk)\;y) \sapp ((\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect (V_n \Append fs), \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k')
+                   \el\\
+    &=& \reason{definition of $\cps{-}$} \\
+    & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+                      \cps{\Return\;y} \sapp ((\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect (V_n \Append fs), \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k')
+                   \el\\
+    &=& \reason{Equation~\ref{eq:evalcontext-eq-proof}} \\
+    & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+                      \cps{\Return\;y} \sapp (\cps{\EC} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k'))
+                   \el\\
+  \end{equations}
+\end{proof}
+
+\clearpage
+\medskip
+%
+\begin{theorem}[Simulation]
+  \label{thm:ho-simulation-gen-cont-proof}
+  If $M \reducesto N$ then
+  \[
+  \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}}
+  \scons \sW) \reducesto^+ \cps{N} \sapp (\sRecord{\sV_{fs},
+    \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW).
+  \]
+\end{theorem}
+\begin{proof}
+  The proof is by induction on the derivation of the reduction
+  relation ($\reducesto$).
+  \begin{description}
+  \item[Case] $\semlab{App}$: $(\lambda x^A.M)\,V \reducesto M[V/x]$.
+    \begin{derivation}
+      & \cps{(\lambda x^A.M)\,V} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&        \reason{definition of $\cps{-}$} \\
+      & (\slam \sk.\,\cps{\lambda x^A.M} \dapp \cps{V} \dapp \reify \sk) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&        \reason{static $\beta$-conversion} \\
+      & \cps{\lambda x^A.M} \dapp \cps{V} \dapp \reify (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&        \reason{definition of $\reify$} \\
+      & \cps{\lambda x^A.M} \dapp \cps{V} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW) \\
+      =&        \reason{definition of $\cps{-}$} \\
+      & \bl(\dlam x\,k. \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}} \dcons k' = k\;\In\cps{M} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \cons \reflect k))\\
+      \qquad \dapp \cps{V} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW)\el \\
+      \reducesto^+&        \reason{dynamic $\beta$-reduction and pattern matching, and structure of continuations}\\
+      & \cps{M}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
+      =&        \reason{Lemma~\ref{lem:subst-gen-cont-proof} (Substitution)} \\
+      & \cps{M[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
+      =&        \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
+      & \cps{M[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+    \end{derivation}
+  \item[Case] $\semlab{TyApp}$: $(\Lambda \alpha^K.M)\,T \reducesto M[T/\alpha]$.
+    \begin{derivation}
+      & \cps{(\Lambda \alpha^K.M)\,T} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&         \reason{definition of $\cps{-}$} \\
+      & (\slam \sk. \cps{\Lambda \alpha^K.M} \dapp \dRecord{} \dapp \reify \sk) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&         \reason{static $\beta$-conversion} \\
+      & \cps{\Lambda \alpha^K.M} \dapp \cps{V} \dapp \dRecord{} \dapp \reify (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+   %% \end{derivation}
+   %% \begin{derivation}
+      =&         \reason{definition of $\reify$} \\
+      & \cps{\Lambda \alpha^K.M} \dapp \cps{V} \dapp \dRecord{} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW) \\
+      =&         \reason{definition of $\cps{-}$} \\
+      & \bl(\dlam x\,k. \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}} \dcons k' = k\;\In\;\cps{M} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \cons \reflect k))\\
+      \qquad \dapp \dRecord{} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW)\el \\
+      \reducesto^+&       \reason{dynamic $\beta$-reduction and pattern matching, and structure of continuations}\\
+      & \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
+      =&         \reason{Lemma~\ref{lem:erasure-proof} (Type Erasure)} \\
+      & \cps{M[T/\alpha]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
+      =&        \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
+      & \cps{M[T/\alpha]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+    \end{derivation}
+  \item[Case] $\semlab{Rec}$:
+    $(\Rec\,g\,x.M)\,V \reducesto M[(\Rec\,g\,x.M)/g,V/x]$. Similar to
+    the previous two cases.
+  \item[Case] $\semlab{Split}$: $\Let\;\Record{\ell=x;y} = \Record{\ell=V;W}\;\In\;N \reducesto N[V/x,W/y]$.
+    \begin{derivation}
+      & \cps{\Let\;\Record{\ell=x;y} = \Record{\ell=V;W}\;\In\;N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+      =&           \reason{definition of $\cps{-}$}\\
+      & (\slam \kappa. \Let\;\dRecord{\ell,\dRecord{x,y}} = \Record{\ell,\dRecord{\cps{V},\cps{W}}}\;\In\;\cps{N} \sapp \sk) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+      =&           \reason{static $\beta$-conversion}\\
+      & \Let\;\dRecord{\ell,\dRecord{x,y}} = \Record{\ell,\dRecord{\cps{V},\cps{W}}}\;\In\;\cps{N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+      \reducesto^+& \reason{\usemlab{Split}}\\
+      & (\cps{N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))[\cps{V}/x,\cps{W}/y] \\
+      =&           \reason{Lemma~\ref{lem:subst-gen-cont-proof} (Substitution)}\\
+      & \cps{N[V/x,W/y]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+    \end{derivation}
+  \item[Case] $\semlab{Case_1}$ and $\semlab{Case_2}$: Similar to the previous case.
+  \item[Case] $\semlab{Let}$:
+    $\Let\;x\revto \Return\;V\;\In\;N \reducesto N[V/x]$.
+    \begin{derivation}
+      & \cps{\Let\;x\revto \Return\;V\;\In\;N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&         \reason{definition of $\cps{-}$} \\
+      & \bl(\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk. \\\cps{\Return\;V} \sapp (\sRecord{\reflect((\dlam x\,k.
+        \bl
+        \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\
+        \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \shf), \sRecord{\svhret, \svhops}} \scons \sk)) \\
+        \el \\
+        \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)
+        \el \\
+      =&         \reason{static $\beta$-conversion} \\
+      & \cps{\Return\;V} \sapp (\sRecord{\bl
+                                         \reflect((\dlam x\,k.\bl
+                                                              \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In \\
+                                                              \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}), \\
+                                                              \el \\
+                                         \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+                                         \el \\
+      =&         \reason{definition of $\cps{-}$} \\
+      & (\slam \sk. \kapp\; (\reify \sk)\;\cps{V}) \sapp (\sRecord{\reflect((\dlam x\,k.
+           \bl
+           \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\
+           \cps{N} \sapp (\bl
+                          \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}), \\
+                          \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)
+                          \el \\
+           \el \\
+      =&         \reason{static $\beta$-conversion} \\
+      & \kapp\; (\reify(\sRecord{\reflect((\dlam x\,k.\bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\\cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}), \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))\;\cps{V}\el \\
+      =&         \reason{definition of $\reify$} \\
+      & \kapp\; (\dRecord{(\dlam x\,k.\bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\\cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify\sW))\;\cps{V}\el \\
+      \reducesto& \reason{$\usemlab{KAppCons}$} \\
+      & (\dlam x\,k.\bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\\cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dapp \cps{V} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify \sW)\el \\
+      \reducesto^+& \reason{$\usemlab{App}$, $\usemlab{Split}$} \\
+      & \cps{N}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW)\\
+      =& \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
+      & \cps{N}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+      =&             \reason{Lemma~\ref{lem:subst-gen-cont-proof} (substitution)} \\
+      & \cps{N[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+    \end{derivation}
+  \item[Case] $\semlab{Ret}$:
+    $\Handle^\depth\;(\Return\;V)\;\With\;H \reducesto N[V/x]$, where
+    $\hret = \{\Return\;x\mapsto N\}$.
+    \begin{derivation}
+      & \cps{\Handle^\depth\;(\Return\;V)\;\With\;H} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&             \reason{definition of $\cps{-}$} \\
+      & (\slam \sk. \cps{\Return\;V}\sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sk)) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&             \reason{static $\beta$-conversion} \\
+      & \cps{\Return\;V}\sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&             \reason{definition of $\cps{-}$} \\
+      & (\slam \sk. \kapp\;(\reify \sk)\;\cps{V})\sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&             \reason{static $\beta$-conversion} \\
+      & \kapp\;(\reify (\sRecord{\snil, \cps{H}^\depth} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))\;\cps{V} \\
+      =&             \reason{definition of $\cps{H}^\depth$ and $\reify$} \\
+      & \kapp\;(\dRecord{\dnil, \dRecord{\cps{\hret},\cps{\hops}^\depth}} \dcons \dRecord{\reify\sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify\sW)\;\cps{V}\\
+      \reducesto&    \reason{\usemlab{KAppNil}}\\
+      & \cps{\hret} \dapp \cps{V} \dapp (\dRecord{\reify\sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify\sW) \\
+      =&             \reason{definition of $\cps{-}$} \\
+      & \bl(\dlam x\,k.\Let\,\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\;\cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))\\
+        \qquad\dapp \cps{V} \dapp (\dRecord{\reify\sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify\sW)\el \\
+      \reducesto^+&  \reason{\usemlab{App}, \usemlab{Split}} \\
+      & \cps{N}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
+      =&             \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
+      & \cps{N}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&             \reason{Lemma~\ref{lem:subst-gen-cont-proof} (substitution)} \\
+      & \cps{N[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+    \end{derivation}
+  \item[Case] $\semlab{Op}$:
+    $\Handle\;\EC[\Do\;\ell\;V]\;\With\;H \reducesto N_\ell[V/p,\lambda
+    y.\Handle\;\EC[\Return\; y]\;\With\;H/r]$, where $\ell \not\in BL(\EC)$
+    and $H^\ell = \{\ell\;p\;r \mapsto N_\ell\}$.
+    \begin{derivation}
+      & \cps{\Handle\;\EC[\Do\;\ell\;V]\;\With\;H}\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&             \reason{definition of $\cps{-}$} \\
+      & (\slam \sk. \cps{\EC[\Do\;\ell\;V]} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}}} \scons \sk)) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&             \reason{static $\beta$-conversion} \\
+      & \cps{\EC[\Do\;\ell\;V]} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}}} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&             \reason{Lemma~\ref{lem:decomposition-gen-cont-proof} (Decomposition)} \\
+      & \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}}} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))\\
+      \reducesto^+&  \reason{Lemma~\ref{lem:handle-op-gen-cont-proof} (Handling)} \\
+      & \bl\cps{N_\ell}[\cps{V}/p,\dlam y\,k.\bl
+                                            \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
+                                            \cps{\Return\;y} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k'))/r]\\
+                                            \el \\
+      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
+      =&             \reason{Lemma~\ref{lem:decomposition-gen-cont-proof} (Decomposition)} \\
+      & \bl\cps{N_\ell}[\cps{V}/p, \dlam y\,k.\bl
+                                             \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
+                                             \cps{\EC[\Return\;y]} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k')/r] \\
+                                             \el \\
+      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
+      =&             \reason{static $\beta$-conversion and definition of $\cps{-}$} \\
+   \end{derivation}
+   \begin{derivation}
+      & \bl\cps{N_\ell}[\cps{V}/p, \dlam y\,k.\bl
+                                             \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
+                                             \cps{\Handle\;\EC[\Return\;y]\;\With\;H} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k')/r]\\
+                                             \el \\
+      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
+      =&             \reason{definition of $\cps{-}$} \\
+      & \cps{N_\ell}[\cps{V}/p, \cps{\lambda y. \Handle\;\EC[\Return\;y]\;\With\;H}/r] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+      =&             \reason{Lemma~\ref{lem:subst-gen-cont-proof} (Substitution)} \\
+      & \cps{N_\ell[V/p, \lambda y. \Handle\;\EC[\Return\;y]\;\With\;H/r]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+    \end{derivation}
+  \item[Case] $\semlab{Op^\dagger}$:
+    $\Handle^\dagger\;\EC[\Do\;\ell\;V]\;\With\;H \reducesto N_\ell[V/p,\lambda
+    y.\EC[\Return\; y]/r]$, where $\ell \not\in BL(\EC)$
+    and $H^\ell = \{\ell\;p\;r \mapsto N_\ell\}$.
+    \begin{derivation}
+      & \cps{\Handle^\dagger\;\EC[\Do\;\ell\;V]\;\With\;H}\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&             \reason{definition of $\cps{-}$} \\
+      & (\slam \sk. \cps{\EC[\Do\;\ell\;V]} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}^\dagger}} \scons \sk)) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&             \reason{static $\beta$-conversion} \\
+      & \cps{\EC[\Do\;\ell\;V]} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}^\dagger}} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+      =&             \reason{Lemma~\ref{lem:decomposition-gen-cont-proof} (Decomposition)} \\
+      & \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}^\dagger}} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))\\
+      \reducesto^+&  \reason{Lemma~\ref{lem:handle-op-gen-cont-proof} (Handling)} \\
+      & \bl\cps{N_\ell}[\cps{V}/p,\dlam y\,k.\bl
+                                            \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
+                                            \cps{\Return\;y} \sapp (\cps{\EC} \sapp (\scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k'))/r]\\
+                                            \el \\
+      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
+      =&             \reason{Lemma~\ref{lem:decomposition-gen-cont-proof} (Decomposition)} \\
+      & \bl\cps{N_\ell}[\cps{V}/p, \dlam y\,k.\bl
+                                             \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
+                                             \cps{\EC[\Return\;y]} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k')/r]\\
+                                             \el \\
+      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
+      =&             \reason{definition of $\cps{-}$} \\
+      & \cps{N_\ell}[\cps{V}/p, \cps{\lambda y. \EC[\Return\;y]}/r] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+      =&             \reason{Lemma~\ref{lem:subst-gen-cont-proof} (Substitution)} \\
+      & \cps{N_\ell[V/p, \lambda y. \EC[\Return\;y]/r]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+    \end{derivation}
+  \end{description}
+\end{proof}
+
+\chapter{Proof details for the complexity of effectful generic count}
+\label{sec:positive-theorem}
+\newcommand{\HCount}{H_{\Count}}
+\newcommand{\Henv}{\env_{\HCount}}
+\newcommand{\Pure}{\dec{pure}}
+\newcommand{\envt}{\dec{env}}
+\newcommand{\hclo}{\chi_{\Count}}
+\newcommand{\DTDT}{\dec{DT}}
+\newcommand{\CF}{\dec{CF}}
+\newcommand{\residual}{\dec{residual}}
+%\newcommand{\cont}{\dec{cont}}
+\newcommand{\comp}{\dec{comp}}
+\newcommand{\purecont}{\dec{purecont}}
+\newcommand{\descend}[1]{\dec{env}^{\downarrow}_{#1}}
+\newcommand{\ascend}[1]{\dec{env}^{\uparrow}_{#1}}
+\newcommand{\initial}{\dec{env}^{\bot}}
+\newcommand{\final}{\dec{env}^{\top}}
+\newcommand{\ctrl}{\dec{control}}
+\newcommand{\dt}{\mathcal{D}}
+%
+\newcommand{\arrive}{\dec{arrive}}
+\newcommand{\depart}{\dec{depart}}
+\newcommand{\whereX}[1]{%
+  \multicolumn{2}{l}%
+  {\text{where }\bl #1\el}%
+}
+%
+
+In this appendix we give proof details and artefacts for
+Theorem~\ref{thm:complexity-effectful-counting}. Throughout this
+section we let $\HCount$ denote the handler definition of $\Count$,
+that is
+%
+\[
+  \HCount \defas
+  \left\{
+    \ba[m]{@{~}l@{~}c@{~}l}
+      \Return~x           &\mapsto& \If\;x\;\Then\; \Return~1 \;\Else\; \Return~0\\
+      \Branch~\Unit~r  &\mapsto&
+      \ba[t]{@{}l}
+        \Let\; x_\True \revto r~\True \; \In\\
+        \Let\; x_\False \revto r~\False \; \In\\
+        x_\True + x_\False
+      \ea
+    \ea
+  \right\}
+\]
+%
+The timed decision tree model embeds timing information. For the proof
+we must also know the abstract machine environment and the pure
+continuation. Thus we decorate timed decision trees with this
+information.
+%
+\begin{definition}[decorated timed decision trees]
+  A decorated timed decision tree is a partial function $\tree :
+  \Addr \pto (\Lab \times \Nat) \times \Conf_q$ such
+  that its first projection $bs \mapsto \tree(bs).1$ is a timed
+  decision tree.
+\end{definition}
+%
+We extend the projections $\labs$ and $\steps$ in the obvious way to
+work over decorated timed decision trees.  We define three further
+projections. The first $\comp(\tree) \defas bs \mapsto \tree(bs).2.1$
+projects the computation component of the configuration, the second
+$\envt(\tree) \defas bs \mapsto \tree(bs).2.2$ projects the
+environment, and finally the third
+$\Pure(\tree) \defas bs \mapsto \mathsf{head}(t(bs).2.3).1$ projects
+the pure continuation.
+
+The following definition gives a procedure for constructing a
+decorated timed decision tree. The construction is analogous to that
+of Definition~\ref{def:model-construction}.
+%
+\begin{definition}\label{def:model-construction-extended}
+ (i) Define $\dt : \Conf_q \pto \Addr \pto (\Lab \times \Nat) \times \Conf_q$ to be the minimal family of
+  partial functions satisfying the following equations:
+%
+{\small
+\begin{mathpar}
+\ba{@{}r@{~}c@{~}l@{\qquad}l@{}}
+  \dt(\cek{\Return\;W \mid \env \mid \nil})\, \nil  &~=~& ((!b, 0), \cek{\Return\;W \mid \env \mid \nil}),
+                                                    &\text{if }\val{W}\env = b \smallskip\\
+  \dt(\cek{z\,V \mid \env \mid \kappa})\, \nil  &~=~& ((?\val{V}{\env}, 0), \cek{z\,V \mid \env \mid \kappa}),
+                                                    & \text{if } \gamma(z) = q \smallskip\\
+  \dt(\cek{z\,V \mid \env \mid \kappa})\, (b \cons bs) &~\simeq~& \dt(\cek{\Return\;b \mid \env \mid \kappa})\,bs,
+                                                                & \text{if } \gamma(z) = q \smallskip\\
+  \dt(\cek{M \mid \env \mid \kappa})\, bs &~\simeq~& \mathsf{inc}\,(\dt(\cek{M' \mid \env' \mid \kappa'})\, bs),
+  &\text{if } \cek{M \mid \env \mid \kappa} \stepsto \cek{M' \mid \env' \mid \kappa'}
+\ea
+\end{mathpar}}%
+Here
+$\mathsf{inc}((\ell, s), \mathcal{C}) = ((\ell, s + 1), \mathcal{C})$,
+and in all of the above equations $\gamma(q) = \gamma'(q) =
+q$. Clearly $\dt(\conf)$ is a decorated timed decision tree for any
+$\conf \in \Conf_q$.
+%
+
+(ii) The decorated timed decision tree of a computation term is
+obtained by placing it in the initial configuration:
+%
+$\dt(M) \defas \dt(\cek{M, \emptyset[q \mapsto q], \kappa_0})$.
+%
+
+(iii) The decorated timed decision tree of a closed value
+$P:\Predicate$ is $\dt(P\,q)$. Since $q$ plays the role of a dummy
+argument, we will usually omit it and write $\dt(P)$ for $\dt(P\,q)$.
+\end{definition}
+
+We define some functions, that given a list of booleans and a
+$n$-standard predicate, compute configurations of the effectful
+abstract machine at particular points of interest during evaluation of
+the given predicate. Let
+$\hclo(V) \defas (\emptyset[pred \mapsto \val{V}\emptyset], \HCount)$
+denote the handler closure of $\HCount$.
+
+\paragraph{Notation.} For an $n$-standard predicate $P$ we write
+$|P| = n$ for the size of the predicate. Furthermore, we define
+$\chi_{\text{id}}$ for the identity handler closure
+$(\emptyset, \{ \Return~x \mapsto x \})$.
+
+%
+\begin{definition}[computing machine configurations]
+  For any $n$-standard predicate $P$ and a list of booleans $bs$, such
+  that $|bs| \leq n$, we can compute machine configurations at points
+  of interest during evaluation of $\Count~P$.
+
+  To make the notation slightly simpler we use the following
+  conventions whenever $n$, $\tree$, and $c$ appear free: $n = |P|$,
+  $\tree = \dt(P)$, and $c(bs) = \sharp(bs' \mapsto \val{P}~(bs \concat bs'))$.
+  %
+  The definitions are presented in a top-down manner.
+  %
+  \begin{itemize}
+  \item The function $\arrive$ either computes the configuration at a
+    query node, if $|bs| < n$, or the configuration at an answer node.
+    %
+    \begin{equations}
+      \arrive &:& \Addr \times \ValCat \pto \Conf \\
+      \arrive(bs, P) &\defas& \cek{z~V \mid \env \mid (\sigma, \hclo(P)) \cons \residual(bs, P)}, \quad \text{if } |bs| < n\\
+      \multicolumn{3}{@{}l@{}}
+      {\hfill
+        \text{where } \ba[t]{@{~}l}
+        z~V = \comp(\tree)(bs), \env = \envt(\tree)(bs), \env(z) = (\initial(P), \Superpoint) \\
+        ?k = \labs(\tree)(bs), \val{V}\env = k, \text{ and } \sigma = \Pure(\tau)(bs)
+           \ea}\\
+      \arrive(bs, P) &\defas& \cek{\Return\;W \mid \env \mid (\nil, \hclo(P)) \cons \residual(bs, P)}, \quad \text{if } |bs| = n\\
+      \multicolumn{3}{@{}l@{}}
+      {\hfill
+        \text{where } \Return\;W = \comp(\tree)(bs), \env = \envt(\tree)(bs), !b = \labs(\tree)(bs),  \text{ and } \val{W}\env = b}
+    \end{equations}
+    %
+  \item Correspondingly, the $\depart$ function computes the
+    configuration either after the completion of a query or handling
+    of an answer.
+    %
+    \begin{equations}
+      \depart &:& \Addr \times \ValCat \pto \Conf \\
+      \depart(bs, P) &\defas& \cek{\Return\; m \mid \env \mid \residual(bs, P)}, \quad \text{if } |bs| < n\\
+      \multicolumn{3}{@{}l@{}}
+      {\hfill
+        \text{where } \env = \ascend{\False}(bs, P) \text{ and } m = c(bs)}\\
+      \depart(bs, P) &\defas& \cek{\Return\;m \mid \env \mid \residual(bs, P)}, \quad \text{if } |bs| = n\\
+      \multicolumn{3}{@{}l@{}}
+      {\hfill
+        \text{where }\ba[t]{@{}l}
+        m = c(bs),
+        b = \begin{cases} \True & \text{if } m = 1\\
+                          \False & \text{if } m = 0
+            \end{cases}, \text{ and } \env = \initial(P)[x \mapsto b]
+       \ea}
+    \end{equations}
+    %
+    The two clauses of $\depart$ yield slightly different
+    configurations. The first clause computes a configuration inside
+    the operation clause of $\HCount$. The configuration is exactly
+    tail-configuration after summing up the two respective values
+    returned by the two invocations of resumption. Whilst the second
+    clause computes the tail-configuration inside of the success clause
+    of $\HCount$ after handling a return value of the predicate.
+    %
+    \item The $\residual$ function computes the residual continuation
+    structure which contains the bits of computations to perform after
+    handling a complete path in a decision tree.
+    \begin{equations}
+      \residual &:& \Addr \times \ValCat \pto \Cont\\
+      \residual(bs, P) &\defas& [(\purecont(bs, P), \chi_{id})]
+    \end{equations}
+    %
+%
+    \item The function $\purecont$ computes the pure continuation.
+    %
+    \begin{equations}
+      \purecont &:& \Addr \times \ValCat \pto \PureCont\\
+      \purecont (\nil, P) &\defas& \nil\\
+      %
+      \purecont (\snoc{bs}{\True}, P) &\defas& \bl (\env, x_\True, \Let\;x_\False\revto r~\False\;\In\;x_\True+x_\False)\\
+      \cons \purecont(bs, P),\el\\
+      \multicolumn{3}{@{}l@{}}
+      {\hfill
+        \text{where } \env = \descend{\True}(\snoc{bs}{\True}, P)}\\
+      %
+      \purecont (\snoc{bs}{\False}, P) &\defas& \bl(\env, x_\False, x_\True+x_\False)\\
+                                                   \cons \purecont (bs, P),\el\\
+      \multicolumn{3}{@{}l@{}}
+      {\hfill
+        \text{where } \env = \descend{\False}(\snoc{bs}{\False}, P)}\\
+    \end{equations}
+    %
+
+%
+  \item The function $\initial$ computes the initial environment of
+    the handler. The family of functions $\descend{b\in\mathbb{B}}$
+    contains two functions, one for each instantiation of $b$, which
+    describe how to compute the environment prior \emph{descending}
+    down a branch as the result of invoking a resumption with
+    $b$. Analogously, the functions in the family
+    $\ascend{b \in \mathbb{B}}$ describe how to compute the
+    environment after \emph{ascending} from the resumptive exploration
+    of a branch.
+    %
+    \begin{equations}
+      \initial &:& \ValCat \to \Env\\
+      \initial(P) &\defas& \emptyset[pred \mapsto \val{P}\emptyset]\\[1.5ex]
+    \end{equations}
+  \begin{minipage}{.5\linewidth}
+  \begin{equations}
+      %
+      \descend{\True} &:& \Addr \times \ValCat \pto \Env\\
+      \descend{\True}(bs, P) &\defas& \initial(P)[r \mapsto (\sigma, \hclo(P))],\\
+      \multicolumn{3}{@{}l@{}}
+      {\qquad
+        \text{where } \sigma = \Pure(\tree)(bs)}\\[1.5ex]
+      %
+      \ascend{\True} &:& \Addr \times \ValCat \pto \Env\\
+      \ascend{\True}(bs, P) &\defas& \env[x_\True \mapsto i],\\
+      \multicolumn{3}{@{}l@{}}
+      { \qquad\bl
+          \text{where } \env = \descend{\True}(bs, P)\\
+          \text{and } i = c(\snoc{bs}{\True})
+        \el}\\[1.5ex]
+      %
+    \end{equations}
+  \end{minipage}
+  \begin{minipage}{.5\linewidth}
+    \begin{equations}
+      \descend{\False} &:& \Addr \times \ValCat \pto \Env\\
+      \descend{\False}(bs, P) &\defas& \ascend{\True}\\[1.5ex]
+      %
+      \ascend{\False} &:& \Addr \times \ValCat \pto \Env\\
+      \ascend{\False}(bs, P) &\defas& \env[x_\False \mapsto j],\\
+      \multicolumn{3}{@{}l@{}}
+      {\qquad\bl
+        \text{where } \env = \descend{\False}(bs, P)\\
+        \text{ and } j = c(\snoc{bs}{\False})
+       \el}\\
+      %
+    \end{equations}
+  \end{minipage}
+  \end{itemize}
+%
+\end{definition}
+%
+The proof of Theorem~\ref{thm:complexity-effectful-counting} works by
+alternating between two different modes of reasoning: intensional and
+extensional. The former is used to reason directly about the steps
+taken by $\ECount$ program and the latter is used to reason about
+steps taken by the provided predicate. The number of steps taken by an
+$n$-standard predicate is readily available by constructing its
+corresponding decorated timed decision tree model. The model is
+constructed using a distinguished free variable $q$ to denote a
+point. The following lemma lets us reason about the number of steps
+taken by a predicate between its initial application and its first
+query, between subsequent queries, and between final query and answer
+when $q$ is instantiated to $\Superpoint$.
+%
+\begin{lemma}\label{lem:inductive-lem-aux}
+  Suppose $P$ is an $n$-standard predicate, $bs \in \Addr$ is a list
+  of booleans, and for all $\chi \in \HClosure$ and
+  $\kappa \in \Cont$. Let $q$ denote the distinguished free variable
+  used to construct the decorated timed decision tree $\tree$ of $P$.
+  %
+  \begin{enumerate}
+  \item If $|bs| = 0$ then
+    %
+    \begin{derivation}
+      &\cek{pred~q \mid \initial(P)[q \mapsto q] \mid (\nil, \chi) \cons \kappa}\\
+       \stepsto&^{\steps(\tree)(\nil)}\\
+      &\cek{z~V \mid \env[q \mapsto q] \mid (\sigma, \chi) \cons \kappa}
+    \end{derivation}
+    %
+    where $z~V = \comp(\tree)(\nil)$, $\env = \envt(\tree)(\nil)$,
+    $?k = \labs(\tree)(\nil)$, $\val{V}\env = k$, $\env(z) = q$, and
+    $\sigma = \Pure(\tree)(\nil)$; implies
+    %
+    \begin{derivation}
+      &\cek{pred~(\Superpoint) \mid \initial(P) \mid (\nil, \chi) \cons \kappa}\\
+       \stepsto&^{\steps(\tree)(\nil)}\\
+      &\cek{z~V \mid \env[z \mapsto (\initial(P), \Superpoint)] \mid (\sigma, \chi) \cons \kappa}
+    \end{derivation}
+    %
+
+  \item If $|bs| < n - 1$ then for all $b \in \mathbb{B}$ and $W \in \ValCat$
+    %
+    \begin{derivation}
+      &\cek{\Return\;W \mid \descend{b}(bs,P) \mid (\sigma, \chi) \cons \kappa}\\
+       \stepsto&^{\steps(\tree)(\snoc{bs}{b})}\\
+      &\cek{z~V \mid \env[q \mapsto q] \mid (\sigma', \chi) \cons \kappa}
+    \end{derivation}
+    %
+    where $\val{W}(\descend{b}(bs,P)) = b$, $\sigma = \Pure(\tree)(bs)$, $z~V = \comp(\tree)(\snoc{bs}{b})$, $\env = \envt(\tree)(\snoc{bs}{b})$, $\env(z) = q$, $?k = \labs(\tree)(\snoc{bs}{b})$, $\val{V}\env = k$, and $\sigma' = \Pure(\tree)(\snoc{bs}{b})$; implies
+    %
+    \begin{derivation}
+      &\cek{\Return\;W \mid \descend{b}(bs,P) \mid (\sigma, \chi) \cons \kappa}\\
+       \stepsto&^{\steps(\tree)(\snoc{bs}{b})}\\
+      &\cek{z~V \mid \env[z \mapsto (\initial(P), \Superpoint)] \mid (\sigma', \chi) \cons \kappa}
+    \end{derivation}
+
+  \item If $|bs| = n - 1$ then for all $b \in \mathbb{B}$ and $W \in \ValCat$
+    %
+    \begin{derivation}
+      &\cek{\Return\;W \mid \descend{b}(bs,P) \mid (\sigma, \chi) \cons \kappa}\\
+       \stepsto&^{\steps(\tree)(\snoc{bs}{b})}\\
+      &\cek{\Return\;W' \mid \env[q \mapsto q] \mid (\nil, \chi) \cons \kappa}
+    \end{derivation}
+    %
+    where $\val{W}(\descend{b}(bs,P)) = b$, $\sigma = \Pure(\tree)(bs)$, $\Return\;W' = \comp(\tree)(\snoc{bs}{b})$, $\env = \envt(\tree)(\snoc{bs}{b})$, $\ans b' = \labs(\tree)(\snoc{bs}{b})$, and $\val{W'}\env = b'$; implies
+    %
+    \begin{derivation}
+      &\cek{\Return\;W \mid \descend{b}(bs,P) \mid (\sigma, \chi) \cons \kappa}\\
+       \stepsto&^{\steps(\tree)(\snoc{bs}{b})}\\
+      &\cek{\Return\;W' \mid \env \mid (\nil, \chi) \cons \kappa}
+    \end{derivation}
+  \end{enumerate}
+\end{lemma}
+%
+\begin{proof}
+  By unfolding Definition~\ref{def:model-construction-extended}.
+\end{proof}
+%
+
+Let $\ctrl : \Conf \pto \ValCat$ denote a partial function that hoists
+a value out of a given machine configuration, that is
+%
+\[
+  \ctrl(\cek{M \mid \env \mid \kappa})
+    \defas
+    \begin{cases}
+      \val{V}{\env}  & \text{if } M = \Return\; V \\
+      \bot           & \text{otherwise}
+    \end{cases}
+\]
+
+
+\paragraph{Notation}
+For a given predicate $P$ we write $\hclo(P)^\Return$ to mean
+$\hclo(P)^\Return = (\emptyset[pred \mapsto \val{P}\emptyset],
+\HCount)^\Return = \HCount^\Return$, that is the projection of the success
+clause of $\HCount$.
+
+The following lemma performs most of the heavy lifting for the proof
+of Theorem~\ref{thm:complexity-effectful-counting}.
+%
+\begin{lemma}\label{lem:inductive-bit-of-thm1}
+  Suppose $P$ is an $n$-standard predicate, then for any list of
+  booleans $bs \in \Addr$ such that $|bs| \leq n$
+  \[
+    \ba{@{}l}
+      \arrive(bs, P) \reducesto^{T(bs, n)} \depart(bs, P),
+    \ea
+  \]
+  and $\ctrl(\depart(bs, P)) \leq 2^{n - |bs|}$ with the
+  function $T$ defined as
+  \[
+    T(bs, n) =
+     \begin{cases}
+       9*(2^{n - |bs|} - 1) + 2^{n - |bs| + 1} + \sum_{bs' \in \Addr}^{1 \leq |bs'| \leq n - |bs|}\steps(\tree)(bs \concat bs') & \text{if } |bs| < n\\
+       2            & \text{if } |bs| = n
+     \end{cases}
+   \]
+
+\end{lemma}
+%
+%
+\begin{proof}
+  By downward induction on $bs$.
+  %
+  \begin{description}
+  \item[Base step] We have that $|bs| = n$. Since the predicate is
+    $n$-standard we further have that $n \geq 1$. We proceed by direct
+    calculation.
+    %
+    \begin{derivation}
+      &\arrive(bs, P)\\
+      =& \reason{definition of $\arrive$ when $n = |bs|$}\\
+      &\cek{\Return\;W \mid \env \mid (\nil, \hclo(P)) \cons \residual(bs, P)}\\
+      \whereX{\ba[t]{@{~}l}
+        \Return\;W = \comp(\tree)(bs), \env = \envt(\tree)(bs), !b = \labs(\tree)(bs), \text{ and } \val{W}\env = b
+        \ea}\\
+      \stepsto& \reason{\mlab{RetHandler}, $\hclo(P)^\Return = \{\Return~x \mapsto \cdots\}$}\\
+      &\cek{\If\;x\;\Then\;\Return\;1\;\Else\;\Return\;0 \mid \env'[x \mapsto \val{b}\env'] \mid \residual(bs, P)}\\
+      \whereX{\env' = \hclo(P).1}
+    \end{derivation}
+    %
+    The value $b$ can assume either of two values. We consider first
+    the case $b = \True$.
+    %
+    \begin{derivation}
+      =& \reason{assumption $b = \True$, definition of $\val{-}$ (2 value steps)}\\
+      &\cek{\If\;x\;\Then\;\Return\;1\;\Else\;\Return\;0 \mid \env'[x \mapsto \True] \mid \residual(bs, P)}\\
+      \stepsto& \reason{\mlab{Case-inl} (and $\log|\env'[x \mapsto \True]| = 1$ environment operations)}\\
+      &\cek{\Return\;1 \mid \env'[x \mapsto \True] \mid \residual(bs, P)}\\
+      =& \reason{definition of $\depart$ when $n = |bs|$}\\
+      &\depart(bs, P)
+    \end{derivation}
+    %
+    We have that $\ctrl(\depart(bs, P)) = 1 \leq 2^0 = 2^{n - |bs|}$.
+    %
+    Next, we consider the case when $b = \False$.
+    %
+    \begin{derivation}
+      =& \reason{assumption $b = \False$, definition of $\val{-}$ (2 value steps)}\\
+      &\cek{\If\;x\;\Then\;\Return\;1\;\Else\;\Return\;0 \mid \env'[x \mapsto \False] \mid \residual(bs, P)}\\
+      \stepsto& \reason{\mlab{Case-Inl} (and $\log|\env'[x \mapsto \False]| = 1$ environment operations)}\\
+      &\cek{\Return\;0 \mid \env'[x \mapsto \False] \mid \residual(bs, P)}\\
+      =& \reason{definition of $\depart$ when $n = |bs|$}\\
+      &\depart(bs, P)
+    \end{derivation}
+    %
+    Again, we have that $\ctrl(\depart(bs, P)) = 0 \leq 2^0 = 2^{n - |bs|}$.
+    %
+    \paragraph{Step analysis}
+    In either case, the machine uses exactly 2 transitions. Thus we get that
+    \[
+        2 = T(bs, n), \quad \text{when } |bs| = n
+    \]
+    %
+  \item[Inductive step] The induction hypothesis states that for all
+    $b \in \mathbb{B}$ and $|bs| < n$
+    %
+    \[
+      \arrive(\snoc{bs}{b}, P) \reducesto^{T(\snoc{bs}{b}, n)} \depart(\snoc{bs}{b}, P),
+    \]
+    %
+    such that $\ctrl(\depart(\snoc{bs}{b}, P)) \leq 2^{n - |\snoc{bs}{b}|}$.
+    %
+    We proceed by direct calculation.
+    %
+    \begin{derivation}
+      &\arrive(bs, P)\\
+      =& \reason{definition of $\arrive$ when $n < |bs|$}\\
+      &\cek{z~V \mid \env \mid (\sigma, \hclo(P)) \cons \residual(bs, P)}\\
+      \whereX{\ba[t]{@{~}l}
+           z~V = \comp(\tree)(bs), \env = \dec{env}(\tree)(bs)[z \mapsto (\initial(P), \Superpoint)],\\
+          ?k = \labs(\tree)(bs), \val{V}\env = k, \text{ and } \sigma = \Pure(\tree)(bs)
+        \ea}\\
+      \stepsto& \reason{\mlab{App}}\\
+      &\cek{\Do\;\Branch~\Unit \mid \env'[\_ \mapsto k] \mid (\sigma, \hclo(P)) \cons \residual(bs, P)}\\
+      \whereX{\env' = \initial(P)}\\
+      \stepsto& \reason{\mlab{Handle-Op}, $\hclo(P)^{\Branch} = \{\Branch~\Unit~r \mapsto \cdots\}$}\\
+      &\left\langle
+        \ba[m]{@{}l}
+          \Let\;x_{\True} \revto r~\True \;\In\\
+          \Let\;x_{\False} \revto r~\False \;\In\\
+          x_\True + x_\False
+        \ea
+       \mid \env[r \mapsto \val{(\sigma, \hclo(P))}\env] \mid \residual(bs, P)
+     \right\rangle\\
+     \whereX{\env = \initial(P)}\\
+     =& \reason{definition of $\val{-}$ (1 value step)}\\
+     &\left\langle
+        \ba[m]{@{}l}
+          \Let\;x_{\True} \revto r~\True \;\In\\
+          \Let\;x_{\False} \revto r~\False \;\In\\
+          x_\True + x_\False
+        \ea
+       \mid \env' \mid \residual(bs, P)
+     \right\rangle\\
+     \whereX{\env' = \env[r \mapsto (\sigma, \hclo(P))]}\\
+    \stepsto& \reason{\mlab{Let}, definition of $\residual$}\\
+    &\cek{r~\True \mid \env' \mid \residual(\snoc{bs}{\True} bs, P)}\\
+    \stepsto& \reason{\mlab{Resume}, $\val{r}\env' = (\sigma, \hclo(P))$ ($\log|\env'| = 1$ environment operations)}\\
+    &\cek{\Return\;\True \mid \env' \mid (\sigma, \hclo(P)) \cons \residual(\snoc{bs}{\True}, P)}
+    \end{derivation}
+    %
+    We now use Lemma~\ref{lem:inductive-lem-aux} to reason about the
+    progress of the predicate computation $\sigma$. There are two
+    cases consider, either $1 + |bs| < n$ or
+    $1 + |bs| = n$.
+    %
+    \begin{description}
+    \item[Case] $1 + |bs| < n$. We obtain the following internal node
+      configuration.
+        %
+    \begin{derivation}
+      \stepsto&^{\steps(\tree)(\snoc{bs}{\True})} \reason{by Lemma~\ref{lem:inductive-lem-aux}}\\
+      &\cek{z~V \mid \env'' \mid (\sigma', \hclo(P)) \cons \residual(\snoc{bs}{\True}, P)}\\
+      \whereX{\ba[t]{@{~}l}
+        z~V = \comp(\tree)(bs), \env'' = \dec{env}(\tree)(\snoc{bs}{\True})[z \mapsto (\initial(P), \Superpoint)],\\
+        ?k = \labs(\tree)(\snoc{bs}{\True}), \val{V}\env'' = k, \text{ and } \sigma' = \Pure(\tree)(\snoc{bs}{\True})
+       \ea}\\
+      =& \reason{definition of $\arrive$ when $1 + |bs| < n$}\\
+      &\arrive(\snoc{bs}{\True}, P)\\
+      \stepsto&^{T(\snoc{bs}{\True}, n)} \reason{induction hypothesis}\\
+      &\depart(\snoc{bs}{\True}, P)\\
+      =& \reason{definition of $\depart$ when $1 + |bs| < n$}\\
+      &\cek{\Return\;i \mid \env \mid \residual(\snoc{bs}{\True}, P)}\\
+      \whereX{i = c(\snoc{\snoc{bs}{\True}}{\True}) + c(\snoc{\snoc{bs}{\True}}{\False})\\
+              \text{ and } \env = \ascend{\False}(\snoc{bs}{\True}, P)}\\
+      =& \reason{definition of $\residual$ and $\purecont$}\\
+      &\cek{\Return\;i \mid \env \mid [((\env', x_\True, \Let\;x_\False\revto r~\False\;\In\;x_\True+x_\False) \cons \purecont(bs, P), \chi_{id})]}\\
+      \whereX{\env' = \descend{\True}(bs, P)}\\
+      \stepsto& \reason{\mlab{RetCont}}\\
+      &\cek{\Let\;x_\False\revto r~\False\;\In\;x_\True+x_\False \mid \env'' \mid [(\purecont(bs, P), \chi_{id})]}\\
+      \whereX{\env'' = \env'[x_\True \mapsto \val{i}\env']}\\
+      \stepsto& \reason{\mlab{Let}}\\
+      &\cek{r~\False \mid \env'' \mid [((\env'', x_\False, x_\True + x_\False) \cons \purecont(bs, P), \chi_{id})]}
+    \end{derivation}
+    \begin{derivation}
+      =& \reason{definition of $\purecont$ and $\residual$}\\
+      &\cek{r~\False \mid \env'' \mid \residual(\snoc{bs}{\False}, P)}\\
+      \stepsto& \reason{\mlab{Resume}}\\
+      &\cek{\Return\;\False \mid \env'' \mid (\sigma, \hclo(P)) \cons \residual(\snoc{bs}{\False}, P)}\\
+      \whereX{\sigma = \Pure(\tree)(bs)}\\
+      \stepsto&^{\steps(\tree)(\snoc{bs}{\False})} \reason{by Lemma~\ref{lem:inductive-lem-aux}}\\
+      &\cek{z~V \mid \env \mid (\sigma, \hclo(P)) \cons \residual(\snoc{bs}{\False}, P)}\\
+      \whereX{\ba[t]{@{~}l}
+        z~V = \comp(\tree)(bs),\\
+        \env = \envt(\tree)(\snoc{bs}{\False})[q \mapsto (\initial(P), \Superpoint)],\\
+        ?k = \labs(\tree)(\snoc{bs}{\False}), \val{V}\env = k, \text{ and } \sigma = \Pure(\tree)(\snoc{bs}{\False})
+        \ea}\\
+      =& \reason{definition of $\arrive$ when $1 + |bs| < n$}\\
+      &\arrive(\snoc{bs}{\False}, P)\\
+      \stepsto&^{T(\snoc{bs}{\False}, n)} \reason{induction hypothesis}\\
+      &\depart(\snoc{bs}{\False}, P)\\
+      =& \reason{definition of $\depart$ when $1 + |bs| < n$}\\
+      &\cek{\Return\;j \mid \env \mid \residual(\snoc{bs}{\False}, P)}\\
+      \whereX{j = c(\snoc{\snoc{bs}{\False}}{\True}) + c(\snoc{\snoc{bs}{\False}}{\False})\\
+       \text{and } \env = \ascend{\False}(\snoc{bs}{\False}, P)}\\
+      =& \reason{definition of $\residual$ and $\purecont$}\\
+      &\cek{\Return\;j \mid \env \mid [((\env'', x_\False, x_\True + x_\False) \cons \purecont(bs, P), \chi_{id})]}\\
+      \stepsto& \reason{\mlab{RetCont}}\\
+      &\cek{x_\True + x_\False \mid \env''[x_\False \mapsto \val{j}\env''] \mid \residual(bs, P)}\\
+      \stepsto& \reason{\mlab{Plus}}\\
+      &\cek{\Return\;m \mid \env''[x_\False \mapsto \val{j}\env''] \mid \residual(bs, P)}\\
+      &\text{where}
+        \ba[t]{@{~}l@{~}l}
+      m &= c(\snoc{\snoc{bs}{\True}}{\True}) + c(\snoc{\snoc{bs}{\True}}{\False}) \\
+        &+ c(\snoc{\snoc{bs}{\False}}{\True}) + c(\snoc{\snoc{bs}{\False}}{\False})\\
+        &= c(\snoc{bs}{\True}) + c(\snoc{bs}{\False}) = c(bs) \leq 2^{n - |bs|}
+        \ea
+      \\
+    =& \reason{definition of $\depart$ when $|bs| < n$}\\
+    &\depart(bs, P)
+  \end{derivation}
+  %
+  \paragraph{Step analysis} The total number of machine steps is
+  given by
+    \begin{derivation}
+      &9 \bl+ \steps(\tree)(\snoc{bs}{\True}) + T(\snoc{bs}{\True}, n)\\
+            + \steps(\tree)(\snoc{bs}{\False}) + T(\snoc{bs}{\False}, n)\el\\
+      =& \reason{reorder}\\
+      &9 \bl+ T(\snoc{bs}{\True}, n) + \steps(\tree)(\snoc{bs}{\False})\\
+            + \steps(\tree)(\snoc{bs}{\True}) + \steps(\tree)(\snoc{bs}{\False})\el\\
+      =& \reason{definition of $T$}\\
+      & 9 \bl+ 9*(2^{n - |\snoc{bs}{\True}|} - 1) + 9*(2^{n - |\snoc{bs}{\False}|} - 1)\\
+             + 2^{n - |\snoc{bs}{\True}| + 1} + 2^{n - |\snoc{bs}{\False}| + 1}\\
+      + \displaystyle\sum_{bs' \in \Addr}^{1 \leq |bs'| \leq n - |\snoc{bs}{\True}|}\steps(\tree)(\snoc{bs}{\True} \concat bs')\\
+      + \displaystyle\sum_{bs' \in \Addr}^{1 \leq |bs'| \leq n - |\snoc{bs}{\False}|}\steps(\tree)(\snoc{bs}{\False} \concat bs')\el\\
+      &+\steps(\tree)(\snoc{bs}{\True}) + \steps(\tree)(\snoc{bs}{\False})\\
+      =& \reason{simplify}\\
+       & 9 \bl+ 9*(2^{n - |\snoc{bs}{\True}|} - 1) + 9*(2^{n - |\snoc{bs}{\False}|} - 1) + 2^{n - |bs| + 1}\\
+      + \displaystyle\sum_{bs' \in \Addr}^{1 \leq |bs'| \leq n - |\snoc{bs}{\True}|}\steps(\tree)(\snoc{bs}{\True} \concat bs')\\
+      + \displaystyle\sum_{bs' \in \Addr}^{1 \leq |bs'| \leq n - |\snoc{bs}{\False}|}\steps(\tree)(\snoc{bs}{\False} \concat bs')\\
+      +\steps(\tree)(\snoc{bs}{\True}) + \steps(\tree)(\snoc{bs}{\False})\el\\
+      =& \reason{merge sums}\\
+       & 9 \bl+ 9*(2^{n - |\snoc{bs}{\True}|} - 1) + 9*(2^{n - |\snoc{bs}{\False}|} - 1) + 2^{n - |bs| + 1}\\
+       + \left(\displaystyle\sum_{bs' \in \Addr}^{2 \leq |bs'| \leq n - |bs|}\steps(\tree)(bs \concat bs')\right)\\
+       + \steps(\tree)(\snoc{bs}{\True}) + \steps(\tree)(\snoc{bs}{\False})\el\\
+      =& \reason{rewrite binary sum}\\
+      &9 \bl+ 9*(2^{n - |\snoc{bs}{\True}|} - 1) + 9*(2^{n - |\snoc{bs}{\False}|} - 1) + 2^{n - |bs| + 1}\\
+      + \displaystyle\sum_{bs' \in \Addr}^{2 \leq |bs'| \leq n - |bs|}\steps(\tree)(bs \concat bs')
+      + \displaystyle\sum_{bs' \in \Addr}^{1 \leq |bs'| \leq 1}\steps(\tree)(bs \concat bs')\el\\
+      =& \reason{merge sums}\\
+      &9 \bl + 9*(2^{n - |\snoc{bs}{\True}|} - 1) + 9*(2^{n - |\snoc{bs}{\True}|} - 1) + 2^{n - |bs| + 1}\\
+      + \displaystyle\sum_{bs' \in \Addr}^{1 \leq |bs'| \leq n - |bs|}\hspace{-0.5cm}\steps(\tree)(bs \concat bs')\el\\
+      \end{derivation}
+      \begin{derivation}
+      =& \reason{factoring}\\
+       &9 + 2*9*(2^{n - |bs| - 1} - 1) + 2^{n - |bs| + 1} + \displaystyle\sum_{bs' \in \Addr}^{1 \leq |bs'| \leq n - |bs|}\steps(\tree)(bs \concat bs')\\
+      =& \reason{distribute}\\
+       &9 + 9*(2^{n - |bs|} - 2) + 2^{n - |bs| + 1} + \displaystyle\sum_{bs' \in \Addr}^{1 \leq |bs'| \leq n - |bs|}\steps(\tree)(bs \concat bs')\\
+      =& \reason{distribute}\\
+       &9 + 9*2^{n - |bs|} - 18 + 2^{n - |bs| + 1} + \displaystyle\sum_{bs' \in \Addr}^{1 \leq |bs'| \leq n - |bs|}\steps(\tree)(bs \concat bs')\\
+      =& \reason{simplify}\\
+       &9*2^{n - |bs|} - 9 + 2^{n - |bs| + 1} + \displaystyle\sum_{bs' \in \Addr}^{1 \leq |bs'| \leq n - |bs|}\steps(\tree)(bs \concat bs')\\
+      =& \reason{factoring}\\
+       &9*(2^{n - |bs|} - 1) + 2^{n - |bs| + 1} + \displaystyle\sum_{bs' \in \Addr}^{1 \leq |bs'| \leq n - |bs|}\steps(\tree)(bs \concat bs')\\
+      =& \reason{definition of $T$}\\
+      &T(bs, n)
+    \end{derivation}
+    %
+    \item[Case] $1 + |bs| = n$. We obtain the following
+      configuration.
+    %
+    \begin{derivation}
+    \stepsto&^{\steps(\tree)(\snoc{bs}{\True})} \reason{by Lemma~\ref{lem:inductive-lem-aux}}\\
+      &\cek{\Return\;W \mid \env'' \mid (\nil, \hclo(P)) \cons \residual(\snoc{bs}{\True}, P)}\\
+      \whereX{\ba[t]{@{~}l}
+        \Return\;W = \comp(\tree)(\snoc{s}{\True}), !b = \labs(\tree)(\snoc{bs}{\True}),\\
+        \env'' = \envt(\tree)(\snoc{bs}{\True}), \text{ and } \val{W}\env'' = b
+        \ea}\\
+      =& \reason{definition of $\arrive$ when $1 + |bs| = n$}\\
+      &\arrive(\snoc{bs}{\True}, P)\\
+      \stepsto&^{T(\snoc{bs}{\True}, n)} \reason{induction hypothesis}\\
+      &\depart(\snoc{bs}{\True}, P)\\
+      =& \reason{definition of $\depart$ when $1 + |bs| = n$}\\
+      &\cek{\Return\;i \mid \env \mid \residual(\snoc{bs}{\True}, P)}\\
+      \whereX{i = c(\snoc{bs}{\True}) \leq 2^{n - |\snoc{bs}{\True}|} = 1 \text{ and } \env = \initial(P)}\\
+      =& \reason{definition of $\residual$ and $\purecont$}\\
+      &\cek{\Return\;i \mid \env \mid [((\env',x_\True,\Let\;x_\False\revto r~\False\;\In\;x_\True+x_\False) \cons \purecont(bs, P), \chi_{id})]}\\
+      \stepsto& \reason{\mlab{RetCont}}\\
+      &\cek{\Let\;x_\False \revto r~\False\;\In\;x_\True + x_\False \mid \env'[x_\True \mapsto \val{i}\env'] \mid [(\purecont(bs, P), \chi_{id})]}\\
+      =& \reason{definition of $\val{-}$ (1 value step)}\\
+      &\cek{\Let\;x_\False \revto r~\False\;\In\;x_\True + x_\False \mid \env'' \mid [(\purecont(bs, P), \chi_{id})]}\\
+      \whereX{\env'' = \env'[x_\True \mapsto i]}\\
+      \stepsto& \reason{\mlab{Let}, definition of $\residual$}\\
+      &\cek{r~\False \mid \env'' \mid \residual(\snoc{bs}{\False}, P)}\\
+      \stepsto& \reason{\mlab{Resume}}\\
+      &\cek{\Return\;\False \mid \env'' \mid (\sigma, \hclo(P)) \cons \residual(\snoc{bs}{\False}, P)}\\
+      \whereX{\sigma = \Pure(\tree)(bs)}\\
+      \stepsto&^{\steps(\tree)(\snoc{bs}{\False})} \reason{by Lemma~\ref{lem:inductive-lem-aux}}\\
+      &\cek{\Return\;W \mid \env \mid (\nil, \hclo(P)) \cons \residual(\snoc{bs}{\False}, P)}\\
+      \whereX{\ba[t]{@{~}l}
+        \Return\;W = \comp(\tree)(\snoc{bs}{\False}), !b = \labs(\tree)(\snoc{bs}{\False}),\\
+        \env = \envt(\tree)(\snoc{bs}{\False}), \text{ and } \val{W}\env = b
+        \ea}\\
+      =& \reason{definition of $\arrive$ when $1 + |bs| = n$}\\
+      &\arrive(\snoc{bs}{\False}, P)\\
+      \stepsto&^{T(\snoc{bs}{\False}, n)} \reason{induction hypothesis}\\
+      &\depart(\snoc{bs}{\False}, P)\\
+      =& \reason{definition of $\depart$ when $1 + |bs| = n$}\\
+      &\cek{\Return\;j \mid \env \mid \residual(\snoc{bs}{\False}, P)}\\
+      \whereX{j = c(\snoc{bs}{\False}) \leq 2^{n - |\snoc{bs}{\False}|} = 1 \text{ and } \env = \initial(P)}\\
+    \end{derivation}
+      \begin{derivation}
+     =& \reason{definition of $\residual$ and $\purecont$}\\
+      &\cek{\Return\;j \mid \env \mid [((\env',x_\False,x_\True+x_\False) \cons \purecont(bs, P), \chi_{id})]}\\
+      \whereX{\env' = \descend{\False}(bs, P)}\\
+      \stepsto& \reason{\mlab{RetCont}}\\
+      &\cek{x_\True + x_\False \mid \env'' \mid [(\purecont(bs, P), \chi_{id})]}\\
+      \whereX{\env'' = \env'[x_\False \mapsto \val{j}\env'] = \env'[x_\False \mapsto j]}\\
+      \stepsto& \reason{\mlab{Plus}}\\
+      &\cek{\Return\;m \mid \env'' \mid [(\purecont(bs, P), \chi_{id})]}\\
+      \whereX{m = c(\snoc{bs}{\True}) + c(\snoc{bs}{\False}) \leq 2^{n - |bs|}}\\
+      =& \reason{definition of $\residual$ and $\depart$ when $|bs| < n$}\\
+      &\depart(bs, P)
+    \end{derivation}
+    %
+    \paragraph{Step analysis} The total number of machine steps
+    is given by
+    \begin{derivation}
+      &9 \bl + \steps(\tree)(\snoc{bs}{\True}) + T(\snoc{bs}{\True}, n)\\
+             + \steps(\tree)(\snoc{bs}{\False}) + T(\snoc{bs}{\False}, n)\el\\
+      =& \reason{reorder}\\
+      &9 \bl + T(\snoc{bs}{\True}, n) + T(\snoc{bs}{\False}, n)\\
+             + \steps(\tree)(\snoc{bs}{\True}) + \steps(\tree)(\snoc{bs}{\False})\el\\
+      =& \reason{definition of $T$ when $|bs| + 1 = n$}\\
+      &9 + 2 + 2 + \steps(\tree)(\snoc{bs}{\True}) + \steps(\tree)(\snoc{bs}{\False})\\
+      =& \reason{simplify}\\
+      &9 + 2^2 + \steps(\tree)(\snoc{bs}{\True}) + \steps(\tree)(\snoc{bs}{\False})\\
+      =& \reason{rewrite $2 = n - |bs| + 1$}\\
+      &9 + 2^{n - |bs| + 1} + \steps(\tree)(\snoc{bs}{\True}) + \steps(\tree)(\snoc{bs}{\False})\\
+      =& \reason{multiply by $1$}\\
+      &9*(2^{n - |bs|} - 1) + 2^{n - |bs| + 1} \bl + \steps(\tree)(\snoc{bs}{\True})\\
+                                                   + \steps(\tree)(\snoc{bs}{\False})\el\\
+      =& \reason{rewrite binary sum}\\
+      &9*(2^{n - |bs|} - 1) + 2^{n - |bs|} + \displaystyle\sum_{bs' \in \Addr}^{1 \leq |bs'| \leq n - |bs|} \steps(\tree)(bs \concat bs')\\
+      =& \reason{definition of $T$}\\
+      &T(bs, n)
+    \end{derivation}
+    %
+    \end{description}
+  \end{description}
+\end{proof}
+%
+
+The following theorem is a copy of
+Theorem~\ref{thm:complexity-effectful-counting}.
+
+\begin{theorem}\label{thm:complexity-effectful-counting-copy}
+  For all $n > 0$ and any $n$-standard predicate $P$ it holds that
+  %
+  \begin{enumerate}
+  \item The program $\ECount$ is a generic count program
+%
+  \item The runtime complexity of $\ECount~P$ is given by the following formula:
+  %
+  \[
+    \displaystyle\sum_{bs \in \Addr}^{|bs| \leq n} \steps(\tr(P))(bs) + \BigO(2^n)
+  \]
+\end{enumerate}
+\end{theorem}
+\begin{proof}
+  The proof begins by direct calculation.
+\begin{derivation}
+  &\cek{\ECount\,P \mid \emptyset \mid [(\nil, \chi_{id})]} \\
+  =& \reason{definition of $\residual$}\\
+  & \cek{\ECount\,P \mid \emptyset \mid \residual(\nil, P)} \\
+  \stepsto& \reason{\mlab{App}, $\val{\ECount}\emptyset = (\emptyset, \lambda pred. \cdots)$}\\
+  & \cek{\Handle\;pred~(\Superpoint)\;\With\;\HCount \mid \env \mid \residual(\nil, P)}\\
+  \whereX{\env = \initial(P)}\\
+  \stepsto& \reason{\mlab{Handle}}\\
+  & \cek{pred~(\Superpoint) \mid \env \mid (\nil, (\env, \HCount)) \cons \residual(\nil, P)}\\
+  =& \reason{definition of $\hclo$}\\
+  &\cek{pred~(\Superpoint) \mid \env \mid (\nil, \hclo(P)) \cons \residual(\nil, P)}\\
+  \stepsto&^{\steps(\tree)(\nil)} \reason{by Lemma~\ref{lem:inductive-lem-aux}}\\
+  &\cek{z~V \mid \env' \mid (\sigma, \hclo(P)) \cons \residual(\nil, P)}\\
+  \whereX{\ba[t]{@{~}l}
+      z~V = \comp(\tree)(bs), \env' = \envt(\tree)(\nil)[q \mapsto (\initial(P), \Superpoint)],\\
+      ?k = \labs(\tree)(\nil), \val{V}\env' = k, \text{ and } \sigma = \Pure(\tree)(\nil)
+      \ea}\\
+  =& \reason{definition of $\arrive$}\\
+  &\arrive(\nil, P)\\
+  \stepsto&^{T(\nil, n)} \reason{by Lemma~\ref{lem:inductive-bit-of-thm1}}\\
+  &\depart(\nil, P)\\
+  =& \reason{definition of $\depart$}\\
+  &\cek{\Return\;m \mid \env \mid \residual(\nil, P)}\\
+  \whereX{\env = \initial(P) \text{ and }  m = c(\nil) \leq 2^{n - |bs|} = 2^n}\\
+  =& \reason{definition of $\residual$}\\
+  &\cek{\Return\;m \mid \env \mid [(\nil, \chi_{id})]}\\
+  \stepsto& \reason{\mlab{Handle-Ret}, $H_{id}^{\dec{val}} = \{\Return~x \mapsto \Return\;x\}$}\\
+  &\cek{\Return\;x \mid \emptyset[x \mapsto m] \mid \nil}
+\end{derivation}
+%
+\paragraph{Analysis}
+The machine yields the value $m$.
+%
+By Lemma~\ref{lem:inductive-bit-of-thm1} it follows that
+$m \leq 2^{n - |bs|} = 2^{n - |\nil|} = 2^n$. Furthermore, the total
+number of transitions used were
+\begin{derivation}
+    &3 + \steps(\tree)(\nil) + T(\nil, n)\\
+    =& \reason{definition of $T$}\\
+    &3 + \steps(\tree)(\nil) + 9*2^n + 2^{n + 1} + \displaystyle\sum_{bs' \in \mathbb{B}^{\ast}}^{1 \leq |bs'| \leq n}\steps(\tree)(bs')\\
+    =& \reason{simplify}\\
+    &3 + \steps(\tree)(\nil) + 9*2^n + 2^{n + 1} + \displaystyle\sum_{bs' \in \mathbb{B}^{\ast}}^{1 \leq |bs'| \leq n}\steps(\tree)(bs')\\
+    =& \reason{reorder}\\
+    &3 + \left(\displaystyle\sum_{bs' \in \mathbb{B}^{\ast}}^{1 \leq |bs'| \leq n}\steps(\tree)(bs')\right) + \steps(\tree)(\nil) + 9*2^n + 2^{n + 1}\\
+    =& \reason{rewrite as unary sum}\\
+    &3 + \left(\displaystyle\sum_{bs' \in \mathbb{B}^{\ast}}^{1 \leq |bs'| \leq n}\steps(\tree)(bs') + \displaystyle\sum_{bs' \in \Addr}^{0 \leq |bs'| \leq 0}\steps(\tree)(bs')\right) + 9*2^n + 2^{n + 1}\\
+    =& \reason{merge sums}\\
+    &3 + \left(\displaystyle\sum_{bs' \in \mathbb{B}^{\ast}}^{0 \leq |bs'| \leq n}\steps(\tree)(bs')\right) + 9*2^n + 2^{n + 1}\\
+    =& \reason{definition of $\BigO$}\\
+    &\left(\displaystyle\sum_{bs' \in \mathbb{B}^{\ast}}^{0 \leq |bs'| \leq n}\steps(\tree)(bs')\right) + \BigO(2^{n})
+\end{derivation}
+%
+\end{proof}
+
+
+\chapter{Berger count}
+\label{sec:berger-count}
+Here we present the $\BergerCount$ program alluded to in
+Section~\ref{sec:pure-counting}, in order to fill out our overall
+picture of the relationship between language expressivity and
+potential program efficiency.
+
+Berger's original program~\citep{Berger90} introduced a remarkable
+search operator for predicates on \emph{infinite} streams of booleans,
+and has played an important role in higher-order computability
+theory~\citep{LongleyN15}.  What we wish to highlight here is that if
+one applies the algorithm to predicates on \emph{finite} boolean
+vectors, the resulting program, though no longer interesting from a
+computability perspective, still holds some interest from a complexity
+standpoint: indeed, it yields what seems to be the best available
+implementation of generic count within a PCF-style `functional'
+language (provided one accepts the use of a primitive for call-by-need
+evaluation).
+
+We give the gist of an adaptation of Berger's search algorithm on
+finite spaces.
+%
+{
+\[
+    \bl
+    \bestshot_n: \Predicate_n \to \Point_n\\
+    \bestshot_n~pred \defas \bestshot'_n~pred~\nil \medskip\\
+
+    \bestshot'_n : \Predicate_n \to \List_\Bool \to \Point_n\\
+    \bestshot'_n~pred~start \defas
+     \ba[t]{@{}l}
+       \Let\; f \revto \dec{memoise}~(\lambda\Unit. \bestshot''_n~pred~start)\; \In\\
+       \Return\;(\lambda i. \If\; i < |start| \;\Then\; start.i \;\Else\; (f~\Unit).i)
+     \ea\medskip\\
+
+    \bestshot''_n : \Predicate_n \to \List_\Bool \to \List_\Bool\\
+    \bestshot''_n~pred~start \defas
+     \ba[t]{@{}l}
+       \If\; |start| = n \;\Then\; \Return\; start\\
+       \Else\;
+       \ba[t]{@{}l}
+         \Let\; f \revto \bestshot'_n~pred~(\dec{append}~start~[\True])\;\In\\
+         \If\; pred~f \;\Then\; \Return\; [f~0,\dots,f~(n-1)]\\
+         \Else\; \bestshot''_n~pred~(\dec{append}~start~[\False])
+       \ea
+     \ea
+   \el
+\]}%
+%
+Given any $n$-standard predicate $P$ the function $\bestshot_n$
+returns a point satisfying $P$ if one exists, or dummy point
+$\lambda i.\False$ if not. It is implemented by via two mutually
+recursive auxiliary functions whose workings are admittedly hard to
+elucidate in a few words. The function $\bestshot'_n$ is a
+generalisation of $\bestshot_n$ that makes a best shot at finding a
+point $\pi$ satisfying given predicate and matching some specified
+list $start$ in some initial segment of its components
+$[\pi(0),\dots,\pi(i-1)]$. It works `lazily', drawing its values from
+$start$ wherever possible, and performing an actual search only when
+required. This actual search is undertaken by $\bestshot''_n$, which
+proceeds by first searching for a solution that extends the specified
+list with true; but if no such solution is forthcoming, it settles for
+false as the next component of the point being constructed. The whole
+procedure relies on a subtle combination of laziness, recursion and
+implicit nesting of calls to the provided predicate which means that
+the search is self-pruning in regions of the binary tree where the
+predicate only demands some initial segment $q~0$,\dots,$q~(i-1)$ of
+its argument $q$.
+
+The above program makes use of an operation
+%
+{\small
+\[
+    \dec{memoise} : (\One \to \dec{List}~\Bool) \to (\One \to \dec{List}~\Bool)
+\]}%
+%
+which transforms a given thunk into an equivalent `memoised' version,
+i.e. one that caches its value after its first invocation and
+immediately returns this value on all subsequent invocations. Such an
+operation may readily be implemented in $\BCalcS$, or alternatively
+may simply be added as a primitive in its own right.
+%(we omit the details).
+The latter has the advantage that it preserves the purely `functional'
+character of the language, in the sense that every program is
+observationally equivalent to a $\BCalc$ program, namely the one
+obtained by replacing $\dec{memoise}$ by the identity.
+
+We now show how the above idea may be exploited to yield a generic
+count program (this development appears to be new).
+%
+{\small\[
+  \bl
+    \BergerCount_n : \Predicate_n \to \Nat\\
+    \BergerCount_n~pred \defas \Count'_n~pred~[]~0 \medskip\\
+
+    \Count'_n : \Predicate_n \to \List_\Bool \to \Nat \to \Nat\\
+    \Count'_n~pred~start~acc \defas
+      \ba[t]{@{}l}
+         \If\; |start| = n\; \Then\; acc +
+                   (\If\; pred\,(\lambda i. start.i) \;\Then\;\Return\;1 \;\Else\;\Return\;0)\\
+         \Else\;
+           \ba[t]{@{}l}
+             \Let\; f \revto \bestshot'_n~pred~start\; \In\\
+             \If\; pred~f \;\Then\; \Count''_n~start~ [f~0,\dots,f~(n-1)]~acc \;\Else\; \Return\;acc
+           \ea
+     \ea \medskip\\
+
+    \Count''_n : \Predicate_n \to \List_\Bool \to \List_\Bool \to \Nat \to \Nat\\
+    \Count''_n~pred~start~leftmost~acc \defas
+      \ba[t]{@{}l}
+         \If\; |start| = n \;\Then\; acc+1\\
+         \Else\;
+           \ba[t]{@{}l}
+             \Let\; b \revto leftmost.|start|\; \In\\
+             \Let\; acc' \revto \Count''_n~pred~(\dec{append}~start~[b])~leftmost~acc\; \In\\
+             \If\; b \; \Then\; \Count'_n~pred~(\dec{append}~start~[\False])~acc' \;\Else~\Return\;acc'
+           \ea
+      \ea
+  \el
+\]}%
+%
+Again, $\BergerCount_n$ is implemented by means of two mutually
+recursive auxiliary functions.  The function $\Count'_n$ counts the
+solutions to the provided predicate $pred$ that start with the
+specified list of booleans, adding their number to a previously
+accumulated total given by $acc$.  The function $\Count''_n$ does the
+same thing, but exploiting the knowledge that a best shot at the
+`leftmost' solution to $P$ within this subtree has already been
+computed.  (We are visualising $n$-points as forming a binary tree
+with $\True$ to the left of $\False$ at each fork.) Thus, $\Count''_n$
+will not re-examine the portion of the subtree to the left of this
+candidate solution, but rather will start at this solution and work
+rightward.
+
+This gives rise to an $n$-count program that can work efficiently on
+predicates that tend to `fail fast': more specifically, predicates $P$
+that inspect the components of their argument $q$ in order $q~0$,
+$q~1$, $q~2$, \dots, and which are frequently able to return $\False$
+after inspecting just a small number of these components. Generalising
+our program from binary to $k$-ary branching trees, we see that the
+$n$-queens problem provides a typical example: most points in the
+space can be seen \emph{not} to be solutions by inspecting just the
+first few components. Our experimental results in
+Section~\ref{sec:experiments} attest to the viability of this approach
+and its overwhelming superiority over the \naive functional method.
+
+By contrast, the above program is \emph{not} able to exploit parts of
+the tree where our predicate `succeeds fast', i.e.\ returns $\True$
+after seeing just a few components.  Unlike the effectful count
+program of Section~\ref{sec:effectful-counting}, which may sometimes
+add $2^{n-d}$ to the count in a single step, the Berger approach can
+only count solutions one at a time. Thus, supposing $P$ is an
+$n$-standard predicate the evaluation of $\Count_n~P$ that returns a
+natural number $c$ must take time $\Omega(c)$. These observations
+informally indicate the likely extent of the efficiency gap between
+effectful and purely functional computation when it comes to
+non-$n$-standard predicates.
+%
 
 %% If you want the bibliography single-spaced (which is allowed), uncomment
 %% the next line.
