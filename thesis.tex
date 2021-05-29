@@ -3130,7 +3130,6 @@ language.
     \hline
   \end{tabular}
   \caption{Classification of first-class delimited control operators (listed in chronological order).}\label{tbl:classify-ctrl-delimited}
-  % \dhil{TODO: Possibly split into two tables: undelimited and delimited. Change the table to display the behaviour of control reifiers.}
 \end{table}
 %
 
@@ -11096,8 +11095,12 @@ run. Nevertheless, this is the approach to concurrency that
 OCaml~\cite{DolanWSYM15}.
 %
 In my MSc(R) dissertation I used a similar approach to implement a
-cooperative version of the actor concurrency model of Links with
-effect handlers~\cite{Hillerstrom16}.
+cooperative version of the actor concurrency model of Links as a
+user-definable Links library~\cite{Hillerstrom16}. This library was
+used by a prototype compiler for Links to make the runtime as lean as
+possible~(this compiler hooked directly into the backend of the
+Multicore OCaml compiler in order to produce native code for effect
+handlers~\cite{HillerstromL16}).
 %
 This line of work was further explored by \citet{Convent17}, who
 implemented various cooperative actor-based concurrency abstractions
@@ -11121,26 +11124,35 @@ higher-order operations with linearly used resumptions, whereas
 operations with multi-shot resumptions, and thus, it is close in the
 spirit to the schedulers we have considered in this chapter.
 
-\paragraph{Continuation-based interleaved computation}
-The very first implementation of `lightweight threads' using
-continuations can possibly be credited to
-\citet{Burstall69}. \citeauthor{Burstall69} used
-\citeauthor{Landin65}'s J operator to arrange tree-based search, where
-each branch would be reified as a continuation and put into a
-queue.
-
+\paragraph{Continuations and operating systems}
+% The very first implementation of `lightweight threads' using
+% continuations can possibly be credited to
+% \citet{Burstall69}. \citeauthor{Burstall69} used
+% \citeauthor{Landin65}'s J operator to arrange tree-based search, where
+% each branch would be reified as a continuation and put into a
+% queue.
+The idea of using continuations to implement various facets of
+operating systems is not new. However, most work has focused on
+implementing some form of multi-tasking mechanism.
+%
 \citet{Wand80} implements a small multi-tasking kernel with support
 for mutual exclusion and data protection using undelimited
 continuations in the style of the catch operator of Scheme.
-\citet{HaynesFW86} codify coroutines as library using call/cc.
+% \citet{HaynesFW86} codify coroutines as library using call/cc.
 \citet{DybvigH89} implements \emph{engines} using call/cc in Scheme
 --- an engine is a kind of process abstraction which support
 preemption. An engine runs a computation on some time budget. If
 computation exceeds the allotted time budget, then it is
 interrupted. They represent engines as reified continuations and use
 the macro system of Scheme to insert clock ticks at appropriate places
-in the code. \citet{HiebD90} also design the \emph{spawn-controller}
-operator for programming tree-based concurrency abstractions.
+in the code. % \citet{HiebD90} also design the \emph{spawn-controller}
+% operator for programming tree-based concurrency abstractions.
+\citet{KiselyovS07a} develop a small fault-tolerant operating system
+with multi-tasking support and a file system using delimited
+continuations. Their file system is considerably more sophisticated
+than the one we implemented in this chapter as it supports
+transactional storage, meaning user processes can roll back actions
+such as file deletion and file update.
 
 \paragraph{Resumption monad}
 The resumption monad is both a semantic and programmatic abstraction
@@ -16593,7 +16605,7 @@ We now define $\HPCF$ as an extension of $\BPCF$.
 {
 \begin{syntax}
 \slab{Operation\textrm{ }symbols} &\ell \in \mathcal{L} & & \\
-\slab{Signatures}        &\Sigma \CatName{Sig} &::=& \cdot \mid \{\ell : A \to B\} \cup \Sigma\\
+\slab{Signatures}        &\Sigma\in\CatName{Sig} &::=& \cdot \mid \{\ell : A \to B\} \cup \Sigma\\
 \slab{Handler\textrm{ }types}     &F \in \HandlerTypeCat    &::=& C \Rightarrow D\\
 \slab{Computations} &M, N \in \CompCat &::=& \dots \mid \Do \; \ell \; V
                           \mid  \Handle \; M \; \With \; H \\
@@ -16732,7 +16744,7 @@ we call handler contexts.
 %
 {
 \begin{syntax}
-\slab{Handler\textrm{ }contexts} &  \HC \CatName{Ctx} &::= & [\,] \mid \Handle \; \HC \; \With \; H
+\slab{Handler\textrm{ }contexts} &  \HC \in \CatName{HCtx} &::= & [\,] \mid \Handle \; \HC \; \With \; H
                                 \mid  \Let\;x \revto \HC\; \In\; N\\
 \end{syntax}}%
 %
@@ -19738,6 +19750,11 @@ for helping me relearning this fact from first principles).
 \chapter{Proofs of correctness of the higher-order uncurried CPS
   translation}
 \label{sec:proofs-cps-gen-cont}
+This appendix contains the proof details for the higher-order
+uncurried CPS translation.
+\paragraph{Relation to prior work} This appendix is imported from
+Appendix A of \citet{HillerstromLA20}.\medskip
+
 \begin{lemma}[Substitution]\label{lem:subst-gen-cont-proof}
   %
   The CPS translation commutes with substitution in value terms
@@ -20697,10 +20714,14 @@ dynamic language, as described above.
 }
 %
 
-In this appendix we give proof details and artefacts for
-Theorem~\ref{thm:complexity-effectful-counting}. Throughout this
-section we let $\HCount$ denote the handler definition of $\Count$,
-that is
+In this appendix I give the proof details and artefacts for
+Theorem~\ref{thm:complexity-effectful-counting}.
+
+\paragraph{Relation to prior work} This appendix is imported from
+Appendix C of \citet{HillerstromLL20a}.\medskip
+
+Throughout this section we let $\HCount$ denote the handler definition
+of $\Count$, that is
 %
 \[
   \HCount \defas
@@ -21127,6 +21148,8 @@ of Theorem~\ref{thm:complexity-effectful-counting}.
       \stepsto& \reason{\mlab{App}}\\
       &\cek{\Do\;\Branch~\Unit \mid \env'[\_ \mapsto k] \mid (\sigma, \hclo(P)) \cons \residual(bs, P)}\\
       \whereX{\env' = \initial(P)}\\
+    \end{derivation}
+    \begin{derivation}
       \stepsto& \reason{\mlab{Handle-Op}, $\hclo(P)^{\Branch} = \{\Branch~\Unit~r \mapsto \cdots\}$}\\
       &\left\langle
         \ba[m]{@{}l}
@@ -21149,7 +21172,7 @@ of Theorem~\ref{thm:complexity-effectful-counting}.
      \whereX{\env' = \env[r \mapsto (\sigma, \hclo(P))]}\\
     \stepsto& \reason{\mlab{Let}, definition of $\residual$}\\
     &\cek{r~\True \mid \env' \mid \residual(\snoc{bs}{\True} bs, P)}\\
-    \stepsto& \reason{\mlab{Resume}, $\val{r}\env' = (\sigma, \hclo(P))$ ($\log|\env'| = 1$ environment operations)}\\
+    \stepsto& \reason{\mlab{Resume}, $\val{r}\env' = (\sigma, \hclo(P))$}\\
     &\cek{\Return\;\True \mid \env' \mid (\sigma, \hclo(P)) \cons \residual(\snoc{bs}{\True}, P)}
     \end{derivation}
     %
@@ -21166,7 +21189,8 @@ of Theorem~\ref{thm:complexity-effectful-counting}.
       \stepsto&^{\steps(\tree)(\snoc{bs}{\True})} \reason{by Lemma~\ref{lem:inductive-lem-aux}}\\
       &\cek{z~V \mid \env'' \mid (\sigma', \hclo(P)) \cons \residual(\snoc{bs}{\True}, P)}\\
       \whereX{\ba[t]{@{~}l}
-        z~V = \comp(\tree)(bs), \env'' = \dec{env}(\tree)(\snoc{bs}{\True})[z \mapsto (\initial(P), \Superpoint)],\\
+        z~V = \comp(\tree)(bs), \\
+        \env'' = \dec{env}(\tree)(\snoc{bs}{\True})[z \mapsto (\initial(P), \Superpoint)],\\
         ?k = \labs(\tree)(\snoc{bs}{\True}), \val{V}\env'' = k, \text{ and } \sigma' = \Pure(\tree)(\snoc{bs}{\True})
        \ea}\\
       =& \reason{definition of $\arrive$ when $1 + |bs| < n$}\\
@@ -21178,15 +21202,15 @@ of Theorem~\ref{thm:complexity-effectful-counting}.
       \whereX{i = c(\snoc{\snoc{bs}{\True}}{\True}) + c(\snoc{\snoc{bs}{\True}}{\False})\\
               \text{ and } \env = \ascend{\False}(\snoc{bs}{\True}, P)}\\
       =& \reason{definition of $\residual$ and $\purecont$}\\
-      &\cek{\Return\;i \mid \env \mid [((\env', x_\True, \Let\;x_\False\revto r~\False\;\In\;x_\True+x_\False) \cons \purecont(bs, P), \chi_{id})]}\\
+      &\langle\Return\;i \mid \env \mid [(\bl(\env', x_\True, \Let\;x_\False\revto r~\False\;\In\;x_\True+x_\False)\\ \cons \purecont(bs, P), \chi_{id})]\rangle\el\\
       \whereX{\env' = \descend{\True}(bs, P)}\\
+          \end{derivation}
+    \begin{derivation}
       \stepsto& \reason{\mlab{RetCont}}\\
       &\cek{\Let\;x_\False\revto r~\False\;\In\;x_\True+x_\False \mid \env'' \mid [(\purecont(bs, P), \chi_{id})]}\\
       \whereX{\env'' = \env'[x_\True \mapsto \val{i}\env']}\\
       \stepsto& \reason{\mlab{Let}}\\
-      &\cek{r~\False \mid \env'' \mid [((\env'', x_\False, x_\True + x_\False) \cons \purecont(bs, P), \chi_{id})]}
-    \end{derivation}
-    \begin{derivation}
+      &\cek{r~\False \mid \env'' \mid [((\env'', x_\False, x_\True + x_\False) \cons \purecont(bs, P), \chi_{id})]}\\
       =& \reason{definition of $\purecont$ and $\residual$}\\
       &\cek{r~\False \mid \env'' \mid \residual(\snoc{bs}{\False}, P)}\\
       \stepsto& \reason{\mlab{Resume}}\\
@@ -21288,7 +21312,9 @@ of Theorem~\ref{thm:complexity-effectful-counting}.
       &\cek{\Return\;i \mid \env \mid \residual(\snoc{bs}{\True}, P)}\\
       \whereX{i = c(\snoc{bs}{\True}) \leq 2^{n - |\snoc{bs}{\True}|} = 1 \text{ and } \env = \initial(P)}\\
       =& \reason{definition of $\residual$ and $\purecont$}\\
-      &\cek{\Return\;i \mid \env \mid [((\env',x_\True,\Let\;x_\False\revto r~\False\;\In\;x_\True+x_\False) \cons \purecont(bs, P), \chi_{id})]}\\
+      &\langle\Return\;i \mid \env \mid [(\bl(\env',x_\True,\Let\;x_\False\revto r~\False\;\In\;x_\True+x_\False)\\ \cons \purecont(bs, P), \chi_{id})]\rangle\el\\
+    \end{derivation}
+    \begin{derivation}
       \stepsto& \reason{\mlab{RetCont}}\\
       &\cek{\Let\;x_\False \revto r~\False\;\In\;x_\True + x_\False \mid \env'[x_\True \mapsto \val{i}\env'] \mid [(\purecont(bs, P), \chi_{id})]}\\
       =& \reason{definition of $\val{-}$ (1 value step)}\\
@@ -21312,8 +21338,6 @@ of Theorem~\ref{thm:complexity-effectful-counting}.
       =& \reason{definition of $\depart$ when $1 + |bs| = n$}\\
       &\cek{\Return\;j \mid \env \mid \residual(\snoc{bs}{\False}, P)}\\
       \whereX{j = c(\snoc{bs}{\False}) \leq 2^{n - |\snoc{bs}{\False}|} = 1 \text{ and } \env = \initial(P)}\\
-    \end{derivation}
-      \begin{derivation}
      =& \reason{definition of $\residual$ and $\purecont$}\\
       &\cek{\Return\;j \mid \env \mid [((\env',x_\False,x_\True+x_\False) \cons \purecont(bs, P), \chi_{id})]}\\
       \whereX{\env' = \descend{\False}(bs, P)}\\
@@ -21413,6 +21437,8 @@ number of transitions used were
     &3 + \steps(\tree)(\nil) + T(\nil, n)\\
     =& \reason{definition of $T$}\\
     &3 + \steps(\tree)(\nil) + 9*2^n + 2^{n + 1} + \displaystyle\sum_{bs' \in \mathbb{B}^{\ast}}^{1 \leq |bs'| \leq n}\steps(\tree)(bs')\\
+    \end{derivation}
+    \begin{derivation}
     =& \reason{simplify}\\
     &3 + \steps(\tree)(\nil) + 9*2^n + 2^{n + 1} + \displaystyle\sum_{bs' \in \mathbb{B}^{\ast}}^{1 \leq |bs'| \leq n}\steps(\tree)(bs')\\
     =& \reason{reorder}\\
@@ -21430,27 +21456,32 @@ number of transitions used were
 
 \chapter{Berger count}
 \label{sec:berger-count}
-Here we present the $\BergerCount$ program alluded to in
-Section~\ref{sec:pure-counting}, in order to fill out our overall
-picture of the relationship between language expressivity and
-potential program efficiency.
+In this appendix I will give a brief presentation of the
+$\BergerCount$ program alluded to in Section~\ref{sec:pure-counting},
+in order to fill out our overall picture of the relationship between
+language expressivity and potential program efficiency.
 
-Berger's original program~\citep{Berger90} introduced a remarkable
-search operator for predicates on \emph{infinite} streams of booleans,
-and has played an important role in higher-order computability
-theory~\citep{LongleyN15}.  What we wish to highlight here is that if
-one applies the algorithm to predicates on \emph{finite} boolean
-vectors, the resulting program, though no longer interesting from a
-computability perspective, still holds some interest from a complexity
-standpoint: indeed, it yields what seems to be the best available
-implementation of generic count within a PCF-style `functional'
-language (provided one accepts the use of a primitive for call-by-need
-evaluation).
+\paragraph{Relation to prior work} This appendix imported from
+Appendix D of \citet{HillerstromLL20a}. The code snippets in this
+appendix are based on an implementation of Berger count in SML/NJ
+written by John Longley. I have transcribed the code snippets, and in
+certain places tweaked it for presentation.\medskip
 
-We give the gist of an adaptation of Berger's search algorithm on
-finite spaces.
+\citeauthor{Berger90}'s original program~\cite{Berger90} introduced a
+remarkable search operator for predicates on \emph{infinite} streams
+of booleans, and has played an important role in higher-order
+computability theory~\cite{LongleyN15}.  What we wish to highlight
+here is that if one applies the algorithm to predicates on
+\emph{finite} boolean vectors, the resulting program, though no longer
+interesting from a computability perspective, still holds some
+interest from a complexity standpoint: indeed, it yields what seems to
+be the best available implementation of generic count within a
+PCF-style `functional' language (provided one accepts the use of a
+primitive for call-by-need evaluation).
+
+Let us consider an adaptation of Berger's search algorithm on finite
+spaces.
 %
-{
 \[
     \bl
     \bestshot_n: \Predicate_n \to \Point_n\\
@@ -21461,8 +21492,12 @@ finite spaces.
      \ba[t]{@{}l}
        \Let\; f \revto \dec{memoise}~(\lambda\Unit. \bestshot''_n~pred~start)\; \In\\
        \Return\;(\lambda i. \If\; i < |start| \;\Then\; start.i \;\Else\; (f~\Unit).i)
-     \ea\medskip\\
-
+       \ea
+   \el
+\]
+%
+\[
+  \bl
     \bestshot''_n : \Predicate_n \to \List_\Bool \to \List_\Bool\\
     \bestshot''_n~pred~start \defas
      \ba[t]{@{}l}
@@ -21475,7 +21510,7 @@ finite spaces.
        \ea
      \ea
    \el
-\]}%
+\]%
 %
 Given any $n$-standard predicate $P$ the function $\bestshot_n$
 returns a point satisfying $P$ if one exists, or dummy point
@@ -21499,10 +21534,9 @@ its argument $q$.
 
 The above program makes use of an operation
 %
-{\small
 \[
     \dec{memoise} : (\One \to \dec{List}~\Bool) \to (\One \to \dec{List}~\Bool)
-\]}%
+\]%
 %
 which transforms a given thunk into an equivalent `memoised' version,
 i.e. one that caches its value after its first invocation and
@@ -21518,20 +21552,24 @@ obtained by replacing $\dec{memoise}$ by the identity.
 We now show how the above idea may be exploited to yield a generic
 count program (this development appears to be new).
 %
-{\small\[
+\[
   \bl
     \BergerCount_n : \Predicate_n \to \Nat\\
     \BergerCount_n~pred \defas \Count'_n~pred~[]~0 \medskip\\
-
+ \el
+\]
+\[
+ \bl
     \Count'_n : \Predicate_n \to \List_\Bool \to \Nat \to \Nat\\
     \Count'_n~pred~start~acc \defas
       \ba[t]{@{}l}
          \If\; |start| = n\; \Then\; acc +
-                   (\If\; pred\,(\lambda i. start.i) \;\Then\;\Return\;1 \;\Else\;\Return\;0)\\
+                   (\bl\If\; pred\,(\lambda i. start.i) \;\Then\;\Return\;1\\\Else\;\Return\;0)\el\\
          \Else\;
            \ba[t]{@{}l}
              \Let\; f \revto \bestshot'_n~pred~start\; \In\\
-             \If\; pred~f \;\Then\; \Count''_n~start~ [f~0,\dots,f~(n-1)]~acc \;\Else\; \Return\;acc
+             \If\; pred~f \;\Then\; \Count''_n~start~ [f~0,\dots,f~(n-1)]~acc \\
+             \Else\;\Return\;acc
            \ea
      \ea \medskip\\
 
@@ -21542,12 +21580,13 @@ count program (this development appears to be new).
          \Else\;
            \ba[t]{@{}l}
              \Let\; b \revto leftmost.|start|\; \In\\
-             \Let\; acc' \revto \Count''_n~pred~(\dec{append}~start~[b])~leftmost~acc\; \In\\
-             \If\; b \; \Then\; \Count'_n~pred~(\dec{append}~start~[\False])~acc' \;\Else~\Return\;acc'
+             \Let\; acc' \revto \Count''_n~pred~\bl(\dec{append}~start~[b])\\leftmost~acc\; \In\el\\
+             \If\; b \; \Then\; \Count'_n~pred~(\dec{append}~start~[\False])~acc'\\
+             \Else~\Return\;acc'
            \ea
       \ea
   \el
-\]}%
+\]%
 %
 Again, $\BergerCount_n$ is implemented by means of two mutually
 recursive auxiliary functions.  The function $\Count'_n$ counts the
