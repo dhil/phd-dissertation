@@ -2913,19 +2913,56 @@ reifier. It reifies the context $\EC$ up to the control delimiter, and
 then continues as $M$ under the control delimiter. Note that the
 continuation of $\keyw{del}$ is invisible to $\CC$, and thus, the
 behaviour of $\CC$ can be understood locally.
-
+%
+Most commonly, the control reifier is abortive, i.e.
+\begin{reductions}
+  & \Delim{\EC[\CC~k.M]} &\reducesto& \Delim{M[\cont_{\EC}/k]}.
+\end{reductions}
+%
 The design space of delimited control is somewhat richer than that of
 undelimited control, as the control delimiter may remain in place
-after reification, as above, or be discarded. Similarly, the control
-reifier may reify the continuation up to and including the delimiter
-or, as above, without the delimiter.
+after reification, as above, be discarded, be included in the
+continuation, or a combination. Similarly, the control reifier may
+reify the continuation up to and including the delimiter or, as above,
+without the delimiter.
 %
-The most common variation of delimited control in the literature is
-abortive and reifies the current continuation up to, but not including
-the delimiter, i.e.
-\begin{reductions}
-  & \Delim{\EC[\CC~k.M]} &\reducesto& M[\cont_{\EC}/k]
-\end{reductions}
+\citet{DybvigJS07} use a taxonomy for delimited abortive control
+reifiers, which classifies them according to how they interact with
+their respective control delimiter.
+% the introduction of delimited
+% continuations, which classifies according to how their control reifiers interact their
+% respective control delimiter.
+They identify four variations.
+%
+\begin{description}
+\item[\CCpp] The control reifier includes a copy of the control delimiter in the
+  reified context, and leaves the original in place, i.e.
+\[
+  \Delim{\EC[\CC~k.M]} \reducesto \Delim{M[\cont_{\Delim{\EC}}/k]}
+\]
+\item[\CCpm] The control delimiter remains in place after
+  reification as the control reifier reifies the context up to, but
+  not including, the delimiter, i.e.
+  \[
+    \Delim{\EC[\CC~k.M]} \reducesto \Delim{M[\cont_{\EC}/k]}
+  \]
+\item[\CCmp] The control reifier includes a copy of the control
+  delimiter in the reified context, but discards the original
+  instance, i.e.
+  \[
+    \Delim{\EC[\CC~k.M]} \reducesto M[\cont_{\EC}/k]
+  \]
+\item[\CCmm] The control reifier reifies the context up to, but not
+  including, the delimiter and subsequently discards the delimiter, i.e.
+  \[
+    \Delim{\EC[\CC~k.M]} \reducesto M[\cont_{\EC}/k]
+  \]
+\end{description}
+
+% %
+
+
+
 %
 In the literature a delimited continuation is also known as a
 `partial' continuation.
@@ -3028,8 +3065,10 @@ first-class \emph{sequential} control operators that occur in the
 literature and in practice. Control operators for parallel programming
 will not be considered here.
 %
-Table~\ref{tbl:classify-ctrl} provides a classification of a
-non-exhaustive list of first-class control operators.
+Tables~\ref{tbl:classify-ctrl-undelimited} and
+\ref{tbl:classify-ctrl-delimited} provide classifications of some of
+the undelimited control operators and delimited control operators,
+respectively, that appear in the literature.
 
 Note that a \emph{first-class} control operator is typically not
 itself a first-class citizen, rather, the label `first-class' means
@@ -3043,42 +3082,54 @@ language.
 %
 \begin{table}
   \centering
-  \begin{tabular}{| l | l | l | l |}
+  \begin{tabular}{| l | l | l |}
     \hline
-    \multicolumn{1}{| l |}{\textbf{Name}} & \multicolumn{1}{l |}{\textbf{Extent}} & \multicolumn{1}{l |}{\textbf{Continuation behaviour}} & \multicolumn{1}{l |}{\textbf{Canonical reference}}\\
+    \multicolumn{1}{| l |}{\textbf{Name}} & \multicolumn{1}{l |}{\textbf{Continuation behaviour}} & \multicolumn{1}{l |}{\textbf{Canonical reference}}\\
     \hline
-    C        & Undelimited & Abortive & \citet{FelleisenF86} \\
+    J                   & Abortive & \citet{Landin98}\\
     \hline
-    callcc   & Undelimited & Abortive & \citet{AbelsonHAKBOBPCRFRHSHW85} \\
+    escape              & Abortive & \citet{Reynolds98a}\\
     \hline
-    \textCallcomc{} & Undelimited & Composable & \citet{Flatt20} \\
+    catch               & Abortive & \citet{SussmanS75} \\
     \hline
-    catch               & Undelimited & Abortive & \citet{SussmanS75} \\
+    callcc              & Abortive & \citet{AbelsonHAKBOBPCRFRHSHW85} \\
     \hline
-    catchcont           & Delimited & Composable & \citet{Longley09}\\
+    F                   & Composable & \citet{FelleisenFDM87}\\
     \hline
-    cupto               & Delimited & Composable & \citet{GunterRR95}\\
+    C                   & Abortive & \citet{FelleisenF86} \\
     \hline
-    control/prompt      & Delimited & Composable & \citet{Felleisen88}\\
-    \hline
-    effect handlers     & Delimited & Composable & \citet{PlotkinP13} \\
-    \hline
-    escape              & Undelimited & Abortive & \citet{Reynolds98a}\\
-    \hline
-    F                   & Undelimited & Composable & \citet{FelleisenFDM87}\\
-    \hline
-    fcontrol            & Delimited & Composable & \citet{Sitaram93} \\
-    \hline
-    J                   & Undelimited & Abortive & \citet{Landin98}\\
-    \hline
-    shift/reset         & Delimited & Composable & \citet{DanvyF90}\\
-    \hline
-    spawn               & Delimited & Composable & \citet{HiebD90}\\
-    \hline
-    splitter            & Delimited & Abortive, composable & \citet{QueinnecS91}\\
+    \textCallcomc{}     & Composable & \citet{Flatt20}\\
     \hline
   \end{tabular}
-  \caption{Classification of first-class sequential control operators.}\label{tbl:classify-ctrl}
+  \caption{Classification of first-class undelimited control operators
+    (listed in chronological
+    order).}\label{tbl:classify-ctrl-undelimited}
+\end{table}
+%
+\begin{table}
+  \centering
+  \begin{tabular}{| l | l | l | l |}
+    \hline
+    \multicolumn{1}{| l |}{\textbf{Name}} & \multicolumn{1}{l |}{\textbf{Taxonomy}} & \multicolumn{1}{l |}{\textbf{Continuation behaviour}} & \multicolumn{1}{l |}{\textbf{Canonical reference}}\\
+    \hline
+    control/prompt      & \CCpm & Composable & \citet{Felleisen88}\\
+    \hline
+    shift/reset         & \CCpp & Composable & \citet{DanvyF90}\\
+    \hline
+    spawn               & \CCmp & Composable & \citet{HiebD90}\\
+    \hline
+    splitter            & \CCmm & Abortive, composable & \citet{QueinnecS91}\\
+    \hline
+    fcontrol            & \CCmm & Composable & \citet{Sitaram93} \\
+    \hline
+    cupto               & \CCmm & Composable & \citet{GunterRR95}\\
+    \hline
+    catchcont           & \CCmm & Composable & \citet{Longley09}\\
+    \hline
+    effect handlers     & \CCmp & Composable & \citet{PlotkinP13} \\
+    \hline
+  \end{tabular}
+  \caption{Classification of first-class delimited control operators (listed in chronological order).}\label{tbl:classify-ctrl-delimited}
   % \dhil{TODO: Possibly split into two tables: undelimited and delimited. Change the table to display the behaviour of control reifiers.}
 \end{table}
 %
@@ -13670,7 +13721,7 @@ environment $\env \in \MEnvCat$, and a pair of generalised
 continuations $\kappa,\kappa' \in \MGContCat$.
 %
 The complete abstract machine syntax is given in
-Figure~\ref{fig:abstract-machine-syntax}.
+Figure~\ref{fig:abstract-machine-syntax-gencont}.
 %
 The control and environment components are completely standard as they
 are similar to the components in \citeauthor{FelleisenF86}'s original
@@ -13761,7 +13812,7 @@ Section~\ref{subsec:machine-correctness} easier to state.
 \end{syntax}
 
 \caption{Abstract machine syntax.}
-\label{fig:abstract-machine-syntax}
+\label{fig:abstract-machine-syntax-gencont}
 \end{figure}
 %
 \begin{figure}
@@ -13884,7 +13935,7 @@ Section~\ref{subsec:machine-correctness} easier to state.
 \el
 \]
 \caption{Abstract machine transitions.}
-\label{fig:abstract-machine-semantics}
+\label{fig:abstract-machine-semantics-gencont}
 \end{minipage}
 }
 \end{figure}
@@ -13913,7 +13964,7 @@ Section~\ref{subsec:machine-correctness} easier to state.
 The semantics of the abstract machine is defined in terms of a
 transition relation $\stepsto \subseteq \MConfCat \times \MConfCat$ on
 machine configurations. The definition of the transition relation is
-given in Figure~\ref{fig:abstract-machine-semantics}.
+given in Figure~\ref{fig:abstract-machine-semantics-gencont}.
 %
 A fair amount of the transition rules involve manipulating the
 continuation. We adopt the same stack notation conventions used in the
