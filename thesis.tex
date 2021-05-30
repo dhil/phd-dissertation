@@ -11338,6 +11338,12 @@ and eliminates extraneous terms at translation
 time~\cite{DanvyN03}. Extraneous terms come in various disguises as we
 shall see later in this chapter.
 
+The complete exposure of the control flow makes CPS a good fit for
+implementing control operators such as effect handlers. It is an
+established intermediate representation used by compilers, providing
+it with merits as a practical compilation
+target~\cite{Appel92,Kennedy07}.
+
 The purpose of this chapter is to use the CPS formalism to develop a
 universal implementation strategy for deep, shallow, and parameterised
 effect handlers. Section~\ref{sec:target-cps} defines a suitable
@@ -19475,8 +19481,9 @@ design space of deep and parameterised notions of multi handlers have
 yet to be explored as well as their applications domains. Thus an
 interesting future direction of research would be to extend $\HCalc$
 with multi handlers and explore their practical programming
-applicability. The effect system pose an interesting design challenge
-for multi handlers as any problematic quirks that occur with unary
+applicability. Retrofitting the effect system of $\HCalc$ to provide a
+good programmer experience for programming with multi handlers pose an
+interesting design challenge as any quirks that occur with unary
 handlers only get amplified in the setting of multi handlers.
 
 \paragraph{Handling linear resources} The implementation of effect
