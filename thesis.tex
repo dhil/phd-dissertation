@@ -4361,6 +4361,11 @@ $k$ restores the context with the prompt. The $\abort$ application
 erases the evaluation context up to this prompt, however, the body of
 the functional argument to $\abort$ reinvokes the continuation $k$
 which restores the prompt context once again.
+
+\citet{MoreauQ94} proposed a variation of splitter called
+\emph{marker}, which is also built on top of multi-prompt
+semantics. The key difference is that the control reifier strips the
+reified context of all prompts.
 % \begin{derivation}
 %   &1 + \splitter\,(\lambda p.2 + \splitter\,(\lambda p'.3 + \calldc\,\Record{p';\lambda k. k\,0 + \calldc\,\Record{p';\lambda k'. k\,(k'\,1)}}))), \emptyset\\
 %   \reducesto& \reason{\slab{AppSplitter}}\\
@@ -4437,9 +4442,44 @@ continuation. This continuation gets passed to the functional value of
 the control expression. The captured continuation contains the label
 $\ell$, and as specified by the $\slab{Resume}$ rule an invocation of
 the continuation causes this label to be reinstalled.
-% concas structured
-% alternative for using undelimited continuations, such as provided by
-% callcc, in concurrent programming
+
+The following example usage of $\Spawn$ is a slight variation on an
+example due to \citet{HiebDA94}.
+%
+\begin{derivation}
+  & 1 \cons (\Spawn\,(\lambda c. 2 \cons (c\,(\lambda k. 3 \cons k\,(k\,\nil))))), \emptyset\\
+  \reducesto& \reason{\slab{AppSpawn}}\\
+  &1 \cons (\ell : (\lambda c. 2 \cons (c\,(\lambda k. 3 \cons k\,(k\,\nil))))\,(\lambda f.f \reflect \ell)), \{\ell\}\\
+  \reducesto& \reason{$\beta$-reduction}\\
+  &1 \cons (\ell : 2 \cons ((\lambda f.f \reflect \ell)\,(\lambda k. 3 \cons k\,(k\,\nil)))), \{\ell\}\\
+\end{derivation}
+%
+\begin{derivation}
+  \reducesto& \reason{$\beta$-reduction}\\
+  &1 \cons (\ell : 2 \cons ((\lambda k. 3 \cons k\,(k\,\nil)) \reflect \ell)), \{\ell\}\\
+  \reducesto& \reason{\slab{Capture} $\EC = 2 \cons [\,]$}\\
+  & 1 \cons 3 \cons \qq{\cont_{\EC}}\,(\qq{\cont_{\EC}}\,\nil), \{\ell\}\\
+  \reducesto& \reason{\slab{Resume} $\EC$ with $\nil$}\\
+  &1 \cons 3 \cons \qq{\cont_{\EC}}\,(\ell : 2 \cons \nil), \{\ell\}\\
+  \reducesto^+& \reason{\slab{Value}}\\
+  &1 \cons 3 \cons \qq{\cont_{\EC}}\,[2], \{\ell\}\\
+  \reducesto^+& \reason{\slab{Resume} $\EC$ with $[2]$}\\
+  &1 \cons 3 \cons (\ell : 2 \cons [2]), \{\ell\}\\
+  \reducesto^+& \reason{\slab{Value}}\\
+  &1 \cons 3 \cons [2,2], \{\ell\} \reducesto^+ [1,3,2,2], \{\ell\}
+\end{derivation}
+%
+When the controller $c$ is invoked the current continuation is
+$1 \cons (\ell : 2 \cons [\,])$. The control expression reifies the
+$\ell : 2 \cons [\,]$ portion of the continuation and binds it to
+$k$. The first invocation of $k$ reinstates the reified portion and
+computes the singleton list $[2]$ which is used as argument to the
+second invocation of $k$.
+
+Both \citet{HiebD90} and \citet{HiebDA94} give several concurrent
+programming examples with spawn. They show how
+parallel-or~\cite{Plotkin77} can be codified as a macro using spawn
+(and a parallel invocation primitive \emph{pcall}).
 
 \paragraph{\citeauthor{Sitaram93}'s fcontrol} The control operator
 `fcontrol' was introduced by \citet{Sitaram93} in 1993. It is a
@@ -4817,7 +4857,7 @@ gets stuck as either $\Choose$ or $\Fail$, or both, would be
 unhandled. Thus, we have to run the computation in the context of both
 handlers. However, we have a choice to make as we can compose the
 handlers in either order. Let us first explore the composition, where
-$H_c$ is the outermost handler. Thus instantiate $H_c$ at type
+$H_c$ is the outermost handler. Thus we instantiate $H_c$ at type
 $\Option~\Bool$ and $H_f$ at type $\Bool$.
 %
 \begin{derivation}
@@ -4830,6 +4870,8 @@ $\Option~\Bool$ and $H_f$ at type $\Bool$.
   & (\Handle\;(\Handle\;\EC[\True] \;\With\;H_f)\;\With\;H_c) \concat k~\False\\
   \reducesto & \reason{$\beta$-reduction}\\
   & (\Handle\;(\Handle\; \Do\;\Choose~\Unit \;\With\; H_f)\;\With\;H_c) \concat k~\False\\
+\end{derivation}
+\begin{derivation}
   \reducesto & \reason{\slab{Capture}, $\{\OpCase{\Choose}{\Unit}{k'} \mapsto \cdots\} \in H_c$, $\EC'' = (\Handle\;[\,]\;\cdots)$}\\
   & (k'~\True \concat k'~\False) \concat k~\False, \qquad \text{where $k' = \qq{\cont_{\Record{\EC'';H_c}}}$}\\
   \reducesto& \reason{\slab{Resume} with $\True$}\\
@@ -5031,7 +5073,7 @@ first-order parameter.
 The function $\dec{odd}$ expects its environment to provide it with an
 implementation of a single operation of type $\Int \to \Bool$. The
 body of $\dec{odd}$ invokes, or queries, this operation twice with
-arguments $0$ and $1$, respectively. The results are then tested using
+arguments $0$ and $1$, respectively. The results are tested using
 exclusive-or.
 
 Now, let us implement the environment for $\dec{odd}$.
@@ -5051,18 +5093,16 @@ Now, let us implement the environment for $\dec{odd}$.
   \el
 \]
 %
-We allow ourselves to use recursive data types to make the example
-concise. Type $\dec{Dialogue}$ represents the dialogue between
-$\dec{odd}$ and its parameter. The data structure is a standard binary
-tree with two constructors: $!$ constructs a leaf holding a value of
-type $\Int$ and $?$ constructs an interior node holding a value of
-type $\Bool$ and two subtrees. The function $\dec{env}$ implements the
-environment that $\dec{odd}$ will be run in. This function evaluates
-its parameter $m$ under $\Catchcont$ which injects the operation
-$f$. If $m$ returns, then the left component gets tagged with $!$,
-otherwise the argument to the operation $q$ gets tagged with a $?$
-along with the subtrees constructed by the two recursive applications
-of $\dec{env}$.
+Type $\dec{Dialogue}$ represents the dialogue between $\dec{odd}$ and
+its parameter. The data structure is a standard binary tree with two
+constructors: $!$ constructs a leaf holding a value of type $\Int$ and
+$?$ constructs an interior node holding a value of type $\Bool$ and
+two subtrees. The function $\dec{env}$ implements the environment that
+$\dec{odd}$ will be run in. This function evaluates its parameter $m$
+under $\Catchcont$ which injects the operation $f$. If $m$ returns,
+then the left component gets tagged with $!$, otherwise the argument
+to the operation $q$ gets tagged with a $?$ along with the subtrees
+constructed by the two recursive applications of $\dec{env}$.
 %
 % The primitive structure of catchcont makes it somewhat fiddly to
 % program with it compared to other control operators as we have to
@@ -5070,6 +5110,14 @@ of $\dec{env}$.
 
 The following derivation gives the high-level details of how
 evaluation proceeds.
+%
+\begin{figure}
+\begin{center}
+    \scalebox{1.3}{\SXORTwoModel}
+  \end{center}
+  \caption{Visualisation of the result obtained by
+    $\dec{env}~\dec{odd}$.}\label{fig:decision-tree-cc}
+\end{figure}
 %
 \begin{derivation}
   &\dec{env}~\dec{odd}\\
@@ -5107,14 +5155,6 @@ Figure~\ref{fig:decision-tree-cc} visualises this result as a binary
 tree. The example here does not make use of the `continuation
 component', the interested reader may consult \citet{LongleyW08} for
 an example usage.
-%
-\begin{figure}
-\begin{center}
-    \scalebox{1.3}{\SXORTwoModel}
-  \end{center}
-  \caption{Visualisation of the result obtained by
-    $\dec{env}~\dec{odd}$.}\label{fig:decision-tree-cc}
-\end{figure}
 % \subsection{Second-class control operators}
 % Coroutines, async/await, generators/iterators, amb.
 
@@ -19209,7 +19249,7 @@ language~\cite{Plotkin77}. It is also well known that the presence of
 control features or local state enables observational distinctions
 that cannot be made in a purely functional setting: for instance,
 there are programs involving call/cc that detect the order in which a
-(call-by-name) `+' operation evaluates its arguments
+(call-by-name) `$+$' operation evaluates its arguments
 \citep{CartwrightF92}. Such operations are `non-functional' in the
 sense that their output is not determined solely by the extension of
 their input (seen as a mathematical function
