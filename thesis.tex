@@ -20017,8 +20017,8 @@ Appendix A of \citet{HillerstromLA20}.\medskip
 \end{proof}
 
 % type erasure lemma
-\begin{lemma}[Type erasure]
-  \label{lem:erasure-proof}
+\begin{lemma}[Type erasure]\label{lem:erasure-proof}
+  ~
   \begin{enumerate}
   \item $\cps{M} \sapp \sW = \cps{M[T/\alpha]} \sapp \sW$
   \item $\cps{W}           = \cps{W[T/\alpha]}$
@@ -20527,7 +20527,7 @@ dynamic language, as described above.
       \qquad \dapp \dRecord{} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW)\el \\
       \reducesto^+&       \reason{dynamic $\beta$-reduction and pattern matching, and structure of continuations}\\
       & \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
-      =&         \reason{Lemma~\ref{lem:erasure-proof} (Type Erasure)} \\
+      =&         \reason{Lemma~\ref{lem:erasure-proof} (Type erasure)} \\
       & \cps{M[T/\alpha]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
       =&        \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
       & \cps{M[T/\alpha]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
