@@ -2,8 +2,9 @@
 
 **NOTE** I have made a draft copy of the dissertation available in
 this repository. I ask that you **do not** link to or distribute the
-draft anywhere, because I will delete the file once the final revision has
-been submitted after the viva.
+draft anywhere, because I will delete the file once the final revision
+has been submitted after the viva. I will make the final revision
+publicly available at a stable link.
 
 ---
 
