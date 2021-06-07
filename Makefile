@@ -21,6 +21,7 @@ $(PAPER).pdf: $(PAPER).aux $(BIBLIO).bbl
 $(PAPER).pdf-draft: CFLAGS:=$(CFLAGS) "\def\DRAFT{$(LATEST_COMMIT)}\input{$(PAPER)}"
 $(PAPER).pdf-draft: all
 	mv $(PAPER).pdf $(PAPER)-draft.pdf
+	tar cf thesis-draft.tar.gz $(PAPER)-draft.pdf
 
 clean:
 	rm -f *.log *.aux *.toc *.out
