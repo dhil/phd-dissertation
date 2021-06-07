@@ -21,6 +21,15 @@ The board of examiners consists of
 
 The dissertation is structured as follows.
 
+### Introduction
+
+ * Chapter 1 puts forth an argument for why effect handlers
+   matter. Following this argument it provides a basic introduction to
+   several different approaches to effectful programming through the
+   lens of the state effect. In addition, it also declares the scope
+   and contributions of the dissertation, and discusses some related
+   work.
+
 ### Background
 
  * Chapter 2 defines some basic mathematical notation and
@@ -82,6 +91,16 @@ implementation of generic count than any λ<sub>b</sub><sup>→</sup> implementa
 
 ### Conclusions
   * Chapter 10 concludes and discusses future work.
+
+### Appendices
+  * Appendix A contains a proof that shows the `Get-get` equation for
+    state is redundant.
+  * Appendix B contains the proof details for the higher-order
+    uncurried CPS translation for deep and shallow handlers.
+  * Appendix C contains the proof details and gadgetry for the
+    complexity of the effectful generic count program.
+  * Appendix D provides a sample implementation of the Berger count
+    program and discusses it in more detail.
 
 ## Building
 
