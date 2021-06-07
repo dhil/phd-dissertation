@@ -11,10 +11,10 @@ Submitted May 30, 2021. Pending examination.
 
 The board of examiners consists of
 
-* Andrew Kennedy (Facebook)
-* Edwin Brady (St. Andrews)
-* Ohad Kammar (The University of Edinburgh)
-* Stephen Gilmore (The University of Edinburgh)
+* [Andrew Kennedy](https://github.com/andrewjkennedy) (Facebook London)
+* [Edwin Brady](https://www.type-driven.org.uk/edwinb/) (University of St Andrews)
+* [Ohad Kammar](http://denotational.co.uk/) (The University of Edinburgh)
+* [Stephen Gilmore](https://homepages.inf.ed.ac.uk/stg/) (The University of Edinburgh)
 
 ## Thesis structure
 
