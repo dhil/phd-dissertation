@@ -19,5 +19,12 @@ The board of examiners consists of
 ## Building
 
 To build the dissertation you need the [Informatics thesis LaTeX
-class](https://github.com/dhil/inf-thesis-latex-cls).
+class](https://github.com/dhil/inf-thesis-latex-cls) with the
+University of Edinburgh crests. Invoking `make` on the command line
+ought to produce a PDF copy of the dissertation named `thesis.pdf`,
+e.g.
+
+```shell
+$ make
+```
 
