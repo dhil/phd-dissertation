@@ -17,6 +17,12 @@
 \usepackage[utf8]{inputenc}               % enable UTF-8 compatible typing
 \usepackage{hyperref}                     % interactive PDF
 \usepackage[sort&compress,square,numbers]{natbib}    % Bibliography
+\usepackage{bibentry}         % Print bibliography entries inline.
+\makeatletter                 % Redefine bibentry to omit hyperrefs
+\renewcommand\bibentry[1]{\nocite{#1}{\frenchspacing
+     \@nameuse{BR@r@#1\@extra@b@citeb}}}
+\makeatother
+\nobibliography*              % use the bibliographic data from the standard BibTeX setup.
 \usepackage{amsmath,amssymb,mathtools}    % maths typesetting
 \usepackage{../pkgs/mathpartir}           % Inference rules
 \usepackage{../pkgs/mathwidth}            % renders character sequences nicely in math mode
@@ -54,6 +60,14 @@
 % Dissertation overview
 \begin{frame}
   \frametitle{My dissertation at glance}
+
+  Three main strands of work
+
+  \begin{description}
+  \item[Programming] Language design and applications of effect handlers.
+  \item[Implementation] Canonical implementation strategies for effect handlers.
+  \item[Expressiveness] Exploration of the computational expressiveness of effect handlers.
+  \end{description}
 \end{frame}
 
 \begin{frame}
@@ -68,7 +82,10 @@
     \item $\HPCalc$ parameterised deep handlers (fold+state).
   \end{itemize}
 
-  The actual implementation is the union of the three calculi.
+  The actual implementation is the union of the three calculi.\\[2em]
+
+  \textbf{Relevant papers} TyDe'16~\cite{HillerstromL16},
+  APLAS'18~\cite{HillerstromL18}, JFP'20~\cite{HillerstromLA20}.
 \end{frame}
 
 % UNIX
@@ -105,7 +122,10 @@
     \Scale[1.8]{\kappa = \overline{(\sigma, (\hret,\hops))}}
   \]\\[1em]
 
-  \textbf{Key point} Separate the \emph{doing} layer ($\sigma$) from the \emph{being} layer ($H$).
+  \textbf{Key point} Separate the \emph{doing} layer ($\sigma$) from the \emph{being} layer ($H$).\\[2em]
+
+  \textbf{Relevant papers} FSCD'17~\cite{HillerstromLAS17},
+  APLAS'18~\cite{HillerstromL18}, JFP'20~\cite{HillerstromLA20}.
 \end{frame}
 
 % Abstract machine
@@ -118,7 +138,10 @@
 
   \[
     \Scale[2]{\cek{C \mid E \mid K = \overline{((H,E), \sigma)}}}
-  \]
+  \]\\[2em]
+
+  \textbf{Relevant papers} TyDe'16~\cite{HillerstromL16},
+  JFP'20~\cite{HillerstromLA20}.
 
 \end{frame}
 
@@ -130,11 +153,15 @@
   w.r.t. to typability-preserving macro-expressiveness.
 
   \begin{itemize}
-    \item Deep as shallow, $\mathcal{D}\llbracket - \rrbracket$, image is lightweight.
+    \item Deep as shallow, $\mathcal{D}\llbracket - \rrbracket$, image is computationally lightweight.
     \item Shallow as deep, $\mathcal{S}\llbracket - \rrbracket$, image is computationally expensive.
     \item Parameterised as deep, $\mathcal{P}\llbracket - \rrbracket$,
       image uses explicit state-passing.
-  \end{itemize}
+    \end{itemize}
+    ~\\[1em]
+    \textbf{Relevant papers} APLAS'18~\cite{HillerstromL18},
+    JFP'20~\cite{HillerstromLA20}.
+
 \end{frame}
 
 % Asymptotic speed up with first-class control
@@ -152,21 +179,22 @@
   \item There \textbf{exists} an implementation of $\Count_n \in \HPCF$ with
     effect handlers such that the runtime for every $n$-standard predicate $P$ is
     $\Count_n~P = \BigO(2^n)$.
-  \item Forall implementations of $\Count_n \in \BPCF$ the runtime for every $n$-standard predicate $P$ is $\Count_n~P = \Omega(n2^n)$
+  \item \textbf{Forall} implementations of $\Count_n \in \BPCF$ the runtime for every $n$-standard predicate $P$ is $\Count_n~P = \Omega(n2^n)$
   \end{itemize}
+  ~\\[1em]
+  \textbf{Relevant paper} ICFP'20~\cite{HillerstromLL20}.
 \end{frame}
 
 % Background
-\begin{frame}
-  \frametitle{Continuations literature review}
-\end{frame}
+% \begin{frame}
+%   \frametitle{Continuations literature review}
+% \end{frame}
 
 %
 % References
 %
 \begin{frame}%[allowframebreaks]
   \frametitle{References}
-  \nocite{*}
   \bibliographystyle{plainnat}
   \bibliography{\jobname}
 \end{frame}
