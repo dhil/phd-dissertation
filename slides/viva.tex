@@ -1,0 +1,173 @@
+\documentclass[169,10pt,compress,dvipsnames]{beamer}
+%%
+%% Slides layout
+%%
+\beamertemplatenavigationsymbolsempty  % hides navigation buttons
+\usetheme{Madrid}                      % standard Madrid theme
+\setbeamertemplate{footline}{}         % renders the footer empty
+%
+\setbeamertemplate{bibliography item}{ % this is a hack to prevent Madrid theme + biblatex
+  \hspace{-0.4cm}\lower3pt\hbox{       % from causing bibliography entries to run over
+    \pgfuseimage{beamericonarticle}    % the slide margins
+}}
+
+%%
+%% Packages
+%%
+\usepackage[utf8]{inputenc}               % enable UTF-8 compatible typing
+\usepackage{hyperref}                     % interactive PDF
+\usepackage[sort&compress,square,numbers]{natbib}    % Bibliography
+\usepackage{amsmath,amssymb,mathtools}    % maths typesetting
+\usepackage{../pkgs/mathpartir}           % Inference rules
+\usepackage{../pkgs/mathwidth}            % renders character sequences nicely in math mode
+\usepackage{stmaryrd}                     % semantic brackets
+\usepackage{xspace}                       % proper spacing for macros in text
+
+\usepackage[T1]{fontenc}                  % 8-bit font encoding
+                                          % native support for accented characters.
+\usepackage[scaled=0.85]{beramono}        % smoother typewriter font
+\newcommand*{\Scale}[2][4]{\scalebox{#1}{\ensuremath{#2}}}%
+
+\input{../macros.tex}
+
+%%
+%% Meta information
+%%
+\author{Daniel Hillerström}
+\title{Foundations for Programming and Implementing Effect Handlers}
+\institute{The University of Edinburgh, Scotland UK}
+\subtitle{PhD viva}
+\date{August 13, 2021}
+
+%%
+%% Slides
+%%
+\begin{document}
+
+%
+% Title slide
+%
+\begin{frame}
+  \maketitle
+\end{frame}
+
+% Dissertation overview
+\begin{frame}
+  \frametitle{My dissertation at glance}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Calculi for deep, shallow, and parameterised handlers}
+
+  The calculi capture key aspects of the implementation of effect
+  handlers in Links.
+
+  \begin{itemize}
+    \item $\HCalc$ ordinary deep handlers (fold).
+    \item $\SCalc$ shallow handlers (case-split).
+    \item $\HPCalc$ parameterised deep handlers (fold+state).
+  \end{itemize}
+
+  The actual implementation is the union of the three calculi.
+\end{frame}
+
+% UNIX
+\begin{frame}
+  \frametitle{Effect handlers as composable operating systems}
+
+  An interpretation of \citeauthor{RitchieT74}'s
+  UNIX~\cite{RitchieT74} in terms of effect handlers.\\[2em]
+
+  \[
+    \bl
+    \!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\!\textbf{Basic idea}
+      \ba[m]{@{\qquad}r@{~}c@{~}l}
+        \text{\emph{system call}} &\approx& \text{\emph{operation invocation}}\\
+        \text{\emph{system call implementation}} &\approx& \text{\emph{operation interpretation}}
+      \ea
+    \el
+  \]\hfill\\[2em]
+
+  \textbf{Key point} Legacy code is modularly retrofitted with functionality.
+\end{frame}
+
+% CPS translation
+\begin{frame}
+  \frametitle{CPS transforms for effect handlers}
+
+  A higher-order CPS transform for effect handlers with generalised
+  continuations.\\[1em]
+
+  \textbf{Generalised continuation} Structured representation of
+  delimited continuations.\\[0.5em]
+
+  \[
+    \Scale[1.8]{\kappa = \overline{(\sigma, (\hret,\hops))}}
+  \]\\[1em]
+
+  \textbf{Key point} Separate the \emph{doing} layer ($\sigma$) from the \emph{being} layer ($H$).
+\end{frame}
+
+% Abstract machine
+\begin{frame}
+  \frametitle{Abstract machine semantics for effect handlers}
+
+  Plugging generalised continuations into \citeauthor{FelleisenF86}'s
+  CEK machine~\cite{FelleisenF86} yields a runtime for effect
+  handlers.\\[2em]
+
+  \[
+    \Scale[2]{\cek{C \mid E \mid K = \overline{((H,E), \sigma)}}}
+  \]
+
+\end{frame}
+
+% Interdefinability of handlers
+\begin{frame}
+  \frametitle{Interdefinability of effect handlers}
+
+  Deep, shallow, and parameterised handlers are interdefinable
+  w.r.t. to typability-preserving macro-expressiveness.
+
+  \begin{itemize}
+    \item Deep as shallow, $\mathcal{D}\llbracket - \rrbracket$, image is lightweight.
+    \item Shallow as deep, $\mathcal{S}\llbracket - \rrbracket$, image is computationally expensive.
+    \item Parameterised as deep, $\mathcal{P}\llbracket - \rrbracket$,
+      image uses explicit state-passing.
+  \end{itemize}
+\end{frame}
+
+% Asymptotic speed up with first-class control
+\begin{frame}
+  \frametitle{Asymptotic speed up with effect handlers}
+
+  Effect handlers can make some programs faster!
+
+  \[
+    \Count_n : ((\Nat_n \to \Bool) \to \Bool) \to \Nat
+  \]\\[1em]
+  %
+  Using type-respecting expressiveness
+  \begin{itemize}
+  \item There \textbf{exists} an implementation of $\Count_n \in \HPCF$ with
+    effect handlers such that the runtime for every $n$-standard predicate $P$ is
+    $\Count_n~P = \BigO(2^n)$.
+  \item Forall implementations of $\Count_n \in \BPCF$ the runtime for every $n$-standard predicate $P$ is $\Count_n~P = \Omega(n2^n)$
+  \end{itemize}
+\end{frame}
+
+% Background
+\begin{frame}
+  \frametitle{Continuations literature review}
+\end{frame}
+
+%
+% References
+%
+\begin{frame}%[allowframebreaks]
+  \frametitle{References}
+  \nocite{*}
+  \bibliographystyle{plainnat}
+  \bibliography{\jobname}
+\end{frame}
+\end{document}
