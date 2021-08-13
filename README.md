@@ -8,7 +8,7 @@ publicly available at a stable link.
 
 ---
 
-Submitted May 30, 2021. Pending examination.
+Submitted May 30, 2021. Viva August 13, 2021.
 
 The board of examiners consists of
 
