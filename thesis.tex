@@ -343,10 +343,10 @@
   My time as a student in Informatics Forum has been enjoyable in
   large part thanks to my friends: Amna Shahab, Chris Vasiladiotis,
   Craig McLaughlin, Danel Ahman, Daniel Mills, Frank Emrich, Emanuel
-  Martinov, Floyd Chitalu, Larisa Stoltzfus, Jakub Zalewski, Maria
-  Gorinova, Marcin Szymczak, Paul Piho, Philip Ginsbach, Radu Ciobanu,
-  Rajkarn Singh, Rosinda Fuentes Pineda, Rudi Horn, Shayan Najd, Stan
-  Manilov, and Vanya Yaneva-Cormack.
+  Martinov, Floyd Chitalu, Jack Williams, Jakub Zalewski, Larisa
+  Stoltzfus, Maria Gorinova, Marcin Szymczak, Paul Piho, Philip
+  Ginsbach, Radu Ciobanu, Rajkarn Singh, Rosinda Fuentes Pineda, Rudi
+  Horn, Shayan Najd, Stan Manilov, and Vanya Yaneva-Cormack.
 
   Thanks to Ohad Kammar for agreeing to be the internal examiner for
   my dissertation. As for external examiners, I am truly humbled and
@@ -3386,10 +3386,9 @@ call-with-composable-continuation, abbreviated \textCallcomc{}.
 %
 As the name suggests the captured continuation is composable rather
 than abortive. It was introduced by \citet{FlattYFF07} in 2007, and
-and implemented in November 2006 according to the history log of
-Racket (Racket was then known as MzScheme, version
-360)~\cite{Flatt20}. The history log classifies it as a delimited
-control operator.
+implemented in November 2006 according to the history log of Racket
+(Racket was then known as MzScheme, version 360)~\cite{Flatt20}. The
+history log classifies it as a delimited control operator.
 %
 Truth to be told nowadays in Racket virtually all control operators
 are delimited, even callcc, because they are parameterised by an
@@ -3431,7 +3430,7 @@ Unlike $\Callcc$, captured continuations behave as functions.
 \end{reductions}
 %
 The capture rule for $\Callcomc$ is identical to the rule for
-$\Callcomc$, but the resume rule is different.
+$\Callcc$, but the resume rule is different.
 %
 The effect of continuation invocation can be understood locally as it
 does not erase the global evaluation context, but rather composes with
