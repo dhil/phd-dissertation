@@ -2665,17 +2665,17 @@ as well as implementation strategies for first-class control.
 \chapter{Composing \UNIX{} with effect handlers}
 \label{ch:ehop}
 
-\dhil{TODO rewrite this introduction. Streamline the subsequent sections to not assume prior experience with effect handlers}
-
-There are several analogies for effect handlers, e.g. as interpreters
-for effects, folds over computation trees, etc. A particularly
-compelling programmatic analogy for effect handlers is \emph{effect
-  handlers as composable operating systems}. Effect handlers and
-operating systems share operational characteristics: an operating
-system interprets a set of system commands performed via system calls,
-which is similar to how an effect handler interprets a set of abstract
-operations performed via operation invocations. This analogy was
-suggested to me by James McKinna (personal communication, 2017).
+There are several analogies for understanding effect handlers as a
+programming abstraction, e.g. as interpreters for effects, folds over
+computation trees (as in Section~\ref{sec:sec:state-of-effprog}),
+resumable exceptions. A particularly compelling programmatic analogy
+is \emph{effect handlers as composable operating systems}. Effect
+handlers and operating systems share operational characteristics: an
+operating system interprets a set of system commands performed via
+system calls, in a similar way to how an effect handler interprets a
+set of abstract operations performed via operation invocations (this
+analogy was suggested to me by James McKinna; personal communication,
+2017).
 %
 The compelling aspect of this analogy is that we can understand a
 monolithic and complex operating system like \UNIX{}~\cite{RitchieT74}
@@ -2692,7 +2692,9 @@ multiple user sessions, time-sharing, and file i/o. We dub the system
 It is a case study that demonstrates the versatility of effect
 handlers, and shows how standard computational effects such as
 \emph{exceptions}, \emph{dynamic binding}, \emph{nondeterminism}, and
-\emph{state} make up the essence of an operating system.
+\emph{state} make up the essence of an operating system. These effects
+are standard in the sense that they appear frequently in 101 tutorials
+on effects.
 
 For the sake of clarity, we will occasionally make some blatant
 simplifications, nevertheless the resulting implementation will
@@ -2702,39 +2704,6 @@ The implementation will be composed of several small modular effect
 handlers, that each handles a particular set of system commands. In
 this respect, we will truly realise \OSname{} in the spirit of the
 \UNIX{} philosophy~\cite[Section~1.6]{Raymond03}.
-
-% This case study demonstrates that we can decompose a monolithic
-% operating system like \UNIX{} into a collection of specialised effect
-% handlers. Each handler interprets a particular system command.
-
-% A systems software engineering reading of effect handlers may be to
-% understand them as modular ``tiny operating systems''. Operationally,
-% how an \emph{operating system} interprets a set of \emph{system
-%   commands} performed via \emph{system calls} is similar to how an
-% effect handler interprets a set of abstract operations performed via
-% operation invocations.
-% %
-% This reading was suggested to me by James McKinna (personal
-% communication). In this section I will take this reading literally,
-% and demonstrate how we can use the power of (deep) effect handlers to
-% implement a tiny operating system that supports multiple users,
-% time-sharing, and file i/o.
-% %
-% The operating system will be a variation of \UNIX{}~\cite{RitchieT74},
-% which we will call \OSname{}.
-% %
-% To make the task tractable we will occasionally jump some hops and
-% make some simplifying assumptions, nevertheless the resulting
-% implementation will capture the essence of a \UNIX{}-like operating
-% system.
-% %
-% The implementation will be composed of several small modular effect
-% handlers, that each handles a particular set of system commands. In
-% this respect, we will truly realise \OSname{} in the spirit of the
-% \UNIX{} philosophy~\cite[Section~1.6]{Raymond03}.  The implementation of
-% the operating system will showcase several computational effects in
-% action including \emph{dynamic binding}, \emph{nondeterminism}, and
-% \emph{state}.
 
 \section{Basic i/o}
 \label{sec:tiny-unix-bio}
