@@ -2705,6 +2705,63 @@ handlers, that each handles a particular set of system commands. In
 this respect, we will truly realise \OSname{} in the spirit of the
 \UNIX{} philosophy~\cite[Section~1.6]{Raymond03}.
 
+\paragraph{Terminology}
+In the remainder of this dissertation, I will make a slight change of
+terminology to disambiguate programmatic continuations,
+i.e. continuations exposed to the programmer, from continuations in
+continuation passing style (Chapter~\ref{ch:cps}) and continuations in
+abstract machines (Chapter~\ref{ch:abstract-machine}). I will refer to
+programmatic continuations as `resumptions', and reserve the term
+`continuation' for continuations concerning implementation details.
+
+\paragraph{Chapter outline}
+Sections~\ref{sec:tiny-unix-bio}--\ref{sec:tiny-unix-io} use \emph{deep
+handlers} to model file i/o, user environments, process termination,
+process duplication, and process interruption.
+%
+\begin{description}
+\item[Section~\ref{sec:tiny-unix-bio}] This section implements a basic
+  mechanism which facilities writing to a global file. This mechanism
+  is used as a stepping stone for building a more feature rich model.
+\item[Section~\ref{sec:tiny-unix-exit}] This section demonstrates a
+  use of effect handlers as exception handlers, as we use \emph{exceptions}
+  to implement process termination.
+\item[Section~\ref{sec:tiny-unix-env}] This section exemplifies
+  user-specific environments as an instance of \emph{dynamic binding},
+  as we use the environment, or reader, effect to implement user
+  environments. The section also contains an instance of a
+  \emph{tail-resumptive} handler as well as demonstrates an
+  application of dynamic overloading of interpretation of residual
+  effectful operations in resumptions.
+\item[Section~\ref{sec:tiny-unix-time}] This section models \UNIX{}'s
+  process duplicating primitive `fork' by making use of the
+  \emph{nondeterminism} effect. Furthermore, in this section we also
+  implement a simple time-sharing facility that is capable of
+  interleaving user processes.
+\item[Section~\ref{sec:tiny-unix-io}] This section replaces the basic
+  i/o model of Section~\ref{sec:tiny-unix-bio} by a full-fledged i/o
+  model supporting file creation, opening, reading, writing, and
+  linking. This model is realised by making use of the \emph{state}
+  effect.
+\end{description}
+
+\paragraph{Relation to prior work}
+At the time of examination the work in this chapter was novel in the
+sense that it had not been published elsewhere. Since the examination
+of this dissertation, but prior to submission of its final version, I
+presented parts of this work at the ML Family Workshop.
+\begin{itemize}
+  \item \bibentry{Hillerstrom21}
+\end{itemize}
+Excerpts of Sections~\ref{sec:tiny-unix-bio}--\ref{sec:tiny-unix-time}
+have appeared in (mostly verbatim) in the report of Dagstuhl Seminar
+21292. Those excerpts are to be considered a copy of the work
+described in this chapter rather than the other way around.
+\begin{itemize}
+  \item \bibentry{AhmanALR21}
+\end{itemize}
+
+
 \section{Basic i/o}
 \label{sec:tiny-unix-bio}
 
