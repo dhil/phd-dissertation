@@ -2914,7 +2914,7 @@ We can now write some contents to the file and observe the effects.
   \ea
 \]
 
-\section{Exceptions: non-local exits}
+\section{Exceptions: process termination}
 \label{sec:tiny-unix-exit}
 
 A process may terminate successfully by running to completion, or it
@@ -2975,6 +2975,12 @@ returns whatever payload the $\Exit$ operation was carrying. As a
 consequence, outside of $\status$, an invocation of $\Exit~0$ in $m$
 is indistinguishable from $m$ returning normally, e.g.
 $\status\,(\lambda\Unit.\exit~0) = \status\,(\lambda\Unit.\Unit)$.
+%
+Technically, the $\Exit$-case provides access to the resumption of
+$\Exit$ in $m$, however, we do not write this resumption here, because
+it is useless as its type is $\ZeroType \to \Int$. It expects as
+argument an element of the empty type, which is of course impossible
+to provide, hence we can never invoke it.
 
 To illustrate $\status$ and $\exit$ in action consider the following
 example, where the computation gets terminated mid-way.
