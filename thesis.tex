@@ -3094,8 +3094,12 @@ The following handler implements the environment.
 The handler takes as input the current $user$ and a computation that
 may perform the $\Ask$ operation. When an invocation of $\Ask$ occurs
 the handler pattern matches on the $user$ parameter and resumes with a
-string representation of the user. With this implementation we can
-interpret an application of $\whoami$.
+string representation of the user. This handler is an instance of a
+so-called \emph{tail-resumptive} handler~\cite{Leijen17b,XieBHSL20} as
+each resumption invocation appears in tail position within in the
+operation clause.
+%
+With this implementation we can interpret an application of $\whoami$.
 %
 \[
   \environment~\Record{\Root;\whoami} \reducesto^+ \strlit{root} : \String
@@ -3105,8 +3109,8 @@ It is not difficult to extend this basic environment model to support
 an arbitrary number of variables. This can be done by parameterising
 the $\Ask$ operation by some name representation (e.g. a string),
 which the environment handler can use to index into a list of string
-values. In case the name is unbound the environment, the handler can
-embrace the laissez-faire attitude of \UNIX{} and resume with the
+values. In case the name is not bound in the environment, the handler
+can embrace the laissez-faire attitude of \UNIX{} and resume with the
 empty string.
 
 \paragraph{User session management}
