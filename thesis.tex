@@ -2667,7 +2667,7 @@ as well as implementation strategies for first-class control.
 
 There are several analogies for understanding effect handlers as a
 programming abstraction, e.g. as interpreters for effects, folds over
-computation trees (as in Section~\ref{sec:sec:state-of-effprog}),
+computation trees (as in Section~\ref{sec:state-of-effprog}),
 resumable exceptions. A particularly compelling programmatic analogy
 is \emph{effect handlers as composable operating systems}. Effect
 handlers and operating systems share operational characteristics: an
@@ -2705,6 +2705,10 @@ handlers, that each handles a particular set of system commands. In
 this respect, we will truly realise \OSname{} in the spirit of the
 \UNIX{} philosophy~\cite[Section~1.6]{Raymond03}.
 
+The source calculus underpinning the language used to implement
+\OSname{} will be introduced informally on-the-fly. The formal syntax
+and semantics will be introduced in Chapter~\ref{ch:handler-calculi}
+
 \paragraph{Terminology}
 In the remainder of this dissertation, I will make a slight change of
 terminology to disambiguate programmatic continuations,
@@ -2720,29 +2724,37 @@ handlers} to model file i/o, user environments, process termination,
 process duplication, and process interruption.
 %
 \begin{description}
-\item[Section~\ref{sec:tiny-unix-bio}] This section implements a basic
+\item[Section~\ref{sec:tiny-unix-bio}] implements a basic
   mechanism which facilities writing to a global file. This mechanism
   is used as a stepping stone for building a more feature rich model.
 \item[Section~\ref{sec:tiny-unix-exit}] This section demonstrates a
   use of effect handlers as exception handlers, as we use \emph{exceptions}
   to implement process termination.
-\item[Section~\ref{sec:tiny-unix-env}] This section exemplifies
+\item[Section~\ref{sec:tiny-unix-env}] exemplifies
   user-specific environments as an instance of \emph{dynamic binding},
   as we use the environment, or reader, effect to implement user
   environments. The section also contains an instance of a
   \emph{tail-resumptive} handler as well as demonstrates an
   application of dynamic overloading of interpretation of residual
   effectful operations in resumptions.
-\item[Section~\ref{sec:tiny-unix-time}] This section models \UNIX{}'s
+\item[Section~\ref{sec:tiny-unix-time}] models \UNIX{}'s
   process duplicating primitive `fork' by making use of the
   \emph{nondeterminism} effect. Furthermore, in this section we also
   implement a simple time-sharing facility that is capable of
   interleaving user processes.
-\item[Section~\ref{sec:tiny-unix-io}] This section replaces the basic
+\item[Section~\ref{sec:tiny-unix-io}] replaces the basic
   i/o model of Section~\ref{sec:tiny-unix-bio} by a full-fledged i/o
   model supporting file creation, opening, reading, writing, and
   linking. This model is realised by making use of the \emph{state}
   effect.
+\item[Section~\ref{sec:pipes}] demonstrates an application of
+  \emph{shallow handlers} to implement parts of the \UNIX{}
+  programming environment by simulating composable \UNIX{}-style
+  \emph{pipes} for data stream processing.
+\item[Section~\ref{sec:tiny-unix-proc-sync}] implements a variation of
+  the time-sharing system from Section~\ref{sec:tiny-unix-time} with
+  process synchronisation by taking advantage of the ability to
+  internalise computation state with \emph{parameterised handlers}.
 \end{description}
 
 \paragraph{Relation to prior work}
@@ -2818,27 +2830,66 @@ Let us define a suitable handler for this operation.
   \el
 \]
 %
-The handler takes as input a computation that produces some value
-$\alpha$, and in doing so may perform the $\BIO$ effect.
+The type signature
+$(\UnitType \to \alpha \eff \BIO) \to \Record{\alpha;\UFile}$
+classifies a second-order function that takes as input a computation
+that produces some value $\alpha$, and in doing so may perform the
+$\BIO$ effect. As we program in a call-by-value setting the input
+computation is represented as a suspended computation, or thunk. Thus
+the type $\UnitType \to \alpha \eff \BIO$ classifies a thunk, that
+when forced may perform the $\BIO$ effect, i.e. the $\Write$
+operation, to produce a value of type $\alpha$.
 %
-The handler ultimately returns a pair consisting of the return value
-$\alpha$ and the final state of the file.
+The second-order function ultimately returns a pair consisting of the
+return value $\alpha$ and the final state of the file. The return type
+of the second-order function is `pure' in the sense that the function
+does not perform any effectful operations itself to produce its
+result.
 %
-The $\Return$-case pairs the result $res$ with the empty file $\nil$
-which models the scenario where the computation $m$ performed no
+
+In the implementation the input computation is bound by the name $m$,
+which is applied to a $\Unit$ (pronounced `unit'; as we will see in
+Chapter~\ref{ch:handler-calculi} it happens to be the empty record)
+under a $\Handle\;\cdots\;\With\cdots$ construct which is the term
+syntax for effect handler application. Occurrences of the $\Write$
+operation inside $m$ are handled with respect to the given handler, whose
+definition consists of two cases: a $\Return$-case and a
+$\Write$-case.
+%
+The $\Return$-case runs when $m\,\Unit$ reduces to a value. The
+resulting value gets bound to the name $res$. The body of the
+$\Return$-case pairs the result $res$ with the empty file $\nil$ which
+models the scenario where the computation $m$ performed no
 $\Write$-operations, e.g.
 $\basicIO\,(\lambda\Unit.\Unit) \reducesto^+
 \Record{\Unit;\strlit{}}$.
 %
-The $\Write$-case extends the file by first invoking the resumption,
-whose return type is the same as the handler's return type, thus it
-returns a pair containing the result of $m$ and the file state. The
-file gets extended with the character sequence $cs$ before it is
-returned along with the original result of $m$.
+The $\Write$-case runs when $\Write$ is invoked inside of $m$. The
+payload of the operation along with its resumption gets bound on the
+left hand side of $\mapsto$. We use deep pattern matching to ignore
+the first element of the payload and to bind the second element of the
+payload to $cs$. The resumption gets bound to the name $resume$. It is
+worth noting that at this point, the type of $resume$ is
+$\UnitType \to \Record{\alpha;\UFile}$, where the domain type matches
+the codomain type of the operation $\Write$ and the codomain type
+matches the expected type of the current context. This latter fact is
+due to the deep semantics of $\Handle$-construct, which means that an
+invocation of $resume$ implicitly installs another $\Handle$-construct
+with the same handler around the residual evaluation context embodied
+in $resume$.
+%
+The body of the $\Write$-case extends the file by first invoking the
+resumption, which returns a pair containing the result of $m$ and the
+file state. This pair is deconstructed using the $\Let$-pair
+deconstruction construct, which projects and binds the result
+component to $res$ and the file state component to $file$. The file
+gets extended with the character sequence $cs$ before it is returned
+along with the original result of $m$.
 %
 Intuitively, we may think of this implementation of $\Write$ as a
-peculiar instance of buffered writing, where the contents of the
-operation are committed to the file when the computation $m$ finishes.
+peculiar instance of buffered writing, where we temporarily store the
+contents of each $\Write$ operation on call stack and commit them to
+the file as we unwind the stack after the computation $m$ finishes.
 
 Let us define an auxiliary function that writes a string to the
 $\stdout$ file.
@@ -2850,8 +2901,9 @@ $\stdout$ file.
   \el
 \]
 %
-The function $\echo$ is a simple wrapper around an invocation of
-$\Write$.
+The $\Do$-construct is the invocation construct, or introduction form,
+for effectful operations. The function $\echo$ is a simple wrapper
+around an invocation of $\Write$.
 %
 We can now write some contents to the file and observe the effects.
 %
@@ -5075,6 +5127,7 @@ words ``to'', ``be'', and the newline character ``$\nl$'' appear two
 times each, whilst the other words appear once each.
 
 \section{Process synchronisation}
+\label{sec:tiny-unix-proc-sync}
 %
 In Section~\ref{sec:tiny-unix-time} we implemented a time-sharing
 system on top of a simple process model. However, the model lacks a
@@ -5639,7 +5692,7 @@ domain of processes~\cite{Milner75,Plotkin76}.
 
 % \chapter{An ML-flavoured programming language based on rows}
 \chapter{ML-flavoured calculi for effect handler oriented programming}
-\label{ch:base-language}
+\label{ch:handler-calculi}
 
 \dhil{TODO merge this chapter with ``Effect handler calculi''}
 
