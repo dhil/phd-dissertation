@@ -4742,42 +4742,62 @@ $1$ in the data region. Bob makes a soft copy of the file
 directory where the two filenames point to the same i-node (with index
 $2$), whose link counter has value $2$.
 
-\paragraph{Summary} Throughout this section we have used effect
-handlers to give a semantics to a \UNIX{}-style operating system by
-treating system calls as effectful operations, whose semantics are
-given by handlers, acting as composable micro-kernels. Starting from a
-simple bare minimum file I/O model we seen how the modularity of
-effect handlers enable us to develop a feature-rich operating system
-in an incremental way by composing several handlers to implement a
-basic file system, multi-user environments, and multi-tasking
-support. Each incremental change to the system has been backwards
-compatible with previous changes in the sense that we have not
-modified any previously defined interfaces in order to support a new
-feature. It serves as a testament to demonstrate the versatility of
-effect handlers, and it suggests that handlers can be a viable option
-to use with legacy code bases to retrofit functionality. The operating
-system makes use of fourteen operations, which are being handled by
-twelve handlers, some of which are used multiple times, e.g. the
-$\environment$ and $\redirect$ handlers.
+\paragraph{Summary} Throughout the preceding sections we have used
+effect handlers to give a semantics to a \UNIX{}-style operating
+system by treating system calls as effectful operations, whose
+semantics are given by handlers, acting as composable
+micro-kernels. Starting from a simple bare minimum file I/O model we
+seen how the modularity of effect handlers enable us to develop a
+feature-rich operating system in an incremental way by composing
+several handlers to implement a basic file system, multi-user
+environments, and multi-tasking support. Each incremental change to
+the system has been backwards compatible with previous changes in the
+sense that we have not modified any previously defined interfaces in
+order to support a new feature. It serves as a testament to
+demonstrate the versatility of effect handlers, and it suggests that
+handlers can be a viable option to use with legacy code bases to
+retrofit functionality. The operating system makes use of fourteen
+operations, which are being handled by twelve handlers, some of which
+are used multiple times, e.g. the $\environment$ and $\redirect$
+handlers.
 
 \section{\UNIX{}-style pipes}
 \label{sec:pipes}
 
-A \UNIX{} pipe is an abstraction for streaming communication between
-two processes. Technically, a pipe works by connecting the standard
-out file descriptor of the first process to the standard in file
-descriptor of the second process. The second process can then process
-the output of the first process by reading its own standard in
-file~\cite{RitchieT74}.
+In this section we will implement \UNIX{} \emph{pipes} to replicate
+the \UNIX{} programming experience. A \UNIX{} pipe is an abstraction
+for streaming communication between two processes. Technically, a pipe
+works by connecting the standard out file descriptor of the first
+process to the standard in file descriptor of the second process. The
+second process can then handle the output of the first process by
+reading its own standard in file~\cite{RitchieT74} (a note of caution:
+\citeauthor{RitchieT74} use the terminology `filter' rather than
+`pipe'; in this section I use the latter term, because it is one used
+in the effect handler literature~\cite{KammarLO13}).
 
 We could implement pipes using the file system, however, it would
 require us to implement a substantial amount of bookkeeping as we
 would have to generate and garbage collect a standard out file and a
 standard in file per process. Instead we can represent the files as
-effectful operations and connect them via handlers.
+effectful operations and connect them via handlers. The principal idea
+is to implement an abstraction similar to \citeauthor{GanzFW99}'s
+seesaw trampoline, where two processes take turn to
+run~\cite{GanzFW99}. We will have a \emph{consumer} process that
+\emph{awaits} input, and a \emph{producer} process that \emph{yields}
+output.
 %
-With shallow handlers we can implement a demand-driven Unix pipeline
-operator as two mutually recursive handlers.
+However, implementing this sort of abstraction with deep handlers is
+irksome, because deep handlers hard-wire the interpretation of
+operations in the computation and therefore do not let us readily
+change the interpretation of operations. By contrast, \emph{shallow
+  handlers} offer more flexibility as they let us change the handler
+after each operation invocation. The technical reason being that
+resumptions provided a shallow handler do not implicitly include the
+handler as well, thus an invocation of a resumption originating from a
+shallow handler must be explicitly run under another handler by the
+programmer. To illustrate shallow handlers in action, let us consider
+how one might implement a demand-driven \UNIX{} pipeline operator as
+two mutually recursive handlers.
 %
 \[
 \bl
@@ -4814,13 +4834,21 @@ which correspondingly awaits a value of type $\beta$. The $\Yield$
 operation corresponds to writing to standard out, whilst $\Await$
 corresponds to reading from standard in.
 %
-The shallow handler $\Pipe$ runs the consumer first. If the consumer
-terminates with a value, then the $\Return$ clause is executed and
-returns that value as is. If the consumer performs the $\Await$
-operation, then the $\Copipe$ handler is invoked with the resumption
-of the consumer ($resume$) and the producer ($p$) as arguments. This
-models the effect of blocking the consumer process until the producer
-process provides some data.
+The $\Pipe$ runs the consumer under a $\ShallowHandle$-construct,
+which is the term syntax for shallow handler application. If the
+consumer terminates with a value, then the $\Return$ clause is
+executed and returns that value as is. If the consumer performs the
+$\Await$ operation, then the $\Copipe$ handler is invoked with the
+resumption of the consumer ($resume$) and the producer ($p$) as
+arguments. This models the effect of blocking the consumer process
+until the producer process provides some data. The type of $resume$ in
+this context is
+$\beta \to \alpha \eff\{\Await : \UnitType \opto \beta\}$, that is the
+$\Await$ operation is present in the effect row of the $resume$, which
+is the type system telling us that a bare application of $resume$ is
+unguarded as in order to safely apply the resumption, we must apply it
+in a context which handles $\Await$. This is the key difference
+between a shallow resumption and a deep resumption.
 
 The $\Copipe$ function runs the producer to get a value to feed to the
 waiting consumer.
@@ -4876,11 +4904,12 @@ open a single file and stream its contents one character at a time.
 The last line is the interesting line of code. The contents of the
 file gets bound to $cs$, which is supplied as an argument to the list
 iteration function $\iter$. The function argument yields each
-character. Each invocation of $\Yield$ effectively suspends the
-iteration until the next character is awaited.
+character. Each invocation of $\Yield$ suspends the iteration until
+the next character is awaited.
 %
-This is an example of inversion of control as the iterator $\iter$ has
-been turned into a generator.
+This is an example of inversion of control as iteration function
+$\iter$ has effectively been turned into a generator, whose elements
+are computed on demand.
 %
 We use the character $\textnil$ to identify the end of a stream. It is
 essentially a character interpretation of the empty list (file)
@@ -5186,9 +5215,14 @@ via the interface from Section~\ref{sec:tiny-unix-io}, which has the
 advantage of making the state manipulation within the scheduler
 modular, but it also has the disadvantage of exposing the state as an
 implementation detail --- and it comes with all the caveats of
-programming with global state. A parameterised handler provides an
-elegant solution, which lets us internalise the state within the
-scheduler.
+programming with global state. \emph{Parameterised handlers} provide
+an elegant solution, which lets us internalise the state within the
+scheduler. Essentially, a parameterised handler is an ordinary deep
+handler equipped with some state. This state is accessible only
+internally in the handler and can be updated upon each application of
+a parameterised resumption. A parameterised resumption is represented
+as a binary function which in addition to the interpretation of its
+operation also take updated handler state as input.
 
 We will see how a parameterised handler enables us to implement a
 richer process model supporting synchronisation with ease. The effect
