@@ -2870,13 +2870,23 @@ left hand side of $\mapsto$. We use deep pattern matching to ignore
 the first element of the payload and to bind the second element of the
 payload to $cs$. The resumption gets bound to the name $resume$. It is
 worth noting that at this point, the type of $resume$ is
-$\UnitType \to \Record{\alpha;\UFile}$, where the domain type matches
-the codomain type of the operation $\Write$ and the codomain type
-matches the expected type of the current context. This latter fact is
-due to the deep semantics of $\Handle$-construct, which means that an
-invocation of $resume$ implicitly installs another $\Handle$-construct
-with the same handler around the residual evaluation context embodied
-in $resume$.
+(\emph{morally}) $\UnitType \to \Record{\alpha;\UFile}$, where the
+domain type matches the codomain type of the operation $\Write$ and
+the codomain type matches the expected type of the current context.
+(The actual type is
+$\UnitType \to \Record{\alpha;\UFile} \eff
+\{\Write:\theta;\varepsilon\}$, where $\theta$ is a presence variable
+denoting that $\Write$ is polymorphic in whether it is present,
+i.e. the ambient context which $resume$ gets invoked in is allowed to
+perform another invocation of $\Write$, and $\varepsilon$ is an effect
+variable, which can be instantiated with additional operation labels
+to allow $resume$ to be used in a greater context. In many instances
+we can ignore presence polymorphim and effect polymorphism as
+described in Section~\ref{sec:effect-sugar}, hence we omit these
+annotation whenever possible.) This latter fact is due to the deep
+semantics of $\Handle$-construct, which means that an invocation of
+$resume$ implicitly installs another $\Handle$-construct with the same
+handler around the residual evaluation context embodied in $resume$.
 %
 The body of the $\Write$-case extends the file by first invoking the
 resumption, which returns a pair containing the result of $m$ and the
@@ -2980,7 +2990,9 @@ Technically, the $\Exit$-case provides access to the resumption of
 $\Exit$ in $m$, however, we do not write this resumption here, because
 it is useless as its type is $\ZeroType \to \Int$. It expects as
 argument an element of the empty type, which is of course impossible
-to provide, hence we can never invoke it.
+to provide, hence we can never invoke it. In general, an operation
+clause may drop the provided resumption even if the resumption is
+usable.
 
 To illustrate $\status$ and $\exit$ in action consider the following
 example, where the computation gets terminated mid-way.
@@ -3183,13 +3195,19 @@ instance.
 %
 The new instance of $\environment$ shadows the initial instance, and
 therefore it will intercept and handle any subsequent invocations of
-$\Ask$ arising from running the resumption. A subsequent invocation of
+$\Ask$ arising from running the resumption. The next invocation of
 $\Su$ will install another environment instance, which will shadow
-both the previously installed instance and the initial instance.
+both the previously installed instance and the initial instance. This
+ability to dynamically overload residual operations is a key
+difference between \citeauthor{PlotkinP09}'s effect handlers (as this
+thesis is about) and \emph{lexical} effect handlers, as the latter
+bind operations to the first suitable handler
+instance~\cite{XieBHSL20,BrachthauserSO20}.
 %
 
-To make this concrete, let us plug together the all components of our
-system we have defined thus far.
+As an illustrative example of the dynamic overloading in action, let
+us plug together the all components of our system we have defined thus
+far.
 %
 \[
   \ba{@{~}l@{~}l}
@@ -3310,9 +3328,12 @@ $\False$. The results are joined by list concatenation ($\concat$).
 %
 Thus the handler returns a list of all the possible results of $m$.
 %
-In fact, this handler is exactly the standard handler for
-nondeterministic choice, which satisfies the standard semi-lattice
-equations~\cite{PlotkinP09,PlotkinP13}.
+This handler is an instance of a \emph{multi-shot} handler, because it
+contains at least one operation clause which invokes the provided
+resumption multiple times.
+% In fact, this handler is exactly the standard handler for
+% nondeterministic choice, which satisfies the standard semi-lattice
+% equations~\cite{PlotkinP09,PlotkinP13}.
 % \dhil{This is an instance of non-blind backtracking~\cite{FriedmanHK84}}
 
 Let us consider $\nondet$ together with the previously defined
@@ -3420,8 +3441,9 @@ is it has run to completion, or 2) it is paused, meaning it has
 yielded to provide room for another process to run.
 %
 We can model the state using a recursive variant type parameterised by
-some return value $\alpha$ and a set of effects $\varepsilon$ that the
-process may perform.
+some return value $\alpha$, a set of effects $\varepsilon$ that the
+process may perform, and a present variable to denote the presence of
+$\Interrupt$.
 %
 \[
   \Pstate~\alpha~\varepsilon~\theta \defas
@@ -3442,7 +3464,7 @@ $\Interrupt$ such as the following handler.
 %
 \[
   \bl
-    \reifyP : (\UnitType \to \alpha \eff \{\Interrupt: \UnitType \opto \UnitType;\varepsilon\}) \to \Pstate~\alpha~\varepsilon\\
+    \reifyP : (\UnitType \to \alpha \eff \{\Interrupt: \UnitType \opto \UnitType;\varepsilon\}) \to \Pstate~\alpha~\varepsilon~\theta\\
     \reifyP~m \defas
          \ba[t]{@{}l}
            \Handle\;m\,\Unit\;\With\\
@@ -3458,8 +3480,14 @@ This handler tags and returns values with $\Done$. It also tags and
 returns the resumption provided by the $\Interrupt$-case with
 $\Suspended$.
 %
-This particular implementation is amounts to a handler-based variation
-of \citeauthor{Harrison06}'s non-reactive resumption
+It is worth noting that the actual type of $resume$ is
+$\UnitType \to \Pstate~\alpha~\varepsilon~\theta \eff
+\{\Interrupt:\theta;\varepsilon\}$, which shows us that the variables
+$\varepsilon$ and $\theta$ threaded through $\Pstate$ come from the
+ambient context.
+%
+This particular implementation amounts to a handler-based variation of
+\citeauthor{Harrison06}'s non-reactive resumption
 monad~\cite{Harrison06}.
 %
 If we compose this handler with the nondeterminism
