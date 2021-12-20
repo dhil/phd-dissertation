@@ -3728,7 +3728,8 @@ implement a basic sequential file system.
 
 \subsubsection{Handling state}
 
-The interface for accessing and updating a state cell consists of two
+As we have already seen in Section~\ref{sec:state-of-effprog}, the
+interface for accessing and updating a state cell consists of two
 operations.
 %
 \[
@@ -3779,10 +3780,10 @@ value of the state cell. The second parameter is a potentially
 stateful computation. Ultimately, the handler returns the value of the
 input computation along with the current value of the state cell.
 
-This formulation of state handling is analogous to the standard
-monadic implementation of state handling~\citep{Wadler95}. In the
-context of handlers, the implementation uses a technique known as
-\emph{parameter-passing}~\citep{PlotkinP09,Pretnar15}.
+% This formulation of state handling is analogous to the standard
+% monadic implementation of state handling~\citep{Wadler95}. In the
+% context of handlers, the implementation uses a technique known as
+% \emph{parameter-passing}~\citep{PlotkinP09,Pretnar15}.
 %
 Each case returns a state-accepting function.
 %
@@ -3816,29 +3817,31 @@ the initial state. The function gets bound to $run$ which is
 subsequently applied to the provided initial state $st_0$ which causes
 evaluation of the stateful fragment of $m$ to continue.
 
-\paragraph{Local state vs global state} The meaning of stateful
-operations may depend on whether the ambient environment is
-nondeterministic.  Post-composing nondeterminism with state gives rise
-to the so-called \emph{local state} phenomenon, where state
+\paragraph{Backtrackable state vs non-backtrackable state} The meaning
+of stateful operations may depend on whether the ambient environment
+is nondeterministic.  Post-composing nondeterminism with state gives
+rise to the \emph{backtrackable state} phenomenon, where state
 modifications are local to each strand of nondeterminism, that is each
-strand maintains its own copy of the state. Local state is also known
-as `backtrackable state' in the literature~\cite{GibbonsH11}, because
-returning back to a branch point restores the state as it were prior
-to the branch. In contrast, post-composing state with nondeterminism
-results in a \emph{global state} interpretation, where the state is
-shared across every strand of nondeterminism. In terms of backtracking
-this means the original state does not get restored upon a return to
-some branch point.
+strand maintains its own copy of the state~\cite{GibbonsH11}. The
+state is backtrackable, because returning back to a previous branch
+point restores the state as it were prior to the branch. In contrast,
+post-composing state with nondeterminism results in the
+\emph{non-backtrackable state} interpretation, where the state is
+shared across every strand of nondeterminism, meaning that
+backtracking to a previous branch point does not restore the original
+state at the time of the branch, but rather keeps the current state as
+is.
 
-For modelling the file system we opt for the global state
+For modelling the file system we opt for the non-backtrackable state
 interpretation such that changes made to file system are visible to
-all processes. The local state interpretation could prove useful if we
-were to model a virtual file system per process such that each process
-would have its own unique standard out file.
+all processes. The backtrackable state interpretation could prove
+useful if we were to model a virtual file system per process such that
+each process would have its own unique standard out file.
 
 The two state phenomena are inter-encodable. \citet{PauwelsSM19} give
 a systematic behaviour-preserving transformation for nondeterminism
-with local state into nondeterminism with global state and vice versa.
+with backtrackable state into nondeterminism with non-backtrackable
+state and vice versa.
 
 
 \subsubsection{Basic serial file system}
