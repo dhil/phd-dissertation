@@ -4770,10 +4770,7 @@ for streaming communication between two processes. Technically, a pipe
 works by connecting the standard out file descriptor of the first
 process to the standard in file descriptor of the second process. The
 second process can then handle the output of the first process by
-reading its own standard in file~\cite{RitchieT74} (a note of caution:
-\citeauthor{RitchieT74} use the terminology `filter' rather than
-`pipe'; in this section I use the latter term, because it is one used
-in the effect handler literature~\cite{KammarLO13}).
+reading its own standard in file~\cite{RitchieT74}.
 
 We could implement pipes using the file system, however, it would
 require us to implement a substantial amount of bookkeeping as we
@@ -5766,14 +5763,16 @@ domain of processes~\cite{Milner75,Plotkin76}.
 
 
 % \chapter{An ML-flavoured programming language based on rows}
-\chapter{ML-flavoured calculi for effect handler oriented programming}
+\chapter{Calculi for effect handler oriented programming}
 \label{ch:handler-calculi}
 
-\dhil{TODO merge this chapter with ``Effect handler calculi''}
-
-In this chapter we introduce a core calculus, \BCalc{}, which we shall
-later use as the basis for exploration of design considerations for
-effect handlers. This calculus is based on \CoreLinks{} by
+In this chapter we formalise the language that was introduced
+informally in the previous chapter. In fact, we will formally
+introduce the language as several core calculi: a base calculus
+\BCalc{}, which does not have effect handlers; an extension of
+$\BCalc$ with deep handlers $\HCalc$; another extension with shallow
+handlers $\SCalc$; and a final extension with parameterised handlers
+$\HPCalc$. The calculi are based on \CoreLinks{} by
 \citet{LindleyC12}, which distils the essence of the functional
 multi-tier web-programming language
 \Links{}~\cite{CooperLWY06}. \Links{} belongs to the
@@ -5797,67 +5796,83 @@ distinguishes between value and computation terms by mandating every
 intermediate computation being named. However unlike ANF, fine-grain
 call-by-value remains closed under $\beta$-reduction. The reason for
 choosing fine-grain call-by-value as our formalism is entirely due to
-convenience. As we shall see in Chapter~\ref{ch:unary-handlers}
-fine-grain call-by-value is a convenient formalism for working with
-continuations. Another point of difference between \CoreLinks{} and
-\BCalc{} is that the former models the integrated database query
-sublanguage of \Links{}. We do not consider the query sublanguage at
-all, and instead our focus is entirely on modelling the interaction
+convenience. Fine-grain call-by-value is a convenient formalism for
+working with continuations. Another point of difference between
+\CoreLinks{} and \BCalc{} is that the former models the integrated
+database query sublanguage of \Links{}. We do not consider the query
+sublanguage at all, and instead our three extensions $\HCalc$,
+$\SCalc$, and $\HPCalc$ focus entirely on modelling the interaction
 and programming with computational effects.
 
-\section{Syntax and static semantics}
-\label{sec:syntax-base-language}
+\paragraph{Chapter outline}
+\begin{description}
+\item[Section~\ref{sec:base-calculus}] introduces the base calculus
+  $\BCalc$, which makes crucial use of \emph{rows} to support variant,
+  record, and effect polymorphism.
+\item[Section~\ref{sec:unary-deep-handlers}] extends $\BCalc$ with
+  \emph{deep effect handlers}, resulting in the calculus $\HCalc$.
+\item[Section~\ref{sec:unary-shallow-handlers}] adds \emph{shallow
+    effect handlers} to base calculus, resulting in the calculus
+  $\SCalc$.
+\item[Section~\ref{sec:unary-parameterised-handlers}] presents the
+  final variation of the base calculus, as in this section we extend
+  the base calculus with \emph{parameterised effect handlers},
+  yielding the calculus $\HPCalc$.
+\item[Section~\ref{sec:related-work-calculi}] discusses related work.
+\end{description}
 
-As \BCalc{} is intrinsically typed, we begin by presenting the syntax
-of kinds and types in
-Section~\ref{sec:base-language-types}. Subsequently in
-Section~\ref{sec:base-language-terms} we present the term syntax,
-before presenting the formation rules for types in
-Section~\ref{sec:base-language-type-rules}. As a convention, we always
-work up to $\alpha$-conversion~\cite{Church32} of types and
+\paragraph{Relation to prior work} The deep and shallow handler
+calculi that are introduced in Section~\ref{sec:unary-deep-handlers},
+Section~\ref{sec:unary-shallow-handlers}, and
+Section~\ref{sec:unary-parameterised-handlers} are adapted with minor
+syntactic changes from the following work.
+%
+\begin{enumerate}[i]
+    \item \bibentry{HillerstromL16}
+    \item \bibentry{HillerstromL18}  \label{en:sec-handlers-L18}
+    \item \bibentry{HillerstromLA20} \label{en:sec-handlers-HLA20}
+\end{enumerate}
+%
+% The `pipes' example in Section~\ref{sec:unary-shallow-handlers}
+% appears in items \ref{en:sec-handlers-L18} and
+% \ref{en:sec-handlers-HLA20} above.
+
+\section{A language based on rows}
+\label{sec:base-calculus}
+
+At glance $\BCalc$ is an intrinsically typed language supporting type
+and effect polymorphism. The key characteristic of $\BCalc$ is that it
+uses \citeauthor{Remy94}-style \emph{rows} to support variant, record,
+and effect polymorphism at the same time~\cite{Remy94}.
+
+We begin by presenting the syntax of kinds, types, and terms in
+Section~\ref{sec:syntax-base-language}. Afterwards we present the
+static semantics in Section~\ref{sec:base-language-type-rules}, before
+we present the dynamic semantics in
+Section~\ref{sec:base-language-dynamic-semantics}. As a convention, we
+always work up to $\alpha$-conversion~\cite{Church32} of types and
 terms. Following \citet{Pierce02} we omit cases in definitions that
 deal only with the bureaucracy of renaming. For any transformation
 $\sembr{-}$ on a term $M$, or type, we write $\sembr{M} \adef M'$ to
 mean that $M'$ is the result of transforming $M$ where implicit
 renaming may have occurred.
 
-% Typically the presentation of a programming language begins with its
-% syntax. If the language is typed there are two possible starting
-% points: Either one presents the term syntax first, or alternatively,
-% the type syntax first. Although the choice may seem rather benign
-% there is, however, a philosophical distinction to be drawn between
-% them. Terms are, on their own, entirely meaningless, whilst types
-% provide, on their own, an initial approximation of the semantics of
-% terms. This is particularly true in an intrinsic typed system perhaps
-% less so in an extrinsic typed system. In an intrinsic system types
-% must necessarily be precursory to terms, as terms ultimately depend on
-% the types. Following this argument leaves us with no choice but to
-% first present the type syntax of \BCalc{} and subsequently its term
-% syntax.
+\subsection{Syntax of kinds, types, and terms}
+\label{sec:syntax-base-language}
 
-\subsection{Types and their kinds}
+The syntax and semantics of types in $\BCalc$ are based on those of
+System F~\cite{Girard72}, whilst the term syntax is a variation of ML
+term syntax in a-normal form. We use the notation $A[B/\alpha]$ to
+mean the capture-avoiding substitution of the type $B$ for the type
+variable $\alpha$ in the type $A$. Similarly, we write $M[V/x]$ to
+mean the capture-avoiding substitution of the value $V$ for the term
+variable $x$ in the computation term $M$.
+
+\subsubsection{Types and their kinds}
 \label{sec:base-language-types}
 %
 \begin{figure}
 \begin{syntax}
-%     \slab{Value types}    &A,B  &::= & A \to C
-%                                  \mid \alpha
-%                                  \mid \forall \alpha^K.C
-%                                  \mid \Record{R}
-%                                  \mid [R]\\
-% \slab{Computation types}
-%                       &C,D  &::= & A \eff E \\
-% \slab{Effect types}   &E    &::= & \{R\}\\
-% \slab{Row types}      &R    &::= & \ell : P;R \mid \rho \mid \cdot \\
-% \slab{Presence types} &P    &::= & \Pre{A} \mid \Abs \mid \theta\\
-% %\slab{Labels}         &\ell &    &                \\
-% % \slab{Types}          &T    &::= & A \mid C \mid E \mid R \mid P \\
-% \slab{Kinds}          &K    &::= & \Type \mid \Row_\mathcal{L} \mid \Presence
-%                              \mid \Comp \mid \Effect \\
-% \slab{Label sets}     &\mathcal{L} &::=& \emptyset \mid \{\ell\} \uplus \mathcal{L}\\
-% %\slab{Type variables} &\alpha, \rho, \theta& \\
-% \slab{Type environments} &\Gamma &::=& \cdot \mid \Gamma, x:A \\
-% \slab{Kind environments} &\Delta &::=& \cdot \mid \Delta, \alpha:K
 \slab{Value\mathrm{~}types}    &A,B \in \ValTypeCat  &::= & A \to C
                              \mid  \forall \alpha^K.C
                              \mid   \Record{R} \mid [R]
@@ -6102,118 +6117,118 @@ $\TyVarCat$, to be generated by:
 % to ensure uniqueness amongst labels in each row type. We shall
 % elaborate on this in Section~\ref{sec:row-polymorphism}.
 
-\paragraph{Free type variables} Sometimes we need to compute the free
-type variables ($\FTV$) of a given type. To this end we define a
-metafunction $\FTV$ by induction on the type structure, $T$, and
-point-wise on type environments, $\Gamma$.
-%
-\[
-  \ba[t]{@{~}l@{~~~~~~}c@{~}l}
-  \multicolumn{3}{c}{\begin{eqs}
-    \FTV &:& \TypeCat \to \TyVarCat
-\end{eqs}}\\
-  \ba[t]{@{}l}
- \begin{eqs}
-  % \FTV &:& \ValTypeCat \to \TyVarCat\\
-  \FTV(\alpha)   &\defas& \{\alpha\}\\
-  \FTV(\forall \alpha^K.C) &\defas& \FTV(C) \setminus \{\alpha\}\\
-  \FTV(A \to C)  &\defas& \FTV(A) \cup \FTV(C)\\
-  \FTV(A \eff E) &\defas& \FTV(A) \cup \FTV(E)\\
-  \FTV(\{R\})    &\defas& \FTV(R)\\
-  \FTV(\Record{R}) &\defas& \FTV(R)\\
-  \FTV([R])      &\defas& \FTV(R)\\
-  % \FTV(l:P;R)    &\defas& \FTV(P) \cup \FTV(R)\\
-  % \FTV(\Pre{A})  &\defas& \FTV(A)\\
-  % \FTV(\Abs)     &\defas& \emptyset\\
-  % \FTV(\theta)   &\defas& \{\theta\}
-\end{eqs}\ea & &
-\begin{eqs}
-  % \FTV([R])      &\defas& \FTV(R)\\
-  % \FTV(\Record{R}) &\defas& \FTV(R)\\
-  % \FTV(\{R\})    &\defas& \FTV(R)\\
-  % \FTV &:& \RowCat \to \TyVarCat\\
-  \FTV(\cdot)    &\defas& \emptyset\\
-  \FTV(\rho)     &\defas& \{\rho\}\\
-  \FTV(l:P;R)    &\defas& \FTV(P) \cup \FTV(R)\\
-
-  % \FTV &:& \PresenceCat \to \TyVarCat\\
-  \FTV(\theta)   &\defas& \{\theta\}\\
-  \FTV(\Abs)     &\defas& \emptyset\\
-  \FTV(\Pre{A})  &\defas& \FTV(A)\\
-\end{eqs}\\\\
-\multicolumn{3}{c}{\begin{eqs}
-    \FTV &:& \TyEnvCat \to \TyVarCat\\
-  \FTV(\cdot)        &\defas& \emptyset\\
-  \FTV(\Gamma,x : A) &\defas& \FTV(\Gamma) \cup \FTV(A)
-\end{eqs}}
+% \paragraph{Free type variables} Sometimes we need to compute the free
+% type variables ($\FTV$) of a given type. To this end we define a
+% metafunction $\FTV$ by induction on the type structure, $T$, and
+% point-wise on type environments, $\Gamma$.
+% %
+% \[
+%   \ba[t]{@{~}l@{~~~~~~}c@{~}l}
+%   \multicolumn{3}{c}{\begin{eqs}
+%     \FTV &:& \TypeCat \to \TyVarCat
+% \end{eqs}}\\
+%   \ba[t]{@{}l}
+%  \begin{eqs}
+%   % \FTV &:& \ValTypeCat \to \TyVarCat\\
+%   \FTV(\alpha)   &\defas& \{\alpha\}\\
+%   \FTV(\forall \alpha^K.C) &\defas& \FTV(C) \setminus \{\alpha\}\\
+%   \FTV(A \to C)  &\defas& \FTV(A) \cup \FTV(C)\\
+%   \FTV(A \eff E) &\defas& \FTV(A) \cup \FTV(E)\\
+%   \FTV(\{R\})    &\defas& \FTV(R)\\
+%   \FTV(\Record{R}) &\defas& \FTV(R)\\
+%   \FTV([R])      &\defas& \FTV(R)\\
+%   % \FTV(l:P;R)    &\defas& \FTV(P) \cup \FTV(R)\\
+%   % \FTV(\Pre{A})  &\defas& \FTV(A)\\
+%   % \FTV(\Abs)     &\defas& \emptyset\\
+%   % \FTV(\theta)   &\defas& \{\theta\}
+% \end{eqs}\ea & &
 % \begin{eqs}
+%   % \FTV([R])      &\defas& \FTV(R)\\
+%   % \FTV(\Record{R}) &\defas& \FTV(R)\\
+%   % \FTV(\{R\})    &\defas& \FTV(R)\\
+%   % \FTV &:& \RowCat \to \TyVarCat\\
+%   \FTV(\cdot)    &\defas& \emptyset\\
+%   \FTV(\rho)     &\defas& \{\rho\}\\
+%   \FTV(l:P;R)    &\defas& \FTV(P) \cup \FTV(R)\\
+
+%   % \FTV &:& \PresenceCat \to \TyVarCat\\
 %   \FTV(\theta)   &\defas& \{\theta\}\\
 %   \FTV(\Abs)     &\defas& \emptyset\\
-%   \FTV(\Pre{A})  &\defas& \FTV(A)
-% \end{eqs} & &
-% \begin{eqs}
+%   \FTV(\Pre{A})  &\defas& \FTV(A)\\
+% \end{eqs}\\\\
+% \multicolumn{3}{c}{\begin{eqs}
+%     \FTV &:& \TyEnvCat \to \TyVarCat\\
 %   \FTV(\cdot)        &\defas& \emptyset\\
 %   \FTV(\Gamma,x : A) &\defas& \FTV(\Gamma) \cup \FTV(A)
-% \end{eqs}
-\ea
-\]
-%
+% \end{eqs}}
+% % \begin{eqs}
+% %   \FTV(\theta)   &\defas& \{\theta\}\\
+% %   \FTV(\Abs)     &\defas& \emptyset\\
+% %   \FTV(\Pre{A})  &\defas& \FTV(A)
+% % \end{eqs} & &
+% % \begin{eqs}
+% %   \FTV(\cdot)        &\defas& \emptyset\\
+% %   \FTV(\Gamma,x : A) &\defas& \FTV(\Gamma) \cup \FTV(A)
+% % \end{eqs}
+% \ea
+% \]
+% %
 
-\paragraph{Type substitution}
-We define a type substitution map,
-$\sigma : (\TyVarCat \times \TypeCat)^\ast$ as list of pairs mapping a
-type variable to its replacement. We denote a single mapping as
-$T/\alpha$ meaning substitute $T$ for the variable $\alpha$. We write
-multiple mappings using list notation,
-i.e. $[T_0/\alpha_0,\dots,T_n/\alpha_n]$. The domain of a substitution
-map is set generated by projecting the first component, i.e.
-%
-\[
-  \bl
-     \dom : (\TyVarCat \times \TypeCat)^\ast  \to \TyVarCat\\
-     \dom(\sigma) \defas \{ \alpha \mid (\_/\alpha) \in \sigma \}
-  \el
-\]
-%
-The application of a type substitution map on a type term, written
-$T\sigma$ for some type $T$, is defined inductively on the type
-structure as follows.
-%
-\[
-  \ba[t]{@{~}l@{~}c@{~}r}
-   \multicolumn{3}{c}{
-   \begin{eqs}
-    (A \eff E)\sigma &\defas& A\sigma \eff E\sigma\\
-    (A \to C)\sigma &\defas& A\sigma \to C\sigma\\
-    (\forall \alpha^K.C)\sigma &\adef& \forall \alpha^K.C\sigma\\
-    \alpha\sigma     &\defas& \begin{cases}
-                                      A & \text{if } (\alpha,A) \in \sigma\\
-                                 \alpha & \text{otherwise}
-                               \end{cases}
-   \end{eqs}}\\
-   \begin{eqs}
-   \Record{R}\sigma &\defas& \Record{R[B/\beta]}\\
-   {[R]}\sigma      &\defas& [R\sigma]\\
-   \{R\}\sigma      &\defas& \{R\sigma\}\\
-   \cdot\sigma      &\defas& \cdot\\
-   \rho\sigma       &\defas& \begin{cases}
-                                  R    & \text{if } (\rho, R) \in \sigma\\
-                                  \rho & \text{otherwise}
-                                \end{cases}\\
-   \end{eqs}
-   & ~~~~~~~~~~ &
-   \begin{eqs}
-     (\ell : P;R)\sigma &\defas& (\ell : P\sigma; R\sigma)\\
-     \theta\sigma     &\defas& \begin{cases}
-                                P    & \text{if } (\theta,P) \in \sigma\\
-                              \theta & \text{otherwise}
-                              \end{cases}\\
-     \Abs\sigma       &\defas& \Abs\\
-     \Pre{A}\sigma    &\defas& \Pre{A\sigma}
-   \end{eqs}
-  \ea
-\]
-%
+% \paragraph{Type substitution}
+% We define a type substitution map,
+% $\sigma : (\TyVarCat \times \TypeCat)^\ast$ as list of pairs mapping a
+% type variable to its replacement. We denote a single mapping as
+% $T/\alpha$ meaning substitute $T$ for the variable $\alpha$. We write
+% multiple mappings using list notation,
+% i.e. $[T_0/\alpha_0,\dots,T_n/\alpha_n]$. The domain of a substitution
+% map is set generated by projecting the first component, i.e.
+% %
+% \[
+%   \bl
+%      \dom : (\TyVarCat \times \TypeCat)^\ast  \to \TyVarCat\\
+%      \dom(\sigma) \defas \{ \alpha \mid (\_/\alpha) \in \sigma \}
+%   \el
+% \]
+% %
+% The application of a type substitution map on a type term, written
+% $T\sigma$ for some type $T$, is defined inductively on the type
+% structure as follows.
+% %
+% \[
+%   \ba[t]{@{~}l@{~}c@{~}r}
+%    \multicolumn{3}{c}{
+%    \begin{eqs}
+%     (A \eff E)\sigma &\defas& A\sigma \eff E\sigma\\
+%     (A \to C)\sigma &\defas& A\sigma \to C\sigma\\
+%     (\forall \alpha^K.C)\sigma &\adef& \forall \alpha^K.C\sigma\\
+%     \alpha\sigma     &\defas& \begin{cases}
+%                                       A & \text{if } (\alpha,A) \in \sigma\\
+%                                  \alpha & \text{otherwise}
+%                                \end{cases}
+%    \end{eqs}}\\
+%    \begin{eqs}
+%    \Record{R}\sigma &\defas& \Record{R[B/\beta]}\\
+%    {[R]}\sigma      &\defas& [R\sigma]\\
+%    \{R\}\sigma      &\defas& \{R\sigma\}\\
+%    \cdot\sigma      &\defas& \cdot\\
+%    \rho\sigma       &\defas& \begin{cases}
+%                                   R    & \text{if } (\rho, R) \in \sigma\\
+%                                   \rho & \text{otherwise}
+%                                 \end{cases}\\
+%    \end{eqs}
+%    & ~~~~~~~~~~ &
+%    \begin{eqs}
+%      (\ell : P;R)\sigma &\defas& (\ell : P\sigma; R\sigma)\\
+%      \theta\sigma     &\defas& \begin{cases}
+%                                 P    & \text{if } (\theta,P) \in \sigma\\
+%                               \theta & \text{otherwise}
+%                               \end{cases}\\
+%      \Abs\sigma       &\defas& \Abs\\
+%      \Pre{A}\sigma    &\defas& \Pre{A\sigma}
+%    \end{eqs}
+%   \ea
+% \]
+% %
 
 \paragraph{Types and their inhabitants}
 We now have the basic vocabulary to construct types in $\BCalc$. For
@@ -6325,15 +6340,15 @@ records and variants will often be monomorphic. Conversely, effect
 rows will most often be open.
 
 
-\subsection{Terms}
+\subsubsection{Terms}
 \label{sec:base-language-terms}
 %
 \begin{figure}
 \begin{syntax}
 \slab{Variables}     &x \in \VarCat&&\\
 \slab{Values}        &V,W \in \ValCat  &::= & x
-                                        \mid \lambda x^A .\, M \mid \Lambda \alpha^K .\, M
-                                        \mid \Record{} \mid \Record{\ell = V;W} \mid (\ell~V)^R \\
+                                        \mid \lambda x^A .\, M \mid \Rec \; f^{A \to C} \, x.M \mid \Lambda \alpha^K .\, M\\
+                     &                 &\mid& \Record{} \mid \Record{\ell = V;W} \mid (\ell~V)^R \\
                      &     &    &\\
 \slab{Computations}  &M,N \in \CompCat  &::= & V\,W \mid V\,T\\
                      &                  &\mid& \Let\; \Record{\ell=x;y} = V \; \In \; N\\
@@ -6354,13 +6369,15 @@ names. We shall typically denote term variables by $x$, $y$, or $z$.
 The syntax partitions terms into values and computations.
 %
 Value terms comprise variables ($x$), lambda abstraction
-($\lambda x^A . \, M$), type abstraction ($\Lambda \alpha^K . \, M$),
-and the introduction forms for records and variants. Records are
-introduced using the empty record $(\Record{})$ and record extension
-$(\Record{\ell = V; W})$, whilst variants are introduced using
-injection $((\ell~V)^R)$, which injects a field with label $\ell$ and
-value $V$ into a row whose type is $R$. We include the row type
-annotation in to support bottom-up type reconstruction.
+($\lambda x^A . \, M$), recursive abstraction
+($\Rec\;f^{A \to C}\,x.M$), type abstraction
+($\Lambda \alpha^K . \, M$), and the introduction forms for records
+and variants. Records are introduced using the empty record
+$(\Record{})$ and record extension $(\Record{\ell = V; W})$, whilst
+variants are introduced using injection $((\ell~V)^R)$, which injects
+a field with label $\ell$ and value $V$ into a row whose type is
+$R$. We include the row type annotation in to support bottom-up type
+reconstruction.
 
 All elimination forms are computation terms. Abstraction and type
 abstraction are eliminated using application ($V\,W$) and type
@@ -6386,47 +6403,47 @@ kind information (term abstraction, type abstraction, injection,
 operations, and empty cases). However, we shall omit these annotations
 whenever they are clear from context.
 
-\paragraph{Free variables} A given term is said to be \emph{closed} if
-every applied occurrence of a variable is preceded by some
-corresponding binding occurrence. Any applied occurrence of a variable
-that is not preceded by a binding occurrence is said be \emph{free
-  variable}. We define the function $\FV : \TermCat \to \VarCat$
-inductively on the term structure to compute the free variables of any
-given term.
-%
-\[
-  \bl
-  \ba[t]{@{~}l@{~}c@{~}l}
-  \begin{eqs}
-    \FV(x)             &\defas& \{x\}\\
-    \FV(\lambda x^A.M) &\defas& \FV(M) \setminus \{x\}\\
-    \FV(\Lambda \alpha^K.M) &\defas& \FV(M)\\[1.0ex]
-    \FV(V\,W)           &\defas& \FV(V) \cup \FV(W)\\
-    \FV(\Return~V)    &\defas& \FV(V)\\
-  \end{eqs}
-  & \qquad\qquad &
-  \begin{eqs}
-    \FV(\Record{})     &\defas& \emptyset\\
-    \FV(\Record{\ell = V; W}) &\defas& \FV(V) \cup \FV(W)\\
-    \FV((\ell~V)^R)    &\defas& \FV(V)\\[1.0ex]
-    \FV(V\,T)           &\defas& \FV(V)\\
-    \FV(\Absurd^C~V)  &\defas& \FV(V)\\
-  \end{eqs}
-  \ea\\
-  \begin{eqs}
-    \FV(\Let\;x \revto M \;\In\;N) &\defas& \FV(M) \cup (\FV(N) \setminus \{x\})\\
-    \FV(\Let\;\Record{\ell=x;y} = V\;\In\;N) &\defas& \FV(V) \cup (\FV(N) \setminus \{x, y\})\\
-    \FV(\Case~V~\{\ell\,x \mapsto M; y \mapsto N\} &\defas& \FV(V) \cup (\FV(M) \setminus \{x\}) \cup (\FV(N) \setminus \{y\})
-  \end{eqs}
-  \el
-\]
-%
-The function computes the set of free variables bottom-up. Most cases
-are homomorphic on the syntax constructors. The interesting cases are
-those constructs which feature term binders: lambda abstraction, let
-bindings, pair deconstructing, and case splitting. In each of those
-cases we subtract the relevant binder(s) from the set of free
-variables.
+% \paragraph{Free variables} A given term is said to be \emph{closed} if
+% every applied occurrence of a variable is preceded by some
+% corresponding binding occurrence. Any applied occurrence of a variable
+% that is not preceded by a binding occurrence is said be \emph{free
+%   variable}. We define the function $\FV : \TermCat \to \VarCat$
+% inductively on the term structure to compute the free variables of any
+% given term.
+% %
+% \[
+%   \bl
+%   \ba[t]{@{~}l@{~}c@{~}l}
+%   \begin{eqs}
+%     \FV(x)             &\defas& \{x\}\\
+%     \FV(\lambda x^A.M) &\defas& \FV(M) \setminus \{x\}\\
+%     \FV(\Lambda \alpha^K.M) &\defas& \FV(M)\\[1.0ex]
+%     \FV(V\,W)           &\defas& \FV(V) \cup \FV(W)\\
+%     \FV(\Return~V)    &\defas& \FV(V)\\
+%   \end{eqs}
+%   & \qquad\qquad &
+%   \begin{eqs}
+%     \FV(\Record{})     &\defas& \emptyset\\
+%     \FV(\Record{\ell = V; W}) &\defas& \FV(V) \cup \FV(W)\\
+%     \FV((\ell~V)^R)    &\defas& \FV(V)\\[1.0ex]
+%     \FV(V\,T)           &\defas& \FV(V)\\
+%     \FV(\Absurd^C~V)  &\defas& \FV(V)\\
+%   \end{eqs}
+%   \ea\\
+%   \begin{eqs}
+%     \FV(\Let\;x \revto M \;\In\;N) &\defas& \FV(M) \cup (\FV(N) \setminus \{x\})\\
+%     \FV(\Let\;\Record{\ell=x;y} = V\;\In\;N) &\defas& \FV(V) \cup (\FV(N) \setminus \{x, y\})\\
+%     \FV(\Case~V~\{\ell\,x \mapsto M; y \mapsto N\} &\defas& \FV(V) \cup (\FV(M) \setminus \{x\}) \cup (\FV(N) \setminus \{y\})
+%   \end{eqs}
+%   \el
+% \]
+% %
+% The function computes the set of free variables bottom-up. Most cases
+% are homomorphic on the syntax constructors. The interesting cases are
+% those constructs which feature term binders: lambda abstraction, let
+% bindings, pair deconstructing, and case splitting. In each of those
+% cases we subtract the relevant binder(s) from the set of free
+% variables.
 
 \paragraph{Tail recursion}
 
@@ -6529,6 +6546,11 @@ Values
     {\typ{\Delta;\Gamma, x : A}{M : C}}
     {\typv{\Delta;\Gamma}{\lambda x^A .\, M : A \to C}}
 
+% Recursive abstraction
+\inferrule*[Lab=\tylab{Rec}]
+    {\typ{\Delta;\Gamma,f : A \to C, x : A}{M : C}}
+    {\typ{\Delta;\Gamma}{(\Rec \; f^{A \to C} \, x . M) : A \to C}}
+\\
 % Polymorphic abstraction
   \inferrule*[Lab=\tylab{PolyLam}]
     {\typv{\Delta,\alpha : K;\Gamma}{M : C} \\
@@ -6605,14 +6627,27 @@ Computations
 \label{fig:base-language-type-rules}
 \end{figure}
 %
-Thus the rule states that a type abstraction $(\Lambda \alpha. M)$ has
-type $\forall \alpha.C$ if the computation $M$ has type $C$ assuming
-$\alpha : K$ and $\alpha$ does not appear in the free type variables
-of current type environment $\Gamma$. The \tylab{Unit} rule provides
-the basis for all records as it simply states that the empty record
-has type unit. The \tylab{Extend} rule handles record
-extension. Supposing we wish to extend some record $\Record{W}$ with
-$\ell = V$, that is $\Record{\ell = V; W}$. This extension has type
+The typing rules are divided into value and computation term typing
+rules.
+
+\paragraph{Typing values} The rule \tylab{Var} states that a term
+variable $x$ has type $A$ if $x$ is mapped to the type $A$ in the
+environment $\Gamma$. The rules \tylab{Lam} and \tylab{Rec} both
+concern term abstraction, where the latter subsumes the former as it
+states that a recursive term abstraction has type $A \to C$ if the
+body has type $C$ assuming the environment $\Gamma$ is extended with
+the binder $f : A \to C$ and the parameter $x : A$. The \tylab{Lam}
+rule works similarly except for the self binder $f$.
+%
+The next rule \tylab{PolyLam} states that a type abstraction
+$(\Lambda \alpha. M)$ has type $\forall \alpha.C$ if the computation
+$M$ has type $C$ assuming $\alpha : K$ and $\alpha$ does not appear in
+the free type variables (FTV) of current type environment
+$\Gamma$. The \tylab{Unit} rule provides the basis for all records as
+it simply states that the empty record has type unit. The
+\tylab{Extend} rule handles record extension. Supposing we wish to
+extend some record $\Record{W}$ with $\ell = V$, that is
+$\Record{\ell = V; W}$. This extension has type
 $\Record{\ell : \Pre{A};R}$ if and only if $V$ is well-typed and we
 can ascribe $W : \Record{\ell : \Abs; R}$. Since
 $\Record{\ell : \Abs; R}$ must be well-kinded with respect to
@@ -6691,12 +6726,13 @@ $M$, must have computation type $A \eff E$, whilst the continuation,
 $N$, must have computation $C$ subject to the additional assumption
 that the binder $x : A$.
 
-\section{Dynamic semantics}
+\subsection{Dynamic semantics}
 \label{sec:base-language-dynamic-semantics}
 %
 \begin{figure}
 \begin{reductions}
 \semlab{App}   & (\lambda x^A . \, M) V &\reducesto& M[V/x] \\
+\semlab{Rec}   & (\Rec \; f^{A \to C} \, x.M)\,V &\reducesto& M[(\Rec \; f^{A \to C}\,x.M)/f, V/x]\\
 \semlab{TyApp} & (\Lambda \alpha^K . \, M) A &\reducesto& M[A/\alpha] \\
 \semlab{Split} & \Let \; \Record{\ell = x;y} = \Record{\ell = V;W} \; \In \; N &\reducesto& N[V/x,W/y] \\
 \semlab{Case_1} &
@@ -6725,108 +6761,107 @@ that the binder $x : A$.
 \label{fig:base-language-small-step}
 \end{figure}
 %
-In this section I will present the dynamic semantics of \BCalc{}. I
-have chosen opt to use a \citet{Felleisen87}-style contextual
-small-step semantics, since in conjunction with fine-grain
-call-by-value (FGCBV), it yields a considerably simpler semantics than
-the traditional structural operational semantics
-(SOS)~\cite{Plotkin04a}, because only the rule for let bindings admits
-a continuation wheres in ordinary call-by-value SOS each congruence
-rule admits a continuation.
+The dynamic semantics of \BCalc{} (and its extensions) use a
+\citet{Felleisen87}-style contextual small-step semantics, since in
+conjunction with fine-grain call-by-value (FGCBV), it yields a
+considerably simpler semantics than the traditional structural
+operational semantics (SOS)~\cite{Plotkin04a}. The reason being that
+only the rule for let bindings admits a continuation wheres in
+ordinary call-by-value SOS each congruence rule admits a continuation.
 %
 The simpler semantics comes at the expense of a more verbose syntax,
 which is not a concern as one can readily convert between fine-grain
 call-by-value and ordinary call-by-value.
 
-The reduction semantics are based on a substitution model of
-computation. Thus, before presenting the reduction rules, we define an
-adequate substitution function. As usual we work up to
-$\alpha$-conversion~\cite{Church32} of terms in $\BCalc{}$.
+% The reduction semantics are based on a substitution model of
+% computation. Thus, before presenting the reduction rules, we define an
+% adequate substitution function. As usual we work up to
+% $\alpha$-conversion~\cite{Church32} of terms in $\BCalc{}$.
 %
-\paragraph{Term substitution}
-We define a term substitution map,
-$\sigma : (\VarCat \times \ValCat)^\ast$ as list of pairs mapping a
-variable to its value replacement. We denote a single mapping as $V/x$
-meaning substitute $V$ for the variable $x$. We write multiple
-mappings using list notation, i.e. $[V_0/x_0,\dots,V_n/x_n]$. The
-domain of a substitution map is set generated by projecting the first
-component, i.e.
-%
-\[
-  \bl
-     \dom : (\VarCat \times \ValCat)^\ast  \to \ValCat\\
-     \dom(\sigma) \defas \{ x \mid (\_/x) \in \sigma \}
-  \el
-\]
-%
-The application of a type substitution map on a term $t \in \TermCat$,
-written $t\sigma$, is defined inductively on the term structure as
-follows.
-%
-\[
-\ba[t]{@{~}l@{~}c@{~}r}
-   \begin{eqs}
-     x\sigma &\defas& \begin{cases}
-                          V & \text{if } (x, V) \in \sigma\\
-                          x & \text{otherwise}
-                      \end{cases}\\
-    (\lambda x^A.M)\sigma &\adef& \lambda x^A.M\sigma\\
-    (\Lambda \alpha^K.M)\sigma &\defas& \Lambda \alpha^K.M\sigma\\
-    (V~T)\sigma     &\defas& V\sigma~T
-  \end{eqs}
-  &~~&
-  \begin{eqs}
-    (V~W)\sigma      &\defas& V\sigma~W\sigma\\
-    \Unit\sigma      &\defas& \Unit\\
-    \Record{\ell = V; W}\sigma &\defas& \Record{\ell = V\sigma;W\sigma}\\
-    (\ell~V)^R\sigma &\defas& (\ell~V\sigma)^R\\
-  \end{eqs}\bigskip\\
-  \multicolumn{3}{c}{
-    \begin{eqs}
-      (\Let\;\Record{\ell = x; y} = V\;\In\;N)\sigma &\adef& \Let\;\Record{\ell = x; y} = V\sigma\;\In\;N\sigma\\
-      (\Case\;(\ell~V)^R\{
-          \ell~x \mapsto M
-          ; y \mapsto N \})\sigma
-       &\adef&
-       \Case\;(\ell~V\sigma)^R\{
-         \ell~x \mapsto M\sigma
-         ; y \mapsto N\sigma \}\\
-     (\Let\;x \revto M \;\In\;N)\sigma &\adef& \Let\;x \revto M[V/y] \;\In\;N\sigma
-   \end{eqs}}
-\ea
-\]
-%
-The attentive reader will notice that I am using the same notation for
-type and term substitutions. In fact, we shall go further and unify
-the two notions of substitution by combining them. As such we may
-think of a combined substitution map as pair of a term substitution
-map and a type substitution map, i.e.
-$\sigma : (\VarCat \times \ValCat)^\ast \times (\TyVarCat \times
-\TypeCat)^\ast$. The application of a combined substitution mostly the
-same as the application of a term substitution map save for a couple
-equations in which we need to apply the type substitution map
-component to a type annotation and type abstraction which now might
-require a change of name of the bound type variable
-%
-\[
-  \bl
-    (\lambda x^A.M)\sigma \defas \lambda x^{A\sigma.2}.M\sigma, \qquad
-    (V~T)\sigma \defas V\sigma~T\sigma.2, \qquad
-    (\ell~V)^R\sigma \defas (\ell~V\sigma)^{R\sigma.2}\medskip\\
+% \paragraph{Term substitution}
+% We define a term substitution map,
+% $\sigma : (\VarCat \times \ValCat)^\ast$ as list of pairs mapping a
+% variable to its value replacement. We denote a single mapping as $V/x$
+% meaning substitute $V$ for the variable $x$. We write multiple
+% mappings using list notation, i.e. $[V_0/x_0,\dots,V_n/x_n]$. The
+% domain of a substitution map is set generated by projecting the first
+% component, i.e.
+% %
+% \[
+%   \bl
+%      \dom : (\VarCat \times \ValCat)^\ast  \to \ValCat\\
+%      \dom(\sigma) \defas \{ x \mid (\_/x) \in \sigma \}
+%   \el
+% \]
+% %
+% The application of a type substitution map on a term $t \in \TermCat$,
+% written $t\sigma$, is defined inductively on the term structure as
+% follows.
+% %
+% \[
+% \ba[t]{@{~}l@{~}c@{~}r}
+%    \begin{eqs}
+%      x\sigma &\defas& \begin{cases}
+%                           V & \text{if } (x, V) \in \sigma\\
+%                           x & \text{otherwise}
+%                       \end{cases}\\
+%     (\lambda x^A.M)\sigma &\adef& \lambda x^A.M\sigma\\
+%     (\Lambda \alpha^K.M)\sigma &\defas& \Lambda \alpha^K.M\sigma\\
+%     (V~T)\sigma     &\defas& V\sigma~T
+%   \end{eqs}
+%   &~~&
+%   \begin{eqs}
+%     (V~W)\sigma      &\defas& V\sigma~W\sigma\\
+%     \Unit\sigma      &\defas& \Unit\\
+%     \Record{\ell = V; W}\sigma &\defas& \Record{\ell = V\sigma;W\sigma}\\
+%     (\ell~V)^R\sigma &\defas& (\ell~V\sigma)^R\\
+%   \end{eqs}\bigskip\\
+%   \multicolumn{3}{c}{
+%     \begin{eqs}
+%       (\Let\;\Record{\ell = x; y} = V\;\In\;N)\sigma &\adef& \Let\;\Record{\ell = x; y} = V\sigma\;\In\;N\sigma\\
+%       (\Case\;(\ell~V)^R\{
+%           \ell~x \mapsto M
+%           ; y \mapsto N \})\sigma
+%        &\adef&
+%        \Case\;(\ell~V\sigma)^R\{
+%          \ell~x \mapsto M\sigma
+%          ; y \mapsto N\sigma \}\\
+%      (\Let\;x \revto M \;\In\;N)\sigma &\adef& \Let\;x \revto M[V/y] \;\In\;N\sigma
+%    \end{eqs}}
+% \ea
+% \]
+% %
+% The attentive reader will notice that I am using the same notation for
+% type and term substitutions. In fact, we shall go further and unify
+% the two notions of substitution by combining them. As such we may
+% think of a combined substitution map as pair of a term substitution
+% map and a type substitution map, i.e.
+% $\sigma : (\VarCat \times \ValCat)^\ast \times (\TyVarCat \times
+% \TypeCat)^\ast$. The application of a combined substitution mostly the
+% same as the application of a term substitution map save for a couple
+% equations in which we need to apply the type substitution map
+% component to a type annotation and type abstraction which now might
+% require a change of name of the bound type variable
+% %
+% \[
+%   \bl
+%     (\lambda x^A.M)\sigma \defas \lambda x^{A\sigma.2}.M\sigma, \qquad
+%     (V~T)\sigma \defas V\sigma~T\sigma.2, \qquad
+%     (\ell~V)^R\sigma \defas (\ell~V\sigma)^{R\sigma.2}\medskip\\
 
-    \begin{eqs}
-      (\Lambda \alpha^K.M)\sigma &\adef& \Lambda \alpha^K.M\sigma\\
-      (\Case\;(\ell~V)^R\{
-           \ell~x \mapsto M
-           ; y \mapsto N \})\sigma
-        &\adef&
-        \Case\;(\ell~V\sigma)^{R\sigma.2}\{
-          \ell~x \mapsto M\sigma
-          ; y \mapsto N\sigma \}.
-    \end{eqs}
-  \el
-\]
-%
+%     \begin{eqs}
+%       (\Lambda \alpha^K.M)\sigma &\adef& \Lambda \alpha^K.M\sigma\\
+%       (\Case\;(\ell~V)^R\{
+%            \ell~x \mapsto M
+%            ; y \mapsto N \})\sigma
+%         &\adef&
+%         \Case\;(\ell~V\sigma)^{R\sigma.2}\{
+%           \ell~x \mapsto M\sigma
+%           ; y \mapsto N\sigma \}.
+%     \end{eqs}
+%   \el
+% \]
+% %
 
 % We shall go further and use the
 % notation to mean simultaneous substitution of types and terms, that is
@@ -6942,7 +6977,7 @@ for suspended computations.  We encode booleans using variants:
 \If\;V\;\Then\;M\;\Else\;N \defas \Case\;V\;\{\dec{True}~\Unit \mapsto M; \dec{False}~\Unit \mapsto N\}
 \end{mathpar}%
 
-\section{Metatheoretic properties of \BCalc{}}
+\subsection{Metatheoretic properties of \BCalc{}}
 \label{sec:base-language-metatheory}
 
 Thus far we have defined the syntax, static semantics, and dynamic
@@ -6950,19 +6985,19 @@ semantics of \BCalc{}. In this section, we state and prove some
 customary metatheoretic properties about \BCalc{}.
 %
 
-We begin by showing that substitutions preserve typeability.
-%
-\begin{lemma}[Preservation of typing under substitution]\label{lem:base-language-subst}
-  Let $\sigma$ be any type substitution and $V \in \ValCat$ be any
-  value and $M \in \CompCat$ a computation such that
-  $\typ{\Delta;\Gamma}{V : A}$ and $\typ{\Delta;\Gamma}{M : C}$, then
-  $\typ{\Delta;\Gamma\sigma}{V\sigma : A\sigma}$ and
-  $\typ{\Delta;\Gamma\sigma}{M\sigma : C\sigma}$.
-\end{lemma}
-%
-\begin{proof}
-  By induction on the typing derivations.
-\end{proof}
+% We begin by showing that substitutions preserve typeability.
+% %
+% \begin{lemma}[Preservation of typing under substitution]\label{lem:base-language-subst}
+%   Let $\sigma$ be any type substitution and $V \in \ValCat$ be any
+%   value and $M \in \CompCat$ a computation such that
+%   $\typ{\Delta;\Gamma}{V : A}$ and $\typ{\Delta;\Gamma}{M : C}$, then
+%   $\typ{\Delta;\Gamma\sigma}{V\sigma : A\sigma}$ and
+%   $\typ{\Delta;\Gamma\sigma}{M\sigma : C\sigma}$.
+% \end{lemma}
+% %
+% \begin{proof}
+%   By induction on the typing derivations.
+% \end{proof}
 %
 % \dhil{It is clear to me at this point, that I want to coalesce the
 %   substitution functions. Possibly define them as maps rather than ordinary functions.}
@@ -6980,27 +7015,27 @@ contexts.
 %
 \begin{proof}
   By structural induction on $M$.
-  \begin{description}
-  \item[Base step] $M = N$ where $N$ is either $\Return\;V$,
-    $\Absurd^C\;V$, $V\,W$, or $V\,T$. In each case take $\EC = [\,]$
-    such that $M = \EC[N]$.
-  \item[Inductive step]
-    %
-    There are several cases to consider. In each case we must find an
-    evaluation context $\EC$ and a computation term $M'$ such that
-    $M = \EC[M']$.
-    \begin{itemize}
-      \item[Case] $M = \Let\;\Record{\ell = x; y} = V\;\In\;N$: Take $\EC = [\,]$ such that $M = \EC[\Let\;\Record{\ell = x; y} = V\;\In\;N]$.
-      \item[Case] $M = \Case\;V\,\{\ell\,x \mapsto M'; y \mapsto N\}$:
-        Take $\EC = [\,]$ such that
-        $M = \EC[\Case\;V\,\{\ell\,x \mapsto M'; y \mapsto N\}]$.
-      \item[Case] $M = \Let\;x \revto M' \;\In\;N$: By the induction
-        hypothesis it follows that $M'$ is either stuck or it
-        decomposes (uniquely) into an evaluation context $\EC'$ and a
-        redex $N'$. If $M'$ is stuck, then so is $M$. Otherwise take
-        $\EC = \Let\;x \revto \EC'\;\In\;N$ such that $M = \EC[N']$.
-    \end{itemize}
-  \end{description}
+  % \begin{description}
+  % \item[Base step] $M = N$ where $N$ is either $\Return\;V$,
+  %   $\Absurd^C\;V$, $V\,W$, or $V\,T$. In each case take $\EC = [\,]$
+  %   such that $M = \EC[N]$.
+  % \item[Inductive step]
+  %   %
+  %   There are several cases to consider. In each case we must find an
+  %   evaluation context $\EC$ and a computation term $M'$ such that
+  %   $M = \EC[M']$.
+  %   \begin{itemize}
+  %     \item[Case] $M = \Let\;\Record{\ell = x; y} = V\;\In\;N$: Take $\EC = [\,]$ such that $M = \EC[\Let\;\Record{\ell = x; y} = V\;\In\;N]$.
+  %     \item[Case] $M = \Case\;V\,\{\ell\,x \mapsto M'; y \mapsto N\}$:
+  %       Take $\EC = [\,]$ such that
+  %       $M = \EC[\Case\;V\,\{\ell\,x \mapsto M'; y \mapsto N\}]$.
+  %     \item[Case] $M = \Let\;x \revto M' \;\In\;N$: By the induction
+  %       hypothesis it follows that $M'$ is either stuck or it
+  %       decomposes (uniquely) into an evaluation context $\EC'$ and a
+  %       redex $N'$. If $M'$ is stuck, then so is $M$. Otherwise take
+  %       $\EC = \Let\;x \revto \EC'\;\In\;N$ such that $M = \EC[N']$.
+  %   \end{itemize}
+  % \end{description}
 \end{proof}
 
 %
@@ -7040,357 +7075,284 @@ some other computation $M'$, then $M'$ is also well typed.
   By induction on the typing derivations.
 \end{proof}
 
-Even more the calculus, as specified, is \emph{strongly normalising},
-meaning that every closed computation term reduces to a trivial
-computation term. In other words, any realisable function in $\BCalc$
-is effect-free and total.
-%
-\begin{claim}[Type soundness]\label{clm:soundness}
-  If $\typ{}{M : C}$, then there exists $\typ{}{N : C}$ such that
-  $M \reducesto^\ast N \not\reducesto$ and $N$ is normal.
-\end{claim}
-%
-We will not prove this theorem here as the required proof gadgetry is
-rather involved~\cite{LindleyS05}, and we will soon dispense of this
-property.
+% Even more the calculus, as specified, is \emph{strongly normalising},
+% meaning that every closed computation term reduces to a trivial
+% computation term. In other words, any realisable function in $\BCalc$
+% is effect-free and total.
+% %
+% \begin{claim}[Type soundness]\label{clm:soundness}
+%   If $\typ{}{M : C}$, then there exists $\typ{}{N : C}$ such that
+%   $M \reducesto^\ast N \not\reducesto$ and $N$ is normal.
+% \end{claim}
+% %
+% We will not prove this theorem here as the required proof gadgetry is
+% rather involved~\cite{LindleyS05}, and we will soon dispense of this
+% property.
 
-\section{A primitive effect: recursion}
-\label{sec:base-language-recursion}
-%
-As $\BCalc$ is (claimed to be) strongly normalising it provides a
-solid and minimal basis for studying the expressiveness of any
-extension, and in particular, which primitive effects any such
-extension may sneak into the calculus.
+% \section{A primitive effect: recursion}
+% \label{sec:base-language-recursion}
+% %
+% As $\BCalc$ is (claimed to be) strongly normalising it provides a
+% solid and minimal basis for studying the expressiveness of any
+% extension, and in particular, which primitive effects any such
+% extension may sneak into the calculus.
 
-However, we cannot write many (if any) interesting programs in
-\BCalc{}. The calculus is simply not expressive enough. In order to
-bring the calculus closer to the ML-family of languages we endow the
-calculus with a fixpoint operator which introduces recursion as a
-primitive effect. % We dub the resulting calculus \BCalcRec{}.
-%
+% However, we cannot write many (if any) interesting programs in
+% \BCalc{}. The calculus is simply not expressive enough. In order to
+% bring the calculus closer to the ML-family of languages we endow the
+% calculus with a fixpoint operator which introduces recursion as a
+% primitive effect. % We dub the resulting calculus \BCalcRec{}.
+% %
 
-First we augment the syntactic category of values with a new
-abstraction form for recursive functions.
-%
-\begin{syntax}
-  & V,W \in \ValCat &::=& \cdots \mid \Rec \; f^{A \to C} \, x.M
-\end{syntax}
-%
-The $\Rec$ construct binds the function name $f$ and its argument $x$
-in the body $M$. Typing of recursive functions is standard.
-%
-\begin{mathpar}
-  \inferrule*[Lab=\tylab{Rec}]
-    {\typ{\Delta;\Gamma,f : A \to C, x : A}{M : C}}
-    {\typ{\Delta;\Gamma}{(\Rec \; f^{A \to C} \, x . M) : A \to C}}
-\end{mathpar}
-%
-The reduction semantics are also standard.
-%
-\begin{reductions}
-  \semlab{Rec} &
-      (\Rec \; f^{A \to C} \, x.M)\,V &\reducesto& M[(\Rec \; f^{A \to C}\,x.M)/f, V/x]
-\end{reductions}
-%
-Every occurrence of $f$ in $M$ is replaced by the recursive abstractor
-term, while every $x$ in $M$ is replaced by the value argument $V$.
-
-The introduction of recursion means that the claimed type soundness
-theorem (Claim~\ref{clm:soundness}) no longer holds as some programs
-may now diverge.
-
-\subsection{Tracking divergence via the effect system}
-\label{sec:tracking-div}
-%
-With the $\Rec$-operator in place we can now implement the
-factorial function.
-%
-\[
-  \bl
-    \dec{fac} : \Int \to \Int \eff \emptyset\\
-    \dec{fac} \defas \Rec\;f~n.
-       \ba[t]{@{}l}
-         \Let\;is\_zero \revto n = 0\;\In\\
-         \If\;is\_zero\;\Then\; \Return\;1\\
-         \Else\;\ba[t]{@{~}l}
-                   \Let\; n' \revto n - 1 \;\In\\
-                   \Let\; m \revto f~n' \;\In\\
-                   n * m
-                 \ea
-       \ea
-  \el
-\]
-%
-The $\dec{fac}$ function computes $n!$ for any non-negative integer
-$n$. If $n$ is negative then $\dec{fac}$ diverges as the function will
-repeatedly select the $\Else$-branch in the conditional
-expression. Thus this function is not total on its domain. Yet the
-effect signature does not alert us about the potential divergence. In
-fact, in this particular instance the effect row on the computation
-type is empty, which might deceive the doctrinaire to think that this
-function is `pure'. Whether this function is pure or impure depend on
-the precise notion of purity -- which we have yet to choose. Shortly
-we shall make clear the notion of purity that we have mind, however,
-first let us briefly illustrate how we might utilise the effect system
-to track divergence.
-
-The key to tracking divergence is to modify the \tylab{Rec} to inject
-some primitive operation into the effect row.
-%
-\begin{mathpar}
-  \inferrule*[Lab=$\tylab{Rec}^\ast$]
-    {\typ{\Delta;\Gamma,f : A \to B\eff\{\dec{Div}:\ZeroType\}, x : A}{M : B\eff\{\dec{Div}:\ZeroType\}}}
-    {\typ{\Delta;\Gamma}{(\Rec \; f^{A \to B\eff\{\dec{Div}:\ZeroType\}} \, x .M) : A \to B\eff\{\dec{Div}:\ZeroType\}}}
-\end{mathpar}
-%
-In this typing rule we have chosen to inject an operation named
-$\dec{Div}$ into the effect row of the computation type on the
-recursive binder $f$. The operation is primitive, because it can never
-be directly invoked, rather, it occurs as a side-effect of applying a
-$\Rec$-definition (this is also why we ascribe it type $\ZeroType$,
-though, we may use whatever type we please).
-%
-Using this typing rule we get that
-$\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\ZeroType\}$. Consequently,
-every application-site of $\dec{fac}$ must now permit the $\dec{Div}$
-operation in order to type check.
-
-% \begin{example}
-To illustrate effect tracking in action consider the following
-suspended computation.
-  %
-  \[
-    \bl
-      \lambda\Unit. \dec{fac}~3
-    \el
-  \]
-  %
-  The computation calculates $3!$ when forced.
-  %
-  The typing derivation for this computation illustrates how the
-  application of $\dec{fac}$ causes its effect row to be propagated
-  outwards. Let
-  $\Gamma = \{\dec{fac} : \Int \to \Int \eff
-  \{\dec{Div}:\ZeroType\}\}$.
-  %
-  \begin{mathpar}
-    \inferrule*[Right={\tylab{Lam}}]
-      {\inferrule*[Right={\tylab{App}}]
-        {\typ{\emptyset;\Gamma,\Unit:\UnitType}{\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\ZeroType\}}\\
-         \typ{\emptyset;\Gamma,\Unit:\UnitType}{3 : \Int}
-        }
-        {\typc{\emptyset;\Gamma,\Unit:\UnitType}{\dec{fac}~3 : \Int}{\{\dec{Div}:\ZeroType\}}}
-      }
-      {\typ{\emptyset;\Gamma}{\lambda\Unit.\dec{fac}~3} : \UnitType \to \Int \eff \{\dec{Div}:\ZeroType\}}
-  \end{mathpar}
-  %
-  The information that the computation applies a possibly divergent
-  function internally gets reflected externally in its effect
-  signature.\medskip
-
-%
-A possible inconvenience of the current formulation of
-$\tylab{Rec}^\ast$ is that it recursion cannot be mixed with other
-computational effects. The reason being that the effect row on
-$A \to B\eff \{\dec{Div}:\ZeroType\}$ is closed. Thus in a practical
-general-purpose programming language implementation it is likely be
-more convenient to leave the tail of the effect row open as to allow
-recursion to be used in larger effect contexts. The rule formulation
-is also rather coarse as it renders every $\Rec$-definition as
-possibly divergent -- even definitions that are obviously
-non-divergent such as the $\Rec$-variation of the identity function:
-$\Rec\;f\,x.x$. A practical implementation could utilise a static
-termination checker~\cite{Walther94} to obtain more fine-grained
-tracking of divergence.
-
-The question remains as to whether we should track divergence. In this
-dissertation I choose not to track divergence in the effect
-system. This choice is a slight departure from the real implementation
-of Links~\cite{LindleyC12}. However, the focus of this part of the
-dissertation is on programming with \emph{user-definable computational
-  effects}. Recursion is not a user-definable effect in our setting,
-and therefore, we may regard divergence information as adding noise to
-effect signatures. This choice ought not to alienate programmers as it
-aligns with, say, the notion of purity employed by
-Haskell~\cite{JonesABBBFHHHHJJLMPRRW99,Sabry98}.
-
-% A
-% solemnly sworn pure functional programmer might respond with a
-% resounding ``\emph{yes!}'', whilst a pragmatic functional programmer
-% might respond ``\emph{it depends}''. I side with the latter. My take
-% is that, on one hand if we find ourselves developing safety-critical
-% systems, a static approximation of the dynamic behaviour of functions
-% can be useful, and thus, we ought to track divergence (and other
-% behaviours). On the other hand, if we find ourselves doing general
-% purpose programming, then it may be situational useful to know whether
-% some function may exhibit divergent behaviour
-
-
-% By fairly lightweight means we can obtain a finer analysis of
-% $\Rec$-definitions by simply having an additional typing rule for
-% the application of $\Rec$.
+% First we augment the syntactic category of values with a new
+% abstraction form for recursive functions.
+% %
+% \begin{syntax}
+%   & V,W \in \ValCat &::=& \cdots \mid \Rec \; f^{A \to C} \, x.M
+% \end{syntax}
+% %
+% The $\Rec$ construct binds the function name $f$ and its argument $x$
+% in the body $M$. Typing of recursive functions is standard.
 % %
 % \begin{mathpar}
-%   \inferrule*[lab=$\tylab{AppRec}^\ast$]
-%   { E' = \{\dec{Div}:\ZeroType\} \uplus E\\
-%     \typ{\Delta}{E'}\\\\
-%     \typ{\Delta;\Gamma}{\Rec\;f^{A \to B \eff E}\,x.M : A \to B \eff E}\\
-%     \typ{\Delta;\Gamma}{W : A}
-%   }
-%   {\typ{\Delta;\Gamma}{(\Rec\;f^{A \to B \eff E}\,x.M)\,W : B \eff E'}}
+%   \inferrule*[Lab=\tylab{Rec}]
+%     {\typ{\Delta;\Gamma,f : A \to C, x : A}{M : C}}
+%     {\typ{\Delta;\Gamma}{(\Rec \; f^{A \to C} \, x . M) : A \to C}}
 % \end{mathpar}
 % %
-
-% \subsection{Notions of purity}
-% \label{sec:notions-of-purity}
-% The term `pure' is heavily overloaded in the programming literature.
+% The reduction semantics are also standard.
 % %
-% \dhil{In this thesis we use the Haskell notion of purity.}
+% \begin{reductions}
+%   \semlab{Rec} &
+%       (\Rec \; f^{A \to C} \, x.M)\,V &\reducesto& M[(\Rec \; f^{A \to C}\,x.M)/f, V/x]
+% \end{reductions}
+% %
+% Every occurrence of $f$ in $M$ is replaced by the recursive abstractor
+% term, while every $x$ in $M$ is replaced by the value argument $V$.
 
-\section{Related work}
+% The introduction of recursion means that the claimed type soundness
+% theorem (Claim~\ref{clm:soundness}) no longer holds as some programs
+% may now diverge.
 
-\paragraph{Row polymorphism} Row polymorphism was originally
-introduced by \citet{Wand87} as a typing discipline for extensible
-records. The style of row polymorphism used in this chapter is due to
-\citet{Remy94}. It was designed to work well with type inference as
-typically featured in the ML-family of programming
-languages. \citeauthor{Remy94} also describes a slight variation of
-this system, where the presence polymorphism annotations may depend on
-a concrete type, e.g. $\ell : \theta.\Int;R$ means that the label is
-polymorphic in its presence, however, if it is present then it has
-presence type $\Int$.
+% \subsection{Tracking divergence via the effect system}
+% \label{sec:tracking-div}
+% %
+% With the $\Rec$-operator in place we can now implement the
+% factorial function.
+% %
+% \[
+%   \bl
+%     \dec{fac} : \Int \to \Int \eff \emptyset\\
+%     \dec{fac} \defas \Rec\;f~n.
+%        \ba[t]{@{}l}
+%          \Let\;is\_zero \revto n = 0\;\In\\
+%          \If\;is\_zero\;\Then\; \Return\;1\\
+%          \Else\;\ba[t]{@{~}l}
+%                    \Let\; n' \revto n - 1 \;\In\\
+%                    \Let\; m \revto f~n' \;\In\\
+%                    n * m
+%                  \ea
+%        \ea
+%   \el
+% \]
+% %
+% The $\dec{fac}$ function computes $n!$ for any non-negative integer
+% $n$. If $n$ is negative then $\dec{fac}$ diverges as the function will
+% repeatedly select the $\Else$-branch in the conditional
+% expression. Thus this function is not total on its domain. Yet the
+% effect signature does not alert us about the potential divergence. In
+% fact, in this particular instance the effect row on the computation
+% type is empty, which might deceive the doctrinaire to think that this
+% function is `pure'. Whether this function is pure or impure depend on
+% the precise notion of purity -- which we have yet to choose. Shortly
+% we shall make clear the notion of purity that we have mind, however,
+% first let us briefly illustrate how we might utilise the effect system
+% to track divergence.
 
-Either of \citeauthor{Remy94}'s row systems have set semantics, i.e. a
-row cannot contain duplicated labels. An alternative semantics based
-on dictionaries is used by \citet{Leijen05}. In
-\citeauthor{Leijen05}'s system labels may be duplicated, which
-introduces a form of scoping for labels, which for example makes it
-possible to shadow fields in a record. There is no notion of presence
-information in \cite{Leijen05}'s system, and thus, as a result
-\citeauthor{Leijen05}-style rows simplify the overall type structure.
-\citet{Leijen14} has used this system as the basis for the effect
-system of Koka.
+% The key to tracking divergence is to modify the \tylab{Rec} to inject
+% some primitive operation into the effect row.
+% %
+% \begin{mathpar}
+%   \inferrule*[Lab=$\tylab{Rec}^\ast$]
+%     {\typ{\Delta;\Gamma,f : A \to B\eff\{\dec{Div}:\ZeroType\}, x : A}{M : B\eff\{\dec{Div}:\ZeroType\}}}
+%     {\typ{\Delta;\Gamma}{(\Rec \; f^{A \to B\eff\{\dec{Div}:\ZeroType\}} \, x .M) : A \to B\eff\{\dec{Div}:\ZeroType\}}}
+% \end{mathpar}
+% %
+% In this typing rule we have chosen to inject an operation named
+% $\dec{Div}$ into the effect row of the computation type on the
+% recursive binder $f$. The operation is primitive, because it can never
+% be directly invoked, rather, it occurs as a side-effect of applying a
+% $\Rec$-definition (this is also why we ascribe it type $\ZeroType$,
+% though, we may use whatever type we please).
+% %
+% Using this typing rule we get that
+% $\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\ZeroType\}$. Consequently,
+% every application-site of $\dec{fac}$ must now permit the $\dec{Div}$
+% operation in order to type check.
 
-\citet{MorrisM19} have developed a unifying theory of rows, which
-collects the aforementioned row systems under one umbrella. Their
-system provides a general account of record extension and projection,
-and dually, variant injection and branching.
+% % \begin{example}
+% To illustrate effect tracking in action consider the following
+% suspended computation.
+%   %
+%   \[
+%     \bl
+%       \lambda\Unit. \dec{fac}~3
+%     \el
+%   \]
+%   %
+%   The computation calculates $3!$ when forced.
+%   %
+%   The typing derivation for this computation illustrates how the
+%   application of $\dec{fac}$ causes its effect row to be propagated
+%   outwards. Let
+%   $\Gamma = \{\dec{fac} : \Int \to \Int \eff
+%   \{\dec{Div}:\ZeroType\}\}$.
+%   %
+%   \begin{mathpar}
+%     \inferrule*[Right={\tylab{Lam}}]
+%       {\inferrule*[Right={\tylab{App}}]
+%         {\typ{\emptyset;\Gamma,\Unit:\UnitType}{\dec{fac} : \Int \to \Int \eff \{\dec{Div}:\ZeroType\}}\\
+%          \typ{\emptyset;\Gamma,\Unit:\UnitType}{3 : \Int}
+%         }
+%         {\typc{\emptyset;\Gamma,\Unit:\UnitType}{\dec{fac}~3 : \Int}{\{\dec{Div}:\ZeroType\}}}
+%       }
+%       {\typ{\emptyset;\Gamma}{\lambda\Unit.\dec{fac}~3} : \UnitType \to \Int \eff \{\dec{Div}:\ZeroType\}}
+%   \end{mathpar}
+%   %
+%   The information that the computation applies a possibly divergent
+%   function internally gets reflected externally in its effect
+%   signature.\medskip
 
-\paragraph{Effect tracking} As mentioned in
-Section~\ref{sec:back-to-directstyle} the original effect system was
-developed by \citet{LucassenG88} to provide a lightweight facility for
-static concurrency analysis. Since then effect systems have been
-employed to perform a variety of static analyses,
-e.g. \citet{TofteT94,TofteT97} describe a region-based memory
-management system that makes use of a type and effect system to infer
-and track lifetimes of regions; \citet{BentonK99} use a monadic effect
-system to identify opportunities for optimisations in the intermediate
-language of their ML to Java compiler;
-%
-and \citet{LindleyC12} use a variation of the row system presented in
-this chapter to support abstraction and predicable code generation for
-database programming in Links. Row types are used to give structural
-types to SQL rows in queries, whilst their effect system is used to
-differentiate between \emph{tame} and \emph{wild} functions, where a
-tame function is one whose body can be translated and run directly on
-the database, whereas a wild function cannot.
+% %
+% A possible inconvenience of the current formulation of
+% $\tylab{Rec}^\ast$ is that it recursion cannot be mixed with other
+% computational effects. The reason being that the effect row on
+% $A \to B\eff \{\dec{Div}:\ZeroType\}$ is closed. Thus in a practical
+% general-purpose programming language implementation it is likely be
+% more convenient to leave the tail of the effect row open as to allow
+% recursion to be used in larger effect contexts. The rule formulation
+% is also rather coarse as it renders every $\Rec$-definition as
+% possibly divergent -- even definitions that are obviously
+% non-divergent such as the $\Rec$-variation of the identity function:
+% $\Rec\;f\,x.x$. A practical implementation could utilise a static
+% termination checker~\cite{Walther94} to obtain more fine-grained
+% tracking of divergence.
+
+% The question remains as to whether we should track divergence. In this
+% dissertation I choose not to track divergence in the effect
+% system. This choice is a slight departure from the real implementation
+% of Links~\cite{LindleyC12}. However, the focus of this part of the
+% dissertation is on programming with \emph{user-definable computational
+%   effects}. Recursion is not a user-definable effect in our setting,
+% and therefore, we may regard divergence information as adding noise to
+% effect signatures. This choice ought not to alienate programmers as it
+% aligns with, say, the notion of purity employed by
+% Haskell~\cite{JonesABBBFHHHHJJLMPRRW99,Sabry98}.
+
+% % A
+% % solemnly sworn pure functional programmer might respond with a
+% % resounding ``\emph{yes!}'', whilst a pragmatic functional programmer
+% % might respond ``\emph{it depends}''. I side with the latter. My take
+% % is that, on one hand if we find ourselves developing safety-critical
+% % systems, a static approximation of the dynamic behaviour of functions
+% % can be useful, and thus, we ought to track divergence (and other
+% % behaviours). On the other hand, if we find ourselves doing general
+% % purpose programming, then it may be situational useful to know whether
+% % some function may exhibit divergent behaviour
 
 
-\section{Effect handler calculi}
-\label{ch:unary-handlers}
-%
-Programming with effect handlers is a dichotomy of \emph{performing}
-and \emph{handling} of effectful operations --- or alternatively a
-dichotomy of \emph{constructing} and \emph{deconstructing} effects. An
-operation is a constructor of an effect. By itself an operation has no
-predefined semantics. A handler deconstructs an effect by
-pattern-matching on its operations. By matching on a particular
-operation, a handler instantiates the operation with a particular
-semantics of its own choosing. The key ingredient to make this work in
-practice is \emph{delimited control}. Performing an operation reifies
-the remainder of the computation up to the nearest enclosing handler
-of the operation as a continuation. This continuation is exposed to
-the programmer via the handler as a first-class value, and thus, it
-may be invoked, discarded, or stored for later use at the discretion
-of the programmer.
+% % By fairly lightweight means we can obtain a finer analysis of
+% % $\Rec$-definitions by simply having an additional typing rule for
+% % the application of $\Rec$.
+% % %
+% % \begin{mathpar}
+% %   \inferrule*[lab=$\tylab{AppRec}^\ast$]
+% %   { E' = \{\dec{Div}:\ZeroType\} \uplus E\\
+% %     \typ{\Delta}{E'}\\\\
+% %     \typ{\Delta;\Gamma}{\Rec\;f^{A \to B \eff E}\,x.M : A \to B \eff E}\\
+% %     \typ{\Delta;\Gamma}{W : A}
+% %   }
+% %   {\typ{\Delta;\Gamma}{(\Rec\;f^{A \to B \eff E}\,x.M)\,W : B \eff E'}}
+% % \end{mathpar}
+% % %
 
-Effect handlers provide a structured and modular interface for
-programming with delimited control. They are structured in the sense
-that the invocation site of an operation is decoupled from the use
-site of its continuation. A handler consists of a collection of
-operation clauses, one for each operation it handles. Effect handlers
-are modular as a handler will only capture and expose continuations
-for operations that it handles, other operation invocations pass
-seamlessly through the handler such that the operation can be handled
-by another suitable handler. This allows modular construction of
-effectful programs, where multiple handlers can be composed to fully
-interpret the effect signature of the whole program.
+% % \subsection{Notions of purity}
+% % \label{sec:notions-of-purity}
+% % The term `pure' is heavily overloaded in the programming literature.
+% % %
+% % \dhil{In this thesis we use the Haskell notion of purity.}
 
-% There exists multiple flavours of effect handlers. The handlers
-% introduced by \citet{PlotkinP09} are known as \emph{deep} handlers,
-% and they are semantically defined as folds over computation
-% trees. Dually, \emph{shallow} handlers are defined as case-splits over
-% computation trees.
-%
-The purpose of the chapter is to augment the base calculi \BCalc{}
-with effect handlers, and demonstrate their practical versatility by
-way of a programming case study. The primary focus is on so-called
-\emph{deep} and \emph{shallow} variants of handlers. In
-Section~\ref{sec:unary-deep-handlers} we endow \BCalc{} with deep
-handlers, which we put to use in
-Section~\ref{sec:deep-handlers-in-action} where we implement a
-\UNIX{}-style operating system. In
-Section~\ref{sec:unary-shallow-handlers} we extend \BCalc{} with shallow
-handlers, and subsequently we use them to extend the functionality of
-the operating system example. Finally, in
-Section~\ref{sec:unary-parameterised-handlers} we will look at
-\emph{parameterised} handlers, which are a refinement of ordinary deep
-handlers.
+% \section{Effect handler calculi}
+% \label{ch:unary-handlers}
+% %
+% Programming with effect handlers is a dichotomy of \emph{performing}
+% and \emph{handling} of effectful operations --- or alternatively a
+% dichotomy of \emph{constructing} and \emph{deconstructing} effects. An
+% operation is a constructor of an effect. By itself an operation has no
+% predefined semantics. A handler deconstructs an effect by
+% pattern-matching on its operations. By matching on a particular
+% operation, a handler instantiates the operation with a particular
+% semantics of its own choosing. The key ingredient to make this work in
+% practice is \emph{delimited control}. Performing an operation reifies
+% the remainder of the computation up to the nearest enclosing handler
+% of the operation as a continuation. This continuation is exposed to
+% the programmer via the handler as a first-class value, and thus, it
+% may be invoked, discarded, or stored for later use at the discretion
+% of the programmer.
 
-From here onwards I will make a slight change of terminology to
-disambiguate programmatic continuations, i.e. continuations exposed to
-the programmer, from continuations in continuation passing style
-(Chapter~\ref{ch:cps}) and continuations in abstract machines
-(Chapter~\ref{ch:abstract-machine}). In the remainder of this
-dissertation I refer to programmatic continuations as `resumptions',
-and reserve the term `continuation' for continuations concerning
-implementation details.
+% Effect handlers provide a structured and modular interface for
+% programming with delimited control. They are structured in the sense
+% that the invocation site of an operation is decoupled from the use
+% site of its continuation. A handler consists of a collection of
+% operation clauses, one for each operation it handles. Effect handlers
+% are modular as a handler will only capture and expose continuations
+% for operations that it handles, other operation invocations pass
+% seamlessly through the handler such that the operation can be handled
+% by another suitable handler. This allows modular construction of
+% effectful programs, where multiple handlers can be composed to fully
+% interpret the effect signature of the whole program.
 
-\paragraph{Relation to prior work} The deep and shallow handler
-calculi that are introduced in Section~\ref{sec:unary-deep-handlers},
-Section~\ref{sec:unary-shallow-handlers}, and
-Section~\ref{sec:unary-parameterised-handlers} are adapted with minor
-syntactic changes from the following work.
-%
-\begin{enumerate}[i]
-    \item \bibentry{HillerstromL16}
-    \item \bibentry{HillerstromL18}  \label{en:sec-handlers-L18}
-    \item \bibentry{HillerstromLA20} \label{en:sec-handlers-HLA20}
-\end{enumerate}
-%
-The `pipes' example in Section~\ref{sec:unary-shallow-handlers}
-appears in items \ref{en:sec-handlers-L18} and
-\ref{en:sec-handlers-HLA20} above.
+% % There exists multiple flavours of effect handlers. The handlers
+% % introduced by \citet{PlotkinP09} are known as \emph{deep} handlers,
+% % and they are semantically defined as folds over computation
+% % trees. Dually, \emph{shallow} handlers are defined as case-splits over
+% % computation trees.
+% %
+% The purpose of the chapter is to augment the base calculi \BCalc{}
+% with effect handlers, and demonstrate their practical versatility by
+% way of a programming case study. The primary focus is on so-called
+% \emph{deep} and \emph{shallow} variants of handlers. In
+% Section~\ref{sec:unary-deep-handlers} we endow \BCalc{} with deep
+% handlers, which we put to use in
+% Section~\ref{sec:deep-handlers-in-action} where we implement a
+% \UNIX{}-style operating system. In
+% Section~\ref{sec:unary-shallow-handlers} we extend \BCalc{} with shallow
+% handlers, and subsequently we use them to extend the functionality of
+% the operating system example. Finally, in
+% Section~\ref{sec:unary-parameterised-handlers} we will look at
+% \emph{parameterised} handlers, which are a refinement of ordinary deep
+% handlers.
 
-\section{Deep handlers}
+\section{Deep handling of effects}
 \label{sec:unary-deep-handlers}
 %
 
-As our starting point we take the regular base calculus, \BCalc{},
-without the recursion operator and extend it with deep handlers to
-yield the calculus \HCalc{}. We elect to do so because deep handlers
-do not require the power of an explicit fixpoint operator to be a
-practical programming abstraction. Building \HCalc{} on top of
-\BCalc{} with the recursion operator requires no change in semantics.
-%
-Deep handlers~\cite{PlotkinP09,Pretnar10} are defined by folds
-(specifically \emph{catamorphisms}~\cite{MeijerFP91}) over computation
-trees, meaning they provide a uniform semantics to the handled
-operations of a given computation. In contrast, shallow handlers are
-defined as case-splits over computation trees, and thus, allow a
-nonuniform semantics to be given to operations. We will discuss this
-point in more detail in Section~\ref{sec:unary-shallow-handlers}.
+Deep effect handlers are the `classic' effect handlers in the sense
+they were the kind of handlers originally introduced by
+\citet{PlotkinP09}. A point that is worthwhile to make is that deep
+handlers do not depend on the existence of an explicit recursion
+operator, rather, they come with their own structured recursion
+scheme. In fact, deep handlers~\cite{PlotkinP09,Pretnar10} are defined
+by folds (specifically \emph{catamorphisms}~\cite{MeijerFP91}) over
+computation trees, meaning they provide a uniform semantics to the
+handled operations of a given computation. In contrast, shallow
+handlers are defined as case-splits over computation trees, and thus,
+allow a nonuniform semantics to be given to operations. We will
+discuss this point in more detail in
+Section~\ref{sec:unary-shallow-handlers}.
 
+In this section we augment $\BCalc$ with deep handlers to yield the
+core calculus $\HCalc$.
 
 \subsection{Performing effectful operations}
 \label{sec:eff-language-perform}
@@ -8027,7 +7989,7 @@ $\HCalc$. With this syntactic sugar in place we can program with
 second-order effectful functions without having to write down
 redundant information.
 
-\section{Shallow handlers}
+\section{Shallow effect handling}
 \label{sec:unary-shallow-handlers}
 
 Shallow handlers are an alternative to deep handlers. Shallow handlers
@@ -8162,7 +8124,7 @@ the basic properties of $\HCalc$.
   By induction on the typing derivations.
 \end{proof}
 
-\section{Parameterised handlers}
+\section{Parameterised effect handling}
 \label{sec:unary-parameterised-handlers}
 
 Parameterised handlers are a variation of ordinary deep handlers with
@@ -8311,6 +8273,54 @@ The metatheoretic properties of $\HCalc$ carries over to $\HPCalc$.
 \begin{proof}
   By induction on the typing derivations.
 \end{proof}
+
+\section{Related work}
+
+\paragraph{Row polymorphism} Row polymorphism was originally
+introduced by \citet{Wand87} as a typing discipline for extensible
+records. The style of row polymorphism used in this chapter is due to
+\citet{Remy94}. It was designed to work well with type inference as
+typically featured in the ML-family of programming
+languages. \citeauthor{Remy94} also describes a slight variation of
+this system, where the presence polymorphism annotations may depend on
+a concrete type, e.g. $\ell : \theta.\Int;R$ means that the label is
+polymorphic in its presence, however, if it is present then it has
+presence type $\Int$.
+
+Either of \citeauthor{Remy94}'s row systems have set semantics, i.e. a
+row cannot contain duplicated labels. An alternative semantics based
+on dictionaries is used by \citet{Leijen05}. In
+\citeauthor{Leijen05}'s system labels may be duplicated, which
+introduces a form of scoping for labels, which for example makes it
+possible to shadow fields in a record. There is no notion of presence
+information in \cite{Leijen05}'s system, and thus, as a result
+\citeauthor{Leijen05}-style rows simplify the overall type structure.
+\citet{Leijen14} has used this system as the basis for the effect
+system of Koka.
+
+\citet{MorrisM19} have developed a unifying theory of rows, which
+collects the aforementioned row systems under one umbrella. Their
+system provides a general account of record extension and projection,
+and dually, variant injection and branching.
+
+\paragraph{Effect tracking} As mentioned in
+Section~\ref{sec:back-to-directstyle} the original effect system was
+developed by \citet{LucassenG88} to provide a lightweight facility for
+static concurrency analysis. Since then effect systems have been
+employed to perform a variety of static analyses,
+e.g. \citet{TofteT94,TofteT97} describe a region-based memory
+management system that makes use of a type and effect system to infer
+and track lifetimes of regions; \citet{BentonK99} use a monadic effect
+system to identify opportunities for optimisations in the intermediate
+language of their ML to Java compiler;
+%
+and \citet{LindleyC12} use a variation of the row system presented in
+this chapter to support abstraction and predicable code generation for
+database programming in Links. Row types are used to give structural
+types to SQL rows in queries, whilst their effect system is used to
+differentiate between \emph{tame} and \emph{wild} functions, where a
+tame function is one whose body can be translated and run directly on
+the database, whereas a wild function cannot.
 
 \part{Implementation}
 \label{p:implementation}
