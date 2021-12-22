@@ -13467,10 +13467,8 @@ operation.
 The base calculus $\BPCF$ is a fine-grain
 call-by-value~\cite{LevyPT03} variation of PCF~\cite{Plotkin77}.
 %
-Fine-grain call-by-value is similar to A-normal
-form~\cite{FlanaganSDF93} in that every intermediate computation is
-named, but unlike A-normal form is closed under reduction.
-
+In essence it is a simply-typed variation of $\BCalc$.
+%
 \begin{figure}
   \begin{syntax}
     \slab{Types}          &A,B,C,D\in\TypeCat  &::= & \Nat \mid \One \mid A \to B \mid A \times B \mid A + B \\
@@ -13491,48 +13489,60 @@ named, but unlike A-normal form is closed under reduction.
 Figure~\ref{fig:bpcf} depicts the type syntax, type environment
 syntax, and term syntax of $\BPCF$.
 %
-The ground types are $\Nat$ and $\One$ which classify natural number
-values and the unit value, respectively. The function type $A \to B$
-classifies functions that map values of type $A$ to values of type
-$B$. The binary product type $A \times B$ classifies pairs of values
-whose first and second components have types $A$ and $B$
-respectively. The sum type $A + B$ classifies tagged values of either
-type $A$ or $B$.
+The main difference in the type language between $\BCalc$ and $\BPCF$
+is that the latter does feature polymorphism and an effect tracking
+system. At the term level, $\BPCF$ does not feature polymorphic
+records and variants, but rather plain pairs and sums. For sums the
+left injection is introduced by $(\Inl~V)^B$, where the type
+annotation $B$ is the type of the right injection. Similarly, the
+right injection is introduced by $(\Inl~W)^A$, where $A$ is the type
+of the left injection. The $\Case$-construct eliminates sums. The last
+crucial difference between $\BCalc$ and $\BPCF$ is that the latter
+includes natural numbers and primitive operations on natural numbers
+($+, -, =$).
 %
-Type environments $\Gamma$ map variables to their types.
-
+% The ground types are $\Nat$ and $\One$ which classify natural number
+% values and the unit value, respectively. The function type $A \to B$
+% classifies functions that map values of type $A$ to values of type
+% $B$. The binary product type $A \times B$ classifies pairs of values
+% whose first and second components have types $A$ and $B$
+% respectively. The sum type $A + B$ classifies tagged values of either
+% type $A$ or $B$.
+% %
+% Type environments $\Gamma$ map variables to their types.
+%
 We let $k$ range over natural numbers and $c$ range over primitive
 operations on natural numbers ($+, -, =$).
 %
-We let $x, y, z$ range over term variables.
+As usual we let $x, y, z$ range over term variables.
 %
 For convenience, we also use $f$, $g$, and $h$ for variables of
 function type, $i$ and $j$ for variables of type $\Nat$, and $r$ to
 denote resumptions.
 %
 % The value terms are standard.
-Value terms comprise variables ($x$), the unit value ($\Unit$),
-natural number literals ($n$), primitive constants ($c$), lambda
-abstraction ($\lambda x^A . \, M$), recursion
-($\Rec \; f^{A \to B}\, x.M$), pairs ($\Record{V, W}$), left
-($(\Inl~V)^B$) and right $((\Inr~W)^A)$ injections.
+% Value terms comprise variables ($x$), the unit value ($\Unit$),
+% natural number literals ($n$), primitive constants ($c$), lambda
+% abstraction ($\lambda x^A . \, M$), recursion
+% ($\Rec \; f^{A \to B}\, x.M$), pairs ($\Record{V, W}$), left
+% ($(\Inl~V)^B$) and right $((\Inr~W)^A)$ injections.
 
 %
 % We will occasionally blur the distinction between object and meta
 % language by writing $A$ for the meta level type of closed value terms
 % of type $A$.
 %
-All elimination forms are computation terms. Abstraction is eliminated
-using application ($V\,W$).
-%
-The product eliminator $(\Let \; \Record{x,y} = V \; \In \; N)$ splits
-a pair $V$ into its constituents and binds them to $x$ and $y$,
-respectively. Sums are eliminated by a case split ($\Case\; V\;
-\{\Inl\; x \mapsto M; \Inr\; y \mapsto N\}$).
-%
-A trivial computation $(\Return\;V)$ returns value $V$. The sequencing
-expression $(\Let \; x \revto M \; \In \; N)$ evaluates $M$ and binds
-the result value to $x$ in $N$.
+% All elimination forms are computation terms. Abstraction is eliminated
+% using application ($V\,W$).
+% %
+% The product eliminator $(\Let \; \Record{x,y} = V \; \In \; N)$ splits
+% a pair $V$ into its constituents and binds them to $x$ and $y$,
+% respectively. Sums are eliminated by a case split ($\Case\; V\;
+% \{\Inl\; x \mapsto M; \Inr\; y \mapsto N\}$).
+% %
+% A trivial computation $(\Return\;V)$ returns value $V$. The sequencing
+% expression $(\Let \; x \revto M \; \In \; N)$ evaluates $M$ and binds
+% the result value to $x$ in $N$.
 
 \begin{figure*}
 \raggedright\textbf{Values}
@@ -13625,14 +13635,16 @@ the result value to $x$ in $N$.
 \label{fig:typing}
 \end{figure*}
 
-The typing rules are given in Figure~\ref{fig:typing}.
-%
-We require two typing judgements: one for values and the other for
-computations.
-%
-The judgement $\typ{\Gamma}{\square : A}$ states that a $\square$-term
-has type $A$ under type environment $\Gamma$, where $\square$ is
-either a value term ($V$) or a computation term ($M$).
+The typing rules are given in Figure~\ref{fig:typing}. These are
+similar to the ones given in Figure~\ref{fig:base-language-type-rules}
+modulo the polymorphism.
+% %
+% We require two typing judgements: one for values and the other for
+% computations.
+% %
+% The judgement $\typ{\Gamma}{\square : A}$ states that a $\square$-term
+% has type $A$ under type environment $\Gamma$, where $\square$ is
+% either a value term ($V$) or a computation term ($M$).
 %
 The constants have the following types.
 %
@@ -13680,49 +13692,50 @@ reduces to term $N$ in one step.
 
 \paragraph{Notation}
 %
-We elide type annotations when clear from context.
+We use the same notation as introduced in Section~\ref{sec:base-language-dynamic-semantics}.
+% We elide type annotations when clear from context.
+% %
+% For convenience we often write code in direct-style assuming the
+% standard left-to-right call-by-value elaboration into fine-grain
+% call-by-value~\citep{Moggi91, FlanaganSDF93}.
+% %
+% For example, the expression $f\,(h\,w) + g\,\Unit$ is syntactic sugar
+% for:
+% %
+% {
+% \[
+%       \ba[t]{@{~}l}
+%       \Let\; x \revto h\,w \;\In\;
+%       \Let\; y \revto f\,x \;\In\;
+%       \Let\; z \revto g\,\Unit \;\In\;
+%       y + z
+%       \ea
+% \]}%
+% %
+% We define sequencing of computations in the standard way.
+% %
+% {
+% \[
+%   M;N \defas \Let\;x \revto M \;\In\;N, \quad \text{where $x \notin FV(N)$}
+% \]}%
+% %
+% We make use of standard syntactic sugar for pattern matching. For
+% instance, we write
+% %
+% {
+% \[
+%   \lambda\Unit.M \defas \lambda x^{\One}.M, \quad \text{where $x \notin FV(M)$}
+% \]}%
+% %
+% for suspended computations, and if the binder has a type other than
+% $\One$, we write:
+% %
+% {
+% \[
+%   \lambda\_^A.M \defas \lambda x^A.M, \quad \text{where $x \notin FV(M)$}
+% \]}%
 %
-For convenience we often write code in direct-style assuming the
-standard left-to-right call-by-value elaboration into fine-grain
-call-by-value~\citep{Moggi91, FlanaganSDF93}.
-%
-For example, the expression $f\,(h\,w) + g\,\Unit$ is syntactic sugar
-for:
-%
-{
-\[
-      \ba[t]{@{~}l}
-      \Let\; x \revto h\,w \;\In\;
-      \Let\; y \revto f\,x \;\In\;
-      \Let\; z \revto g\,\Unit \;\In\;
-      y + z
-      \ea
-\]}%
-%
-We define sequencing of computations in the standard way.
-%
-{
-\[
-  M;N \defas \Let\;x \revto M \;\In\;N, \quad \text{where $x \notin FV(N)$}
-\]}%
-%
-We make use of standard syntactic sugar for pattern matching. For
-instance, we write
-%
-{
-\[
-  \lambda\Unit.M \defas \lambda x^{\One}.M, \quad \text{where $x \notin FV(M)$}
-\]}%
-%
-for suspended computations, and if the binder has a type other than
-$\One$, we write:
-%
-{
-\[
-  \lambda\_^A.M \defas \lambda x^A.M, \quad \text{where $x \notin FV(M)$}
-\]}%
-%
-We use the standard encoding of booleans as a sum:
+Although, we adapt the encoding of booleans to use regular sums.
 {
 \begin{mathpar}
 \Bool \defas \One + \One
@@ -13753,49 +13766,53 @@ We now define $\HPCF$ as an extension of $\BPCF$.
                       \mid  \{ \OpCase{\ell}{p}{r} \mapsto N \} \uplus H\\
 \end{syntax}}%
 %
-We assume a countably infinite set $\mathcal{L}$ of operation symbols
-$\ell$.
+Again, $\HPCF$ is essentially a simply-typed variation of $\HCalc$.
+%
+There are a couple of key differences. The first key difference is
+that in the absence of an effect system $\HPCF$ uses a nominal notion
+of effects. Following \citet{Pretnar15}, we assume a global effect
+signature $\Sigma$ for every program.
 %
 An effect signature $\Sigma$ is a map from operation symbols to their
 types, thus we assume that each operation symbol in a signature is
-distinct. An operation type $A \to B$ classifies operations that take
-an argument of type $A$ and return a result of type $B$.
+distinct.%  An operation type $A \to B$ classifies operations that take
+% an argument of type $A$ and return a result of type $B$.
 %
 We write $\dom(\Sigma) \subseteq \mathcal{L}$ for the set of operation
 symbols in a signature $\Sigma$.
 %
-A handler type $C \Rightarrow D$ classifies effect handlers that
-transform computations of type $C$ into computations of type $D$.
+% A handler type $C \Rightarrow D$ classifies effect handlers that
+% transform computations of type $C$ into computations of type $D$.
 %
-Following \citet{Pretnar15}, we assume a global signature for every
-program.
+% Following \citet{Pretnar15}, we assume a global signature for every
+% program.
+% %
+% Computations are extended with operation invocation ($\Do\;\ell\;V$)
+% and effect handling ($\Handle\; M \;\With\; H$).
+% %
+% Handlers are constructed from one success clause $(\{\Return\; x \mapsto
+% M\})$ and one operation clause $(\{ \OpCase{\ell}{p}{r} \mapsto N \})$ for
+% each operation $\ell$ in $\Sigma$.
 %
-Computations are extended with operation invocation ($\Do\;\ell\;V$)
-and effect handling ($\Handle\; M \;\With\; H$).
-%
-Handlers are constructed from one success clause $(\{\Return\; x \mapsto
-M\})$ and one operation clause $(\{ \OpCase{\ell}{p}{r} \mapsto N \})$ for
-each operation $\ell$ in $\Sigma$.
-%
-Following \citet{PlotkinP13}, we adopt the convention that a handler
-with missing operation clauses (with respect to $\Sigma$) is syntactic
-sugar for one in which all missing clauses perform explicit
-forwarding:
+The second and last key difference is that we adopt
+\citeauthor{PlotkinP13}'s convention that a handler with missing
+operation clauses (with respect to $\Sigma$) is syntactic sugar for
+one in which all missing clauses perform explicit
+forwarding~\cite{PlotkinP13}, i.e.
 %
 \[
    \{\OpCase{\ell}{p}{r} \mapsto \Let\; x \revto \Do \; \ell \, p \;\In\; r \, x\}.
 \]
 %
-\paragraph{Remark}
-  This convention makes effect forwarding explicit, whereas in
-  $\HCalc$ effect forwarding was implicit. As we shall see soon, an
-  important semantic consequence of making effect forwarding explicit
-  is that the abstract machine model in
-  Section~\ref{sec:handler-machine} has no rule for effect forwarding
-  as it instead happens as a sequence of explicit $\Do$ invocations in
-  the term language. As a result, we become able to reason about
-  continuation reification as a constant time operation, because a
-  $\Do$ invocation will just reify the top-most continuation frame.\medskip
+This convention makes effect forwarding explicit, whereas in $\HCalc$
+effect forwarding was implicit. As we shall see soon, an important
+semantic consequence of making effect forwarding explicit is that the
+abstract machine model in Section~\ref{sec:handler-machine} has no
+rule for effect forwarding as it instead happens as a sequence of
+explicit $\Do$ invocations in the term language. As a result, we
+become able to reason about continuation reification as a constant
+time operation, because a $\Do$ invocation will just reify the
+top-most continuation frame.\medskip
 
 \begin{figure*}
 \raggedright
@@ -13825,61 +13842,65 @@ forwarding:
 \label{fig:typing-handlers}
 \end{figure*}
 
-The typing rules for $\HPCF$ are those of $\BPCF$
-(Figure~\ref{fig:typing}) plus three additional rules for operations,
-handling, and handlers given in Figure~\ref{fig:typing-handlers}.
+The typing rules for handlers and operation invocation are similar to
+those of $\HCalc$ given in Section~\ref{sec:unary-deep-handlers}. The
+main difference is that the type of operations are retrieved from the
+global effect signature $\Sigma$ rather than the current effect
+context. The typing rules are given in
+Figure~\ref{fig:typing-handlers}.
 %
-The \tylab{Do} rule ensures that an operation invocation is only
-well-typed if the operation $\ell$ appears in the effect signature
-$\Sigma$ and the argument type $A$ matches the type of the provided
-argument $V$. The result type $B$ determines the type of the
-invocation.
+% The \tylab{Do} rule ensures that an operation invocation is only
+% well-typed if the operation $\ell$ appears in the effect signature
+% $\Sigma$ and the argument type $A$ matches the type of the provided
+% argument $V$. The result type $B$ determines the type of the
+% invocation.
+% %
+% The \tylab{Handle} rule types handler application.
+% %
+% The \tylab{Handler} rule ensures that the bodies of the success clause
+% and the operation clauses all have the output type $D$. The type of
+% $x$ in the success clause must match the input type $C$. The type of
+% the parameter $p$ ($A_\ell$) and resumption $r$ ($B_\ell \to D$) in
+% operation clause $\hell$ is determined by the type of $\ell$; the
+% return type of $r$ is $D$, as the body of the resumption will itself
+% be handled by $H$.
 %
-The \tylab{Handle} rule types handler application.
-%
-The \tylab{Handler} rule ensures that the bodies of the success clause
-and the operation clauses all have the output type $D$. The type of
-$x$ in the success clause must match the input type $C$. The type of
-the parameter $p$ ($A_\ell$) and resumption $r$ ($B_\ell \to D$) in
-operation clause $\hell$ is determined by the type of $\ell$; the
-return type of $r$ is $D$, as the body of the resumption will itself
-be handled by $H$.
-%
-We write $\hell$ and $\hret$ for projecting success and operation
-clauses.
-{
-\[
-  \ba{@{~}r@{~}c@{~}l@{~}l}
-    \hret &\defas& \{\Return\, x \mapsto N \}, &\quad \text{where } \{\Return\, x \mapsto N \} \in H\\
-    \hell &\defas& \{\OpCase{\ell}{p}{r} \mapsto N \}, &\quad \text{where } \{\OpCase{\ell}{p}{r} \mapsto N \} \in H
-  \ea
-\]}%
+% We write $\hell$ and $\hret$ for projecting success and operation
+% clauses.
+% {
+% \[
+%   \ba{@{~}r@{~}c@{~}l@{~}l}
+%     \hret &\defas& \{\Return\, x \mapsto N \}, &\quad \text{where } \{\Return\, x \mapsto N \} \in H\\
+%     \hell &\defas& \{\OpCase{\ell}{p}{r} \mapsto N \}, &\quad \text{where } \{\OpCase{\ell}{p}{r} \mapsto N \} \in H
+%   \ea
+% \]}%
 
-We extend the operational semantics to $\HPCF$. Specifically, we add
-two new reduction rules: one for handling return values and another
-for handling operation invocations.
+The reduction rules for handlers are similar to those of $\HCalc$.
 %
 {
 \begin{reductions}
 \semlab{Ret} & \Handle \; (\Return \; V) \; \With \; H &\reducesto& N[V/x], \qquad
                                       \text{where } \hret = \{ \Return \; x \mapsto N \} \smallskip\\
-                                      \semlab{Op}  & \Handle \; \EC[\Do \; \ell \, V] \; \With \; H &\reducesto& N[V/p,(\lambda y.\Handle \; \EC[\Return \; y] \; \With \; H)/r],\\
+\semlab{Op}  & \Handle \; \EC[\Do \; \ell \, V] \; \With \; H &\reducesto& N[V/p,(\lambda y.\Handle \; \EC[\Return \; y] \; \With \; H)/r],\\
     \multicolumn{4}{@{}r@{}}{
       \hfill\text{where } \hell = \{ \OpCase{\ell}{p}{r} \mapsto N \}
     }
 \end{reductions}}%
 %
-The first rule invokes the success clause.
+However, the attentive reader may notice that the \semlab{Op} is
+missing the side condition regarding $\ell$ not appearing in the bound
+labels of $\EC$. The notion of bound labels is of no use to us here
+due the convention that every handler handles every
+operation. Instead, we use a different notion of evaluation
+context. Although, some care must be taken to ensure the language
+semantics remains deterministic.
 %
-The second rule handles an operation via the corresponding operation
-clause.
-%
-If we were \naively to extend evaluation contexts with the handle
+As if we were \naively to extend evaluation contexts with the handle
 construct then our semantics would become nondeterministic, as it may
 pick an arbitrary handler in scope.
 %
-In order to ensure that the semantics is deterministic, we instead add
-a distinct form of evaluation context for effectful computation, which
+In order to ensure that the semantics is deterministic, we add a
+distinct form of evaluation context for effectful computation, which
 we call handler contexts.
 %
 {
@@ -13899,8 +13920,10 @@ The separation between pure evaluation contexts $\EC$ and handler
 contexts $\HC$ ensures that the $\semlab{Op}$ rule always selects the
 innermost handler.
 
-We now characterise normal forms and state the standard type soundness
-property of $\HPCF$.
+The computation normal forms and type soundness property of $\HCalc$
+carry over with modest changes. A computation term is now normal with
+respect to the global signature $\Sigma$ rather than the current
+effect context.
 %
 \begin{definition}[Computation normal forms]
   A computation term $N$ is normal with respect to $\Sigma$, if $N =
@@ -13909,7 +13932,7 @@ property of $\HPCF$.
 \end{definition}
 %
 
-\begin{theorem}[Type Soundness]
+\begin{theorem}[Type soundness]
   If $\typ{}{M : C}$, then either there exists $\typ{}{N : C}$ such
   that $M \reducesto^* N$ and $N$ is normal with respect to $\Sigma$,
   or $M$ diverges.
