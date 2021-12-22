@@ -2165,9 +2165,12 @@ as well as implementation strategies for first-class control.
   made in Section~\ref{sec:monadic-state}, that the state equation
   ``Get after get'' is redundant.
 
-\item Appendix~\ref{sec:proofs-cps-gen-cont} contains the proof
-  details for the proof of correctness of the higher-order
-  continuation-passing style translation developed in Chapter~\ref{ch:cps}.
+% \item Appendix~\ref{sec:proofs-cps-gen-cont} contains the proof
+%   details for the proof of correctness of the higher-order
+%   continuation-passing style translation developed in Chapter~\ref{ch:cps}.
+
+\item Appendix~\ref{sec:positive-theorem} contains the proof details
+  for the proof of Theorem~\ref{thm:complexity-effectful-counting}.
 
 \item Appendix~\ref{sec:berger-count} discusses the Berger count
   program, which is briefly mentioned in
@@ -4913,7 +4916,7 @@ This is an example of inversion of control as iteration function
 $\iter$ has effectively been turned into a generator, whose elements
 are computed on demand.
 %
-We use the character $\textnil$ to identify the end of a stream. It is
+We use the character \textnil{} to identify the end of a stream. It is
 essentially a character interpretation of the empty list (file)
 $\nil$.
 
@@ -5195,7 +5198,7 @@ the eighth process. The output of the pipeline is supplied to the
 $\echo$ utility whose output is being redirected to a file named
 $\strlit{analysis}$. Contents of the file reside in location $2$ in
 the data region. Here we can see that the analysis has found that the
-words ``to'', ``be'', and the newline character ``$\nl$'' appear two
+words ``to'', ``be'', and the newline character ``\nl{}'' appear two
 times each, whilst the other words appear once each.
 
 \section{Process synchronisation}
@@ -5730,7 +5733,7 @@ and programming with computational effects.
 
 \paragraph{Chapter outline}
 \begin{description}
-\item[Section~\ref{sec:base-calculus}] introduces the base calculus
+\item[Section~\ref{sec:base-calculus-poly}] introduces the base calculus
   $\BCalc$, which makes crucial use of \emph{rows} to support variant,
   record, and effect polymorphism.
 \item[Section~\ref{sec:unary-deep-handlers}] extends $\BCalc$ with
@@ -5762,7 +5765,7 @@ syntactic changes from the following work.
 % \ref{en:sec-handlers-HLA20} above.
 
 \section{A language based on rows}
-\label{sec:base-calculus}
+\label{sec:base-calculus-poly}
 
 At glance $\BCalc$ is an intrinsically typed language supporting type
 and effect polymorphism. The key characteristic of $\BCalc$ is that it
@@ -9547,10 +9550,10 @@ case static pattern matching would fail.
 
 We establish the correctness of the higher-order uncurried CPS
 translation via a simulation result in the style of
-Plotkin~\cite{Plotkin75} (Theorem~\ref{thm:ho-simulation}). However,
-before we can state and prove this result, we first several auxiliary
-lemmas describing how translated terms behave. First, the higher-order
-CPS translation commutes with substitution.
+Plotkin~\cite{Plotkin75} (Theorem~\ref{thm:ho-simulation}). Before we
+can state and prove this result, we first several auxiliary lemmas
+describing how translated terms behave. First, the higher-order CPS
+translation commutes with substitution.
 %
 \begin{lemma}[Substitution]\label{lem:ho-cps-subst}
   %
@@ -10304,7 +10307,7 @@ $\sV_{\mops}$ are all reflected dynamic terms (i.e., of the form
 $\reflect V$). This fact is used implicitly in the proofs. For brevity
 we write $\sV_f$ to denote a statically known continuation frame
 $\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}}$. The full
-proof details are given in Appendix~\ref{sec:proofs-cps-gen-cont}.
+proof details are published in Appendix A of \citet{HillerstromLA20}.
 
 %
 \begin{lemma}[Substitution]\label{lem:subst-gen-cont}
@@ -19790,944 +19793,944 @@ for helping me relearning this fact from first principles).
   \end{derivation}
 \end{proof}
 
-\chapter{Proofs of correctness of the higher-order uncurried CPS
-  translation}
-\label{sec:proofs-cps-gen-cont}
-This appendix contains the proof details for the higher-order
-uncurried CPS translation.
-\paragraph{Relation to prior work} This appendix is imported from
-Appendix A of \citet{HillerstromLA20}.\medskip
+% \chapter{Proofs of correctness of the higher-order uncurried CPS
+%   translation}
+% \label{sec:proofs-cps-gen-cont}
+% This appendix contains the proof details for the higher-order
+% uncurried CPS translation.
+% \paragraph{Relation to prior work} This appendix is imported from
+% Appendix A of \citet{HillerstromLA20}.\medskip
 
-\begin{lemma}[Substitution]\label{lem:subst-gen-cont-proof}
-  %
-  The CPS translation commutes with substitution in value terms
-  %
-  \[
-    \cps{W}[\cps{V}/x] = \cps{W[V/x]},
-  \]
-  %
-  and with substitution in computation terms
-  \[
-    \ba{@{}l@{~}l}
-      &(\cps{M} \sapp (\sV_f \scons \sW))[\cps{V}/x]\\
-    = &\cps{M[V/x]} \sapp (\sV_f \scons \sW)[\cps{V}/x],
-    \ea
-  \]
-  %
-  and with substitution in handler definitions
-  %
-  \begin{equations}
-     \cps{\hret}[\cps{V}/x]
-      &=& \cps{\hret[V/x]},\\
-     \cps{\hops}[\cps{V}/x]
-      &=& \cps{\hops[V/x]}.
-  \end{equations}
-\end{lemma}
-%
-\begin{proof}
-  The proof is by mutual induction on the structure of the computation
-  term $M$ and the value term $W$. For most of the cases, the
-  existence of the top level frame on the stack is not important, so
-  we just refer to the whole static continuation stack as $\sW$. Note
-  that we make implicit use of the fact that the parts of the
-  continuation stack that are statically known are all of the form of
-  right nested triples of reflected dynamic terms.
-  \begin{description}
-  \item[Case] $M = V' \, W$.
-    \begin{derivation}
-      &  (\cps{V' \, W} \sapp \sW)[\cps{V}/x]\\
-      =&           \reason{definition of $\cps{-}$} \\
-      &  ((\slam \sk . \cps{V'} \dapp \cps{W} \dapp \reify \sk) \sapp \sW)[\cps{V}/x] \\
-      =&           \reason{static $\beta$-conversion} \\
-      &  (\cps{V'} \dapp \cps{W} \dapp \reify \sW)[\cps{V}/x] \\
-      =&           \reason{definition of $[-]$} \\
-      &  (\cps{V'}[\cps{V}/x]) \dapp (\cps{W}[\cps{V}/x]) \dapp \reify \sW[\cps{V}/x] \\
-      =&           \reason{IH 2, twice} \\
-      &  \cps{V'[V/x]} \dapp \cps{W[V/x]} \dapp \reify \sW[\cps{V}/x] \\
-      =&           \reason{static $\beta$-conversion} \\
-      &  (\slam \sk . \cps{V'[V/x]} \dapp \cps{W[V/x]} \dapp \reify \sk) \sapp \sW[\cps{V}/x] \\
-      =&           \reason{definition of $\cps{-}$} \\
-      & \cps{(V'[V/x])\, (W[V/x])} \sapp \sW[\cps{V}/x] \\
-      =&           \reason{definition of $[-]$} \\
-      &  \cps{(V'\, W)[V/x]} \sapp \sW[\cps{V}/x]
-    \end{derivation}
+% \begin{lemma}[Substitution]\label{lem:subst-gen-cont-proof}
+%   %
+%   The CPS translation commutes with substitution in value terms
+%   %
+%   \[
+%     \cps{W}[\cps{V}/x] = \cps{W[V/x]},
+%   \]
+%   %
+%   and with substitution in computation terms
+%   \[
+%     \ba{@{}l@{~}l}
+%       &(\cps{M} \sapp (\sV_f \scons \sW))[\cps{V}/x]\\
+%     = &\cps{M[V/x]} \sapp (\sV_f \scons \sW)[\cps{V}/x],
+%     \ea
+%   \]
+%   %
+%   and with substitution in handler definitions
+%   %
+%   \begin{equations}
+%      \cps{\hret}[\cps{V}/x]
+%       &=& \cps{\hret[V/x]},\\
+%      \cps{\hops}[\cps{V}/x]
+%       &=& \cps{\hops[V/x]}.
+%   \end{equations}
+% \end{lemma}
+% %
+% \begin{proof}
+%   The proof is by mutual induction on the structure of the computation
+%   term $M$ and the value term $W$. For most of the cases, the
+%   existence of the top level frame on the stack is not important, so
+%   we just refer to the whole static continuation stack as $\sW$. Note
+%   that we make implicit use of the fact that the parts of the
+%   continuation stack that are statically known are all of the form of
+%   right nested triples of reflected dynamic terms.
+%   \begin{description}
+%   \item[Case] $M = V' \, W$.
+%     \begin{derivation}
+%       &  (\cps{V' \, W} \sapp \sW)[\cps{V}/x]\\
+%       =&           \reason{definition of $\cps{-}$} \\
+%       &  ((\slam \sk . \cps{V'} \dapp \cps{W} \dapp \reify \sk) \sapp \sW)[\cps{V}/x] \\
+%       =&           \reason{static $\beta$-conversion} \\
+%       &  (\cps{V'} \dapp \cps{W} \dapp \reify \sW)[\cps{V}/x] \\
+%       =&           \reason{definition of $[-]$} \\
+%       &  (\cps{V'}[\cps{V}/x]) \dapp (\cps{W}[\cps{V}/x]) \dapp \reify \sW[\cps{V}/x] \\
+%       =&           \reason{IH 2, twice} \\
+%       &  \cps{V'[V/x]} \dapp \cps{W[V/x]} \dapp \reify \sW[\cps{V}/x] \\
+%       =&           \reason{static $\beta$-conversion} \\
+%       &  (\slam \sk . \cps{V'[V/x]} \dapp \cps{W[V/x]} \dapp \reify \sk) \sapp \sW[\cps{V}/x] \\
+%       =&           \reason{definition of $\cps{-}$} \\
+%       & \cps{(V'[V/x])\, (W[V/x])} \sapp \sW[\cps{V}/x] \\
+%       =&           \reason{definition of $[-]$} \\
+%       &  \cps{(V'\, W)[V/x]} \sapp \sW[\cps{V}/x]
+%     \end{derivation}
 
-  \item[Case] $M = W\, T$.
-    \begin{derivation}
-      &  (\cps{W \, T} \sapp \sW)[\cps{V}/x]\\
-      =&           \reason{definition of $\cps{-}$} \\
-      &  ((\slam \sk . \cps{W} \dapp \Record{} \dapp \reify \sk) \sapp \sW)[\cps{V}/x] \\
-      =&           \reason{static $\beta$-conversion} \\
-      &  (\cps{W} \dapp \Record{} \dapp \reify \sW)[\cps{V}/x] \\
-      =&           \reason{definition of $[-]$} \\
-      &  \cps{W}[\cps{V}/x] \dapp \Record{} \dapp \reify \sW[\cps{V}/x] \\
-      =&           \reason{IH 2} \\
-      & \cps{W[V/x]} \dapp \Record{} \dapp \reify \sW[\cps{V}/x] \\
-    \end{derivation}
-    \begin{derivation}
-      =&           \reason{static $\beta$-conversion} \\
-      &  (\slam \sk . \cps{W[V/x]} \dapp \Record{} \dapp \reify \sk) \sapp \sW[\cps{V}/x] \\
-      =&           \reason{definition of $\cps{-}$} \\
-      &  \cps{W[V/x]\,T} \sapp \sW[\cps{V}/x] \\
-      =&           \reason{definition of $[-]$} \\
-      &  \cps{(W\,T)[V/x]} \sapp \sW[\cps{V}/x]
-    \end{derivation}
+%   \item[Case] $M = W\, T$.
+%     \begin{derivation}
+%       &  (\cps{W \, T} \sapp \sW)[\cps{V}/x]\\
+%       =&           \reason{definition of $\cps{-}$} \\
+%       &  ((\slam \sk . \cps{W} \dapp \Record{} \dapp \reify \sk) \sapp \sW)[\cps{V}/x] \\
+%       =&           \reason{static $\beta$-conversion} \\
+%       &  (\cps{W} \dapp \Record{} \dapp \reify \sW)[\cps{V}/x] \\
+%       =&           \reason{definition of $[-]$} \\
+%       &  \cps{W}[\cps{V}/x] \dapp \Record{} \dapp \reify \sW[\cps{V}/x] \\
+%       =&           \reason{IH 2} \\
+%       & \cps{W[V/x]} \dapp \Record{} \dapp \reify \sW[\cps{V}/x] \\
+%     \end{derivation}
+%     \begin{derivation}
+%       =&           \reason{static $\beta$-conversion} \\
+%       &  (\slam \sk . \cps{W[V/x]} \dapp \Record{} \dapp \reify \sk) \sapp \sW[\cps{V}/x] \\
+%       =&           \reason{definition of $\cps{-}$} \\
+%       &  \cps{W[V/x]\,T} \sapp \sW[\cps{V}/x] \\
+%       =&           \reason{definition of $[-]$} \\
+%       &  \cps{(W\,T)[V/x]} \sapp \sW[\cps{V}/x]
+%     \end{derivation}
 
-  \item[Case] $M = \Let \; \Record{\ell = x'; y} = W \; \In \; N$.
-    \begin{derivation}
-      &  (\cps{\Let \; \Record{\ell = x'; y} = W \; \In \; N} \sapp \sW)[\cps{V}/x]\\
-      =&           \reason{definition of $\cps{-}$} \\
-      & ((\slam \sk . \Let \; \Record{\ell = x'; y} = \cps{W} \; \In \; \cps{N} \sapp \sk) \sapp \sW)[\cps{V}/x] \\
-      =&           \reason{static $\beta$-conversion} \\
-      & (\Let \; \Record{\ell = x'; y} = \cps{W} \; \In \; \cps{N} \sapp \sW)[\cps{V}/x] \\
-      =&           \reason{definition of $[-]$} \\
-      & \Let \; \Record{\ell = x'; y} = \cps{W}[\cps{V}/x] \; \In \; (\cps{N} \sapp \sW)[\cps{V}/x] \\
-      =&           \reason{IH 1 and IH 2} \\
-      & \Let \; \Record{\ell = x'; y} = \cps{W[V/x]} \; \In \; \cps{N[V/x]} \sapp \sW[\cps{V}/x] \\
-    %% \end{derivation}
-    %% \begin{derivation}
-      =&           \reason{static $\beta$-conversion} \\
-      & (\slam \sk . \Let \; \Record{\ell = x'; y} = \cps{W[V/x]} \; \In \; \cps{N[V/x]} \sapp \sk) \sapp \sW[\cps{V}/x] \\
-      =&           \reason{definition of $\cps{-}$} \\
-      & \cps{\Let \; \Record{\ell = x'; y} = W[V/x] \; \In \; N[V/x]} \sapp \sW[\cps{V}/x]\\
-      =&           \reason{definition of $[-]$} \\
-      & \cps{(\Let \; \Record{\ell = x'; y} = W \; \In \; N)[V/x]} \sapp \sW[\cps{V}/x]
-    \end{derivation}
+%   \item[Case] $M = \Let \; \Record{\ell = x'; y} = W \; \In \; N$.
+%     \begin{derivation}
+%       &  (\cps{\Let \; \Record{\ell = x'; y} = W \; \In \; N} \sapp \sW)[\cps{V}/x]\\
+%       =&           \reason{definition of $\cps{-}$} \\
+%       & ((\slam \sk . \Let \; \Record{\ell = x'; y} = \cps{W} \; \In \; \cps{N} \sapp \sk) \sapp \sW)[\cps{V}/x] \\
+%       =&           \reason{static $\beta$-conversion} \\
+%       & (\Let \; \Record{\ell = x'; y} = \cps{W} \; \In \; \cps{N} \sapp \sW)[\cps{V}/x] \\
+%       =&           \reason{definition of $[-]$} \\
+%       & \Let \; \Record{\ell = x'; y} = \cps{W}[\cps{V}/x] \; \In \; (\cps{N} \sapp \sW)[\cps{V}/x] \\
+%       =&           \reason{IH 1 and IH 2} \\
+%       & \Let \; \Record{\ell = x'; y} = \cps{W[V/x]} \; \In \; \cps{N[V/x]} \sapp \sW[\cps{V}/x] \\
+%     %% \end{derivation}
+%     %% \begin{derivation}
+%       =&           \reason{static $\beta$-conversion} \\
+%       & (\slam \sk . \Let \; \Record{\ell = x'; y} = \cps{W[V/x]} \; \In \; \cps{N[V/x]} \sapp \sk) \sapp \sW[\cps{V}/x] \\
+%       =&           \reason{definition of $\cps{-}$} \\
+%       & \cps{\Let \; \Record{\ell = x'; y} = W[V/x] \; \In \; N[V/x]} \sapp \sW[\cps{V}/x]\\
+%       =&           \reason{definition of $[-]$} \\
+%       & \cps{(\Let \; \Record{\ell = x'; y} = W \; \In \; N)[V/x]} \sapp \sW[\cps{V}/x]
+%     \end{derivation}
 
-  \item[Case] $M = \Case\;V\;\{\ell\;x \mapsto M; y \mapsto
-    N\}$. Similar to the $M = \Let\;\Record{\ell=x;y} = V\;\In\;N$
-    case.
+%   \item[Case] $M = \Case\;V\;\{\ell\;x \mapsto M; y \mapsto
+%     N\}$. Similar to the $M = \Let\;\Record{\ell=x;y} = V\;\In\;N$
+%     case.
 
-  \item[Case] $M = \Absurd \; W$.
-    \begin{derivation}
-      &  (\cps{\Absurd \; W} \sapp \sW)[\cps{V}/x]\\
-      =&           \reason{definition of $\cps{-}$} \\
-      &  ((\slam \sk. \Absurd \; W) \sapp \sW)[\cps{V}/x] \\
-      =&           \reason{static $\beta$-conversion} \\
-      &  (\Absurd \; \cps{W})[\cps{V}/x] \\
-      =&           \reason{definition of $[-]$} \\
-      & \Absurd \; \cps{W}[\cps{V}/x] \\
-      =&           \reason{IH 2} \\
-      & \Absurd \; \cps{W[V/x]} \\
-      =&           \reason{static $\beta$-conversion} \\
-      &  (\slam \sk . \Absurd\; \cps{W[V/x]}) \sapp \sW[\cps{V}/x] \\
-      =&           \reason{definition of $\cps{-}$} \\
-      &  \cps{\Absurd\; W[V/x]} \sapp \sW[\cps{V}/x]\\
-      =&           \reason{definition of $[-]$} \\
-      & \cps{(\Absurd\; W)[V/x]} \sapp \sW[\cps{V}/x]\\
-    \end{derivation}
+%   \item[Case] $M = \Absurd \; W$.
+%     \begin{derivation}
+%       &  (\cps{\Absurd \; W} \sapp \sW)[\cps{V}/x]\\
+%       =&           \reason{definition of $\cps{-}$} \\
+%       &  ((\slam \sk. \Absurd \; W) \sapp \sW)[\cps{V}/x] \\
+%       =&           \reason{static $\beta$-conversion} \\
+%       &  (\Absurd \; \cps{W})[\cps{V}/x] \\
+%       =&           \reason{definition of $[-]$} \\
+%       & \Absurd \; \cps{W}[\cps{V}/x] \\
+%       =&           \reason{IH 2} \\
+%       & \Absurd \; \cps{W[V/x]} \\
+%       =&           \reason{static $\beta$-conversion} \\
+%       &  (\slam \sk . \Absurd\; \cps{W[V/x]}) \sapp \sW[\cps{V}/x] \\
+%       =&           \reason{definition of $\cps{-}$} \\
+%       &  \cps{\Absurd\; W[V/x]} \sapp \sW[\cps{V}/x]\\
+%       =&           \reason{definition of $[-]$} \\
+%       & \cps{(\Absurd\; W)[V/x]} \sapp \sW[\cps{V}/x]\\
+%     \end{derivation}
 
-  \item[Case] $M = \Return \; W$.
-    \begin{derivation}
-      & (\cps{\Return\; W} \sapp \sW)[\cps{V}/x] \\
-      =&       \reason{definition of $\cps{-}$}\\
-      & ((\slam \sk. \kapp\;\reify\sk\;\cps{W}) \sapp \sW)[\cps{V}/x] \\
-      =&       \reason{static $\beta$-conversion}\\
-      & (\kapp\;\reify \sW\;\cps{W})[\cps{V}/x]\\
-      =&       \reason{definition of $[-/-]$} \\
-      & \kapp\;\reify (\sW[\cps{V}/x])\;(\cps{W}[\cps{V}/x])\\
-      =&       \reason{IH 2} \\
-      & \kapp\;\reify (\sW[\cps{V}/x])\;\cps{W[V/x]}\\
-      =&       \reason{static $\beta$-conversion} \\
-      & (\slam \sk.\,\kapp\;\reify \sk\;\cps{W[V/x]}) \sapp \sW[\cps{V}/x] \\
-      =&       \reason{definition of $\cps{-}$}\\
-      & \cps{\Return\; (W[V/x])} \sapp \sW[\cps{V}/x]\\
-      =&       \reason{definition of $[-/-]$}\\
-      & \cps{(\Return\; W)[V/x]} \sapp \sW[\cps{V}/x]
-    \end{derivation}
+%   \item[Case] $M = \Return \; W$.
+%     \begin{derivation}
+%       & (\cps{\Return\; W} \sapp \sW)[\cps{V}/x] \\
+%       =&       \reason{definition of $\cps{-}$}\\
+%       & ((\slam \sk. \kapp\;\reify\sk\;\cps{W}) \sapp \sW)[\cps{V}/x] \\
+%       =&       \reason{static $\beta$-conversion}\\
+%       & (\kapp\;\reify \sW\;\cps{W})[\cps{V}/x]\\
+%       =&       \reason{definition of $[-/-]$} \\
+%       & \kapp\;\reify (\sW[\cps{V}/x])\;(\cps{W}[\cps{V}/x])\\
+%       =&       \reason{IH 2} \\
+%       & \kapp\;\reify (\sW[\cps{V}/x])\;\cps{W[V/x]}\\
+%       =&       \reason{static $\beta$-conversion} \\
+%       & (\slam \sk.\,\kapp\;\reify \sk\;\cps{W[V/x]}) \sapp \sW[\cps{V}/x] \\
+%       =&       \reason{definition of $\cps{-}$}\\
+%       & \cps{\Return\; (W[V/x])} \sapp \sW[\cps{V}/x]\\
+%       =&       \reason{definition of $[-/-]$}\\
+%       & \cps{(\Return\; W)[V/x]} \sapp \sW[\cps{V}/x]
+%     \end{derivation}
 
-  \item[Case] $M = \Let \; y \revto M' \; \In \; N$. We have:
-    \begin{derivation}
-      &(\cps{\Let \; y \revto M' \; \In \; N} \sapp  (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))[\cps{V}/x]\\
-      =&       \reason{definition of $\cps{-}$} \\
-      &(\bl(\slam \sRecord{\theta, \sRecord{\svhret,\svhops}}\scons \sk.\\
-      \qquad \cps{M'}\sapp(\sRecord{\reflect((\dlam y\,k.\,\bl
-                                                           \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In \\
-                                                           \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))\dcons \reify\theta),\sRecord{\svhret,\svhops}} \scons \kappa)) \\
-                                                           \el \\
-      \quad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))[\cps{V}/x]\el\\
-      =&        \reason{static $\beta$-conversion}\\
-      &(\cps{M'}\sapp(\sRecord{\reflect((\dlam y\,k.\,\bl
-                                                      \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In \\
-                                                      \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))\dcons \reify \sV_{fs}),\sV_h} \scons \sW'))[\cps{V}/x] \\
-                                                    \el \\
-      =&        \reason{IH 1 on $M'$}\\
-      &\cps{M'[V/x]}\sapp
-              ((\sRecord{\reflect((\dlam y\,k.\,\bl
-                                                \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In \\
-                                                \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))\dcons \reify \sV_{fs}),\sV_h} \scons \sW')[\cps{V}/x])
-                                                \el \\
-      =&        \reason{definition of $[-/-]$}\\
-      &\cps{M'[V/x]} \sapp
-            (\sRecord{\bl
-                      \reflect((\dlam y\,k.\,\bl
-                                             \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In \\
-                                             (\cps{N} \sapp  (\sRecord{\reflect fs, \sRecord{\reflect \vhret,\reflect \vhops}} \scons \reflect k'))[\cps{V}/x])\dcons \reify(\sV_{fs}[\cps{V}/x])), \\
-                                             \el \\
-                      \sV_h[\cps{V}/x]} \scons (\sW'[\cps{V}/x])) \\
-                      \el \\
-      =&        \reason{IH 1 on $N$} \\
-      &\bl\cps{M'[V/x]}\sapp
-             (\sRecord{\bl
-                       \reflect((\dlam y\,k.\,\bl
-                                              \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In\\
-                                              \cps{N[V/x]} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret,\reflect \vhops}} \scons \reflect k'))\dcons (\reify \sV_{fs}[\cps{V}/x])),
-                                              \el \\
-                       \sV_h[\cps{V}/x]} \scons (\sW'[\cps{V}/x])) \\
-                       \el \\
-        \el \\
-      =&        \reason{static $\beta$-conversion and definition of $\cps{-}$} \\
-      &\cps{\Let\;y\revto M'[V/x]\;\In\;N[V/x]} \sapp ((\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x]) \\
-      =&        \reason{definition of $[-/-]$} \\
-      &\cps{(\Let\;y\revto M'\;\In\;N)[V/x]} \sapp ((\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x]) \\
-    \end{derivation}
+%   \item[Case] $M = \Let \; y \revto M' \; \In \; N$. We have:
+%     \begin{derivation}
+%       &(\cps{\Let \; y \revto M' \; \In \; N} \sapp  (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))[\cps{V}/x]\\
+%       =&       \reason{definition of $\cps{-}$} \\
+%       &(\bl(\slam \sRecord{\theta, \sRecord{\svhret,\svhops}}\scons \sk.\\
+%       \qquad \cps{M'}\sapp(\sRecord{\reflect((\dlam y\,k.\,\bl
+%                                                            \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In \\
+%                                                            \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))\dcons \reify\theta),\sRecord{\svhret,\svhops}} \scons \kappa)) \\
+%                                                            \el \\
+%       \quad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))[\cps{V}/x]\el\\
+%       =&        \reason{static $\beta$-conversion}\\
+%       &(\cps{M'}\sapp(\sRecord{\reflect((\dlam y\,k.\,\bl
+%                                                       \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In \\
+%                                                       \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))\dcons \reify \sV_{fs}),\sV_h} \scons \sW'))[\cps{V}/x] \\
+%                                                     \el \\
+%       =&        \reason{IH 1 on $M'$}\\
+%       &\cps{M'[V/x]}\sapp
+%               ((\sRecord{\reflect((\dlam y\,k.\,\bl
+%                                                 \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In \\
+%                                                 \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))\dcons \reify \sV_{fs}),\sV_h} \scons \sW')[\cps{V}/x])
+%                                                 \el \\
+%       =&        \reason{definition of $[-/-]$}\\
+%       &\cps{M'[V/x]} \sapp
+%             (\sRecord{\bl
+%                       \reflect((\dlam y\,k.\,\bl
+%                                              \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In \\
+%                                              (\cps{N} \sapp  (\sRecord{\reflect fs, \sRecord{\reflect \vhret,\reflect \vhops}} \scons \reflect k'))[\cps{V}/x])\dcons \reify(\sV_{fs}[\cps{V}/x])), \\
+%                                              \el \\
+%                       \sV_h[\cps{V}/x]} \scons (\sW'[\cps{V}/x])) \\
+%                       \el \\
+%       =&        \reason{IH 1 on $N$} \\
+%       &\bl\cps{M'[V/x]}\sapp
+%              (\sRecord{\bl
+%                        \reflect((\dlam y\,k.\,\bl
+%                                               \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\scons k'=k\;\In\\
+%                                               \cps{N[V/x]} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret,\reflect \vhops}} \scons \reflect k'))\dcons (\reify \sV_{fs}[\cps{V}/x])),
+%                                               \el \\
+%                        \sV_h[\cps{V}/x]} \scons (\sW'[\cps{V}/x])) \\
+%                        \el \\
+%         \el \\
+%       =&        \reason{static $\beta$-conversion and definition of $\cps{-}$} \\
+%       &\cps{\Let\;y\revto M'[V/x]\;\In\;N[V/x]} \sapp ((\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x]) \\
+%       =&        \reason{definition of $[-/-]$} \\
+%       &\cps{(\Let\;y\revto M'\;\In\;N)[V/x]} \sapp ((\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x]) \\
+%     \end{derivation}
 
-  \item[Case] $M = \Do \; (\ell\,W)^E$. We have:
-    \begin{derivation}
-      & (\cps{\Do \; (\ell\,W)^E} \sapp \sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x] \\
-      =&          \reason{definition of $\cps{-}$}\\
-      & (\bl
-         (\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk.\reify\svhops \dapp \dRecord{\ell, \dRecord{\cps{W}, \dRecord{\reify \shf, \dRecord{\reify \svhret, \reify \svhops}} \dcons \dnil}} \dapp \reify \sk) \\
-         \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))[\cps{V}/x] \\
-         \el \\
-      =&        \reason{static $\beta$-conversion} \\
-      & (\reify \sV_{ops} \dapp \dRecord{\ell, \dRecord{\cps{W}, \dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \dnil}} \dapp \reify \sW)[\cps{V}/x] \\
-      =&        \reason{definition of $[-/-]$} \\
-      & \reify \sV_{ops}[\cps{V}/x] \bl
-                                   \dapp \dRecord{\ell, \dRecord{\cps{W}[\cps{V}/x], \dRecord{\reify \sV_{fs}[\cps{V}/x], \dRecord{\reify \sV_{ret}[\cps{V}/x], \reify \sV_{ops}[\cps{V}/x]}} \dcons \dnil}} \\
-                                   \dapp \reify \sW[\cps{V}/x] \\
-                                   \el \\
-      =&        \reason{IH 2 on $W$} \\
-      & \reify \sV_{ops}[\cps{V}/x] \bl
-                                   \dapp \dRecord{\ell, \dRecord{\cps{W[V/x]}, \dRecord{\reify \sV_{fs}[\cps{V}/x], \dRecord{\reify \sV_{ret}[\cps{V}/x], \reify \sV_{ops}[\cps{V}/x]}} \dcons \dnil}} \\
-                                   \dapp \reify \sW[\cps{V}/x] \\
-                                   \el \\
-      =&        \reason{static $\beta$-conversion} \\
-      &\bl
-       (\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk.\vhops \dapp \dRecord{\ell, \dRecord{\cps{W[V/x]}, \dRecord{\reify \shf, \dRecord{\reify \svhret, \reify \svhops}} \dcons \dnil}} \dapp \reify \sk) \\
-       \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x] \\
-       \el \\
-      =&        \reason{definition of $\cps{-}$} \\
-      & (\cps{\Do \; (\ell\,W[V/x])^E} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x] \\
-      =&        \reason{definition of $[-/-]$} \\
-      & (\cps{(\Do \; (\ell\,W)^E)[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x] \\
-    \end{derivation}
+%   \item[Case] $M = \Do \; (\ell\,W)^E$. We have:
+%     \begin{derivation}
+%       & (\cps{\Do \; (\ell\,W)^E} \sapp \sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x] \\
+%       =&          \reason{definition of $\cps{-}$}\\
+%       & (\bl
+%          (\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk.\reify\svhops \dapp \dRecord{\ell, \dRecord{\cps{W}, \dRecord{\reify \shf, \dRecord{\reify \svhret, \reify \svhops}} \dcons \dnil}} \dapp \reify \sk) \\
+%          \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))[\cps{V}/x] \\
+%          \el \\
+%       =&        \reason{static $\beta$-conversion} \\
+%       & (\reify \sV_{ops} \dapp \dRecord{\ell, \dRecord{\cps{W}, \dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \dnil}} \dapp \reify \sW)[\cps{V}/x] \\
+%       =&        \reason{definition of $[-/-]$} \\
+%       & \reify \sV_{ops}[\cps{V}/x] \bl
+%                                    \dapp \dRecord{\ell, \dRecord{\cps{W}[\cps{V}/x], \dRecord{\reify \sV_{fs}[\cps{V}/x], \dRecord{\reify \sV_{ret}[\cps{V}/x], \reify \sV_{ops}[\cps{V}/x]}} \dcons \dnil}} \\
+%                                    \dapp \reify \sW[\cps{V}/x] \\
+%                                    \el \\
+%       =&        \reason{IH 2 on $W$} \\
+%       & \reify \sV_{ops}[\cps{V}/x] \bl
+%                                    \dapp \dRecord{\ell, \dRecord{\cps{W[V/x]}, \dRecord{\reify \sV_{fs}[\cps{V}/x], \dRecord{\reify \sV_{ret}[\cps{V}/x], \reify \sV_{ops}[\cps{V}/x]}} \dcons \dnil}} \\
+%                                    \dapp \reify \sW[\cps{V}/x] \\
+%                                    \el \\
+%       =&        \reason{static $\beta$-conversion} \\
+%       &\bl
+%        (\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk.\vhops \dapp \dRecord{\ell, \dRecord{\cps{W[V/x]}, \dRecord{\reify \shf, \dRecord{\reify \svhret, \reify \svhops}} \dcons \dnil}} \dapp \reify \sk) \\
+%        \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x] \\
+%        \el \\
+%       =&        \reason{definition of $\cps{-}$} \\
+%       & (\cps{\Do \; (\ell\,W[V/x])^E} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x] \\
+%       =&        \reason{definition of $[-/-]$} \\
+%       & (\cps{(\Do \; (\ell\,W)^E)[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)[\cps{V}/x] \\
+%     \end{derivation}
 
-  \item[Case] $M = \Handle^\depth \; M' \; \With \; H$.
-    We make use of two auxiliary results.
-    \begin{enumerate}
-    \item $\cps{\hret}[\cps{V}/x] = \cps{\hret[V/x]}$\label{eq:hret-subst-proof}
-    \item $\cps{\hops}^\depth[\cps{V}/x] = \cps{\hops[V/x]}^\depth$\label{eq:hops-subst-proof}
-    \end{enumerate}
-    \begin{proof}
-      Suppose $\hret = \{ \Return \; y \mapsto N \}$.
-      \begin{derivation}
-        & \cps{\hret}[\cps{V}/x] \\
-        =&       \reason{definition of $\cps{-}$}\\
-        & (\dlam y\,k. \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In\;\cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))[\cps{V}/x] \\
-        =&       \reason{definition of $[-/-]$} \\
-        & \dlam y\,k. \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In\;(\cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))[\cps{V}/x] \\
-        =&       \reason{IH 1 for $N$}\\
-        & \dlam y\,k. \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In\;\cps{N[V/x]} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k') \\
-        =&       \reason{definition of $\cps{-}$}\\
-        & \cps{\hret[V/x]}
-      \end{derivation}
-      The
-      $\hops = \{(\ell\,p\,r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}$
-      case goes through similarly.
-    \end{proof}
+%   \item[Case] $M = \Handle^\depth \; M' \; \With \; H$.
+%     We make use of two auxiliary results.
+%     \begin{enumerate}
+%     \item $\cps{\hret}[\cps{V}/x] = \cps{\hret[V/x]}$\label{eq:hret-subst-proof}
+%     \item $\cps{\hops}^\depth[\cps{V}/x] = \cps{\hops[V/x]}^\depth$\label{eq:hops-subst-proof}
+%     \end{enumerate}
+%     \begin{proof}
+%       Suppose $\hret = \{ \Return \; y \mapsto N \}$.
+%       \begin{derivation}
+%         & \cps{\hret}[\cps{V}/x] \\
+%         =&       \reason{definition of $\cps{-}$}\\
+%         & (\dlam y\,k. \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In\;\cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))[\cps{V}/x] \\
+%         =&       \reason{definition of $[-/-]$} \\
+%         & \dlam y\,k. \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In\;(\cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))[\cps{V}/x] \\
+%         =&       \reason{IH 1 for $N$}\\
+%         & \dlam y\,k. \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In\;\cps{N[V/x]} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k') \\
+%         =&       \reason{definition of $\cps{-}$}\\
+%         & \cps{\hret[V/x]}
+%       \end{derivation}
+%       The
+%       $\hops = \{(\ell\,p\,r \mapsto N_\ell)_{\ell \in \mathcal{L}}\}$
+%       case goes through similarly.
+%     \end{proof}
 
-    We can now prove that substitution commutes with the translation
-    of handlers:
-    \begin{derivation}
-      & (\cps{\Handle^\depth \; M' \; \With \; H} \sapp \sW)[\cps{V}/x] \\
-      =&       \reason{definition of $\cps{-}$} \\
-      & ((\slam \sk . \cps{M'} \sapp \sRecord{\snil, \sRecord{\cps{\hret}, \cps{\hops}^\depth}} \scons \sk) \sapp \sW)[\cps{V}/x] \\
-      =&       \reason{static $\beta$-conversion} \\
-      & (\cps{M'} \sapp \sRecord{\snil, \sRecord{\cps{\hret}, \cps{\hops}^\depth}} \scons \sW)[\cps{V}/x] \\
-      =&       \reason{IH 1 for $M'$}\\
-      & \cps{M'[V/x]} \sapp \sRecord{\snil, \sRecord{\cps{\hret}[\cps{V}/x], \cps{\hops}^\depth[\cps{V}/x]}} \scons \sW[\cps{V}/x] \\
-      =&       \reason{\eqref{eq:hret-subst-proof} and \eqref{eq:hops-subst-proof}} \\
-      & \cps{M'[V/x]} \sapp \sRecord{\snil, \sRecord{\cps{\hret[V/x]}, \cps{\hops[V/x]}^\depth}} \scons \sW[\cps{V}/x] \\
-      =&       \reason{static $\beta$-conversion} \\
-      & ((\slam \sk . \cps{M'[V/x]} \sapp \sRecord{\snil, \sRecord{\cps{\hret[V/x]}, \cps{\hops[V/x]}^\depth}} \scons \sk) \sapp \sW[\cps{V}/x]) \\
-      =&       \reason{definition of $\cps{-}$} \\
-      & \cps{\Handle^\depth\; M'[V/x]; \With\; H[V/x]} \sapp \sW[\cps{V}/x] \\
-      =&       \reason{definition of $[-/-]$} \\
-      & \cps{(\Handle^\depth \; M' \; \With \; H)[V/x]} \sapp \sW[\cps{V}/x]
-    \end{derivation}
-  \end{description}
-\end{proof}
+%     We can now prove that substitution commutes with the translation
+%     of handlers:
+%     \begin{derivation}
+%       & (\cps{\Handle^\depth \; M' \; \With \; H} \sapp \sW)[\cps{V}/x] \\
+%       =&       \reason{definition of $\cps{-}$} \\
+%       & ((\slam \sk . \cps{M'} \sapp \sRecord{\snil, \sRecord{\cps{\hret}, \cps{\hops}^\depth}} \scons \sk) \sapp \sW)[\cps{V}/x] \\
+%       =&       \reason{static $\beta$-conversion} \\
+%       & (\cps{M'} \sapp \sRecord{\snil, \sRecord{\cps{\hret}, \cps{\hops}^\depth}} \scons \sW)[\cps{V}/x] \\
+%       =&       \reason{IH 1 for $M'$}\\
+%       & \cps{M'[V/x]} \sapp \sRecord{\snil, \sRecord{\cps{\hret}[\cps{V}/x], \cps{\hops}^\depth[\cps{V}/x]}} \scons \sW[\cps{V}/x] \\
+%       =&       \reason{\eqref{eq:hret-subst-proof} and \eqref{eq:hops-subst-proof}} \\
+%       & \cps{M'[V/x]} \sapp \sRecord{\snil, \sRecord{\cps{\hret[V/x]}, \cps{\hops[V/x]}^\depth}} \scons \sW[\cps{V}/x] \\
+%       =&       \reason{static $\beta$-conversion} \\
+%       & ((\slam \sk . \cps{M'[V/x]} \sapp \sRecord{\snil, \sRecord{\cps{\hret[V/x]}, \cps{\hops[V/x]}^\depth}} \scons \sk) \sapp \sW[\cps{V}/x]) \\
+%       =&       \reason{definition of $\cps{-}$} \\
+%       & \cps{\Handle^\depth\; M'[V/x]; \With\; H[V/x]} \sapp \sW[\cps{V}/x] \\
+%       =&       \reason{definition of $[-/-]$} \\
+%       & \cps{(\Handle^\depth \; M' \; \With \; H)[V/x]} \sapp \sW[\cps{V}/x]
+%     \end{derivation}
+%   \end{description}
+% \end{proof}
 
-% type erasure lemma
-\begin{lemma}[Type erasure]\label{lem:erasure-proof}
-  ~
-  \begin{enumerate}
-  \item $\cps{M} \sapp \sW = \cps{M[T/\alpha]} \sapp \sW$
-  \item $\cps{W}           = \cps{W[T/\alpha]}$
-  \end{enumerate}
-\end{lemma}
-\begin{proof}
-  Follows from the observation that the translation is oblivious to
-  types.
-\end{proof}
+% % type erasure lemma
+% \begin{lemma}[Type erasure]\label{lem:erasure-proof}
+%   ~
+%   \begin{enumerate}
+%   \item $\cps{M} \sapp \sW = \cps{M[T/\alpha]} \sapp \sW$
+%   \item $\cps{W}           = \cps{W[T/\alpha]}$
+%   \end{enumerate}
+% \end{lemma}
+% \begin{proof}
+%   Follows from the observation that the translation is oblivious to
+%   types.
+% \end{proof}
 
-%\addtocounter{theorem}{-7}
+% %\addtocounter{theorem}{-7}
 
-\begin{lemma}[Evaluation context decomposition]
-  \label{lem:decomposition-gen-cont-proof}
-  \[
-   %  \cps{\EC[M]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW)
-   % =
-   % \cps{M} \sapp (\cps{\EC} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW))
-    \cps{\EC[M]} \sapp (\sV_f \scons \sW)
-   =
-    \cps{M} \sapp (\cps{\EC} \sapp (\sV_f \scons \sW))
-  \]
-\end{lemma}
-%
-\begin{proof}
-  % For reference, we repeat the translation of evaluations contexts
-  % here:
-  % \TranslateEC{}
-  The proof proceeds by structural induction on the evaluation context
-  $\EC$.
-  \begin{description}
-    % Empty context
-  \item[Case] $\EC = [\,]$.
-    \begin{derivation}
-      & \cps{\EC[M]} \sapp (\sV \scons \sW) \\
-      =&        \reason{assumption} \\
-      & \cps{M} \sapp (\sV \scons \sW) \\
-      =&        \reason{static $\beta$-conversion} \\
-      & \cps{M} \sapp ((\slam \sk . \sk) \sapp (\sV \scons \sW)) \\
-      =&        \reason{definition of $\cps{-}$} \\
-      & \cps{M} \sapp (\cps{\EC} \sapp (\sV \scons \sW))
-    \end{derivation}
-  % Let binding
-  \item[Case] $\EC = \Let \; x \revto \EC'[-] \; \In \; N$.
-    % Induction hypothesis:
-    % $\cps{\EC'[M]} \sapp (V \scons VS) = \cps{M} \sapp (\cps{\EC'} \sapp (V \scons VS))$.
-    %
-    \begin{derivation}
-      & \cps{\EC[M]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW) \\
-      =&        \reason{assumption} \\
-      & \cps{\Let \; x \revto \EC'[M] \; \In \; N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW) \\
-      =&        \reason{definition of $\cps{-}$} \\
-      & \bl(\slam \sRecord{\shf, \sRecord{\svhret, \svhops}} \scons \shk.\\
-      \qquad \cps{\EC'[M]} \sapp (\sRecord{\reflect((\dlam x\,\dhk.\bl
-                                                                   \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In \\
-                                                                   \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify \shf), \sRecord{\svhret, \svhops}} \scons \shk)) \\
-                                                                   \el \\
-      \quad\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)\el \\
-      =&        \reason{static $\beta$-conversion} \\
-      & \cps{\EC'[M]} \sapp (\sRecord{\reflect((\dlam x\,\dhk.\bl
-                                                              \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In \\
-                                                              \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify \sV_{fs}), \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW) \\
-                                                              \el \\
-      =&        \reason{IH for $\EC'[-]$}\\
-      & \cps{M} \sapp (\bl\cps{\EC'} \sapp \\\quad(\sRecord{\reflect((\dlam x\,\dhk.\bl
-                                                                                    \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In \\
-                                                                                    \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify\sV_{fs}), \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))
-                                                                                    \el \\
-                       \el \\
-      =&        \reason{static $\beta$-conversion} \\
-      & \cps{M} \sapp (\bl
-                       (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \shk.\\
-                       \quad\cps{\EC'} \sapp (\sRecord{\bl
-                                                       \reflect((\dlam x\,\dhk.\bl
-                                                                               \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In\\
-                                                                               \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify\shf), \\
-                                                                               \el \\
-                                                      \sRecord{\svhret,\svhops}} \scons \shk))
-                                                         \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)) \\
-                                                      \el \\
-                       \el \\
-      =&        \reason{definition of $\cps{-}$} \\
-      & \cps{M} \sapp (\cps{\Let \; x \revto \EC'[M] \; \In \; N}) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)) \\
-      =&        \reason{assumption} \\
-      & \cps{M} \sapp (\cps{\EC} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))
-    \end{derivation}
-  % handler
-  \item[Case] $\EC = \Handle^\depth \; \EC' \; \With \; H$.
-    % Induction hypothesis:
-    % $\cps{\EC'[M]} \sapp (V \scons VS) = \cps{M} \sapp (\cps{\EC'} \sapp (V \scons VS))$.
-    %
-    \begin{derivation}
-      & \cps{\EC[M]} \sapp (\sV \scons \sW) \\
-      =&        \reason{assumption} \\
-      & \cps{\Handle^\depth \; \EC'[M] \; \With \; H} \sapp (\sV \scons \sW) \\
-      =&        \reason{definition of $\cps{-}$} \\
-      & (\slam \sk. \cps{\EC'[M]} \sapp (\sRecord{\nil, \cps{H}^\depth}\scons \sk)) \sapp (\sV \scons \sW) \\
-      =&        \reason{static $\beta$-conversion} \\
-      & \cps{\EC'[M]} \sapp (\sRecord{\nil, \cps{H}^\depth} \scons (\sV \scons \sW)) \\
-      =&        \reason{IH} \\
-      & \cps{M} \sapp (\cps{\EC'} \sapp (\sRecord{\nil, \cps{H}^\depth} \scons (\sV \scons \sW))) \\
-      =&        \reason{static $\beta$-conversion} \\
-      & \cps{M} \sapp ((\slam \sk . \cps{\EC'} \sapp (\sRecord{\nil, \cps{H}^\depth} \scons \sk)) \sapp (\sV \scons \sW)) \\
-      =&        \reason{definition of $\cps{-}$} \\
-      & \cps{M} \sapp (\cps{\Handle^\depth \; \EC' \; \With \; H} \sapp (\sV \scons \sW)) \\
-      =&        \reason{assumption} \\
-      & \cps{M} \sapp (\cps{\EC} \sapp (\sV \scons \sW))
-    \end{derivation}
-\end{description}
-\end{proof}
+% \begin{lemma}[Evaluation context decomposition]
+%   \label{lem:decomposition-gen-cont-proof}
+%   \[
+%    %  \cps{\EC[M]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW)
+%    % =
+%    % \cps{M} \sapp (\cps{\EC} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW))
+%     \cps{\EC[M]} \sapp (\sV_f \scons \sW)
+%    =
+%     \cps{M} \sapp (\cps{\EC} \sapp (\sV_f \scons \sW))
+%   \]
+% \end{lemma}
+% %
+% \begin{proof}
+%   % For reference, we repeat the translation of evaluations contexts
+%   % here:
+%   % \TranslateEC{}
+%   The proof proceeds by structural induction on the evaluation context
+%   $\EC$.
+%   \begin{description}
+%     % Empty context
+%   \item[Case] $\EC = [\,]$.
+%     \begin{derivation}
+%       & \cps{\EC[M]} \sapp (\sV \scons \sW) \\
+%       =&        \reason{assumption} \\
+%       & \cps{M} \sapp (\sV \scons \sW) \\
+%       =&        \reason{static $\beta$-conversion} \\
+%       & \cps{M} \sapp ((\slam \sk . \sk) \sapp (\sV \scons \sW)) \\
+%       =&        \reason{definition of $\cps{-}$} \\
+%       & \cps{M} \sapp (\cps{\EC} \sapp (\sV \scons \sW))
+%     \end{derivation}
+%   % Let binding
+%   \item[Case] $\EC = \Let \; x \revto \EC'[-] \; \In \; N$.
+%     % Induction hypothesis:
+%     % $\cps{\EC'[M]} \sapp (V \scons VS) = \cps{M} \sapp (\cps{\EC'} \sapp (V \scons VS))$.
+%     %
+%     \begin{derivation}
+%       & \cps{\EC[M]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW) \\
+%       =&        \reason{assumption} \\
+%       & \cps{\Let \; x \revto \EC'[M] \; \In \; N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW) \\
+%       =&        \reason{definition of $\cps{-}$} \\
+%       & \bl(\slam \sRecord{\shf, \sRecord{\svhret, \svhops}} \scons \shk.\\
+%       \qquad \cps{\EC'[M]} \sapp (\sRecord{\reflect((\dlam x\,\dhk.\bl
+%                                                                    \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In \\
+%                                                                    \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify \shf), \sRecord{\svhret, \svhops}} \scons \shk)) \\
+%                                                                    \el \\
+%       \quad\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)\el \\
+%       =&        \reason{static $\beta$-conversion} \\
+%       & \cps{\EC'[M]} \sapp (\sRecord{\reflect((\dlam x\,\dhk.\bl
+%                                                               \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In \\
+%                                                               \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify \sV_{fs}), \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW) \\
+%                                                               \el \\
+%       =&        \reason{IH for $\EC'[-]$}\\
+%       & \cps{M} \sapp (\bl\cps{\EC'} \sapp \\\quad(\sRecord{\reflect((\dlam x\,\dhk.\bl
+%                                                                                     \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In \\
+%                                                                                     \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify\sV_{fs}), \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))
+%                                                                                     \el \\
+%                        \el \\
+%       =&        \reason{static $\beta$-conversion} \\
+%       & \cps{M} \sapp (\bl
+%                        (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \shk.\\
+%                        \quad\cps{\EC'} \sapp (\sRecord{\bl
+%                                                        \reflect((\dlam x\,\dhk.\bl
+%                                                                                \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}}\dcons k'=k\;\In\\
+%                                                                                \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect \dhk')) \dcons \reify\shf), \\
+%                                                                                \el \\
+%                                                       \sRecord{\svhret,\svhops}} \scons \shk))
+%                                                          \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)) \\
+%                                                       \el \\
+%                        \el \\
+%       =&        \reason{definition of $\cps{-}$} \\
+%       & \cps{M} \sapp (\cps{\Let \; x \revto \EC'[M] \; \In \; N}) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)) \\
+%       =&        \reason{assumption} \\
+%       & \cps{M} \sapp (\cps{\EC} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))
+%     \end{derivation}
+%   % handler
+%   \item[Case] $\EC = \Handle^\depth \; \EC' \; \With \; H$.
+%     % Induction hypothesis:
+%     % $\cps{\EC'[M]} \sapp (V \scons VS) = \cps{M} \sapp (\cps{\EC'} \sapp (V \scons VS))$.
+%     %
+%     \begin{derivation}
+%       & \cps{\EC[M]} \sapp (\sV \scons \sW) \\
+%       =&        \reason{assumption} \\
+%       & \cps{\Handle^\depth \; \EC'[M] \; \With \; H} \sapp (\sV \scons \sW) \\
+%       =&        \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk. \cps{\EC'[M]} \sapp (\sRecord{\nil, \cps{H}^\depth}\scons \sk)) \sapp (\sV \scons \sW) \\
+%       =&        \reason{static $\beta$-conversion} \\
+%       & \cps{\EC'[M]} \sapp (\sRecord{\nil, \cps{H}^\depth} \scons (\sV \scons \sW)) \\
+%       =&        \reason{IH} \\
+%       & \cps{M} \sapp (\cps{\EC'} \sapp (\sRecord{\nil, \cps{H}^\depth} \scons (\sV \scons \sW))) \\
+%       =&        \reason{static $\beta$-conversion} \\
+%       & \cps{M} \sapp ((\slam \sk . \cps{\EC'} \sapp (\sRecord{\nil, \cps{H}^\depth} \scons \sk)) \sapp (\sV \scons \sW)) \\
+%       =&        \reason{definition of $\cps{-}$} \\
+%       & \cps{M} \sapp (\cps{\Handle^\depth \; \EC' \; \With \; H} \sapp (\sV \scons \sW)) \\
+%       =&        \reason{assumption} \\
+%       & \cps{M} \sapp (\cps{\EC} \sapp (\sV \scons \sW))
+%     \end{derivation}
+% \end{description}
+% \end{proof}
 
-% reflect after reify
-\begin{lemma}[Reflect after reify]
-  \label{lem:reflect-after-reify-proof}
-%
-  \[
-  %   \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \reflect \reify \sW)
-  % =
-  % \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW).
-    \cps{M} \sapp (\sV_f \scons \reflect \reify \sW)
-  =
-  \cps{M} \sapp (\sV_f \scons \sW).
-  \]
-\end{lemma}
-\begin{proof}
-  For an inductive proof to go through in the presence of $\Let$ and
-  $\Handle$, which alter or extend the continuation stack, we
-  generalise the lemma statement to include an arbitrary list of
-  handler frames:
-  \begin{displaymath}
-    \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \sV_n \scons \reflect \reify \sW)
-    =
-    \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \sV_n \scons \sW)
-  \end{displaymath}
-  This is the lemma statement when $n = 0$. The proof now proceeds by
-  induction on the structure of $M$. Most of the translated terms do
-  not examine the top of the continuation stack, so we will write
-  $\sV_0$ for $\sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}}$ to
-  save space.
-  \begin{description}
-  \item[Case] $M = V\,W$.
-    \begin{derivation}
-      & \cps{V\,W} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
-      =& \reason{definition of $\cps{-}$} \\
-      & (\slam \sk.\cps{V} \dapp \cps{W} \dapp \reify \sk) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
-      =& \reason{static $\beta$-conversion} \\
-      & \cps{V} \dapp \cps{W} \dapp \reify (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
-      =& \reason{definition of $\reify$} \\
-      & \cps{V} \dapp \cps{W} \dapp (\sV_1 \dcons \dots \dcons \sV_n \dcons \reify \sW)\\
-      =& \reason{definition of $\reify$} \\
-      & \cps{V} \dapp \cps{W} \dapp \reify (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
-      =& \reason{static $\beta$-conversion} \\
-      & (\slam \sks.\cps{V} \dapp \cps{W} \dapp \reify \sks) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
-      =& \reason{definition of $\cps{-}$} \\
-      & \cps{V\,W} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)
-    \end{derivation}
+% % reflect after reify
+% \begin{lemma}[Reflect after reify]
+%   \label{lem:reflect-after-reify-proof}
+% %
+%   \[
+%   %   \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \reflect \reify \sW)
+%   % =
+%   % \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW).
+%     \cps{M} \sapp (\sV_f \scons \reflect \reify \sW)
+%   =
+%   \cps{M} \sapp (\sV_f \scons \sW).
+%   \]
+% \end{lemma}
+% \begin{proof}
+%   For an inductive proof to go through in the presence of $\Let$ and
+%   $\Handle$, which alter or extend the continuation stack, we
+%   generalise the lemma statement to include an arbitrary list of
+%   handler frames:
+%   \begin{displaymath}
+%     \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \sV_n \scons \reflect \reify \sW)
+%     =
+%     \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \sV_n \scons \sW)
+%   \end{displaymath}
+%   This is the lemma statement when $n = 0$. The proof now proceeds by
+%   induction on the structure of $M$. Most of the translated terms do
+%   not examine the top of the continuation stack, so we will write
+%   $\sV_0$ for $\sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}}$ to
+%   save space.
+%   \begin{description}
+%   \item[Case] $M = V\,W$.
+%     \begin{derivation}
+%       & \cps{V\,W} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+%       =& \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk.\cps{V} \dapp \cps{W} \dapp \reify \sk) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+%       =& \reason{static $\beta$-conversion} \\
+%       & \cps{V} \dapp \cps{W} \dapp \reify (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+%       =& \reason{definition of $\reify$} \\
+%       & \cps{V} \dapp \cps{W} \dapp (\sV_1 \dcons \dots \dcons \sV_n \dcons \reify \sW)\\
+%       =& \reason{definition of $\reify$} \\
+%       & \cps{V} \dapp \cps{W} \dapp \reify (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+%       =& \reason{static $\beta$-conversion} \\
+%       & (\slam \sks.\cps{V} \dapp \cps{W} \dapp \reify \sks) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+%       =& \reason{definition of $\cps{-}$} \\
+%       & \cps{V\,W} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)
+%     \end{derivation}
 
-  \item[Case] $M = V\,T$. Similar to the $M = V\,W$ case.
+%   \item[Case] $M = V\,T$. Similar to the $M = V\,W$ case.
 
-  \item[Case] $M = \Let\; \Record{\ell=x; y} = V \;\In\; N$.
-    \begin{derivation}
-      & \cps{\Let\; \Record{\ell=x; y} = V \;\In\; N} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
-      =& \reason{definition of $\cps{-}$} \\
-      & (\slam \sk.\Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N} \sapp \sk) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
-      =& \reason{static $\beta$-conversion} \\
-      & \Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
-      =& \reason{IH} \\
-      & \Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
-      =& \reason{static $\beta$-conversion} \\
-      & (\slam \sk.\Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N} \sapp \sk) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
-      =& \reason{definition of $\cps{-}$} \\
-      & \cps{\Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N}} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
-    \end{derivation}
+%   \item[Case] $M = \Let\; \Record{\ell=x; y} = V \;\In\; N$.
+%     \begin{derivation}
+%       & \cps{\Let\; \Record{\ell=x; y} = V \;\In\; N} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+%       =& \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk.\Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N} \sapp \sk) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+%       =& \reason{static $\beta$-conversion} \\
+%       & \Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+%       =& \reason{IH} \\
+%       & \Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+%       =& \reason{static $\beta$-conversion} \\
+%       & (\slam \sk.\Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N} \sapp \sk) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+%       =& \reason{definition of $\cps{-}$} \\
+%       & \cps{\Let\; \Record{\ell=x; y} = \cps{V} \;\In\; \cps{N}} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+%     \end{derivation}
 
-  \item[Case] $M = \Case\; V \{\ell\; x \mapsto M; y \mapsto
-    N\}$. Similar to the $M = \Let\; \Record{\ell=x; y} = V \;\In\; N$
-    case.
+%   \item[Case] $M = \Case\; V \{\ell\; x \mapsto M; y \mapsto
+%     N\}$. Similar to the $M = \Let\; \Record{\ell=x; y} = V \;\In\; N$
+%     case.
 
-  \item[Case] $M = \Absurd\; V$.
-    \begin{derivation}
-      & \cps{\Absurd\; V} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
-      =& \reason{definition of $\cps{-}$} \\
-      & (\slam \sk.\Absurd\; \cps{V}) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
-      =& \reason{static $\beta$-conversion} \\
-      & \Absurd\; \cps{V}\\
-      =& \reason{static $\beta$-conversion} \\
-      & (\slam \sks.\Absurd\; \cps{V}) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
-      =& \reason{definition of $\cps{-}$} \\
-      & \cps{\Absurd\; V} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
-    \end{derivation}
+%   \item[Case] $M = \Absurd\; V$.
+%     \begin{derivation}
+%       & \cps{\Absurd\; V} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+%       =& \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk.\Absurd\; \cps{V}) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+%       =& \reason{static $\beta$-conversion} \\
+%       & \Absurd\; \cps{V}\\
+%       =& \reason{static $\beta$-conversion} \\
+%       & (\slam \sks.\Absurd\; \cps{V}) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+%       =& \reason{definition of $\cps{-}$} \\
+%       & \cps{\Absurd\; V} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+%     \end{derivation}
 
-  \item[Case] $M = \Return\;V$.
-    \begin{derivation}
-      & \cps{\Return\;V} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW) \\
-      =&       \reason{definition of $\cps{-}$} \\
-      & (\slam \sk. \kapp\;(\reify \sk)\;\cps{V}) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW) \\
-      =&       \reason{static $\beta$-conversion} \\
-      & \kapp\; (\reify (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW))\; \cps{V}\\
-      =&       \reason{definition of $\reify$} \\
-      & \kapp\; (\reify \sV_0 \dcons \dots \dcons \reify \sV_n \dcons \reify \sW))\; \cps{V}\\
-      =&       \reason{definition of $\reify$} \\
-      & \kapp\; (\reify (\sV_0 \scons \dots \scons \sV_n \scons \sW))\; \cps{V}\\
-      =&       \reason{static $\beta$-conversion} \\
-      & (\slam \sk. \kapp\;(\reify \sk)\;\cps{V}) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW) \\
-      =&       \reason{definition of $\cps{-}$} \\
-      & \cps{\Return\;V} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW) \\
-    \end{derivation}
+%   \item[Case] $M = \Return\;V$.
+%     \begin{derivation}
+%       & \cps{\Return\;V} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW) \\
+%       =&       \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk. \kapp\;(\reify \sk)\;\cps{V}) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW) \\
+%       =&       \reason{static $\beta$-conversion} \\
+%       & \kapp\; (\reify (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW))\; \cps{V}\\
+%       =&       \reason{definition of $\reify$} \\
+%       & \kapp\; (\reify \sV_0 \dcons \dots \dcons \reify \sV_n \dcons \reify \sW))\; \cps{V}\\
+%       =&       \reason{definition of $\reify$} \\
+%       & \kapp\; (\reify (\sV_0 \scons \dots \scons \sV_n \scons \sW))\; \cps{V}\\
+%       =&       \reason{static $\beta$-conversion} \\
+%       & (\slam \sk. \kapp\;(\reify \sk)\;\cps{V}) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW) \\
+%       =&       \reason{definition of $\cps{-}$} \\
+%       & \cps{\Return\;V} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW) \\
+%     \end{derivation}
 
-  \item[Case] $M = \Let\; x \revto M'\;\In\; N$.
-    \begin{derivation}
-      & \cps{\Let\;x \revto M'\; \In\; N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW) \\
-      =&         \reason{definition of $\cps{-}$} \\
-      & \bl
-      (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \sk. \cps{M'} \sapp (
-        \bl\sRecord{\reflect((\dlam x\,k.
-           \bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k;\In\\
-           \cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \shf),\el\\
-           \sRecord{\svhret,\svhops}} \scons \sk)))\el \\
-      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW)
-      \el
-      \\
-      =&         \reason{static $\beta$-conversion} \\
-      & \cps{M'} \sapp (
-      \bl\sRecord{\reflect((\dlam x\,k.
-        \bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k;\In\\
-        \cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}),\el\\
-        \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\el
-      \\
-      =&         \reason{IH on $M$} \\
-      & \cps{M'} \sapp (
-      \bl\sRecord{\reflect((\dlam x\,k.
-        \bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k;\In\\
-        \cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}),\el\\
-        \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW)\el
-      \\
-   \end{derivation}
-   \begin{derivation}
-      =&         \reason{static $\beta$-conversion} \\
-      & \bl
-      (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \sk. \cps{M'} \sapp (
-        \bl\sRecord{\reflect((\dlam x\,k.
-           \bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k;\In\\
-           \cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \shf),\el\\
-           \sRecord{\svhret,\svhops}} \scons \sk)))\el \\
-      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW)
-      \el
-      \\
-      =&         \reason{definition of $\cps{-}$} \\
-      & \cps{\Let\;x \revto M'\; \In\; N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW) \\
-    \end{derivation}
+%   \item[Case] $M = \Let\; x \revto M'\;\In\; N$.
+%     \begin{derivation}
+%       & \cps{\Let\;x \revto M'\; \In\; N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW) \\
+%       =&         \reason{definition of $\cps{-}$} \\
+%       & \bl
+%       (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \sk. \cps{M'} \sapp (
+%         \bl\sRecord{\reflect((\dlam x\,k.
+%            \bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k;\In\\
+%            \cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \shf),\el\\
+%            \sRecord{\svhret,\svhops}} \scons \sk)))\el \\
+%       \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW)
+%       \el
+%       \\
+%       =&         \reason{static $\beta$-conversion} \\
+%       & \cps{M'} \sapp (
+%       \bl\sRecord{\reflect((\dlam x\,k.
+%         \bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k;\In\\
+%         \cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}),\el\\
+%         \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\el
+%       \\
+%       =&         \reason{IH on $M$} \\
+%       & \cps{M'} \sapp (
+%       \bl\sRecord{\reflect((\dlam x\,k.
+%         \bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k;\In\\
+%         \cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}),\el\\
+%         \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW)\el
+%       \\
+%    \end{derivation}
+%    \begin{derivation}
+%       =&         \reason{static $\beta$-conversion} \\
+%       & \bl
+%       (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \sk. \cps{M'} \sapp (
+%         \bl\sRecord{\reflect((\dlam x\,k.
+%            \bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k;\In\\
+%            \cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \shf),\el\\
+%            \sRecord{\svhret,\svhops}} \scons \sk)))\el \\
+%       \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW)
+%       \el
+%       \\
+%       =&         \reason{definition of $\cps{-}$} \\
+%       & \cps{\Let\;x \revto M'\; \In\; N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW) \\
+%     \end{derivation}
 
-  \item[Case] $M = \Do\;\ell\;V$.
-    \begin{derivation}
-      & \cps{\Do\;\ell\;V} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
-      =&       \reason{definition of $\cps{-}$} \\
-      & \bl
-      (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \sk. \reify \svhops \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\shf,\dRecord{\reify\svhret,\reify\svhops}}\dcons\dnil}} \dapp \reify \sk) \\
-      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW)
-      \el\\
-      =&       \reason{static $\beta$-conversion} \\
-      & \reify \sV_{ops} \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}}\dcons\dnil}} \dapp \reify (\sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW) \\
-      =&       \reason{definition of $\reify$} \\
-      & \reify \sV_{ops} \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}}\dcons\dnil}} \dapp (\reify\sV_1 \dcons \dots \dcons \reify\sV_n \dcons \reify \sW) \\
-      =&       \reason{definition of $\reify$} \\
-      & \reify \sV_{ops} \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}}\dcons\dnil}} \dapp \reify(\sV_1 \scons \dots \scons \sV_n \scons \sW) \\
-      =&       \reason{static $\beta$-conversion} \\
-      & \bl
-      (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \sk. \reify \svhops \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\shf,\dRecord{\reify\svhret,\reify\svhops}}\dcons\dnil}} \dapp \reify \sk) \\
-      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW)
-      \el\\
-      =&       \reason{definition of $\cps{-}$} \\
-      & \cps{\Do\;\ell\;V} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW)\\
-    \end{derivation}
+%   \item[Case] $M = \Do\;\ell\;V$.
+%     \begin{derivation}
+%       & \cps{\Do\;\ell\;V} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+%       =&       \reason{definition of $\cps{-}$} \\
+%       & \bl
+%       (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \sk. \reify \svhops \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\shf,\dRecord{\reify\svhret,\reify\svhops}}\dcons\dnil}} \dapp \reify \sk) \\
+%       \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW)
+%       \el\\
+%       =&       \reason{static $\beta$-conversion} \\
+%       & \reify \sV_{ops} \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}}\dcons\dnil}} \dapp \reify (\sV_1 \scons \dots \scons \sV_n \scons \reflect \reify \sW) \\
+%       =&       \reason{definition of $\reify$} \\
+%       & \reify \sV_{ops} \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}}\dcons\dnil}} \dapp (\reify\sV_1 \dcons \dots \dcons \reify\sV_n \dcons \reify \sW) \\
+%       =&       \reason{definition of $\reify$} \\
+%       & \reify \sV_{ops} \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}}\dcons\dnil}} \dapp \reify(\sV_1 \scons \dots \scons \sV_n \scons \sW) \\
+%       =&       \reason{static $\beta$-conversion} \\
+%       & \bl
+%       (\slam \sRecord{\shf, \sRecord{\svhret,\svhops}} \scons \sk. \reify \svhops \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify\shf,\dRecord{\reify\svhret,\reify\svhops}}\dcons\dnil}} \dapp \reify \sk) \\
+%       \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW)
+%       \el\\
+%       =&       \reason{definition of $\cps{-}$} \\
+%       & \cps{\Do\;\ell\;V} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret},\sV_{ops}}} \scons \sV_1 \scons \dots \scons \sV_n \scons \sW)\\
+%     \end{derivation}
 
-  \item[Case] $\Handle^\depth\; M \;\With\; H$.
-    \begin{derivation}
-      & \cps{\Handle^\depth\; M \;\With\; H} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
-      =& \reason{definition of $\cps{-}$} \\
-      & (\slam \sk.\cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sk)) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
-      =& \reason{static $\beta$-conversion} \\
-      & \cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
-      =& \reason{IH} \\
-   \end{derivation}
-   \begin{derivation}
-      & \cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sV_0 \scons \dots \scons \sV_n \scons \sW)\\
-      =& \reason{static $\beta$-conversion} \\
-      & (\slam \sk.\cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sk)) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
-      =& \reason{definition of $\cps{-}$} \\
-      & \cps{\Handle^\depth\; M \;\With\; H} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
-    \end{derivation}
-  \end{description}
-\end{proof}
-%
-\begin{lemma}[Forwarding]\label{lem:forwarding-proof}
-  If $\ell \notin dom(H_1)$ then:
-  %
-  \[
-    \bl
-    \cps{\hops_1}^\delta \dapp \dRecord{\ell, \dRecord{V_p, V_{\dhkr}}} \dapp (\dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W)
-    \reducesto^+ \qquad \\
-    \hfill
-       \cps{\hops_2}^\delta \dapp \dRecord{\ell, \dRecord{V_p, \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons V_{\dhkr}}} \dapp W. \\
-    \el
-  \]
-  %
-\end{lemma}
-\begin{proof}
-  \begin{derivation}
-    & \cps{\hops_1}^\delta \dapp \dRecord{\ell, \dRecord{V_p, V_{rk}}} \dapp (\dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W) \\
-    \reducesto^+ & \\
-    & M_{forward}((\ell, V_p, V_{rk}), \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W) \\
-    = & \\
-    & \bl
-    \Let\; \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W \;\In \\
-    \Let\; rk' = \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons V_{rk}\;\In\\
-    \vhops \dapp \dRecord{\ell,\dRecord{V_p, rk'}} \dapp \dhk' \\
-    \el\\
-    \reducesto^+ & \\
-    & \cps{\hops_2}^\delta \dapp \dRecord{\ell,\dRecord{V_p, \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons V_{rk}}} \dapp W
-  \end{derivation}
-\end{proof}
+%   \item[Case] $\Handle^\depth\; M \;\With\; H$.
+%     \begin{derivation}
+%       & \cps{\Handle^\depth\; M \;\With\; H} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+%       =& \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk.\cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sk)) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+%       =& \reason{static $\beta$-conversion} \\
+%       & \cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sV_0 \scons \dots \scons \sV_n \scons \reflect \reify \sW)\\
+%       =& \reason{IH} \\
+%    \end{derivation}
+%    \begin{derivation}
+%       & \cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+%       =& \reason{static $\beta$-conversion} \\
+%       & (\slam \sk.\cps{M} \sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sk)) \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+%       =& \reason{definition of $\cps{-}$} \\
+%       & \cps{\Handle^\depth\; M \;\With\; H} \sapp (\sV_0 \scons \dots \scons \sV_n \scons \sW)\\
+%     \end{derivation}
+%   \end{description}
+% \end{proof}
+% %
+% \begin{lemma}[Forwarding]\label{lem:forwarding-proof}
+%   If $\ell \notin dom(H_1)$ then:
+%   %
+%   \[
+%     \bl
+%     \cps{\hops_1}^\delta \dapp \dRecord{\ell, \dRecord{V_p, V_{\dhkr}}} \dapp (\dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W)
+%     \reducesto^+ \qquad \\
+%     \hfill
+%        \cps{\hops_2}^\delta \dapp \dRecord{\ell, \dRecord{V_p, \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons V_{\dhkr}}} \dapp W. \\
+%     \el
+%   \]
+%   %
+% \end{lemma}
+% \begin{proof}
+%   \begin{derivation}
+%     & \cps{\hops_1}^\delta \dapp \dRecord{\ell, \dRecord{V_p, V_{rk}}} \dapp (\dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W) \\
+%     \reducesto^+ & \\
+%     & M_{forward}((\ell, V_p, V_{rk}), \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W) \\
+%     = & \\
+%     & \bl
+%     \Let\; \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons W \;\In \\
+%     \Let\; rk' = \dRecord{fs, \dRecord{\vhret, \vhops}} \dcons V_{rk}\;\In\\
+%     \vhops \dapp \dRecord{\ell,\dRecord{V_p, rk'}} \dapp \dhk' \\
+%     \el\\
+%     \reducesto^+ & \\
+%     & \cps{\hops_2}^\delta \dapp \dRecord{\ell,\dRecord{V_p, \dRecord{V_{fs}, \cps{H_2}^\delta} \dcons V_{rk}}} \dapp W
+%   \end{derivation}
+% \end{proof}
 
-\newcommand{\Append}{\mathop{+\kern-4pt+}}
+% \newcommand{\Append}{\mathop{+\kern-4pt+}}
 
-The following lemma is central to our simulation theorem. It
-characterises the sense in which the translation respects the handling
-of operations.  Note how the values substituted for the resumption
-variable $r$ in both cases are in the image of the translation of
-$\lambda$-terms in the CPS translation. This is thanks to the precise
-way that the reductions rules for resumption construction works in our
-dynamic language, as described above.
-%
-\begin{lemma}[Handling]\label{lem:handle-op-gen-cont-proof}
-  Suppose $\ell \notin BL(\EC)$ and
-  $\hell = \{\ell\,p\,r \mapsto N_\ell\}$. If $H$ is deep then
-  \[
-    \bl
-    \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sV_f \scons \sW)) \reducesto^+ \\
-    \quad (\cps{N_\ell} \sapp (\sV_f \scons \sW))
-    [\cps{V}/p,
-    \dlam x\,\dhk.\bl
-    \Let\;\dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dhk\;\In\;
-    \cps{\Return\;x}\\
-    \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\reflect \dlk, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect\dhk'))/r]. \\
-    \el\\
-    \el
-  \]
-  %
-  Otherwise if $H$ is shallow then
-    \[
-   \bl
-    \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}^\dagger} \scons \sV_f \scons \sW)) \reducesto^+ \\
-    \quad (\cps{N_\ell} \sapp (\sV_f \scons \sW))
-    [\cps{V}/p, \dlam x\,\dhk.  \bl
-    \Let\;\dRecord{\dlk, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dhk \;\In\;\cps{\Return\;x}\\
-    \sapp (\cps{\EC} \sapp (\sRecord{\reflect \dlk, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect\dhk'))/r]. \\
-    \el \\
-    \el
-  \]
-  %
-\end{lemma}
-\begin{proof}
-  By the definition of $\cps{-}$ on evaluation contexts we can deduce
-  that
-  \begin{equation}
-    \label{eq:evalcontext-eq-proof}
-    \cps{\EC} \sapp (\sRecord{\reflect V, \cps{H}^\depth} \scons \sW)
-    =
-    \sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect (V_n \Append V), \cps{H_n}^{\depth_n}} \scons \sW
-  \end{equation}
-  for some dynamic value terms $V_1, \dots, V_n$, depths
-  $\depth_1, \dots, \depth_n$, and handlers $H_1, \dots, H_n$, where
-  $n \geq 1$, $H_n = H$, and $\Append$ is (dynamic) list
-  concatenation.
-  \begin{derivation}
-    & \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)) \\
-    = &      \reason{definition of $\cps{-}$} \\
-    & \bl(\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk'. \reify \svhops \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify \shf, \dRecord{\reify \svhret, \reify \svhops}} \dcons \dnil}} \dapp \reify \sk)\\
-    \qquad \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))\el\\
-    = &      \reason{Equation \ref{eq:evalcontext-eq-proof}, above} \\
-    & \bl(\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk'. \reify \svhops \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify \shf, \dRecord{\reify \svhret, \reify \svhops}} \dcons \dnil}} \dapp \reify \sk)\\
-    \qquad \sapp (\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect V_n, \cps{H_n}^{\depth_n}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)\el\\
-    = &      \reason{static $\beta$-conversion} \\
-    & \cps{\hops_1}^{\depth_1} \bl
-                             \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dnil}} \\
-                             \dapp \reify (\dots \scons \sRecord{\reflect V_n, \cps{H_n}^{\depth_n}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}} \scons \sW) \\
-                             \el \\
-    = &      \reason{definition of $\reify$} \\
-    & \cps{\hops_1}^{\depth_1} \bl
-                            \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dnil}} \\
-                            \dapp (\dots \scons \sRecord{V_n, \cps{H_n}^{\depth_n}} \dcons \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}} \dcons \reify \sW)\\
-                            \el \\
-    \reducesto^+ & \reason{$\ell \notin BL(\EC)$ and repeated application of Lemma~\ref{lem:forwarding-proof}} \\
-   \end{derivation}
-   \begin{derivation}
-    & \cps{\hops_n}^{\depth} \bl
-                           \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{V_n, \cps{H_n}^{\depth_n}} \dcons \dots \dcons \dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dnil}} \\
-                           \dapp (\dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}} \dcons \reify \sW) \\
-                           \el \\
-    \reducesto^+ & \reason{$H^\ell = \{\ell\;p\;r \mapsto N_\ell\}$} \\
-    & \bl \Let\;r=\Res^\depth\; (\dRecord{V_n, \cps{H_n}^{\depth_n}} \dcons \dots \dcons \dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dnil)\;\In\\
-          \Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}} \dcons \reify \sW\;\In\\
-          (\cps{N_\ell}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons\reflect k'))[\cps{V}/p]\el\\
-    \reducesto&             \reason{$\usemlab{Res^\depth}$: there are two cases yielding different $\mathcal{R}$, see below} \\
-    & \bl \Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}} \dcons \reify \sW\;\In\\
-          (\cps{N_\ell}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons\reflect k'))[\cps{V}/p,\mathcal{R}/r]\el\\
-    \reducesto^+& \reason{$\usemlab{Split}$} \\
-    & (\cps{N_\ell}\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}}\scons\reflect \reify\sW))[\cps{V}/p,\mathcal{R}/r]\\
-    = &           \reason{Lemma~\ref{lem:reflect-after-reify-proof} (Reflect after reify)} \\
-    & (\cps{N_\ell}\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}}\scons\sW))[\cps{V}/p,\mathcal{R}/r]\\
-  \end{derivation}
-  To complete the proof, we examine the resumption term $\mathcal{R}$
-  generated by the reduction of the $\Let\;r=\Res^\depth\;rk\;\In\;N$
-  construct. There are two cases, depending on whether the handler is
-  deep or shallow. When the handler is deep, we have:
-  \begin{equations}
-    \mathcal{R}
-    &=& \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
-                       \kapp\;(\dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dots \dcons \dRecord{V_n, \cps{H_n}^{\depth_n}} \dcons \dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k')\;y
-                   \el
-    \\
-    &=& \reason{static $\beta$-conversion, and definition of $\reify$} \\
-    & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
-                      (\slam \sk. \kapp\;(\reify \sk)\;y) \\
-                      \quad \sapp ((\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect V_n, \cps{H_n}^{\depth_n}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k')
-                   \el\\
-    &=& \reason{definition of $\cps{-}$} \\
-    & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
-                      \cps{\Return\;y} \sapp ((\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect V_n, \cps{H_n}^{\depth_n}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k')
-                   \el\\
-    &=& \reason{Equation~\ref{eq:evalcontext-eq-proof}} \\
-    & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
-                      \cps{\Return\;y} \sapp (\cps{\EC} \sapp (\sRecord{\reflect \dnil, \cps{H_n}^{\depth_n}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k'))
-                   \el\\
-  \end{equations}
-  When the handler is shallow, we have:
-  \begin{equations}
-    \mathcal{R}
-    &=& \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
-                       \kapp\;(\dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dots \dcons \dRecord{V_n \Append fs, \dRecord{\vhret, \vhops}}\dcons k')\;y
-                   \el
-                   \\
-    &=& \reason{static $\beta$-conversion, and definition of $\reify$} \\
-    & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
-                      (\slam \sk. \kapp\;(\reify \sk)\;y) \sapp ((\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect (V_n \Append fs), \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k')
-                   \el\\
-    &=& \reason{definition of $\cps{-}$} \\
-    & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
-                      \cps{\Return\;y} \sapp ((\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect (V_n \Append fs), \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k')
-                   \el\\
-    &=& \reason{Equation~\ref{eq:evalcontext-eq-proof}} \\
-    & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
-                      \cps{\Return\;y} \sapp (\cps{\EC} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k'))
-                   \el\\
-  \end{equations}
-\end{proof}
+% The following lemma is central to our simulation theorem. It
+% characterises the sense in which the translation respects the handling
+% of operations.  Note how the values substituted for the resumption
+% variable $r$ in both cases are in the image of the translation of
+% $\lambda$-terms in the CPS translation. This is thanks to the precise
+% way that the reductions rules for resumption construction works in our
+% dynamic language, as described above.
+% %
+% \begin{lemma}[Handling]\label{lem:handle-op-gen-cont-proof}
+%   Suppose $\ell \notin BL(\EC)$ and
+%   $\hell = \{\ell\,p\,r \mapsto N_\ell\}$. If $H$ is deep then
+%   \[
+%     \bl
+%     \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sV_f \scons \sW)) \reducesto^+ \\
+%     \quad (\cps{N_\ell} \sapp (\sV_f \scons \sW))
+%     [\cps{V}/p,
+%     \dlam x\,\dhk.\bl
+%     \Let\;\dRecord{fs, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dhk\;\In\;
+%     \cps{\Return\;x}\\
+%     \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\reflect \dlk, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect\dhk'))/r]. \\
+%     \el\\
+%     \el
+%   \]
+%   %
+%   Otherwise if $H$ is shallow then
+%     \[
+%    \bl
+%     \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}^\dagger} \scons \sV_f \scons \sW)) \reducesto^+ \\
+%     \quad (\cps{N_\ell} \sapp (\sV_f \scons \sW))
+%     [\cps{V}/p, \dlam x\,\dhk.  \bl
+%     \Let\;\dRecord{\dlk, \dRecord{\vhret, \vhops}} \dcons \dhk' = \dhk \;\In\;\cps{\Return\;x}\\
+%     \sapp (\cps{\EC} \sapp (\sRecord{\reflect \dlk, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect\dhk'))/r]. \\
+%     \el \\
+%     \el
+%   \]
+%   %
+% \end{lemma}
+% \begin{proof}
+%   By the definition of $\cps{-}$ on evaluation contexts we can deduce
+%   that
+%   \begin{equation}
+%     \label{eq:evalcontext-eq-proof}
+%     \cps{\EC} \sapp (\sRecord{\reflect V, \cps{H}^\depth} \scons \sW)
+%     =
+%     \sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect (V_n \Append V), \cps{H_n}^{\depth_n}} \scons \sW
+%   \end{equation}
+%   for some dynamic value terms $V_1, \dots, V_n$, depths
+%   $\depth_1, \dots, \depth_n$, and handlers $H_1, \dots, H_n$, where
+%   $n \geq 1$, $H_n = H$, and $\Append$ is (dynamic) list
+%   concatenation.
+%   \begin{derivation}
+%     & \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)) \\
+%     = &      \reason{definition of $\cps{-}$} \\
+%     & \bl(\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk'. \reify \svhops \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify \shf, \dRecord{\reify \svhret, \reify \svhops}} \dcons \dnil}} \dapp \reify \sk)\\
+%     \qquad \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}} \scons \sW))\el\\
+%     = &      \reason{Equation \ref{eq:evalcontext-eq-proof}, above} \\
+%     & \bl(\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk'. \reify \svhops \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{\reify \shf, \dRecord{\reify \svhret, \reify \svhops}} \dcons \dnil}} \dapp \reify \sk)\\
+%     \qquad \sapp (\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect V_n, \cps{H_n}^{\depth_n}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}} \scons \sW)\el\\
+%     = &      \reason{static $\beta$-conversion} \\
+%     & \cps{\hops_1}^{\depth_1} \bl
+%                              \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dnil}} \\
+%                              \dapp \reify (\dots \scons \sRecord{\reflect V_n, \cps{H_n}^{\depth_n}} \scons \sRecord{\sV_{fs},\sRecord{\sV_{ret},\sV_{ops}}} \scons \sW) \\
+%                              \el \\
+%     = &      \reason{definition of $\reify$} \\
+%     & \cps{\hops_1}^{\depth_1} \bl
+%                             \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dnil}} \\
+%                             \dapp (\dots \scons \sRecord{V_n, \cps{H_n}^{\depth_n}} \dcons \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}} \dcons \reify \sW)\\
+%                             \el \\
+%     \reducesto^+ & \reason{$\ell \notin BL(\EC)$ and repeated application of Lemma~\ref{lem:forwarding-proof}} \\
+%    \end{derivation}
+%    \begin{derivation}
+%     & \cps{\hops_n}^{\depth} \bl
+%                            \dapp \dRecord{\ell, \dRecord{\cps{V}, \dRecord{V_n, \cps{H_n}^{\depth_n}} \dcons \dots \dcons \dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dnil}} \\
+%                            \dapp (\dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}} \dcons \reify \sW) \\
+%                            \el \\
+%     \reducesto^+ & \reason{$H^\ell = \{\ell\;p\;r \mapsto N_\ell\}$} \\
+%     & \bl \Let\;r=\Res^\depth\; (\dRecord{V_n, \cps{H_n}^{\depth_n}} \dcons \dots \dcons \dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dnil)\;\In\\
+%           \Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}} \dcons \reify \sW\;\In\\
+%           (\cps{N_\ell}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons\reflect k'))[\cps{V}/p]\el\\
+%     \reducesto&             \reason{$\usemlab{Res^\depth}$: there are two cases yielding different $\mathcal{R}$, see below} \\
+%     & \bl \Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = \dRecord{\reify\sV_{fs},\dRecord{\reify\sV_{ret},\reify\sV_{ops}}} \dcons \reify \sW\;\In\\
+%           (\cps{N_\ell}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons\reflect k'))[\cps{V}/p,\mathcal{R}/r]\el\\
+%     \reducesto^+& \reason{$\usemlab{Split}$} \\
+%     & (\cps{N_\ell}\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}}\scons\reflect \reify\sW))[\cps{V}/p,\mathcal{R}/r]\\
+%     = &           \reason{Lemma~\ref{lem:reflect-after-reify-proof} (Reflect after reify)} \\
+%     & (\cps{N_\ell}\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}}\scons\sW))[\cps{V}/p,\mathcal{R}/r]\\
+%   \end{derivation}
+%   To complete the proof, we examine the resumption term $\mathcal{R}$
+%   generated by the reduction of the $\Let\;r=\Res^\depth\;rk\;\In\;N$
+%   construct. There are two cases, depending on whether the handler is
+%   deep or shallow. When the handler is deep, we have:
+%   \begin{equations}
+%     \mathcal{R}
+%     &=& \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+%                        \kapp\;(\dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dots \dcons \dRecord{V_n, \cps{H_n}^{\depth_n}} \dcons \dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k')\;y
+%                    \el
+%     \\
+%     &=& \reason{static $\beta$-conversion, and definition of $\reify$} \\
+%     & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+%                       (\slam \sk. \kapp\;(\reify \sk)\;y) \\
+%                       \quad \sapp ((\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect V_n, \cps{H_n}^{\depth_n}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k')
+%                    \el\\
+%     &=& \reason{definition of $\cps{-}$} \\
+%     & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+%                       \cps{\Return\;y} \sapp ((\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect V_n, \cps{H_n}^{\depth_n}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k')
+%                    \el\\
+%     &=& \reason{Equation~\ref{eq:evalcontext-eq-proof}} \\
+%     & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+%                       \cps{\Return\;y} \sapp (\cps{\EC} \sapp (\sRecord{\reflect \dnil, \cps{H_n}^{\depth_n}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k'))
+%                    \el\\
+%   \end{equations}
+%   When the handler is shallow, we have:
+%   \begin{equations}
+%     \mathcal{R}
+%     &=& \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+%                        \kapp\;(\dRecord{V_1, \cps{H_1}^{\depth_1}} \dcons \dots \dcons \dRecord{V_n \Append fs, \dRecord{\vhret, \vhops}}\dcons k')\;y
+%                    \el
+%                    \\
+%     &=& \reason{static $\beta$-conversion, and definition of $\reify$} \\
+%     & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+%                       (\slam \sk. \kapp\;(\reify \sk)\;y) \sapp ((\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect (V_n \Append fs), \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k')
+%                    \el\\
+%     &=& \reason{definition of $\cps{-}$} \\
+%     & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+%                       \cps{\Return\;y} \sapp ((\sRecord{\reflect V_1, \cps{H_1}^{\depth_1}} \scons \dots \scons \sRecord{\reflect (V_n \Append fs), \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k')
+%                    \el\\
+%     &=& \reason{Equation~\ref{eq:evalcontext-eq-proof}} \\
+%     & & \dlam y\,k. \bl\Let\;\dRecord{fs, \dRecord{\vhret, \vhops}}\dcons k' = k\;\In\;\\
+%                       \cps{\Return\;y} \sapp (\cps{\EC} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}}\scons \reflect k'))
+%                    \el\\
+%   \end{equations}
+% \end{proof}
 
-\clearpage
-\medskip
-%
-\begin{theorem}[Simulation]
-  \label{thm:ho-simulation-gen-cont-proof}
-  If $M \reducesto N$ then
-  \[
-  \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}}
-  \scons \sW) \reducesto^+ \cps{N} \sapp (\sRecord{\sV_{fs},
-    \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW).
-  \]
-\end{theorem}
-\begin{proof}
-  The proof is by induction on the derivation of the reduction
-  relation ($\reducesto$).
-  \begin{description}
-  \item[Case] $\semlab{App}$: $(\lambda x^A.M)\,V \reducesto M[V/x]$.
-    \begin{derivation}
-      & \cps{(\lambda x^A.M)\,V} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&        \reason{definition of $\cps{-}$} \\
-      & (\slam \sk.\,\cps{\lambda x^A.M} \dapp \cps{V} \dapp \reify \sk) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&        \reason{static $\beta$-conversion} \\
-      & \cps{\lambda x^A.M} \dapp \cps{V} \dapp \reify (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&        \reason{definition of $\reify$} \\
-      & \cps{\lambda x^A.M} \dapp \cps{V} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW) \\
-      =&        \reason{definition of $\cps{-}$} \\
-      & \bl(\dlam x\,k. \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}} \dcons k' = k\;\In\cps{M} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \cons \reflect k))\\
-      \qquad \dapp \cps{V} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW)\el \\
-      \reducesto^+&        \reason{dynamic $\beta$-reduction and pattern matching, and structure of continuations}\\
-      & \cps{M}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
-      =&        \reason{Lemma~\ref{lem:subst-gen-cont-proof} (Substitution)} \\
-      & \cps{M[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
-      =&        \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
-      & \cps{M[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-    \end{derivation}
-  \item[Case] $\semlab{TyApp}$: $(\Lambda \alpha^K.M)\,T \reducesto M[T/\alpha]$.
-    \begin{derivation}
-      & \cps{(\Lambda \alpha^K.M)\,T} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&         \reason{definition of $\cps{-}$} \\
-      & (\slam \sk. \cps{\Lambda \alpha^K.M} \dapp \dRecord{} \dapp \reify \sk) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&         \reason{static $\beta$-conversion} \\
-      & \cps{\Lambda \alpha^K.M} \dapp \cps{V} \dapp \dRecord{} \dapp \reify (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-   %% \end{derivation}
-   %% \begin{derivation}
-      =&         \reason{definition of $\reify$} \\
-      & \cps{\Lambda \alpha^K.M} \dapp \cps{V} \dapp \dRecord{} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW) \\
-      =&         \reason{definition of $\cps{-}$} \\
-      & \bl(\dlam x\,k. \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}} \dcons k' = k\;\In\;\cps{M} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \cons \reflect k))\\
-      \qquad \dapp \dRecord{} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW)\el \\
-      \reducesto^+&       \reason{dynamic $\beta$-reduction and pattern matching, and structure of continuations}\\
-      & \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
-      =&         \reason{Lemma~\ref{lem:erasure-proof} (Type erasure)} \\
-      & \cps{M[T/\alpha]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
-      =&        \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
-      & \cps{M[T/\alpha]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-    \end{derivation}
-  \item[Case] $\semlab{Rec}$:
-    $(\Rec\,g\,x.M)\,V \reducesto M[(\Rec\,g\,x.M)/g,V/x]$. Similar to
-    the previous two cases.
-  \item[Case] $\semlab{Split}$: $\Let\;\Record{\ell=x;y} = \Record{\ell=V;W}\;\In\;N \reducesto N[V/x,W/y]$.
-    \begin{derivation}
-      & \cps{\Let\;\Record{\ell=x;y} = \Record{\ell=V;W}\;\In\;N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
-      =&           \reason{definition of $\cps{-}$}\\
-      & (\slam \kappa. \Let\;\dRecord{\ell,\dRecord{x,y}} = \Record{\ell,\dRecord{\cps{V},\cps{W}}}\;\In\;\cps{N} \sapp \sk) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
-      =&           \reason{static $\beta$-conversion}\\
-      & \Let\;\dRecord{\ell,\dRecord{x,y}} = \Record{\ell,\dRecord{\cps{V},\cps{W}}}\;\In\;\cps{N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
-      \reducesto^+& \reason{\usemlab{Split}}\\
-      & (\cps{N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))[\cps{V}/x,\cps{W}/y] \\
-      =&           \reason{Lemma~\ref{lem:subst-gen-cont-proof} (Substitution)}\\
-      & \cps{N[V/x,W/y]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-    \end{derivation}
-  \item[Case] $\semlab{Case_1}$ and $\semlab{Case_2}$: Similar to the previous case.
-  \item[Case] $\semlab{Let}$:
-    $\Let\;x\revto \Return\;V\;\In\;N \reducesto N[V/x]$.
-    \begin{derivation}
-      & \cps{\Let\;x\revto \Return\;V\;\In\;N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&         \reason{definition of $\cps{-}$} \\
-      & \bl(\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk. \\\cps{\Return\;V} \sapp (\sRecord{\reflect((\dlam x\,k.
-        \bl
-        \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\
-        \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \shf), \sRecord{\svhret, \svhops}} \scons \sk)) \\
-        \el \\
-        \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)
-        \el \\
-      =&         \reason{static $\beta$-conversion} \\
-      & \cps{\Return\;V} \sapp (\sRecord{\bl
-                                         \reflect((\dlam x\,k.\bl
-                                                              \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In \\
-                                                              \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}), \\
-                                                              \el \\
-                                         \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-                                         \el \\
-      =&         \reason{definition of $\cps{-}$} \\
-      & (\slam \sk. \kapp\; (\reify \sk)\;\cps{V}) \sapp (\sRecord{\reflect((\dlam x\,k.
-           \bl
-           \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\
-           \cps{N} \sapp (\bl
-                          \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}), \\
-                          \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)
-                          \el \\
-           \el \\
-      =&         \reason{static $\beta$-conversion} \\
-      & \kapp\; (\reify(\sRecord{\reflect((\dlam x\,k.\bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\\cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}), \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))\;\cps{V}\el \\
-      =&         \reason{definition of $\reify$} \\
-      & \kapp\; (\dRecord{(\dlam x\,k.\bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\\cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify\sW))\;\cps{V}\el \\
-      \reducesto& \reason{$\usemlab{KAppCons}$} \\
-      & (\dlam x\,k.\bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\\cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dapp \cps{V} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify \sW)\el \\
-      \reducesto^+& \reason{$\usemlab{App}$, $\usemlab{Split}$} \\
-      & \cps{N}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW)\\
-      =& \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
-      & \cps{N}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
-      =&             \reason{Lemma~\ref{lem:subst-gen-cont-proof} (substitution)} \\
-      & \cps{N[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
-    \end{derivation}
-  \item[Case] $\semlab{Ret}$:
-    $\Handle^\depth\;(\Return\;V)\;\With\;H \reducesto N[V/x]$, where
-    $\hret = \{\Return\;x\mapsto N\}$.
-    \begin{derivation}
-      & \cps{\Handle^\depth\;(\Return\;V)\;\With\;H} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&             \reason{definition of $\cps{-}$} \\
-      & (\slam \sk. \cps{\Return\;V}\sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sk)) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&             \reason{static $\beta$-conversion} \\
-      & \cps{\Return\;V}\sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&             \reason{definition of $\cps{-}$} \\
-      & (\slam \sk. \kapp\;(\reify \sk)\;\cps{V})\sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&             \reason{static $\beta$-conversion} \\
-      & \kapp\;(\reify (\sRecord{\snil, \cps{H}^\depth} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))\;\cps{V} \\
-      =&             \reason{definition of $\cps{H}^\depth$ and $\reify$} \\
-      & \kapp\;(\dRecord{\dnil, \dRecord{\cps{\hret},\cps{\hops}^\depth}} \dcons \dRecord{\reify\sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify\sW)\;\cps{V}\\
-      \reducesto&    \reason{\usemlab{KAppNil}}\\
-      & \cps{\hret} \dapp \cps{V} \dapp (\dRecord{\reify\sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify\sW) \\
-      =&             \reason{definition of $\cps{-}$} \\
-      & \bl(\dlam x\,k.\Let\,\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\;\cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))\\
-        \qquad\dapp \cps{V} \dapp (\dRecord{\reify\sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify\sW)\el \\
-      \reducesto^+&  \reason{\usemlab{App}, \usemlab{Split}} \\
-      & \cps{N}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
-      =&             \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
-      & \cps{N}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&             \reason{Lemma~\ref{lem:subst-gen-cont-proof} (substitution)} \\
-      & \cps{N[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
-    \end{derivation}
-  \item[Case] $\semlab{Op}$:
-    $\Handle\;\EC[\Do\;\ell\;V]\;\With\;H \reducesto N_\ell[V/p,\lambda
-    y.\Handle\;\EC[\Return\; y]\;\With\;H/r]$, where $\ell \not\in BL(\EC)$
-    and $H^\ell = \{\ell\;p\;r \mapsto N_\ell\}$.
-    \begin{derivation}
-      & \cps{\Handle\;\EC[\Do\;\ell\;V]\;\With\;H}\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&             \reason{definition of $\cps{-}$} \\
-      & (\slam \sk. \cps{\EC[\Do\;\ell\;V]} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}}} \scons \sk)) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&             \reason{static $\beta$-conversion} \\
-      & \cps{\EC[\Do\;\ell\;V]} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}}} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&             \reason{Lemma~\ref{lem:decomposition-gen-cont-proof} (Decomposition)} \\
-      & \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}}} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))\\
-      \reducesto^+&  \reason{Lemma~\ref{lem:handle-op-gen-cont-proof} (Handling)} \\
-      & \bl\cps{N_\ell}[\cps{V}/p,\dlam y\,k.\bl
-                                            \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
-                                            \cps{\Return\;y} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k'))/r]\\
-                                            \el \\
-      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
-      =&             \reason{Lemma~\ref{lem:decomposition-gen-cont-proof} (Decomposition)} \\
-      & \bl\cps{N_\ell}[\cps{V}/p, \dlam y\,k.\bl
-                                             \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
-                                             \cps{\EC[\Return\;y]} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k')/r] \\
-                                             \el \\
-      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
-      =&             \reason{static $\beta$-conversion and definition of $\cps{-}$} \\
-   \end{derivation}
-   \begin{derivation}
-      & \bl\cps{N_\ell}[\cps{V}/p, \dlam y\,k.\bl
-                                             \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
-                                             \cps{\Handle\;\EC[\Return\;y]\;\With\;H} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k')/r]\\
-                                             \el \\
-      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
-      =&             \reason{definition of $\cps{-}$} \\
-      & \cps{N_\ell}[\cps{V}/p, \cps{\lambda y. \Handle\;\EC[\Return\;y]\;\With\;H}/r] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
-      =&             \reason{Lemma~\ref{lem:subst-gen-cont-proof} (Substitution)} \\
-      & \cps{N_\ell[V/p, \lambda y. \Handle\;\EC[\Return\;y]\;\With\;H/r]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
-    \end{derivation}
-  \item[Case] $\semlab{Op^\dagger}$:
-    $\Handle^\dagger\;\EC[\Do\;\ell\;V]\;\With\;H \reducesto N_\ell[V/p,\lambda
-    y.\EC[\Return\; y]/r]$, where $\ell \not\in BL(\EC)$
-    and $H^\ell = \{\ell\;p\;r \mapsto N_\ell\}$.
-    \begin{derivation}
-      & \cps{\Handle^\dagger\;\EC[\Do\;\ell\;V]\;\With\;H}\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&             \reason{definition of $\cps{-}$} \\
-      & (\slam \sk. \cps{\EC[\Do\;\ell\;V]} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}^\dagger}} \scons \sk)) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&             \reason{static $\beta$-conversion} \\
-      & \cps{\EC[\Do\;\ell\;V]} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}^\dagger}} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
-      =&             \reason{Lemma~\ref{lem:decomposition-gen-cont-proof} (Decomposition)} \\
-      & \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}^\dagger}} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))\\
-      \reducesto^+&  \reason{Lemma~\ref{lem:handle-op-gen-cont-proof} (Handling)} \\
-      & \bl\cps{N_\ell}[\cps{V}/p,\dlam y\,k.\bl
-                                            \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
-                                            \cps{\Return\;y} \sapp (\cps{\EC} \sapp (\scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k'))/r]\\
-                                            \el \\
-      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
-      =&             \reason{Lemma~\ref{lem:decomposition-gen-cont-proof} (Decomposition)} \\
-      & \bl\cps{N_\ell}[\cps{V}/p, \dlam y\,k.\bl
-                                             \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
-                                             \cps{\EC[\Return\;y]} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k')/r]\\
-                                             \el \\
-      \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
-      =&             \reason{definition of $\cps{-}$} \\
-      & \cps{N_\ell}[\cps{V}/p, \cps{\lambda y. \EC[\Return\;y]}/r] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
-      =&             \reason{Lemma~\ref{lem:subst-gen-cont-proof} (Substitution)} \\
-      & \cps{N_\ell[V/p, \lambda y. \EC[\Return\;y]/r]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
-    \end{derivation}
-  \end{description}
-\end{proof}
+% \clearpage
+% \medskip
+% %
+% \begin{theorem}[Simulation]
+%   \label{thm:ho-simulation-gen-cont-proof}
+%   If $M \reducesto N$ then
+%   \[
+%   \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{\mret},\sV_{\mops}}}
+%   \scons \sW) \reducesto^+ \cps{N} \sapp (\sRecord{\sV_{fs},
+%     \sRecord{\sV_{\mret},\sV_{\mops}}} \scons \sW).
+%   \]
+% \end{theorem}
+% \begin{proof}
+%   The proof is by induction on the derivation of the reduction
+%   relation ($\reducesto$).
+%   \begin{description}
+%   \item[Case] $\semlab{App}$: $(\lambda x^A.M)\,V \reducesto M[V/x]$.
+%     \begin{derivation}
+%       & \cps{(\lambda x^A.M)\,V} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&        \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk.\,\cps{\lambda x^A.M} \dapp \cps{V} \dapp \reify \sk) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&        \reason{static $\beta$-conversion} \\
+%       & \cps{\lambda x^A.M} \dapp \cps{V} \dapp \reify (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&        \reason{definition of $\reify$} \\
+%       & \cps{\lambda x^A.M} \dapp \cps{V} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW) \\
+%       =&        \reason{definition of $\cps{-}$} \\
+%       & \bl(\dlam x\,k. \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}} \dcons k' = k\;\In\cps{M} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \cons \reflect k))\\
+%       \qquad \dapp \cps{V} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW)\el \\
+%       \reducesto^+&        \reason{dynamic $\beta$-reduction and pattern matching, and structure of continuations}\\
+%       & \cps{M}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
+%       =&        \reason{Lemma~\ref{lem:subst-gen-cont-proof} (Substitution)} \\
+%       & \cps{M[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
+%       =&        \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
+%       & \cps{M[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%     \end{derivation}
+%   \item[Case] $\semlab{TyApp}$: $(\Lambda \alpha^K.M)\,T \reducesto M[T/\alpha]$.
+%     \begin{derivation}
+%       & \cps{(\Lambda \alpha^K.M)\,T} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&         \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk. \cps{\Lambda \alpha^K.M} \dapp \dRecord{} \dapp \reify \sk) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&         \reason{static $\beta$-conversion} \\
+%       & \cps{\Lambda \alpha^K.M} \dapp \cps{V} \dapp \dRecord{} \dapp \reify (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%    %% \end{derivation}
+%    %% \begin{derivation}
+%       =&         \reason{definition of $\reify$} \\
+%       & \cps{\Lambda \alpha^K.M} \dapp \cps{V} \dapp \dRecord{} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW) \\
+%       =&         \reason{definition of $\cps{-}$} \\
+%       & \bl(\dlam x\,k. \Let\;\dRecord{fs,\dRecord{\vhret, \vhops}} \dcons k' = k\;\In\;\cps{M} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \cons \reflect k))\\
+%       \qquad \dapp \dRecord{} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify \sV_{ret}, \reify \sV_{ops}}} \dcons \reify \sW)\el \\
+%       \reducesto^+&       \reason{dynamic $\beta$-reduction and pattern matching, and structure of continuations}\\
+%       & \cps{M} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
+%       =&         \reason{Lemma~\ref{lem:erasure-proof} (Type erasure)} \\
+%       & \cps{M[T/\alpha]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
+%       =&        \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
+%       & \cps{M[T/\alpha]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%     \end{derivation}
+%   \item[Case] $\semlab{Rec}$:
+%     $(\Rec\,g\,x.M)\,V \reducesto M[(\Rec\,g\,x.M)/g,V/x]$. Similar to
+%     the previous two cases.
+%   \item[Case] $\semlab{Split}$: $\Let\;\Record{\ell=x;y} = \Record{\ell=V;W}\;\In\;N \reducesto N[V/x,W/y]$.
+%     \begin{derivation}
+%       & \cps{\Let\;\Record{\ell=x;y} = \Record{\ell=V;W}\;\In\;N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+%       =&           \reason{definition of $\cps{-}$}\\
+%       & (\slam \kappa. \Let\;\dRecord{\ell,\dRecord{x,y}} = \Record{\ell,\dRecord{\cps{V},\cps{W}}}\;\In\;\cps{N} \sapp \sk) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+%       =&           \reason{static $\beta$-conversion}\\
+%       & \Let\;\dRecord{\ell,\dRecord{x,y}} = \Record{\ell,\dRecord{\cps{V},\cps{W}}}\;\In\;\cps{N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+%       \reducesto^+& \reason{\usemlab{Split}}\\
+%       & (\cps{N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))[\cps{V}/x,\cps{W}/y] \\
+%       =&           \reason{Lemma~\ref{lem:subst-gen-cont-proof} (Substitution)}\\
+%       & \cps{N[V/x,W/y]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%     \end{derivation}
+%   \item[Case] $\semlab{Case_1}$ and $\semlab{Case_2}$: Similar to the previous case.
+%   \item[Case] $\semlab{Let}$:
+%     $\Let\;x\revto \Return\;V\;\In\;N \reducesto N[V/x]$.
+%     \begin{derivation}
+%       & \cps{\Let\;x\revto \Return\;V\;\In\;N} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&         \reason{definition of $\cps{-}$} \\
+%       & \bl(\slam \sRecord{\shf, \sRecord{\svhret, \svhops}}\scons \sk. \\\cps{\Return\;V} \sapp (\sRecord{\reflect((\dlam x\,k.
+%         \bl
+%         \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\
+%         \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \shf), \sRecord{\svhret, \svhops}} \scons \sk)) \\
+%         \el \\
+%         \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)
+%         \el \\
+%       =&         \reason{static $\beta$-conversion} \\
+%       & \cps{\Return\;V} \sapp (\sRecord{\bl
+%                                          \reflect((\dlam x\,k.\bl
+%                                                               \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In \\
+%                                                               \cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}), \\
+%                                                               \el \\
+%                                          \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%                                          \el \\
+%       =&         \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk. \kapp\; (\reify \sk)\;\cps{V}) \sapp (\sRecord{\reflect((\dlam x\,k.
+%            \bl
+%            \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\
+%            \cps{N} \sapp (\bl
+%                           \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}), \\
+%                           \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)
+%                           \el \\
+%            \el \\
+%       =&         \reason{static $\beta$-conversion} \\
+%       & \kapp\; (\reify(\sRecord{\reflect((\dlam x\,k.\bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\\cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}), \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))\;\cps{V}\el \\
+%       =&         \reason{definition of $\reify$} \\
+%       & \kapp\; (\dRecord{(\dlam x\,k.\bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\\cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dcons \reify \sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify\sW))\;\cps{V}\el \\
+%       \reducesto& \reason{$\usemlab{KAppCons}$} \\
+%       & (\dlam x\,k.\bl\Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\\\cps{N} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k')) \dapp \cps{V} \dapp (\dRecord{\reify \sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify \sW)\el \\
+%       \reducesto^+& \reason{$\usemlab{App}$, $\usemlab{Split}$} \\
+%       & \cps{N}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW)\\
+%       =& \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
+%       & \cps{N}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+%       =&             \reason{Lemma~\ref{lem:subst-gen-cont-proof} (substitution)} \\
+%       & \cps{N[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+%     \end{derivation}
+%   \item[Case] $\semlab{Ret}$:
+%     $\Handle^\depth\;(\Return\;V)\;\With\;H \reducesto N[V/x]$, where
+%     $\hret = \{\Return\;x\mapsto N\}$.
+%     \begin{derivation}
+%       & \cps{\Handle^\depth\;(\Return\;V)\;\With\;H} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&             \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk. \cps{\Return\;V}\sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sk)) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&             \reason{static $\beta$-conversion} \\
+%       & \cps{\Return\;V}\sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&             \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk. \kapp\;(\reify \sk)\;\cps{V})\sapp (\sRecord{\snil, \cps{H}^\depth} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&             \reason{static $\beta$-conversion} \\
+%       & \kapp\;(\reify (\sRecord{\snil, \cps{H}^\depth} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))\;\cps{V} \\
+%       =&             \reason{definition of $\cps{H}^\depth$ and $\reify$} \\
+%       & \kapp\;(\dRecord{\dnil, \dRecord{\cps{\hret},\cps{\hops}^\depth}} \dcons \dRecord{\reify\sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify\sW)\;\cps{V}\\
+%       \reducesto&    \reason{\usemlab{KAppNil}}\\
+%       & \cps{\hret} \dapp \cps{V} \dapp (\dRecord{\reify\sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify\sW) \\
+%       =&             \reason{definition of $\cps{-}$} \\
+%       & \bl(\dlam x\,k.\Let\,\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k' = k\;\In\;\cps{N}\sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect \vhops}} \scons \reflect k'))\\
+%         \qquad\dapp \cps{V} \dapp (\dRecord{\reify\sV_{fs}, \dRecord{\reify\sV_{ret}, \reify\sV_{ops}}} \dcons \reify\sW)\el \\
+%       \reducesto^+&  \reason{\usemlab{App}, \usemlab{Split}} \\
+%       & \cps{N}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \reflect \reify \sW) \\
+%       =&             \reason{Lemma~\ref{lem:reflect-after-reify-proof} (reflect after reify)} \\
+%       & \cps{N}[\cps{V}/x] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&             \reason{Lemma~\ref{lem:subst-gen-cont-proof} (substitution)} \\
+%       & \cps{N[V/x]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+%     \end{derivation}
+%   \item[Case] $\semlab{Op}$:
+%     $\Handle\;\EC[\Do\;\ell\;V]\;\With\;H \reducesto N_\ell[V/p,\lambda
+%     y.\Handle\;\EC[\Return\; y]\;\With\;H/r]$, where $\ell \not\in BL(\EC)$
+%     and $H^\ell = \{\ell\;p\;r \mapsto N_\ell\}$.
+%     \begin{derivation}
+%       & \cps{\Handle\;\EC[\Do\;\ell\;V]\;\With\;H}\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&             \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk. \cps{\EC[\Do\;\ell\;V]} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}}} \scons \sk)) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&             \reason{static $\beta$-conversion} \\
+%       & \cps{\EC[\Do\;\ell\;V]} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}}} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&             \reason{Lemma~\ref{lem:decomposition-gen-cont-proof} (Decomposition)} \\
+%       & \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}}} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))\\
+%       \reducesto^+&  \reason{Lemma~\ref{lem:handle-op-gen-cont-proof} (Handling)} \\
+%       & \bl\cps{N_\ell}[\cps{V}/p,\dlam y\,k.\bl
+%                                             \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
+%                                             \cps{\Return\;y} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k'))/r]\\
+%                                             \el \\
+%       \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
+%       =&             \reason{Lemma~\ref{lem:decomposition-gen-cont-proof} (Decomposition)} \\
+%       & \bl\cps{N_\ell}[\cps{V}/p, \dlam y\,k.\bl
+%                                              \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
+%                                              \cps{\EC[\Return\;y]} \sapp (\sRecord{\snil, \cps{H}} \scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k')/r] \\
+%                                              \el \\
+%       \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
+%       =&             \reason{static $\beta$-conversion and definition of $\cps{-}$} \\
+%    \end{derivation}
+%    \begin{derivation}
+%       & \bl\cps{N_\ell}[\cps{V}/p, \dlam y\,k.\bl
+%                                              \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
+%                                              \cps{\Handle\;\EC[\Return\;y]\;\With\;H} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k')/r]\\
+%                                              \el \\
+%       \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
+%       =&             \reason{definition of $\cps{-}$} \\
+%       & \cps{N_\ell}[\cps{V}/p, \cps{\lambda y. \Handle\;\EC[\Return\;y]\;\With\;H}/r] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+%       =&             \reason{Lemma~\ref{lem:subst-gen-cont-proof} (Substitution)} \\
+%       & \cps{N_\ell[V/p, \lambda y. \Handle\;\EC[\Return\;y]\;\With\;H/r]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+%     \end{derivation}
+%   \item[Case] $\semlab{Op^\dagger}$:
+%     $\Handle^\dagger\;\EC[\Do\;\ell\;V]\;\With\;H \reducesto N_\ell[V/p,\lambda
+%     y.\EC[\Return\; y]/r]$, where $\ell \not\in BL(\EC)$
+%     and $H^\ell = \{\ell\;p\;r \mapsto N_\ell\}$.
+%     \begin{derivation}
+%       & \cps{\Handle^\dagger\;\EC[\Do\;\ell\;V]\;\With\;H}\sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&             \reason{definition of $\cps{-}$} \\
+%       & (\slam \sk. \cps{\EC[\Do\;\ell\;V]} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}^\dagger}} \scons \sk)) \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&             \reason{static $\beta$-conversion} \\
+%       & \cps{\EC[\Do\;\ell\;V]} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}^\dagger}} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW) \\
+%       =&             \reason{Lemma~\ref{lem:decomposition-gen-cont-proof} (Decomposition)} \\
+%       & \cps{\Do\;\ell\;V} \sapp (\cps{\EC} \sapp (\sRecord{\snil, \sRecord{\reflect\cps{\hret}, \reflect\cps{\hops}^\dagger}} \scons \sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW))\\
+%       \reducesto^+&  \reason{Lemma~\ref{lem:handle-op-gen-cont-proof} (Handling)} \\
+%       & \bl\cps{N_\ell}[\cps{V}/p,\dlam y\,k.\bl
+%                                             \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
+%                                             \cps{\Return\;y} \sapp (\cps{\EC} \sapp (\scons \sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k'))/r]\\
+%                                             \el \\
+%       \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
+%       =&             \reason{Lemma~\ref{lem:decomposition-gen-cont-proof} (Decomposition)} \\
+%       & \bl\cps{N_\ell}[\cps{V}/p, \dlam y\,k.\bl
+%                                              \Let\;\dRecord{fs,\dRecord{\vhret,\vhops}}\dcons k'=k\;\In \\
+%                                              \cps{\EC[\Return\;y]} \sapp (\sRecord{\reflect fs, \sRecord{\reflect \vhret, \reflect\vhops}} \scons \reflect k')/r]\\
+%                                              \el \\
+%       \qquad \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\el\\
+%       =&             \reason{definition of $\cps{-}$} \\
+%       & \cps{N_\ell}[\cps{V}/p, \cps{\lambda y. \EC[\Return\;y]}/r] \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+%       =&             \reason{Lemma~\ref{lem:subst-gen-cont-proof} (Substitution)} \\
+%       & \cps{N_\ell[V/p, \lambda y. \EC[\Return\;y]/r]} \sapp (\sRecord{\sV_{fs}, \sRecord{\sV_{ret}, \sV_{ops}}} \scons \sW)\\
+%     \end{derivation}
+%   \end{description}
+% \end{proof}
 
 \chapter{Proof details for the complexity of effectful generic count}
 \label{sec:positive-theorem}
