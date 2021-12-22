@@ -8489,7 +8489,25 @@ implement parameterised handlers in Section~\ref{sec:cps-param}.
 %     &\reducesto (\lambda x.x)\,\Unit\\
 %     &\reducesto \Unit
 %     \ea
-% \]
+%   \]
+
+\paragraph{Chapter outline}
+\begin{description}
+\item[Section~\ref{sec:target-cps}] presents the initial target calculus.
+\item[Section~\ref{sec:cps-cbv}] demonstrates how to translate
+  $\BCalc$ to the target calculus via CPS.
+\item[Section~\ref{sec:fo-cps}] starts from a rather \naive
+  first-order CPS transform for deep handlers. Over the course of
+  several refinements the \naive CPS transform gets progressively more
+  sophisticated, ultimately resulting in a higher-order one-pass CPS
+  transform for deep handlers.
+\item[Section~\ref{sec:cps-shallow}] further extends higher-order CPS
+  to accommodate shallow handlers. During this development the notion
+  of generalised continuations is introduced.
+\item[Section~\ref{sec:cps-param}] adapts the translation with
+  generalised continuations to support parameterised handlers as well.
+\item[Section~\ref{sec:cps-related-work}] discusses related work.
+\end{description}
 
 \paragraph{Relation to prior work} This chapter is based on the
 following work.
@@ -10787,10 +10805,10 @@ then in the image $\cps{M}\,k \reducesto^\ast k\,\cps{V}$.
 
 % \paragraph{Partial evaluation}
 
-\paragraph{ANF vs CPS}
+% \paragraph{ANF vs CPS}
 
-\paragraph{Selective CPS transforms}
-\dhil{TODO \citet{Nielsen01} \citet{DanvyH92} \citet{DanvyH93} \citet{Leijen17}}
+% \paragraph{Selective CPS transforms}
+% \dhil{TODO \citet{Nielsen01} \citet{DanvyH92} \citet{DanvyH93} \citet{Leijen17}}
 
 \chapter{Abstract machine semantics}
 \label{ch:abstract-machine}
