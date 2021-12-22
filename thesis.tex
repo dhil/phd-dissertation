@@ -6974,6 +6974,9 @@ exists some $N$ such that $M \reducesto N$.
   of the form $\Return\; V$ for some value $V \in \ValCat$.
 \end{definition}
 %
+We write $\reducesto^\ast$ for the reflexive and transitive closure of
+the reduction relation $\reducesto$.
+%
 \begin{theorem}[Progress]\label{thm:base-language-progress}
   Suppose $\typ{}{M : C}$, then $M$ is normal or there exists
   $\typ{}{N : C}$ such that $M \reducesto^\ast N$.
