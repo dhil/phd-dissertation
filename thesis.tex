@@ -16522,6 +16522,24 @@ asymptotic improvement in runtime performance for some class of
 programs.
 
 \section{Programming with effect handlers}
+Chapter~\ref{ch:ehop} presents a case study of effect handler oriented
+programming, which reproduces the essence of the \UNIX{} operating
+system by making crucial use of effect handlers. The case study
+demonstrates how effect handlers provide a high-degree of modularity
+and flexibility that enable substantial behavioural changes to be
+retrofitted onto programs without altering the existing the code. Thus
+effect handlers provide a mechanism for building small task-oriented
+programs that later can be scaled to interact with other programs in a
+larger context.
+%
+The case study also demonstrates how one might ascribe a handler
+semantics to a \UNIX{}-like operating system. The resulting operating
+system \OSname{} captures the essential features of a true operating
+system including support for managing multiple concurrent user
+environments simultaneously, process parallelism, file I/O. The case
+study also shows how each feature can be implemented in terms of some
+standard effect.
+
 Chapter~\ref{ch:handler-calculi} presents the design of a core
 calculus that forms the basis for Links, which is a practical
 programming language with deep, shallow, and parameterised effect
@@ -16546,9 +16564,9 @@ two functions may introduce arbitrary effects that need to be handled
 accordingly. Alternatively, a composition of any two functions may
 inadvertently eliminate arbitrary effects, and as such, programming
 with effect handlers without an effect system is prone to error. The
-\UNIX{} case study in Chapter~\ref{ch:ehop} demonstrates how
-the effect system assists to ensure that effectful function
-compositions are meaningful.
+\UNIX{} case study in Chapter~\ref{ch:ehop} demonstrates how the
+effect system assists to ensure that effectful function compositions
+are meaningful.
 
 The particular effect system that I have used throughout this
 dissertation is based on \citeauthor{Remy93}-style row polymorphism
@@ -16581,23 +16599,10 @@ $\dec{map}$ do not duplicate information. Rather than back-patching
 the effect system in hindsight, a possibly better approach is to
 design the effect system for practical programming from the ground up
 as \citet{LindleyMM17} did for the Frank programming language.
-
+%
 Nevertheless, the \UNIX{} case study is indicative of the syntactic
 sugar being adequate in practice to build larger effect-oriented
-applications. The case study demonstrates how effect handlers provide
-a high-degree of modularity and flexibility that enable substantial
-behavioural changes to be retrofitted onto programs without altering
-the existing the code. Thus effect handlers provide a mechanism for
-building small task-oriented programs that later can be scaled to
-interact with other programs in a larger context.
-%
-The case study also demonstrates how one might ascribe a handler
-semantics to a \UNIX{}-like operating system. The resulting operating
-system \OSname{} captures the essential features of a true operating
-system including support for managing multiple concurrent user
-environments simultaneously, process parallelism, file I/O. The case
-study also shows how each feature can be implemented in terms of some
-standard effect.
+applications.
 
 \subsection{Future work}
 
