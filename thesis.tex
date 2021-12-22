@@ -743,8 +743,7 @@ control, where programmers can give distinct names to control reifying
 operations and separate them from their handling. Throughout this
 dissertation we will see numerous examples of how effect handlers
 makes programming with delimited structured (c.f. the following
-section, Chapter~\ref{ch:continuations}, and
-Chapter~\ref{ch:unary-handlers}).
+section, Chapter~\ref{ch:ehop}, and Chapter~\ref{ch:continuations}.).
 %
 
 \section{State of effectful programming}
@@ -1890,7 +1889,7 @@ handler to run the delimited control variant of $\incrEven$.
 %
 Effect handlers come into their own when multiple effects are
 combined. Throughout the dissertation we will see multiple examples of
-handlers in action (e.g. Chapter~\ref{ch:unary-handlers}).
+handlers in action (e.g. Chapter~\ref{ch:ehop}).
 
 \subsubsection{Effect tracking}
 % \dhil{Cite \citet{GiffordL86}, \citet{LucassenG88}, \citet{TalpinJ92},
@@ -1946,7 +1945,7 @@ function under a handler that interprets at least $\Get$ and $\Put$.
 Some form of polymorphism is necessary to make an effect system
 extensible and useful in practice. Otherwise effect annotations end up
 pervading the entire program in a similar fashion as monads do. In
-Chapter~\ref{ch:base-language} we will develop an extensible effect
+Chapter~\ref{ch:handler-calculi} we will develop an extensible effect
 system based on row polymorphism.
 
 \section{Scope}
@@ -2078,7 +2077,7 @@ part.
 \end{itemize}
 
 Another contribution worth noting is the continuation literature
-review in Appendix~\ref{ch:continuation}, which provides a
+review in Appendix~\ref{ch:continuations}, which provides a
 comprehensive operational characterisation of various notions of
 continuations and first-class control phenomena.
 
@@ -2089,20 +2088,23 @@ this dissertation.
 
 \paragraph{Programming}
 \begin{itemize}
-  \item Chapter~\ref{ch:base-language} introduces a polymorphic fine-grain
-call-by-value core calculus, $\BCalc$, which makes key use of
-\citeauthor{Remy93}-style row polymorphism to implement polymorphic
-variants, structural records, and a structural effect system. The
-calculus distils the essence of the core of the Links programming
-language.
+\item Chapter~\ref{ch:ehop} showcases effect handler oriented
+  programming in practice by implementing a small operating system
+  dubbed \OSname{} based on \citeauthor{RitchieT74}'s original
+  \UNIX{}. The implementation starts from a basic notion of file i/o,
+  which evolves into a feature-rich operating system with full file
+  i/o, multiple user environments, multi-tasking, and more, by
+  composing ever more effect handlers.
 
-  \item Chapter~\ref{ch:unary-handlers} presents three extensions of $\BCalc$,
-which are $\HCalc$ that adds deep handlers, $\SCalc$ that adds shallow
-handlers, and $\HPCalc$ that adds parameterised handlers. The chapter
-also contains a running case study that demonstrates effect handler
-oriented programming in practice by implementing a small operating
-system dubbed \OSname{} based on \citeauthor{RitchieT74}'s original
-\UNIX{}.
+\item Chapter~\ref{ch:handler-calculi} introduces a polymorphic
+  fine-grain call-by-value core calculus, $\BCalc$, which makes key
+  use of \citeauthor{Remy93}-style row polymorphism to implement
+  polymorphic variants, structural records, and a structural effect
+  system. The calculus distils the essence of the core of the Links
+  programming language. The chapter also presents three extensions of
+  $\BCalc$, which are $\HCalc$ that adds deep handlers, $\SCalc$ that
+  adds shallow handlers, and $\HPCalc$ that adds parameterised
+  handlers.
 \end{itemize}
 
 \paragraph{Implementation}
@@ -6411,11 +6413,11 @@ Therefore let us formally characterise tail calls.
 For our purposes, the most robust characterisation is a syntactic
 characterisation, as opposed to a semantic characterisation, because
 in the presence of control effects (which we will add in
-Chapter~\ref{ch:unary-handlers}) it surprisingly tricky to describe
-tail calls in terms of control flow such as ``the last thing to occur
-before returning from the enclosing function'' as a function may
-return multiple times. In particular, the effects of a function may be
-replayed several times.
+Section~\ref{sec:unary-deep-handlers}) it surprisingly tricky to
+describe tail calls in terms of control flow such as ``the last thing
+to occur before returning from the enclosing function'' as a function
+may return multiple times. In particular, the effects of a function
+may be replayed several times.
 %
 
 For this reason we will adapt a syntactic characterisation of tail
@@ -6842,11 +6844,12 @@ context ($[~]$) and let expressions ($\Let\;x \revto \EC \;\In\;N$).
 The choices of using fine-grain call-by-value and evaluation contexts
 may seem odd, if not arbitrary at this point; the reader may wonder
 with good reason why we elect to use fine-grain call-by-value over
-ordinary call-by-value.  In Chapter~\ref{ch:unary-handlers} we will
-reap the benefits from our design choices, as we shall see that the
-combination of fine-grain call-by-value and evaluation contexts
-provide the basis for a convenient, simple semantic framework for
-working with continuations.
+ordinary call-by-value.  In
+Sections~\ref{sec:unary-deep-handlers}--\ref{sec:unary-parameterised-handlers}
+we will reap the benefits from our design choices, as we shall see
+that the combination of fine-grain call-by-value and evaluation
+contexts provide the basis for a convenient, simple semantic framework
+for working with continuations.
 
 \paragraph{Syntactic sugar}
 We will adopt a few conventions to make the notation more convenient
@@ -8334,8 +8337,9 @@ explicit. In CPS every function takes an additional function-argument
 called the \emph{continuation}, which represents the next computation
 in evaluation position. CPS is canonical in the sense that it is
 definable in pure $\lambda$-calculus without any further
-primitives. As an informal illustration of CPS consider again the
-ever-green factorial function from Section~\ref{sec:tracking-div}.
+primitives. As an informal illustration of CPS let us consider the
+ever-green factorial function, which may be implemented in $\BCalc$ as
+follows.
 %
 \[
   \bl
@@ -10841,6 +10845,21 @@ machine.
 % embody some high-level abstract models of main memory and the
 % instruction fetch-execute cycle of processors~\cite{BryantO03}.
 
+\paragraph{Chapter outline}
+\begin{description}
+\item[Section~\ref{sec:machine-configurations}] augments the standard
+  CEK notion of configurations to accommodate generalised
+  continuations.
+\item[Section~\ref{sec:machine-transitions}] gives the reduction rules for the CEK
+  machine with generalised continuations.
+\item[Section~\ref{subsec:machine-realisability}] discusses ways to
+  realise the machine and potential efficiency pitfalls.
+\item[Section~\ref{subsec:machine-correctness}] shows that the machine with generalised
+  continuations simulates the substitution-based reduction semantics
+  of $\HCalc$.
+\item[Section~\ref{sec:related-work-abstract-machine}] discusses related work.
+\end{description}
+
 \paragraph{Relation to prior work} The work in this chapter is based
 on work in the following previously published papers.
 %
@@ -11939,6 +11958,7 @@ By repeated application of Lemma~\ref{lem:machine-simulation}.
 \end{proof}
 
 \section{Related work}
+\label{sec:related-work-abstract-machine}
 The literature on abstract machines is vast and rich. I describe here
 the basic structure of some selected abstract machines from the
 literature.
@@ -12132,6 +12152,20 @@ reductions. % The
 % latter construction generalises the example of pipes implemented
 % using deep handlers that we gave in Section~\ref{sec:pipes}.
 %
+
+\paragraph{Chapter outline}
+\begin{description}
+\item[Section~\ref{sec:deep-as-shallow}] develops an encoding of deep
+  handlers in terms of shallow handlers.
+\item[Section~\ref{sec:shallow-as-deep}] shows an encoding going the
+  other way, i.e. shallow handlers encoded using deep handlers.
+\item[Section~\ref{sec:param-desugaring}] demonstrates that
+  parameterised handlers are encodable using ordinary deep handlers
+  with the state-passing technique.
+\item[Section~\ref{sec:related-work-interdefinability}] discusses
+  related work.
+\end{description}
+
 \paragraph{Relation to prior work} The results in this chapter has
 been published previously in the following papers.
 %
@@ -13090,6 +13124,7 @@ variable to be reduced.
   % \end{description}
 \end{proof}
 \section{Related work}
+\label{sec:related-work-interdefinability}
 
 Precisely how effect handlers fit into the landscape of programming
 language features is largely unexplored in the literature. The most
@@ -13387,6 +13422,26 @@ languages without such control features.
 % these results can be extended to base languages with other features
 % such as mutable state.
 
+\paragraph{Chapter outline}
+\begin{description}
+\item[Section~\ref{sec:calculi}] introduces the core calculi
+  $\BPCF \subset \HPCF$, which are essentially simply-typed variations
+  of $\BCalc$ and $\HCalc$, respectively.
+\item[Section~\ref{sec:abstract-machine-semantics}] develops an
+  abstract machine for each core calculus. Both machines are simpler
+  variations of the machine developed in
+  Chapter~\ref{ch:abstract-machine}.
+\item[Section~\ref{sec:generic-search}] presents the gadgetry required
+  to set up and proof the results for the generic count problem. It
+  also shows that there exists an efficient implementation of generic
+  count in $\HPCF$.
+\item[Section~\ref{sec:pure-counting}] establishes the lower bound
+  runtime result for implementations of generic count in $\BPCF$.
+\item[Section~\ref{sec:robustness}] discusses extensions and variations of the phenomenon.
+\item[Section~\ref{sec:experiments}] investigates an empirical evaluation of the phenomenon.
+\item[Section~\ref{sec:related-work-efficiency}] discusses related work.
+\end{description}
+
 \paragraph{Relation to prior work} This chapter is based entirely on
 the following previously published paper.
 \begin{enumerate}
@@ -13454,13 +13509,11 @@ with effect handlers $\HPCF$, both of which amounts to simply-typed
 variations of $\BCalc$ and $\HCalc$,
 respectively. Sections~\ref{sec:base-calculus}--\ref{sec:handler-machine}
 essentially recast the developments of
-Chapters~\ref{ch:base-language}, \ref{ch:unary-handlers}, and
-\ref{ch:abstract-machine} to fit the calculi $\BPCF$ and $\HPCF$. I
-reproduce the details here, even though, they are mostly the same as
-in the previous chapters save for a few tricks such as a crucial
-design decision in Section~\ref{sec:handlers-calculus} which makes it
-possible to implement continuation reification as a constant time
-operation.
+Chapters~\ref{ch:handler-calculi} and \ref{ch:abstract-machine} to fit
+the calculi $\BPCF$ and $\HPCF$. I will quickly glance over the
+details here, only highlighting the key differences as I am making use
+of a crucial design decision in Section~\ref{sec:handlers-calculus} to
+make continuation reification a constant time operation.
 
 \subsection{Base calculus}
 \label{sec:base-calculus}
@@ -13965,17 +14018,15 @@ expressiveness.
 
 \section{A practical model of computation}
 \label{sec:abstract-machine-semantics}
-Thus far we have introduced the base calculus $\BPCF$ and its
-extension with effect handlers $\HPCF$.
-%
-For each calculus we have given a \emph{small-step operational
-  semantics} which uses a substitution model for evaluation. Whilst
-this model is semantically pleasing, it falls short of providing a
-realistic account of practical computation as substitution is an
-expensive operation. Instead we shall use a slightly simpler variation
-of the abstract machine from Chapter~\ref{ch:abstract-machine} as it
-provides a more practical model of computation (it is simpler, because
-the source language is simpler).
+
+The calculi $\BPCF$ and $\HPCF$ use a substitution model for
+evaluation. Whilst this model is semantically pleasing, it falls short
+of providing a realistic account of practical computation as
+substitution is an expensive operation. Instead we shall use a
+slightly simpler variation of the abstract machine from
+Chapter~\ref{ch:abstract-machine} as it provides a more practical
+model of computation (it is simpler, because the source language is
+simpler).
 
 \subsection{Base machine}
 \label{sec:base-abstract-machine}
@@ -13984,7 +14035,13 @@ the source language is simpler).
 \newcommand{\EConf}{\dec{EConf}}
 \newcommand{\MVal}{\dec{MVal}}
 
-The base machine operates on configurations of the form
+The base machine is similar to the abstract machine from
+Chapter~\ref{ch:abstract-machine}. The main differences are that the
+base machine does not feature support for effect handlers, and
+therefore it has a considerably simpler continuation structure, and it
+interprets the base language $\BPCF$ rather than $\BCalc$.
+
+Formally, the base machine operates on configurations of the form
 $\cek{M \mid \gamma \mid \sigma}$. The first component contains the
 computation currently being evaluated. The second component contains
 the environment $\gamma$ which binds free variables. The third
@@ -14157,10 +14214,9 @@ is the same. The full details are published in Appendix A of
 \label{sec:handler-machine}
 \newcommand{\HClosure}{\dec{HClo}}
 %
-We now extend the $\BPCF$ machine with functionality to evaluate
-$\HPCF$ terms. The resulting machine is almost the same as the machine
-in Chapter~\ref{ch:abstract-machine}, though, this machine supports
-only deep handlers.
+The abstract machine for $\HPCF$ closely follows the machine
+definition in Chapter~\ref{ch:abstract-machine}, though, this machine
+supports only deep handlers.
 %
 The syntax is extended as follows.
 %
@@ -14173,14 +14229,14 @@ The syntax is extended as follows.
   \slab{Machine\textrm{ }values}   &v, w \in \MValCat  &::=& \cdots \mid \rho \\
 \end{syntax}}%
 %
-The notion of configurations changes slightly in that the continuation
+The notion of configurations changes slightly as the continuation
 component is replaced by a generalised continuation
-$\kappa \in \MGContCat$; a continuation is now a list of
-resumptions. A resumption is a pair of a pure continuation (as in the
-base machine) and a handler closure ($\chi$).
+$\kappa \in \MGContCat$, just as described in Chapter~\ref{ch:abstract-machine}% ; a continuation is now a list of
+% resumptions. A resumption is a pair of a pure continuation (as in the
+% base machine) and a handler closure ($\chi$).
 %
-A handler closure consists of an environment and a handler definition,
-where the former binds the free variables that occur in the latter.
+% A handler closure consists of an environment and a handler definition,
+% where the former binds the free variables that occur in the latter.
 %
 The identity continuation is a singleton list containing the identity
 resumption, which is an empty pure continuation paired with the
@@ -14191,15 +14247,16 @@ identity handler closure:
 \kappa_0 \defas [(\nil, (\emptyset, \{\Return\;x \mapsto x\}))]
 \]}%
 %
-Machine values are augmented to include resumptions as an operation
+Besides the structure of the continuation component, the primary
+difference between the base machine and this machine is that the
+machine values are augmented to include resumptions as an operation
 invocation causes the topmost frame of the machine continuation to be
 reified (and bound to the resumption parameter in the operation
 clause).
 %
-
-The handler machine adds transition rules for handlers, and modifies
-$(\mlab{Let})$ and $(\mlab{PureCont})$ from the base machine to account
-for the richer continuation
+In addition, the handler machine adds transition rules for handlers,
+and modifies $(\mlab{Let})$ and $(\mlab{PureCont})$ from the base
+machine to account for the richer continuation
 structure. Figure~\ref{fig:abstract-machine-semantics-handlers}
 depicts the new and modified rules.
 %
@@ -16345,6 +16402,7 @@ However, the effectful implementation runs between 2 and 14 times as
 fast with SML/NJ compared with MLton.
 
 \section{Related work}
+\label{sec:related-work-efficiency}
 There are relatively little work in the present literature on
 expressivity that has focused on complexity difference.
 %
@@ -16400,19 +16458,19 @@ I will begin this chapter with a brief summary of this
 dissertation. The following sections each elaborates and spells out
 directions for future work.
 
-In Part~\ref{p:background} of this dissertation I have compiled an
-extensive survey of first-class control. In this survey I characterise
-the various kinds of control phenomena that appear in the literature
-as well as providing an overview of the operational characteristics of
-control operators appearing in the literature. To the best of my
-knowledge this survey is the only of its kind in the present
-literature (other studies survey a particular control phenomenon,
-e.g. \citet{FelleisenS99} survey undelimited continuations as provided
-by call/cc in programming practice, \citet{DybvigJS07} classify
-delimited control operators according to their delimiter placement,
-\citet{Brachthauser20} provides a delimited control perspective on
-effect handlers, and \citet{MouraI09} survey the use of first-class
-control operators to implement coroutines).
+% In Part~\ref{p:background} of this dissertation I have compiled an
+% extensive survey of first-class control. In this survey I characterise
+% the various kinds of control phenomena that appear in the literature
+% as well as providing an overview of the operational characteristics of
+% control operators appearing in the literature. To the best of my
+% knowledge this survey is the only of its kind in the present
+% literature (other studies survey a particular control phenomenon,
+% e.g. \citet{FelleisenS99} survey undelimited continuations as provided
+% by call/cc in programming practice, \citet{DybvigJS07} classify
+% delimited control operators according to their delimiter placement,
+% \citet{Brachthauser20} provides a delimited control perspective on
+% effect handlers, and \citet{MouraI09} survey the use of first-class
+% control operators to implement coroutines).
 
 In Part~\ref{p:design} I have presented the design of a ML-like
 programming language equipped an effect-and-type system and a
@@ -16437,11 +16495,11 @@ asymptotic improvement in runtime performance for some class of
 programs.
 
 \section{Programming with effect handlers}
-Chapters~\ref{ch:base-language} and \ref{ch:unary-handlers} present
-the design of a core calculus that forms the basis for Links, which is
-a practical programming language with deep, shallow, and parameterised
-effect handlers. A distinguishing feature of the core calculus is that
-it is based on a structural notion of data and effects, whereas other
+Chapter~\ref{ch:handler-calculi} presents the design of a core
+calculus that forms the basis for Links, which is a practical
+programming language with deep, shallow, and parameterised effect
+handlers. A distinguishing feature of the core calculus is that it is
+based on a structural notion of data and effects, whereas other
 literature predominantly consider nominal data and effects. In the
 setting of structural effects the effect system play a pivotal role in
 ensuring that the standard safety and soundness properties of
@@ -16461,7 +16519,7 @@ two functions may introduce arbitrary effects that need to be handled
 accordingly. Alternatively, a composition of any two functions may
 inadvertently eliminate arbitrary effects, and as such, programming
 with effect handlers without an effect system is prone to error. The
-\UNIX{} case study in Chapter~\ref{ch:unary-handlers} demonstrates how
+\UNIX{} case study in Chapter~\ref{ch:ehop} demonstrates how
 the effect system assists to ensure that effectful function
 compositions are meaningful.
 
@@ -16578,7 +16636,7 @@ Other work has attempted to exploit the algebraic structure of (deep)
 effect handlers to fuse nested handlers~\cite{WuS15}.
 %
 An obvious idea is to apply these lines of work to the handler calculi
-of Chapter~\ref{ch:unary-handlers}.
+of Chapter~\ref{ch:handler-calculi}.
 %
 Moreover, I hypothesise there is untapped potential in the combination
 of effect-dependent analysis with respect to equational theories to
@@ -16623,7 +16681,7 @@ resumptions, e.g. suppose some channel first expects an integer
 followed by a boolean, then the running the program
 $\Do\;\Fork\,\Unit;\keyw{send}~42;\Absurd\;\Do\;\Fail\,\Unit$ under
 the composition of the nondeterminism handler and default failure
-handler from Chapter~\ref{ch:unary-handlers} will cause the primitive
+handler from Chapter~\ref{ch:ehop} will cause the primitive
 $\keyw{send}$ operation to supply two integers in succession, thus
 breaking the session protocol. Figuring out how to safely combine
 linear resources, such as channels, and handlers with multi-shot
@@ -18964,9 +19022,8 @@ that the type of the payload is compatible with the declared type.
 This particular presentation is nominal, because operations are
 declared up front. Nominal typing is the only sound option in the
 absence of an effect system (unless we restrict operations to work
-over a fixed type, say, an integer). In
-Chapter~\ref{ch:unary-handlers} we see a different presentation based
-on structural typing.
+over a fixed type, say, an integer). Chapter~\ref{ch:handler-calculi}
+provides a different presentation based on structural typing.
 
 The dynamic semantics of effect handlers are similar to that of
 $\fcontrol$, though, the $\slab{Value}$ rule is more interesting.
@@ -19149,8 +19206,8 @@ continuation without the handler.
 % \end{reductions}
 %
 
-Chapter~\ref{ch:unary-handlers} contains further examples of deep and
-shallow handlers in action.
+Chapter~\ref{ch:ehop} contains further examples of deep and shallow
+handlers in action.
 %
 % \dhil{Consider whether to present the below encodings\dots}
 % %
