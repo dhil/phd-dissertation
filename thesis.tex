@@ -13570,10 +13570,10 @@ Figure~\ref{fig:bpcf} depicts the type syntax, type environment
 syntax, and term syntax of $\BPCF$.
 %
 The main difference in the type language between $\BCalc$ and $\BPCF$
-is that the latter does feature polymorphism and an effect tracking
-system. At the term level, $\BPCF$ does not feature polymorphic
-records and variants, but rather plain pairs and sums. For sums the
-left injection is introduced by $(\Inl~V)^B$, where the type
+is that the latter does not feature polymorphism nor an effect
+tracking system. At the term level, $\BPCF$ does not feature
+polymorphic records and variants, but rather plain pairs and sums. For
+sums the left injection is introduced by $(\Inl~V)^B$, where the type
 annotation $B$ is the type of the right injection. Similarly, the
 right injection is introduced by $(\Inl~W)^A$, where $A$ is the type
 of the left injection. The $\Case$-construct eliminates sums. The last
@@ -14258,7 +14258,8 @@ The syntax is extended as follows.
 %
 The notion of configurations changes slightly as the continuation
 component is replaced by a generalised continuation
-$\kappa \in \MGContCat$, just as described in Chapter~\ref{ch:abstract-machine}% ; a continuation is now a list of
+$\kappa \in \MGContCat$, in the same way as described in
+Chapter~\ref{ch:abstract-machine}.% ; a continuation is now a list of
 % resumptions. A resumption is a pair of a pure continuation (as in the
 % base machine) and a handler closure ($\chi$).
 %
