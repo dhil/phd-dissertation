@@ -1,16 +1,13 @@
 # Foundations for programming and implementing effect handlers
 
-**NOTE** I have made a draft copy of the dissertation available in
-this repository. I ask that you **do not** link to or distribute the
-draft anywhere, because I will delete the file once the final revision
-has been submitted after the viva. I will make the final revision
-publicly available at a stable link.
+A copy of my dissertation can be [downloaded via my
+website](https://dhil.net/research/papers/thesis.pdf).
 
----
+----
 
-Submitted May 30, 2021. Viva August 13, 2021.
+Submitted on May 30, 2021. Examined on August 13, 2021.
 
-The board of examiners consists of
+The board of examiners were
 
 * [Andrew Kennedy](https://github.com/andrewjkennedy) (Facebook London)
 * [Edwin Brady](https://www.type-driven.org.uk/edwinb/) (University of St Andrews)
@@ -30,77 +27,76 @@ The dissertation is structured as follows.
    and contributions of the dissertation, and discusses some related
    work.
 
-### Background
-
- * Chapter 2 defines some basic mathematical notation and
-constructions that are they pervasively throughout this dissertation.
-
- * Chapter 3 presents a literature survey of continuations and
-first-class control. I classify continuations according to their
-operational behaviour and provide an overview of the various
-first-class sequential control operators that appear in the
-literature. The application spectrum of continuations is discussed as
-well as implementation strategies for first-class control.
-
 ### Programming
 
- * Chapter 4 introduces a polymorphic fine-grain call-by-value core
-calculus, λ<sub>b</sub>, which makes key use of Remy-style row polymorphism
-to implement polymorphic variants, structural records, and a
-structural effect system. The calculus distils the essence of the core
-of the Links programming language.
+ * Chapter 2 illustrates effect handler oriented programming by
+   example by implementing a small operating system dubbed Tiny UNIX,
+   which captures some essential traits of Ritchie and Thompson's
+   UNIX. The implementation starts with a basic notion of file i/o,
+   and then, it evolves into a feature-rich operating system with full
+   file i/o, multiple user environments, multi-tasking, and more, by
+   composing ever more effect handlers.
 
- * Chapter 5 presents three extensions of λ<sub>b</sub>,
-which are λ<sub>h</sub> that adds deep handlers, λ<sup>†</sup> that adds shallow
-handlers, and λ<sup>‡</sup> that adds parameterised handlers. The chapter
-also contains a running case study that demonstrates effect handler
-oriented programming in practice by implementing a small operating
-system dubbed Tiny UNIX based on Ritchie and Thompson's original
-UNIX.
+ * Chapter 3 introduces a polymorphic fine-grain call-by-value core
+   calculus, λ<sub>b</sub>, which makes key use of Rémy-style row
+   polymorphism to implement polymorphic variants, structural records,
+   and a structural effect system. The calculus distils the essence of
+   the core of the Links programming language. The chapter also
+   presents three extensions of λ<sub>b</sub>, which are λ<sub>h</sub>
+   that adds deep handlers, λ<sup>†</sup> that adds shallow handlers,
+   and λ<sup>‡</sup> that adds parameterised handlers.
 
 ### Implementation
 
- * Chapter 6 develops a higher-order continuation passing
-style translation for effect handlers through a series of step-wise
-refinements of an initial standard continuation passing style
-translation for λ<sub>b</sub>. Each refinement slightly modifies the notion
-of continuation employed by the translation. The development
-ultimately leads to the key invention of generalised continuation,
-which is used to give a continuation passing style semantics to deep,
-shallow, and parameterised handlers.
+ * Chapter 4 develops a higher-order continuation passing style
+   translation for effect handlers through a series of step-wise
+   refinements of an initial standard continuation passing style
+   translation for λ<sub>b</sub>. Each refinement slightly modifies
+   the notion of continuation employed by the translation. The
+   development ultimately leads to the key invention of generalised
+   continuation, which is used to give a continuation passing style
+   semantics to deep, shallow, and parameterised handlers.
 
- * Chapter 7 demonstrates an application of generalised continuations
-to abstract machine as we plug generalised continuations into
-Felleisen and Friedman's CEK machine to obtain an adequate abstract
-runtime with simultaneous support for deep, shallow, and parameterised
-handlers.
+ * Chapter 5 demonstrates an application of generalised continuations
+   to abstract machine as we plug generalised continuations into
+   Felleisen and Friedman's CEK machine to obtain an adequate abstract
+   runtime with simultaneous support for deep, shallow, and
+   parameterised handlers.
 
 ### Expressiveness
- * Chapter 8 shows that deep, shallow, and parameterised notions of
-handlers can simulate one another up to specific notions of
-administrative reduction.
 
- * Chapter 9 studies the fundamental efficiency of effect handlers. In
-this chapter, we show that effect handlers enable an asymptotic
-improvement in runtime complexity for a certain class of
-functions. Specifically, we consider the *generic count* problem using
-a pure PCF-like base language λ<sub>b</sub><sup>→</sup> (a simply typed variation of
-λ<sub>b</sub>) and its extension with effect handlers λ<sub>h</sub><sup>→</sup>.  We
-show that λ<sub>h</sub><sup>→</sup> admits an asymptotically more efficient
-implementation of generic count than any λ<sub>b</sub><sup>→</sup> implementation.
+ * Chapter 6 shows that deep, shallow, and parameterised notions of
+   handlers can simulate one another up to specific notions of
+   administrative reduction.
+
+ * Chapter 7 studies the fundamental efficiency of effect handlers. In
+   this chapter, we show that effect handlers enable an asymptotic
+   improvement in runtime complexity for a certain class of
+   functions. Specifically, we consider the *generic count* problem
+   using a pure PCF-like base language λ<sub>b</sub><sup>→</sup> (a
+   simply typed variation of λ<sub>b</sub>) and its extension with
+   effect handlers λ<sub>h</sub><sup>→</sup>.  We show that
+   λ<sub>h</sub><sup>→</sup> admits an asymptotically more efficient
+   implementation of generic count than any λ<sub>b</sub><sup>→</sup>
+   implementation.
 
 ### Conclusions
-  * Chapter 10 concludes and discusses future work.
+  * Chapter 8 concludes and discusses future work.
 
 ### Appendices
-  * Appendix A contains a proof that shows the `Get-get` equation for
-    state is redundant.
-  * Appendix B contains the proof details for the higher-order
-    uncurried CPS translation for deep and shallow handlers.
-  * Appendix C contains the proof details and gadgetry for the
-    complexity of the effectful generic count program.
-  * Appendix D provides a sample implementation of the Berger count
-    program and discusses it in more detail.
+
+ * Appendix A contains a literature survey of continuations and
+   first-class control. I classify continuations according to their
+   operational behaviour and provide an overview of the various
+   first-class sequential control operators that appear in the
+   literature. The application spectrum of continuations is discussed
+   as well as implementation strategies for first-class control.
+ * Appendix B contains a proof that shows the `Get-get` equation for
+   state is redundant.
+ * Appendix C contains the proof details and gadgetry for the
+   complexity of the effectful generic count program.
+ * Appendix D provides a sample implementation of the Berger count
+   program and discusses it in more detail.
 
 ## Building
 
@@ -114,3 +110,10 @@ e.g.
 $ make
 ```
 
+## Timeline
+
+I submitted my thesis on May 30, 2021. It was examined on August 13,
+2021, where I received pass with minor corrections. The revised thesis
+was submitted on December 22, 2021. It was approved on March
+14, 2022. The final revision was submitted on March 23, 2022. I
+received my PhD award letter on March 24, 2022.
