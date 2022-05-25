@@ -87,6 +87,44 @@ fun has(k, kvs) {
 #   Homomorphisms between free algebraic models
 #?
 
+#!
+# What is an effect handler?
+#
+# Operational interpretation
+#   Resumeable exceptions
+#   Programmable and composable operating systems <--- THIS TALK
+#
+# Software engineering interpretation
+#   Builders for monads (monads as a design pattern)
+#
+# Functional programming intepretation
+#   Folds over computation trees
+#   Free interpreters
+#
+# Mathematical interpretation
+#   Homomorphisms between free algebraic models
+#?
+
+#!
+#
+# The key idea
+#
+# *System calls*         are an interface, implemented by an *operating system*
+#
+# *Effectful operations* are an interface, implemented by an *effect handler*
+#
+#?
+
+#!
+#
+# The key idea
+#
+# *System calls*         are an interface, implemented by an *operating system*
+#          =                                                        =
+# *Effectful operations* are an interface, implemented by an *effect handler*
+#
+#?
+
 #
 #
 # What is an operating system? (very abstractly)
@@ -145,26 +183,6 @@ fun has(k, kvs) {
 #    + Nondeterminism: Time-sharing
 #    + State: File system
 #    + ...
-#
-#?
-
-#!
-#
-# The key idea
-#
-# *System calls*         are an interface, implemented by an *operating system*
-#
-# *Effectful operations* are an interface, implemented by an *effect handler*
-#
-#?
-
-#!
-#
-# The key idea
-#
-# *System calls*         are an interface, implemented by an *operating system*
-#          =                                                        =
-# *Effectful operations* are an interface, implemented by an *effect handler*
 #
 #?
 
@@ -243,7 +261,7 @@ typename FileDescr = Int;
 sig stdout : FileDescr
 var stdout = 1;
 
-sig echo : (String) {Write:(FileDescr,String) -> ()}-> ()
+sig echo : (String) {Write:(FileDescr, String) -> ()}-> ()
 fun echo(cs) { todo("implement echo") }
 #?
 #}
@@ -254,7 +272,7 @@ typename FileDescr = Int;
 sig stdout : FileDescr
 var stdout = 1;
 
-sig echo : (String) {Write:(FileDescr,String) -> () |%}-> ()
+sig echo : (String) {Write:(FileDescr, String) -> () |%}-> ()
 fun echo(cs) { do Write(stdout, cs) }
 
 
@@ -263,14 +281,14 @@ fun echo(cs) { do Write(stdout, cs) }
 #
 # Basic I/O: Handling writes
 #
-sig basicIO : ( () {Write:(FileDescr,String) -> ()}-> a ) -> (a, File)
+sig basicIO : ( () {Write:(FileDescr, String) -> ()}-> a ) -> (a, File)
 fun basicIO(m) {
    todo("implement basicIO")
 }
 #?
 #}
 
-sig basicIO : ( () {Write:(FileDescr,String) -> () |%}-> a ) { |%}-> (a, File)
+sig basicIO : ( () {Write:(FileDescr, String) -> () |%}-> a ) { |%}-> (a, File)
 fun basicIO(m) {
    handle(m()) {
      case Return(ans) -> (ans, "")
