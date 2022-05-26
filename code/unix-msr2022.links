@@ -57,19 +57,20 @@ fun has(k, kvs) {
 #
 #           Composing UNIX with Effect Handlers
 #    An Introduction to Effect Handler Oriented Programming
-#                  Daniel Hillerström
-#     Laboratory for Foundations of Computer Science
-#             The University of Edinburgh
+#                    Daniel Hillerström
+#       Laboratory for Foundations of Computer Science
+#         The University of Edinburgh, Scotland, UK
 #
-#        Microsoft Research, Redmond, WA, USA
-#                   RISE Seminar
-#                   May 26, 2022
+#           Microsoft Research, Redmond, WA, USA
+#                       RISE Seminar
+#                       May 26, 2022
 #
-#           https://dhil.net/research/
+#                https://dhil.net/research/
 #
 #?
 
 #!
+#
 # What is an effect handler?
 #
 # Operational interpretation
@@ -85,9 +86,11 @@ fun has(k, kvs) {
 #
 # Mathematical interpretation
 #   Homomorphisms between free algebraic models
+#
 #?
 
 #!
+#
 # What is an effect handler?
 #
 # Operational interpretation
@@ -103,6 +106,7 @@ fun has(k, kvs) {
 #
 # Mathematical interpretation
 #   Homomorphisms between free algebraic models
+#
 #?
 
 #!
@@ -122,6 +126,20 @@ fun has(k, kvs) {
 # *System calls*         are an interface, implemented by an *operating system*
 #          =                                                        =
 # *Effectful operations* are an interface, implemented by an *effect handler*
+#
+#?
+
+#!
+#
+# Effect handler oriented programming (EHOP)
+#
+# Key characteristics
+#  - Extensive use of effect handlers
+#  - High-degree of modularity
+#  - Extremely compositional
+#
+# Some languages that support EHOP:
+#   C/C++, Eff, Haskell, Koka, Links, Pyro, OCaml, Unison
 #
 #?
 
@@ -175,7 +193,7 @@ fun has(k, kvs) {
 #
 # Objectives of this talk
 #
-# - Demonstrate the versatility of effect handler-oriented programming
+# - Demonstrate the versatility of effect handler oriented programming
 # - Explain Ritchie & Thompson's (1974) UNIX as the combination of
 #   textbook effects
 #    + Exceptions: Process termination
@@ -723,7 +741,7 @@ sig interrupt : () {Interrupt:()}-> ()
 fun interrupt() { do Interrupt }
 
 # Process reification
-typename Pstate(a::Type,e::Eff)
+typename Pstate(a::Type, e::Eff)
          = [|Done:a
             |Paused:() -e-> Pstate(a, e)|];
 
