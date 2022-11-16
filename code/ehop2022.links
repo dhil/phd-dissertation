@@ -110,19 +110,58 @@ fun has(k, kvs) {
 #
 #?
 
+#{
 #!
 #
 # Effect handlers: a modular abstraction for programmable control
 #
 # Plotkin and Pretnar (2009) invented effect handlers.
-#
-# Key characteristics
-#  * Programming against an interface
-#  * Separates syntax and semantics of effectful operations
-#  * Seamless composition
-#  * Increase the expressiveness of user-definable code
-#
+
+# Separates the syntax...
+sig syn : (Int) {Op:(Int) -> Int |e}~> b
+fun syn(x) { do Op(x) }
+
+
+
+
+
+
+
 #?
+#}
+
+#{
+#!
+#
+# Effect handlers: a modular abstraction for programmable control
+#
+# Plotkin and Pretnar (2009) invented effect handlers.
+
+# Separates the syntax...
+sig syn : (Int) {Op:(Int) -> Int |e}~> b
+fun syn(x) { do Op(x) }
+
+# ... from the semantics of effectful operations
+sig sem : (() {Op:(Int) -> Int |e}~> a) ~e~> a
+fun sem(m) {
+  handle(m()) {
+    case ans               -> ans
+    case <Op(p) => resume> -> resume(p+1)
+  }
+}
+#?
+#}
+
+#?
+#
+# Characteristics of effect handlers
+#
+# * A structured form of delimited control
+# * Offer a high-degree of modularity through seamless composition
+# * Increase the expressiveness of user-written code
+#
+#
+#!
 
 #!
 #
@@ -578,13 +617,7 @@ fun su(user) { do Su(user) }
 
 sig sessionmgr : (User, () {Ask:String, Su:(User) -> ()}-> a) -> a
 fun sessionmgr(user, m) {
-  env(user, fun() {
-     handle(m()) {
-       case ans -> ans
-       case <Su(user') => resume> ->
-         env(user', fun() { resume(()) })
-     }
-  })
+  todo("implement sessionmgr")
 }
 #?
 #}
@@ -677,10 +710,7 @@ fun fork() { do Fork }
 
 sig nondet : (() {Fork:Bool}-> a) -> [a]
 fun nondet(m) {
-  handle(m()) {
-    case ans              -> [ans]
-    case <Fork => resume> -> resume(true) ++ resume(false)
-  }
+  todo("Implement nondet")
 }
 #?
 #}
@@ -807,10 +837,7 @@ typename Pstate(a::Type, e::Eff)
 
 sig reifyProcess : (() {Interrupt:() |e}-> a) -e-> Pstate(a, e)
 fun reifyProcess(m) {
-  handle(m()) {
-    case ans                   -> Done(ans)
-    case <Interrupt => resume> -> Paused(fun() { resume(()) })
-  }
+  todo("implement reifyProcess")
 }
 #?
 #}
