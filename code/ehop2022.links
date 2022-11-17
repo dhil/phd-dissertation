@@ -61,7 +61,7 @@ fun has(k, kvs) {
 #       Laboratory for Foundations of Computer Science
 #         The University of Edinburgh, Scotland, UK
 #
-#              EPL, The University of Edinburgh
+#             Elements of Programming Languages
 #                     November 17, 2022
 #
 #                https://dhil.net/research/
@@ -433,7 +433,7 @@ fun example0() {
 }
 
 
-#
+#?
 #
 # Dynamic semantics of handlers
 #
@@ -445,7 +445,7 @@ fun example0() {
 #            ,fun(x){ handle(E[x]) { case <Op(p) => r> -> N case ... }}/r]
 #        (if Op \notin E)
 #
-#
+#!
 
 #{
 #!
@@ -493,7 +493,7 @@ sig example1 : () -> (Int, File)
 fun example1() {
   basicIO(fun() {
         status(fun() {
-          echo("dead"); exit(1); echo("code")
+          echo("Hello"); exit(1); echo("World")
         })
   })
 }
