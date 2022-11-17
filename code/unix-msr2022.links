@@ -139,7 +139,7 @@ fun has(k, kvs) {
 #  - Extremely compositional
 #
 # Some languages that support EHOP:
-#   C/C++, Eff, Haskell, Koka, Links, Pyro, OCaml, Unison
+#   C/C++, Eff, Haskell, Koka, Links, Pyro, OCaml, Unison, Wasm
 #
 #?
 
@@ -280,7 +280,7 @@ sig stdout : FileDescr
 var stdout = 1;
 
 sig echo : (String) {Write:(FileDescr, String) -> ()}-> ()
-fun echo(cs) { todo("implement echo") }
+fun echo(cs) { do Write(stdout, cs) }
 #?
 #}
 
@@ -301,7 +301,12 @@ fun echo(cs) { do Write(stdout, cs) }
 #
 sig basicIO : ( () {Write:(FileDescr, String) -> ()}-> a ) -> (a, File)
 fun basicIO(m) {
-   todo("implement basicIO")
+   handle(m()) {
+     case ans -> (ans, "")
+     case <Write(_, cs) => ( resume : (()) -> (a, File) ) > ->
+        var (ans, file) = resume(());
+        (ans, cs ^^ file)
+   }
 }
 #?
 #}
@@ -373,7 +378,10 @@ fun exit(n) { switch (do Exit(n)) { } }
 #
 sig status : (() {Exit:(Int) -> Zero}-> a) -> Int
 fun status(m) {
-  todo("implement status")
+    handle(m()) {
+      case ans -> 0
+      case <Exit(n)> -> n
+    }
 }
 #?
 #}

@@ -61,7 +61,7 @@ fun has(k, kvs) {
 #       Laboratory for Foundations of Computer Science
 #         The University of Edinburgh, Scotland, UK
 #
-#         Huawei Research Centre Zurich, Switzerland
+#         Huawei Research Centre Zürich, Switzerland
 #                     October 13, 2022
 #
 #                https://dhil.net/research/
@@ -260,7 +260,7 @@ sig stdout : FileDescr
 var stdout = 1;
 
 sig echo : (String) {Write:(FileDescr, String) -> ()}-> ()
-fun echo(cs) { todo("Implement echo") }
+fun echo(cs) { do Write(stdout, cs) }
 #?
 #}
 
@@ -281,7 +281,12 @@ fun echo(cs) { do Write(stdout, cs) }
 #
 sig basicIO : ( () {Write:(FileDescr, String) -> ()}-> a ) -> (a, File)
 fun basicIO(m) {
-   todo("Implement basicIO")
+  handle(m()) {
+    case ans -> (ans, "")
+    case <Write(_, cs) => (resume : (()) -> (a, File) )> ->
+      var (ans, file) = resume(());
+      (ans, file ++ cs)
+  }
 }
 #?
 #}
@@ -338,7 +343,7 @@ fun example0() {
 # Exceptions: Premature exits
 #
 sig exit : (Int) {Exit:(Int) -> Zero}-> a
-fun exit(n) { todo("Implement exit") }
+fun exit(n) { switch (do Exit(n)) { } }
 #?
 #}
 
@@ -353,7 +358,10 @@ fun exit(n) { switch (do Exit(n)) { } }
 #
 sig status : (() {Exit:(Int) -> Zero}-> a) -> Int
 fun status(m) {
-  todo("Implement status")
+  handle(m()) {
+    case ans -> 0
+    case <Exit(n)> -> n
+  }
 }
 #?
 #}

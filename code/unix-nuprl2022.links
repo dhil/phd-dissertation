@@ -260,7 +260,7 @@ sig stdout : FileDescr
 var stdout = 1;
 
 sig echo : (String) {Write:(FileDescr, String) -> ()}-> ()
-fun echo(cs) { todo("implement echo") }
+fun echo(cs) { do Write(stdout, cs) }
 #?
 #}
 
@@ -281,7 +281,12 @@ fun echo(cs) { do Write(stdout, cs) }
 #
 sig basicIO : ( () {Write:(FileDescr, String) -> ()}-> a ) -> (a, File)
 fun basicIO(m) {
-  todo("implement basicIO")
+  handle( m() ) {
+     case ans -> (ans, "")
+     case <Write(fd, cs) => (resume : (()) -> (a, File))> ->
+       var (ans, file) = resume(());
+       (ans, cs ++ file)
+  }
 }
 #?
 #}
@@ -338,7 +343,7 @@ fun example0() {
 # Exceptions: Premature exits
 #
 sig exit : (Int) {Exit:(Int) -> Zero}-> a
-fun exit(n) { todo("implement exit") }
+fun exit(n) { switch (do Exit(n)) { } }
 #?
 #}
 

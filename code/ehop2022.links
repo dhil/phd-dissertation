@@ -56,7 +56,7 @@ fun has(k, kvs) {
 #!
 #
 #            Effect Handler Oriented Programming
-#                  A Gentle Introduction
+#                Lets build an operating system
 #                    Daniel Hillerström
 #       Laboratory for Foundations of Computer Science
 #         The University of Edinburgh, Scotland, UK
@@ -118,7 +118,7 @@ fun has(k, kvs) {
 # Plotkin and Pretnar (2009) invented effect handlers.
 
 # Separates the syntax...
-sig syn : (Int) {Op:(Int) -> Int |e}~> b
+sig syn : (Int) {Op:(Int) -> Int |e}~> Int
 fun syn(x) { do Op(x) }
 
 
@@ -152,7 +152,7 @@ fun sem(m) {
 #?
 #}
 
-#?
+#!
 #
 # Characteristics of effect handlers
 #
@@ -161,7 +161,7 @@ fun sem(m) {
 # * Increase the expressiveness of user-written code
 #
 #
-#!
+#?
 
 #!
 #
@@ -185,14 +185,14 @@ fun sem(m) {
 
 #!
 #
-# What is an effect handler?
+# Some ways to think about effect handlers
 #
 # Operational interpretation                      <--- THIS LECTURE
 #   Resumeable exceptions
 #   Programmable and composable operating systems
 #
 # Software engineering interpretation
-#   Builders for monads (monads as a design pattern)
+#   Composable monad builders (monads as a design pattern)
 #
 # Functional programming interpretation
 #   Folds over computation trees
@@ -375,7 +375,7 @@ sig stdout : FileDescr
 var stdout = 1;
 
 sig echo : (String) {Write:(FileDescr, String) -> ()}-> ()
-fun echo(cs) { todo("implement echo") }
+fun echo(cs) { do Write(stdout, cs) }
 #?
 #}
 
@@ -396,7 +396,12 @@ fun echo(cs) { do Write(stdout, cs) }
 #
 sig basicIO : ( () {Write:(FileDescr, String) -> ()}-> a ) -> (a, File)
 fun basicIO(m) {
-  todo("implement basicIO")
+  handle(m()) {
+    case ans -> (ans, "")
+    case <Write(fd, cs) => (resume : (()) -> (a, File))> ->
+      var (ans, file) = resume(());
+      (ans, cs ++ file)
+  }
 }
 #?
 #}
@@ -433,7 +438,7 @@ fun example0() {
 }
 
 
-#?
+#!
 #
 # Dynamic semantics of handlers
 #
@@ -445,7 +450,7 @@ fun example0() {
 #            ,fun(x){ handle(E[x]) { case <Op(p) => r> -> N case ... }}/r]
 #        (if Op \notin E)
 #
-#!
+#?
 
 #{
 #!
@@ -453,7 +458,7 @@ fun example0() {
 # Exceptions: Premature exits
 #
 sig exit : (Int) {Exit:(Int) -> Zero}-> a
-fun exit(n) { todo("implement exit") }
+fun exit(n) { switch (do Exit(n)) { } }
 #?
 #}
 
@@ -504,7 +509,7 @@ sig example1 : () { |%}-> (Int, File)
 fun example1() {
   basicIO(fun() {
         status(fun() {
-          echo("dead"); exit(1); echo("code")
+          echo("Hello"); exit(1); echo("World")
         })
   })
 }
@@ -518,7 +523,7 @@ sig example1' : () -> Int
 fun example1'() {
   status(fun() {
     basicIO(fun() {
-      echo("dead"); exit(1); echo("code")
+      echo("Hello"); exit(1); echo("World")
     })
   })
 }
@@ -617,7 +622,13 @@ fun su(user) { do Su(user) }
 
 sig sessionmgr : (User, () {Ask:String, Su:(User) -> ()}-> a) -> a
 fun sessionmgr(user, m) {
-  todo("implement sessionmgr")
+   env(user, fun() {
+     handle(m()) {
+       case ans -> ans
+       case <Su(user') => resume> ->
+         env(user', fun() { resume(()) })
+     }
+   })
 }
 #?
 #}
@@ -710,7 +721,11 @@ fun fork() { do Fork }
 
 sig nondet : (() {Fork:Bool}-> a) -> [a]
 fun nondet(m) {
-  todo("Implement nondet")
+  handle(m()) {
+    case ans -> [ans]
+    case <Fork => resume> ->
+      resume(true) ++ resume(false)
+  }
 }
 #?
 #}
@@ -837,7 +852,11 @@ typename Pstate(a::Type, e::Eff)
 
 sig reifyProcess : (() {Interrupt:() |e}-> a) -e-> Pstate(a, e)
 fun reifyProcess(m) {
-  todo("implement reifyProcess")
+  handle(m()) {
+    case ans -> Done(ans)
+    case <Interrupt => resume> ->
+      Paused(fun() { resume(()) })
+  }
 }
 #?
 #}
