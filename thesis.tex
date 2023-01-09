@@ -6547,9 +6547,9 @@ Computations
 % Let
   \inferrule*[Lab=\tylab{Let}]
     {\typc{\Delta;\Gamma}{M : A}{E} \\
-     \typ{\Delta;\Gamma, x : A}{N : C}
+     \typc{\Delta;\Gamma, x : A}{N : B}{E}
     }
-    {\typ{\Delta;\Gamma}{\Let \; x \revto M\; \In \; N : C}}
+    {\typc{\Delta;\Gamma}{\Let \; x \revto M\; \In \; N : B}{E}}
 \end{mathpar}
 \caption{Typing rules}
 \label{fig:base-language-type-rules}
