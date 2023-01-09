@@ -19022,7 +19022,7 @@ computation $M$ with handler $H$.
        \{\ell_i : A_i \opto B_i\}_i \in \Sigma \\
        H = \{\Return\;x \mapsto M\} \uplus \{ \OpCase{\ell_i}{p_i}{k_i} \mapsto N_i \}_i \\
        \el}\\\\
-       \typ{\Gamma, x : A;\Sigma}{M : D}\\\\
+       \typ{\Gamma, x : C;\Sigma}{M : D}\\\\
        [\typ{\Gamma,p_i : A_i, k_i : B_i \to D;\Sigma}{N_i : D}]_i
     }
     {\typ{\Gamma;\Sigma}{H : C \Harrow D}}
@@ -19210,7 +19210,7 @@ handler definitions are identical, however, their typing differ.
        \{\ell_i : A_i \opto B_i\}_i \in \Sigma \\
        H = \{\Return\;x \mapsto M\} \uplus \{ \OpCase{\ell_i}{p_i}{k_i} \mapsto N_i \}_i \\
        \el}\\\\
-       \typ{\Gamma, x : A;\Sigma}{M : D}\\\\
+       \typ{\Gamma, x : C;\Sigma}{M : D}\\\\
        [\typ{\Gamma,p_i : A_i, k_i : B_i \to C;\Sigma}{N_i : D}]_i
     }
     {\typ{\Gamma;\Sigma}{H : C \Harrow D}}
