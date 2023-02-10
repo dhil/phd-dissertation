@@ -17493,14 +17493,15 @@ by \citeauthor{Landin65}'s J operator John \citeauthor{Reynolds98a}
 designed the escape operator~\cite{Reynolds98a}. Influenced by escape,
 \citeauthor{SussmanS75} designed, implemented, and standardised the
 catch operator in Scheme in 1975. A while thereafter the perhaps most
-famous undelimited control operator appeared: callcc. It initially
-designed in 1982 and was standardised in 1985 as a core feature of
-Scheme. Later another batch of control operators based on callcc
-appeared. A common characteristic of the early control operators is
-that their capture mechanisms were abortive and their captured
-continuations were abortive, save for one, namely,
-\citeauthor{Felleisen88}'s F operator. Later a non-abortive and
-composable variant of callcc appeared. Moreover, every operator,
+famous undelimited control operator appeared: callcc. It was designed
+in 1982 and standardised in 1985 as a core feature of
+Scheme. Following on from callcc a wide range of different control
+operators was designed. A common characteristic of the early control
+operators is that their capture mechanisms are abortive and their
+captured continuations are abortive, save for one, namely,
+\citeauthor{Felleisen88}'s F operator. Though, it is worth remarking
+that \citet{FlattYFF07} devised a non-abortive and composable variant
+of callcc. Another common characteristic is that every operator,
 except for \citeauthor{Landin98}'s J operator, capture the current
 continuation.
 
