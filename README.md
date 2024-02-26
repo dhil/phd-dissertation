@@ -116,4 +116,5 @@ I submitted my thesis on May 30, 2021. It was examined on August 13,
 2021, where I received pass with minor corrections. The revised thesis
 was submitted on December 22, 2021. It was approved on March
 14, 2022. The final revision was submitted on March 23, 2022. I
-received my PhD award letter on March 24, 2022.
+received my PhD award letter on March 24, 2022. My graduation 
+ceremony took place in McEwan Hall on July 11, 2022.
