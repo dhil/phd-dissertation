@@ -5446,7 +5446,7 @@ created by the operating system.
 %
 \[
   \bl
-    \init : (\Unit \to \alpha \eff \varepsilon) \to \alpha \eff \{\Co;\varepsilon\}\\
+    \init : (\UnitType \to \UnitType \eff \varepsilon) \to \UnitType \eff \{\Co;\varepsilon\}\\
     \init~main \defas
       \bl
         \Let\;pid \revto \Do\;\UFork~\Unit\;\In\\
@@ -5535,10 +5535,11 @@ $\Fork : \UnitType \opto \Bool$, by $\timesharee$, which handles the
 more general operation $\UFork : \UnitType \opto \Int$. In practice,
 we may be unable to dispense of the old interface so easily, meaning
 we have to retain support for, say, legacy reasons. As we have seen
-previously we can an operation in terms of another operation. Thus to
-retain support for $\Fork$ we simply have to insert a handler under
-$\timesharee$ which interprets $\Fork$ in terms of $\UFork$. The
-operation case of this handler would be akin to the following.
+previously we can interpret an operation in terms of another
+operation. Thus to retain support for $\Fork$ we simply have to insert
+a handler under $\timesharee$ which interprets $\Fork$ in terms of
+$\UFork$. The operation case of this handler would be akin to the
+following.
 %
 \[
   \OpCase{\Fork}{\Unit}{resume} \mapsto
@@ -5552,7 +5553,7 @@ The interpretation of $\Fork$ inspects the process identifier returned
 by the $\UFork$ to determine the role of the current process in the
 parent-child relationship. If the identifier is nonzero, then the
 process is a parent, hence $\Fork$ should return $\True$ to its
-caller. Otherwise it should return $\False$. This preserves the
+caller, and otherwise it should return $\False$, thus preserving the
 functionality of the legacy code.
 
 \section{Related work}
