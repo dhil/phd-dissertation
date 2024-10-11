@@ -1,0 +1,1393 @@
+# DISCLAIMER: THIS MODULE REQUIRES A SPECIAL BRANCH OF LINKS TO
+# COMPILE: https://github.com/dhil/links/tree/multi-line-comments
+# commit ddcc02d3 as the effect patterns are not yet available in
+# master (you'll find that everything is implemented twice in this
+# file, once with the "new" syntax, which is shadowed by an
+# implementation using the "old" syntax).
+
+## Prelude
+typename Option(a) = [|None|Some:a|];
+
+sig todo : (String) ~> a
+fun todo(s) { error("TODO: " ^^ s) }
+
+sig fail : () {Fail:Zero |_}-> a
+fun fail() { switch (do Fail) { } }
+
+sig lookup : (a, [(a, b)]) {Fail:Zero |_}~> b
+fun lookup(k, kvs) {
+  switch (kvs) {
+    case [] -> fail()
+    case (k', v) :: kvs' ->
+      if (k == k') v
+      else lookup(k, kvs')
+  }
+}
+
+sig modify : (a, b, [(a, b)]) ~> [(a, b)]
+fun modify(k, v, kvs) {
+  switch (kvs) {
+    case [] -> []
+    case (k', v') :: kvs' ->
+      if (k == k') (k, v) :: kvs'
+      else (k', v') :: modify(k, v, kvs')
+  }
+}
+
+sig remove : (a, [(a, b)]) ~> [(a, b)]
+fun remove(k, kvs) {
+  switch (kvs) {
+    case [] -> []
+    case (k', v') :: kvs' ->
+      if (k == k') kvs'
+      else (k', v') :: remove(k, kvs')
+  }
+}
+
+sig has : (a, [(a, b)]) ~> Bool
+fun has(k, kvs) {
+  switch (kvs) {
+    case [] -> false
+    case (k', _) :: kvs' ->
+      k == k' || has(k, kvs')
+  }
+}
+
+#!
+#
+#           Composing UNIX with Effect Handlers
+#    An Introduction to Effect Handler Oriented Programming
+#                    Daniel Hillerström
+#       Laboratory for Foundations of Computer Science
+#         The University of Edinburgh, Scotland, UK
+#
+#                     October 11, 2024
+#
+#                     https://dhil.net/
+#
+#?
+
+#!
+#
+# What is an effect handler?
+#
+# Operational interpretation
+#   Resumeable exceptions
+#   Programmable and composable operating systems
+#
+# Software engineering interpretation
+#   Builders for monads (monads as a design pattern)
+#
+# Functional programming intepretation
+#   Folds over computation trees
+#   Free interpreters
+#
+# Mathematical interpretation
+#   Homomorphisms between free algebraic models
+#
+#?
+
+#!
+#
+# What is an effect handler?
+#
+# Operational interpretation
+#   Resumeable exceptions
+#   Programmable and composable operating systems <--- THIS TALK
+#
+# Software engineering interpretation
+#   Builders for monads (monads as a design pattern)
+#
+# Functional programming intepretation
+#   Folds over computation trees
+#   Free interpreters
+#
+# Mathematical interpretation
+#   Homomorphisms between free algebraic models
+#
+#?
+
+#!
+#
+# The key idea
+#
+# *System calls*         are an interface, implemented by an *operating system*
+#
+# *Effectful operations* are an interface, implemented by an *effect handler*
+#
+#?
+
+#!
+#
+# The key idea
+#
+# *System calls*         are an interface, implemented by an *operating system*
+#          =                                                        =
+# *Effectful operations* are an interface, implemented by an *effect handler*
+#
+#?
+
+#!
+#
+# Effect handler oriented programming (EHOP)
+#
+# Key characteristics
+#  - Extensive use of effect handlers
+#  - High-degree of modularity
+#  - Extremely compositional
+#
+# Some languages that support EHOP:
+#   C/C++, Eff, Haskell, Koka, Links, Pyro, OCaml, Unison, Wasm
+#
+#?
+
+#
+#
+# What is an operating system? (very abstractly)
+#
+# An operating system responds to a collection of system calls
+#
+# Example tasks:
+#  - Signalling errors
+#  - Scheduling processes
+#  - Reading/writing I/O
+#
+
+#
+#
+# What is an effect handler? (very abstractly)
+#
+# An effect handler responds a collection of abstract operation calls
+#
+# Example tasks:
+#  - Signalling errors
+#  - Scheduling processes
+#  - Reading/writing I/O
+#
+#
+#
+#
+#
+#
+
+#
+#
+# What is an effect handler? (very abstractly)
+#
+# An effect handler responds a collection of abstract operation calls
+#
+# Example tasks:
+#  - Signalling errors
+#  - Scheduling processes
+#  - Reading/writing I/O
+#
+# Thus an effect handler is an operating system (credit James McKinna)
+# (Kiselyov and Shan (2007) used delimited continuations to model
+#  operating systems)
+#
+#
+
+#!
+#
+# Objectives of this talk
+#
+# - Demonstrate the versatility of effect handler oriented programming
+# - Explain Ritchie & Thompson's (1974) UNIX as the combination of
+#   textbook effects
+#    + Exceptions: Process termination
+#    + Dynamic binding: User environments
+#    + Nondeterminism: Time-sharing
+#    + State: File system
+#    + ...
+#
+#?
+
+#!
+#
+# This talk at glance
+#
+# A model of UNIX with
+#   * support for multiple users,
+#   * time-sharing amongst processes,
+#   * and a file system.
+#
+# Self-imposed constraints
+#   * Interface cannot be changed
+#   * Everything has to be definable in the calculus
+#
+# Disclaimer: We'll make some gross simplifications. A richer model of
+# UNIX can be found in my PhD dissertation
+#
+# (the idea of using delimited control to model operating systems is
+# not new see, e.g. Kiselyov and Shan (2007), Wand (1980))
+#
+#?
+
+#
+#
+# Objectives of this talk
+#
+# - Demonstrate the versatility of handlers
+# - Explain operating systems as the combination of
+#   + Exceptions
+#   + Dynamic binding
+#   + Nondeterminism
+#   + State
+#
+#
+
+#
+#
+# What is UNIX?
+#
+# UNIX is an operating system designed by Ritchie and Thompson (1974)
+#
+# Components
+#  - Commands (system calls)
+#    + I/O interaction, user session login, inter-process
+#      communication, etc
+#  - Kernel   (interpreter)
+#    + Handling of I/O, managing user sessions, scheduling of
+#      processes
+#  - Development environment
+#    + Compiler tool-chains (e.g. `cc`)
+#  - Documentation
+#    + manual pages (e.g. `man`)
+#
+#
+
+#
+#
+# Key characteristics of UNIX (Ritchie & Thompson, 1974)
+#
+# - Support for multiple user sessions
+# - Time-sharing between processes
+# - "Everything is a file"
+#
+#
+
+#{
+#!
+#
+# Basic I/O: Performing writes
+#
+typename File = String;
+
+effectname BasicIO(e::Eff) = {Write:(String) => ()|e};
+
+sig echo : (String) -BasicIO({ |_})-> ()
+fun echo(cs) { do Write(cs) }
+#?
+#}
+
+
+#{
+#!
+#
+# Basic I/O: Handling writes
+#
+sig basicIO : ( () ~BasicIO({ |e})~> a ) {Write{_} |e}~> (a, File)
+fun basicIO(m) {
+   handle(m()) {
+     case ans -> (ans, "")
+     case <Write(cs) => resume> ->
+        var (ans, file) = resume(());
+        (ans, cs ^^ file)
+   }
+}
+#?
+#}
+
+# sig basicIO : ( () {Write:(FileDescr, String) -> () |%}-> a ) { |%}-> (a, File)
+# fun basicIO(m) {
+#    handle(m()) {
+#      case Return(ans) -> (ans, "")
+#      case Write(_, cs, resume) ->
+#        var (ans, file) = resume(());
+#        (ans, cs ^^ file)
+#    }
+# }
+
+#{
+#!
+#
+# Basic I/O: Example
+#
+sig example0 : () {Write{_} |e}~> ((), File)
+fun example0() {
+  basicIO(fun() {
+        echo("Hello"); echo("World")
+  })
+}
+#?
+#}
+
+# sig example0 : () { |%}-> ((), File)
+# fun example0() {
+#   basicIO(fun() {
+#         echo("Hello"); echo("World")
+#   })
+# }
+
+
+#!
+#
+# Dynamic semantics of handlers
+#
+#  (ret) handle(V) { case x -> N case ... }
+#        ~> N[V/x]
+#
+#  (op)  handle(E[do Op(V)]) { case <Op(p) => r> -> N case ... }
+#        ~> N[V/p
+#            ,fun(x){ handle(E[x]) { case <Op(p) => r> -> N case ... }}/r]
+#        (if Op \notin E)
+#
+#?
+
+#{
+#!
+#
+# Exceptions: Premature exits
+#
+effectname Exit(e::Eff) = {Exit: (Int) => Zero |e};
+
+sig exit : (Int) -Exit({ |_})-> a
+fun exit(n) { switch (do Exit(n)) { } }
+#?
+#}
+
+# sig exit : (Int) {Exit:(Int) -> Zero |%}-> a
+# fun exit(n) { switch (do Exit(n)) { } }
+
+
+#{
+#!
+#
+# Handling exits
+#
+sig status : (() ~Exit({ |e})~> a) {Exit{_} |e}~> Int
+fun status(m) {
+    handle(m()) {
+      case ans -> 0
+      case <Exit(n)> -> n
+    }
+}
+#?
+#}
+
+# sig status : (() {Exit:(Int) -> Zero |%}-> a) { |%}-> Int
+# fun status(m) {
+#   handle(m()) {
+#     case Return(_) -> 0
+#     case Exit(n, _) -> n
+#   }
+# }
+
+#{
+#!
+#
+# Handling exits: Example
+#
+sig example1 : () {Exit{_}, Write{_} |_}~> (Int, File)
+fun example1() {
+  basicIO(fun() {
+        status(fun() {
+          echo("dead"); exit(1); echo("code")
+        })
+  })
+}
+#?
+#}
+
+# sig example1 : () { |%}-> (Int, File)
+# fun example1() {
+#   basicIO(fun() {
+#         status(fun() {
+#           echo("dead"); exit(1); echo("code")
+#         })
+#   })
+# }
+
+#{
+#!
+#
+# Does the ordering matter?
+#
+sig example1' : () {Exit{_}, Write{_} |_}~> Int
+fun example1'() {
+  status(fun() {
+    basicIO(fun() {
+      echo("dead"); exit(1); echo("code")
+    })
+  })
+}
+#?
+#}
+
+# sig example1' : () { |%}-> Int
+# fun example1'() {
+#   status(fun() {
+#     basicIO(fun() {
+#       echo("dead"); exit(1); echo("code")
+#     })
+#   })
+# }
+
+#{
+#!
+#
+# Dynamic binding: User-specific environments (1)
+#
+typename User = [|Alice|Bob|Root|];
+
+effectname Env(e::Eff) = {Ask: () => String |e};
+
+sig whoami : () ~Env({ |e})~> String
+fun whoami() { do Ask() }
+#?
+#}
+
+# typename User = [|Alice|Bob|Root|];
+
+# sig whoami : () {Ask:String |%}-> String
+# fun whoami() { do Ask() }
+
+#{
+#!
+#
+# Dynamic binding: User-specific environments (2)
+#
+sig env : (User, () ~Env({ |e})~> a) {Ask{_} |e}~> a
+fun env(user, m) {
+  handle(m()) {
+    case ans -> ans
+    case <Ask() => resume> ->
+      switch (user) {
+        case Alice -> resume("alice")
+        case Bob   -> resume("bob")
+        case Root  -> resume("root")
+      }
+  }
+}
+
+
+sig example2 : () {Ask{_} |_}~> String
+fun example2() {
+  env(Root, whoami)
+}
+#?
+#}
+
+# sig env : (User, () {Ask:String |%}-> a) { |%}-> a
+# fun env(user, m) {
+#   handle(m()) {
+#     case Return(x) -> x
+#     case Ask(resume) ->
+#       switch (user) {
+#         case Alice -> resume("alice")
+#         case Bob   -> resume("bob")
+#         case Root  -> resume("root")
+#       }
+#   }
+# }
+
+
+# sig example2 : () { |%}-> String
+# fun example2() {
+#   env(Root, whoami)
+# }
+
+#!
+#
+# Aside: Dynamic binding with delimited continuations
+#
+# The idea of dynamic binding dates back to at least McCarthy (1960)
+#
+# Kiselyov, Shan, and Sabry (2006) demonstrated dynamic binding can be
+# simulated with delimited continuations
+#
+#?
+
+#{
+#!
+#
+# User session management
+#
+effectname Session(e::Eff) = Env({Su: (User) => ()  |e});
+
+sig su : (User) ~Session({ |_})~> ()
+fun su(user) { do Su(user) }
+
+sig sessionmgr : (User, () ~Session({ |e})~> a) {Ask{_},Su{_} |e}~> a
+fun sessionmgr(user, m) {
+  env(user, fun() {
+     handle(m()) {
+       case ans -> ans
+       case <Su(user') => resume> ->
+         env(user', fun() { resume(()) })
+     }
+  })
+}
+#?
+#}
+
+# sig su : (User) {Su:(User) -> () |%}-> ()
+# fun su(user) { do Su(user) }
+
+# sig sessionmgr : (User, () {Ask:String, Su:(User) -> () |%}-> a) { |%}-> a
+# fun sessionmgr(user, m) {
+#   env(user, fun() {
+#      handle(m()) {
+#        case Return(ans) -> ans
+#        case Su(user', resume) ->
+#          env(user', fun() { resume(()) })
+#      }
+#   })
+# }
+
+#{
+#!
+#
+# Multiple user sessions example
+#
+sig example3 : () {Ask{_},Exit{_},Su{_},Write{_} |_}~> (Int, File)
+fun example3() {
+  basicIO(fun() {
+        sessionmgr(Root, fun() {
+          status(fun() {
+            su(Alice); echo(whoami()); echo(" ");
+            su(Bob);   echo(whoami()); echo(" ");
+            su(Root);  echo(whoami())
+          })
+        })
+  })
+}
+#?
+#}
+
+# sig example3 : () { |%}-> (Int, File)
+# fun example3() {
+#   basicIO(fun() {
+#         sessionmgr(Root, fun() {
+#           status(fun() {
+#             su(Alice); echo(whoami()); echo(" ");
+#             su(Bob);   echo(whoami()); echo(" ");
+#             su(Root);  echo(whoami())
+#           })
+#         })
+#   })
+# }
+
+#!
+#
+# Nondeterminism: Multi-tasking (1)
+#
+# From the man pages.
+#
+# Description
+#   fork() creates a new process by duplicating the calling process.  The
+#   new process is referred to as the child process.  The calling process
+#   is referred to as the parent process.
+#
+# Return value
+#   On success, the PID of the child process is returned in the parent,
+#   and 0 is returned in the child.
+#
+#?
+
+#!
+#
+# Nondeterminism: Multi-tasking (2)
+#
+# Fork idiom
+#
+#    if (fork() > 0) parent's code
+#    else child's code
+#
+# Let's simplify fork such that it returns a boolean: true for parent,
+# false for child.
+#
+#?
+
+#{
+#!
+#
+# Nondeterminism: Multi-tasking (3)
+#
+effectname Nondet(e::Eff) = {Fork: () => Bool |e};
+
+sig fork : () ~Nondet({ |_})~> Bool
+fun fork() { do Fork() }
+
+sig nondet : (() ~Nondet({ |e})~> a) {Fork{_} |e}~> [a]
+fun nondet(m) {
+  handle(m()) {
+    case ans              -> [ans]
+    case <Fork => resume> -> resume(true) ++ resume(false)
+  }
+}
+#?
+#}
+
+# sig fork : () {Fork:Bool |_}-> Bool
+# fun fork() { do Fork }
+
+# sig nondet : (() {Fork:Bool |%}-> a) { |%}-> [a]
+# fun nondet(m) {
+#   handle(m()) {
+#     case Return(ans)  -> [ans]
+#     case Fork(resume) -> resume(true) ++ resume(false)
+#   }
+# }
+
+#{
+#!
+#
+# Nondeterminism: Example (1)
+#
+sig ritchie : () -BasicIO({ |_})-> ()
+fun ritchie() {
+  echo("UNIX is basically ");
+  echo("a simple operating system, ");
+  echo("but ");
+  echo("you have to be a genius to understand the simplicity.\n")
+}
+
+sig hamlet : () -BasicIO({ |_})-> ()
+fun hamlet() {
+  echo("To be, or not to be,\n");
+  echo("that is the question:\n");
+  echo("Whether 'tis nobler in the mind to suffer\n")
+}
+#?
+#}
+# sig ritchie : () {Write:(FileDescr, String) -> () |%}-> ()
+# fun ritchie() {
+#   echo("UNIX is basically ");
+#   echo("a simple operating system, ");
+#   echo("but ");
+#   echo("you have to be a genius to understand the simplicity.\n")
+# }
+
+# sig hamlet : () {Write:(FileDescr, String) -> () |%}-> ()
+# fun hamlet() {
+#   echo("To be, or not to be,\n");
+#   echo("that is the question:\n");
+#   echo("Whether 'tis nobler in the mind to suffer\n")
+# }
+
+#{
+#!
+#
+# Nondeterminism: Example (2)
+#
+sig example4 : () {Ask{_},Exit{_},Fork{_},Su{_},Write{_} |_}~> ([Int], File)
+fun example4() {
+  basicIO(fun() {
+    nondet(fun() {
+      sessionmgr(Root, fun() {
+        status(fun() {
+          if (fork()) {
+            su(Alice);
+            ritchie()
+          } else {
+            su(Bob);
+            hamlet()
+          }
+        })
+      })
+    })
+  })
+}
+#?
+#}
+
+# sig example4 : () { |%}-> ([Int], File)
+# fun example4() {
+#   basicIO(fun() {
+#     nondet(fun() {
+#       sessionmgr(Root, fun() {
+#         status(fun() {
+#           if (fork()) {
+#             su(Alice);
+#             ritchie()
+#           } else {
+#             su(Bob);
+#             hamlet()
+#           }
+#         })
+#       })
+#     })
+#   })
+# }
+
+# #
+# #
+# # Mathematically well-founded nondeterminism
+# #
+# # The handler `nondet` is _exactly_ the handler Plotkin and Pretnar (2013)
+# # give for nondeterminism
+# # It satisfies the usual (semi-lattice) equations for nondeterministic choice, i.e.
+# #
+# #   if (fork()) M else M                        = M
+# #   if (fork()) M else N                        = if (fork()) N else M
+# #   if (fork()) L else { if (fork()) M else N } = if (fork()) { if (fork()) L else M } else N
+# #
+# #
+
+#{
+#!
+#
+# Interrupting processes
+#
+effectname Interrupt(e::Eff) = {Interrupt: () => () |e};
+
+sig interrupt : () -Interrupt({ |_})-> ()
+fun interrupt() { do Interrupt() }
+
+# Process reification
+typename Pstate(a::Type, e::Eff)
+         = forall q::Presence.
+           [|Done:a
+            |Paused:() {Interrupt{q} |e}~> Pstate(a, { |e})|];
+
+
+sig reifyProcess : (() ~Interrupt({ |e})~> a) {Interrupt{_} |e}~> Pstate(a, { |e})
+fun reifyProcess(m) {
+  handle(m()) {
+    case ans                   -> Done(ans)
+    case <Interrupt => resume> -> Paused(fun() { resume(()) })
+  }
+}
+#?
+#}
+
+# sig interrupt : () {Interrupt:() |%}-> ()
+# fun interrupt() { do Interrupt }
+
+# typename Pstate(a,e::Eff)
+#          = forall q::Presence.
+#            [|Done:a
+#             |Paused:() {Interrupt{q} |e}-> Pstate(a, { |e})|];
+
+
+# sig reifyProcess : (() {Interrupt:() |%}-> a) { |%}-> Pstate(a, { |%})
+# fun reifyProcess(m) {
+#   handle(m()) {
+#     case Return(ans) -> Done(ans)
+#     case Interrupt(resume) -> Paused(fun() { resume(()) })
+#   }
+# }
+
+#{
+#!
+#
+# Time-sharing via interrupts
+#
+sig schedule : ([Pstate(a, { |Nondet({ |e})})]) {Fork{_},Interrupt{_} |e}~> [a]
+fun schedule(ps) {
+  fun schedule(ps, done) {
+    switch (ps) {
+      case [] -> done
+      case Done(res) :: ps' ->
+        schedule(ps', res :: done)
+      case Paused(resume) :: ps' ->
+        schedule(ps' ++ nondet(resume), done)
+    }
+  }
+  schedule(ps, [])
+}
+
+effectname Timeshare(e::Eff) = Nondet({ |Interrupt({ |e})});
+
+sig timeshare : (() ~Timeshare({ |e})~> a) {Fork{_},Interrupt{_} |e}~> [a]
+fun timeshare(m) {
+  var p = Paused(fun() { reifyProcess(m) });
+  schedule([p])
+}
+# #?
+# #}
+
+# sig schedule : ([Pstate(a, { Fork:Bool |%})]) { |%}~> [a]
+# fun schedule(ps) {
+#   fun schedule(ps, done) {
+#     switch (ps) {
+#       case [] -> done
+#       case Done(res) :: ps' ->
+#         schedule(ps', res :: done)
+#       case Paused(resume) :: ps' ->
+#         schedule(ps' ++ nondet(resume), done)
+#     }
+#   }
+#   schedule(ps, [])
+# }
+
+# sig timeshare : (() {Fork:Bool,Interrupt:() |%}-> a) { |%}-> [a]
+# fun timeshare(m) {
+#   var p = Paused(fun() { reifyProcess(m) });
+#   schedule([p])
+# }
+
+#{
+#!
+#
+# Injecting interrupts
+#
+# First idea: external source injects interrupts (Ahman and Pretnar (2021))
+#
+# Second idea: bundle interrupts with other operations
+sig echo' : (String) {Interrupt:() => (), Write:(String) => () |_}-> ()
+fun echo'(cs) { interrupt(); do Write(cs) }
+#
+# Third idea: overload interpretations of operations
+sig interruptWrite : (() ~Interrupt({ | BasicIO({ |e})})~> a)
+                              ~Interrupt({ | BasicIO({ |e})})~> a
+fun interruptWrite(m) {
+  handle(m()) {
+    case ans -> ans
+    case <Write(cs) => resume> ->
+      interrupt(); resume(do Write(cs))
+  }
+}
+#?
+#}
+
+# sig interruptWrite : (() {Write:(FileDescr,String) -> () |%}-> a)
+#                               {Write:(FileDescr,String) -> () |%}-> a
+# fun interruptWrite(m) {
+#   handle(m()) {
+#     case Return(res) -> res
+#     case Write(fd, cs, resume) ->
+#       interrupt(); resume(do Write(fd, cs))
+#   }
+# }
+
+#{
+#!
+#
+# Time-sharing example
+#
+sig example5 : () {Ask{_},Exit{_},Fork{_},Interrupt{_},Su{_},Write{_}|_}~> ([Int], File)
+fun example5() {
+  basicIO(fun() {
+    timeshare(fun() {
+      interruptWrite(fun() {
+        sessionmgr(Root, fun() {
+          status(fun() {
+            if (fork()) {
+              su(Alice);
+              ritchie()
+            } else {
+              su(Bob);
+              hamlet()
+            }
+          })
+        })
+      })
+    })
+  })
+}
+#?
+# #}
+# sig example5 : () { |%}-> ([Int], File)
+# fun example5() {
+#   basicIO(fun() {
+#     timeshare(fun() {
+#       interruptWrite(fun() {
+#         sessionmgr(Root, fun() {
+#           status(fun() {
+#             if (fork()) {
+#               su(Alice);
+#               ritchie()
+#             } else {
+#               su(Bob);
+#               hamlet()
+#             }
+#           })
+#         })
+#       })
+#     })
+#   })
+# }
+
+#{
+#!
+#
+# State: File I/O
+#
+# Generic state handling
+sig get : () {Get:() => s |_}-> s
+fun get() { do Get() }
+
+sig put : (s) {Put:(s) => () |_}-> ()
+fun put(st) { do Put(st) }
+
+sig runState : (s, () {Get:() => s,Put:(s) => () |e}~> a) {Get{_},Put{_} |e}~> (a, s)
+fun runState(st0, m) {
+  var f = handle(m()) {
+    case ans                  -> fun(st) { (ans, st) }
+    case <Get      => resume> -> fun(st) { resume(st)(st) }
+    case <Put(st') => resume> -> fun(_)  { resume(())(st') }
+  };
+  f(st0)
+}
+#?
+#}
+
+# sig get : () {Get:s |_}-> s
+# fun get() { do Get }
+
+# sig put : (s) {Put:(s) -> () |_}-> ()
+# fun put(st) { do Put(st) }
+
+# sig runState : (s, () {Get:() -> s,Put:(s) -> () |%}-> a) { |%}-> (a, s)
+# fun runState(st0, m) {
+#   var f = handle(m()) {
+#     case Return(x)       -> fun(st) { (x, st) }
+#     case Get(resume)     -> fun(st) { resume(st)(st) }
+#     case Put(st',resume) -> fun(_)  { resume(())(st') }
+#   };
+#   f(st0)
+# }
+
+#{
+#!
+#
+# State: Example
+#
+sig incr : () {Get:() => Int, Put:(Int) => () |_}-> ()
+fun incr() { put(get() + 1) }
+
+sig example6 : () {Get{_},Put{_} |_}~> ((), Int)
+fun example6() {
+  runState(41, incr)
+}
+#?
+#}
+
+# sig incr : () {Get:Int,Put:(Int) -> () |%}-> ()
+# fun incr() { put(get() + 1) }
+
+# sig example6 : () { |%}-> ((), Int)
+# fun example6() {
+#   runState(41, incr)
+# }
+
+#!
+#
+# Basic Serial File System (BSFS)
+#
+#     Directory              I-List              Data region
+# +----------------+        +-------+     +--------------------------+
+# | "hamlet"       |------> |   2   |---> | "To be, or not to be..." |
+# +----------------+     /  +-------+     +--------------------------+
+# | "richtie.txt"  |------> |   1   |---> | "UNIX is basically..."   |
+# +----------------+    /   +-------+     +--------------------------+
+# | ...            |    |   |  ...  |     | ...                      |
+# +----------------+    |   +-------+     +--------------------------+
+# | "stdout"       |------> |   1   |---> | ""                       |
+# +----------------+    |   +-------+     +--------------------------+
+# | ...            |    /
+# +----------------+   /
+# | "act3"         |---
+# +----------------+
+#
+# Simplifications:
+#   - Operating directly on inode pointers
+#   - Reads and writes will be serial
+#
+#?
+
+#{
+#!
+#
+# BSFS structures
+#
+typename INode      = (loc:Int,lno:Int);
+typename IList      = [(Int, INode)];  # INode index -> INode
+typename Directory  = [(String, Int)]; # Filename -> INode index
+typename DataRegion = [(Int, File)];   # Loc -> File
+typename FileDescr  = Int;             # INode index
+var stdout = 0 : FileDescr;
+
+typename FileSystem = (dir:Directory,dregion:DataRegion,inodes:IList
+                                    ,lnext:Int         ,inext:Int    );
+
+sig fsys0 : FileSystem
+var fsys0 = ( dir     = [("stdout", 0)]
+            , inodes  = [(0, (loc=0, lno=1))]
+            , dregion = [(0, "")]
+            , lnext = 1, inext = 1 );
+
+
+# Utility functions
+sig lookup : (a, [(a, b)]) {Fail:Zero |_}~> b
+var lookup = lookup;
+
+sig withDefault : (a, () {Fail:Zero |e}~> a) {Fail{_} |e}~> a
+fun withDefault(d, m) {
+  handle(m()) {
+    case ans    -> ans
+    case <Fail> -> d
+  }
+}
+#?
+#}
+
+# typename INode      = (loc:Int,lno:Int);
+# typename IList      = [(Int, INode)];  # INode index -> INode
+# typename Directory  = [(String, Int)]; # Filename -> INode index
+# typename DataRegion = [(Int, File)];   # Loc -> File
+
+# typename FileSystem = (dir:Directory,dregion:DataRegion,inodes:IList
+#                                     ,lnext:Int         ,inext:Int    );
+
+# sig fsys0 : FileSystem
+# var fsys0 = ( dir     = [("stdout", 0)]
+#             , inodes  = [(0, (loc=0, lno=1))]
+#             , dregion = [(0, "")]
+#             , lnext = 1, inext = 1 );
+
+
+# # Utility functions
+# sig lookup : (a, [(a, b)]) {Fail:Zero |%}-> b
+# var lookup = lookup;
+
+# sig withDefault : (a, () {Fail:Zero |%}-> a) { |%}-> a
+# fun withDefault(x', m) {
+#   handle(m()) {
+#     case Return(x) -> x
+#     case Fail(_)   -> x'
+#   }
+# }
+
+sig fwrite : (Int, String, FileSystem) {Fail:() => Zero |_}~> FileSystem
+fun fwrite(ino, cs, fsys) {
+  var inode = lookup(ino, fsys.inodes);
+  var file  = lookup(inode.loc, fsys.dregion);
+  var file' = file ^^ cs;
+  (fsys with dregion = modify(inode.loc, file', fsys.dregion))
+}
+
+sig fread : (Int, FileSystem) {Fail:() => Zero |_}~> String
+fun fread(ino, fsys) {
+  var inode = lookup(ino, fsys.inodes);
+  lookup(inode.loc, fsys.dregion)
+}
+
+#{
+#!
+#
+# Handling BSFS operations: file reading and writing
+#
+sig fwrite : (FileDescr, String, FileSystem) {Fail: () => Zero |_}~> FileSystem
+var fwrite = fwrite;
+sig fread : (FileDescr, FileSystem) {Fail: () => Zero |e}~> String
+var fread = fread;
+
+sig fileRW : ( () { Read :(FileDescr) => Option(String)
+                  , Write2:(FileDescr, String) => ()
+                  , Get:() => FileSystem
+                  , Put:(FileSystem) => (), Fail{f} |e}~> a )
+                          {Get:() => FileSystem,Put:(FileSystem) => (), Fail{f}, Read{_}, Write2{_} |e}~> a
+fun fileRW(m) {
+  handle(m()) {
+    case ans -> ans
+    case <Read(fd) => resume> ->
+      var cs = withDefault(None, fun() {
+                 Some(fread(fd, get()))
+      }); resume(cs)
+    case <Write2(fd, cs) => resume> ->
+      withDefault((), fun() {
+        var fsys = fwrite(fd, cs, get());
+        put(fsys)
+      }); resume(())
+  }
+}
+#?
+#}
+
+# sig fileRW : ( () { Read :(FileDescr) -> Option(String)
+#                   , Write:(FileDescr, String) -> ()     |%}-> a )
+#                           {Get:FileSystem,Put:(FileSystem) -> () |%}-> a
+# fun fileRW(m) {
+#   handle(m()) {
+#     case Return(ans) -> ans
+#     case Read(fd, resume) ->
+#       var cs = withDefault(None, fun() {
+#                  Some(fread(fd, get()))
+#       }); resume(cs)
+#     case Write(fd, cs, resume) ->
+#       withDefault((), fun() {
+#         var fsys = fwrite(fd, cs, get());
+#         put(fsys)
+#       }); resume(())
+#   }
+# }
+
+sig fopen : (String, FileSystem) {Fail:() => Zero |%}~> FileDescr
+fun fopen(fname, fsys) { lookup(fname, fsys.dir) }
+
+sig fcreate : (String, FileSystem) {Fail: () => Zero |%}~> (FileDescr, FileSystem)
+fun fcreate(fname, fsys) {
+  if (has(fname, fsys.dir)) {
+    var ino = fopen(fname, fsys);
+    # Truncate file
+    var inode = lookup(ino, fsys.inodes);
+    var dregion = modify(inode.loc, "", fsys.dregion);
+    (ino, (fsys with =dregion))
+  } else {
+    var loc = fsys.lnext;
+    var dregion = (loc, "") :: fsys.dregion;
+
+    var ino   = fsys.inext;
+    var inode = (loc=loc,lno=1);
+    var inodes = (ino, inode) :: fsys.inodes;
+
+    var dir = (fname, ino) :: fsys.dir;
+    (ino, (=dir, =dregion, =inodes, lnext=loc+1, inext=ino+1))
+  }
+}
+
+#{
+#!
+#
+# BSFS operation: file opening and creation
+#
+sig fopen : (String, FileSystem) {Fail:() => Zero |_}~> FileDescr
+var fopen = fopen;
+sig fcreate : (String, FileSystem) {Fail:() => Zero |_}~> (FileDescr, FileSystem)
+var fcreate = fcreate;
+
+sig fileOC : ( () { Open  :(String) => Option(FileDescr)
+                  , Create:(String) => Option(FileDescr)
+                  , Get:() => FileSystem
+                  , Put:(FileSystem) => (), Fail{f} |e}~> a )
+                          {Get:() => FileSystem,Put:(FileSystem) => (),Fail{f},Open{_},Create{_} |e}~> a
+fun fileOC(m) {
+  handle(m()) {
+    case ans -> ans
+    case <Open(fname) => resume> ->
+      var fd = withDefault(None, fun() {
+                 Some(fopen(fname, get()))
+      }); resume(fd)
+    case <Create(fname) => resume> ->
+      var fd = withDefault(None, fun() {
+                 var (fd, fsys) = fcreate(fname, get());
+                 put(fsys); Some(fd)
+      }); resume(fd)
+  }
+}
+#?
+#}
+
+# sig fileOC : ( () { Open  :(String) -> Option(FileDescr)
+#                   , Create:(String) -> Option(FileDescr) |%}-> a )
+#                           {Get:FileSystem,Put:(FileSystem) -> () |%}-> a
+# fun fileOC(m) {
+#   handle(m()) {
+#     case Return(ans) -> ans
+#     case Open(fname, resume) ->
+#       var fd = withDefault(None, fun() {
+#                  Some(fopen(fname, get()))
+#       }); resume(fd)
+#     case Create(fname, resume) ->
+#       var fd = withDefault(None, fun() {
+#                  var (fd, fsys) = fcreate(fname, get());
+#                  put(fsys); Some(fd)
+#       }); resume(fd)
+#   }
+# }
+
+#{
+#!
+#
+# BSFS version 0
+#
+sig bsfs0 : ( () {  Open  :(String) => Option(FileDescr)
+                  , Create:(String) => Option(FileDescr)
+                  , Read :(FileDescr) => Option(String)
+                  , Write2:(FileDescr, String) => ()
+                  , Get:() => FileSystem, Put:(FileSystem) => (), Fail{f} |e}~> a )
+                          {Get:() => FileSystem, Put:(FileSystem) => (),Read{_},Write2{_},Open{_},Create{_},Fail{f} |e}~> a
+fun bsfs0(m) {
+  fileOC(fun() {
+    fileRW(m)
+  })
+}
+#?
+#}
+
+
+#{
+#!
+#
+# Stream redirection
+#
+sig >> : (() { Create:(String) => Option(FileDescr)
+             , Exit  : (Int) => Zero
+             , Write :(String) => ()      |e}~> a, String)
+             { Create:(String) => Option(FileDescr)
+             , Exit  : (Int) => Zero
+             , Write :(String) => ()      |e}~> a
+op f >> fname {
+  var fd = switch (do Create(fname)) {
+             case None -> exit(-1)
+             case Some(fd) -> fd
+  }; handle(f()) {
+      case ans -> ans
+      case <Write(cs) => resume> ->
+       resume(do Write(cs))
+    }
+}
+#?
+#}
+
+# sig >- : (() { |%}-> a, String)
+#                 { Create:(String) -> Option(FileDescr)
+#                 , Exit  : (Int) -> Zero
+#                 , Write :(FileDescr,String) -> ()      |%}-> a
+# op f >- fname {
+#   var fd = switch (do Create(fname)) {
+#              case None -> exit(-1)
+#              case Some(fd) -> fd
+#   }; handle(f()) {
+#       case Return(x) -> x
+#       case Write(_, cs, resume) ->
+#        resume(do Write(fd, cs))
+#     }
+# }
+
+#{
+#!
+#
+# Crude copy
+#
+sig ccp : (String, String) { Create:(String) => Option(FileDescr)
+                           , Exit  :(Int) => Zero
+                           , Read  :(FileDescr) => Option(String)
+                           , Open  :(String) => Option(FileDescr)
+                           , Write :(String) => () |_}~> ()
+fun ccp(src, dst) {
+  var srcfd = switch (do Open(src)) {
+    case None -> exit(-1)
+    case Some(fd) -> fd
+  };
+  switch (do Read(srcfd)) {
+    case None -> exit(-1)
+    case Some(cs) -> fun() {echo(cs)} >> dst
+  }
+}
+#?
+#}
+
+# sig ccp : (String, String) { Create:(String) -> Option(FileDescr)
+#                            , Exit  :(Int) -> Zero
+#                            , Read  :(FileDescr) -> Option(String)
+#                            , Open  :(String) -> Option(FileDescr)
+#                            , Write :(FileDescr,String) -> ()      |%}-> ()
+# fun ccp(src, dst) {
+#   var srcfd = switch (do Open(src)) {
+#     case None -> exit(-1)
+#     case Some(fd) -> fd
+#   };
+#   switch (do Read(srcfd)) {
+#     case None -> exit(-1)
+#     case Some(cs) -> fun() {echo(cs)} >- dst
+#   }
+# }
+
+#{
+#!
+#
+# Redirecting Write to Write2
+#
+
+sig legacyWrite : (() {Write:(String) => (), Write2:(FileDescr, String) => () |e}~> a)
+                      {Write{_},Write2:(FileDescr, String) => () |e}~> a
+fun legacyWrite(m) {
+  handle(m()) {
+    case ans -> ans
+    case <Write(cs) => resume> ->
+      do Write2(stdout, cs); resume(())
+  }
+}
+
+#?
+#}
+
+#{
+#!
+#
+# Plugging everything together
+#
+sig example7 : () {Ask{_},Create{_},Exit{_},Fail{_},Fork{_},Get{_},Interrupt{_}
+                  ,Open{_},Put{_},Read{_},Su{_},Write{_},Write2{_} |_}~> ([Int], FileSystem)
+fun example7() {
+  runState(fsys0, fun() {
+    bsfs0(fun() {
+      timeshare(fun() {
+        legacyWrite(fun() {
+          interruptWrite(fun() {
+            sessionmgr(Root, fun() {
+              status(fun() {
+                if (fork()) {
+                  su(Alice);
+                  ritchie >> "ritchie.txt"
+                } else {
+                  su(Bob);
+                  hamlet >> "hamlet";
+                  ccp("hamlet", "act3")
+                }
+              })
+            })
+          })
+        })
+      })
+    })
+  })
+}
+#?
+#}
+
+# sig example7 : () { |%}-> ([Int], FileSystem)
+# fun example7() {
+#   runState(fsys0, fun() {
+#     bsfs0(fun() {
+#       timeshare(fun() {
+#         interruptWrite(fun() {
+#           sessionmgr(Root, fun() {
+#             status(fun() {
+#               if (fork()) {
+#                 su(Alice);
+#                 ritchie >- "ritchie.txt"
+#               } else {
+#                 su(Bob);
+#                 hamlet >- "hamlet";
+#                 ccp("hamlet", "act3")
+#               }
+#             })
+#           })
+#         })
+#       })
+#     })
+#   })
+# }
+
+#!
+#
+# Conclusion
+#
+# + Effect handlers are a versatile programming abstraction
+# + Possible to retrofit legacy code with new functionality
+# + Operating systems can be explained in terms of handlers
+# + "Every problem can be solved by adding another handler"
+#
+# See my PhD dissertation[1] for an implementation of UNIX fork, usage of
+# shallow handlers to implement a more UNIX-y shell environment.
+#
+# [1] "Foundations for Programming and Implementing Effect Handlers",
+#     Daniel Hillerström, PhD dissertation, The University of
+#     Edinburgh, Scotland, UK, 2021.
+#
+#?
