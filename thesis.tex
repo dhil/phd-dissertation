@@ -167,7 +167,7 @@
   %
   Effect handlers provide a particularly structured approach to
   programming with first-class control by naming control reifying
-  operations and separating from their handling.
+  operations and separating them from their handling.
 
   This thesis is composed of three strands of work in which I develop
   operational foundations for programming and implementing effect
@@ -17245,7 +17245,7 @@ They identify four variations.
   delimiter in the reified context, but discards the original
   instance, i.e.
   \[
-    \Delim{\EC[\CC~k.M]} \reducesto M[\cont_{\EC}/k]
+    \Delim{\EC[\CC~k.M]} \reducesto M[\cont_{\Delim{\EC}}/k]
   \]
 \item[\CCmm] The control reifier reifies the context up to, but not
   including, the delimiter and subsequently discards the delimiter, i.e.
